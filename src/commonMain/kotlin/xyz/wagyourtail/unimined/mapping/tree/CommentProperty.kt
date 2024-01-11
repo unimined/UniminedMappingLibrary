@@ -1,0 +1,5 @@
+package xyz.wagyourtail.unimined.mapping.tree
+
+interface CommentPropertyView: NamespacedPropertyView<CommentPropertyView>
+
+interface CommentProperty: CommentPropertyView, NamespacedProperty<CommentPropertyView>

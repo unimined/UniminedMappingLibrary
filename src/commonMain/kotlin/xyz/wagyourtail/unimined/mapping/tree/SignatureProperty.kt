@@ -1,0 +1,4 @@
+package xyz.wagyourtail.unimined.mapping.tree
+
+interface SignaturePropertyView: NamespacedPropertyView<SignaturePropertyView>
+interface SignatureProperty: SignaturePropertyView, NamespacedProperty<SignaturePropertyView>
