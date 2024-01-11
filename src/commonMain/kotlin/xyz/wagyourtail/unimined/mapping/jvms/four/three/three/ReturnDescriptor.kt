@@ -1,8 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.method
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.descriptor.field.FieldType
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import kotlin.jvm.JvmInline
 
 /**
@@ -34,6 +34,16 @@ value class ReturnDescriptor private constructor(val value: String) {
     fun getVoidType() = VoidDescriptor.read(value)
 
     fun getFieldType() = FieldType.read(value)
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            if (isVoidType()) {
+                getVoidType().accept(visitor)
+            } else {
+                getFieldType().accept(visitor)
+            }
+        }
+    }
 
     override fun toString() = value
 

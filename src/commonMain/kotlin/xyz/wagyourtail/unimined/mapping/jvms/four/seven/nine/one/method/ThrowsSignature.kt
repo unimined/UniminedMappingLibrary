@@ -1,9 +1,9 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.method
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.signature.reference.ClassTypeSignature
-import xyz.wagyourtail.unimined.mapping.jvms.signature.reference.TypeVariableSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.TypeVariableSignature
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -43,6 +43,17 @@ value class ThrowsSignature private constructor(val value: String) {
     fun getClassTypeSignature() = ClassTypeSignature.read(value.substring(1))
 
     fun getTypeVariableSignature() = TypeVariableSignature.read(value.substring(1))
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor("^", true)
+            if (isClassTypeSignature()) {
+                getClassTypeSignature().accept(visitor)
+            } else {
+                getTypeVariableSignature().accept(visitor)
+            }
+        }
+    }
 
     override fun toString() = value
 

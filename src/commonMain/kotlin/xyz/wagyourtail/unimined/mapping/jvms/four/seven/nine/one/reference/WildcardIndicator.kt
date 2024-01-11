@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -28,6 +28,10 @@ value class WildcardIndicator private constructor(val value: Char) {
             }
             return WildcardIndicator(value.toChar())
         }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        visitor(this, true)
     }
 
     override fun toString() = value.toString()

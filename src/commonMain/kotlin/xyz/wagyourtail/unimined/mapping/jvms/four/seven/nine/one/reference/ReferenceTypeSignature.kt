@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -37,6 +37,18 @@ value class ReferenceTypeSignature private constructor(val value: String) {
     fun getTypeVariableSignature() = TypeVariableSignature.read(value)
 
     fun getArrayTypeSignature() = ArrayTypeSignature.read(value)
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            if (isClassTypeSignature()) {
+                getClassTypeSignature().accept(visitor)
+            } else if (isTypeVariableSignature()) {
+                getTypeVariableSignature().accept(visitor)
+            } else {
+                getArrayTypeSignature().accept(visitor)
+            }
+        }
+    }
 
     override fun toString() = value
 }

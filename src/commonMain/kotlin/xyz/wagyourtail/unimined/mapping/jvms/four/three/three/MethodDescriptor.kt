@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.method
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
 import okio.Buffer
 import okio.BufferedSource
@@ -67,6 +67,16 @@ value class MethodDescriptor private constructor(val value: String) {
             throw IllegalArgumentException("Invalid method type")
         }
         Pair(returnType, params)
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor("(", true)
+            val (returnType, params) = getParts()
+            params.forEach { it.accept(visitor) }
+            visitor(")", true)
+            returnType.accept(visitor)
+        }
     }
 
     override fun toString() = value

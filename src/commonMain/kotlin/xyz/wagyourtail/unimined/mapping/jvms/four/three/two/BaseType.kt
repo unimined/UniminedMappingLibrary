@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.field
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -28,6 +28,10 @@ value class BaseType private constructor(val value: Char) {
             }
             return BaseType(value.toChar())
         }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        visitor(this, true)
     }
 
     override fun toString() = value.toString()

@@ -1,8 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.field
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.signature.reference.ReferenceTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import kotlin.jvm.JvmInline
 
 /**
@@ -22,6 +22,12 @@ value class FieldSignature private constructor(val value: ReferenceTypeSignature
                 throw IllegalArgumentException("Invalid field signature", e)
             }
 
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            value.accept(visitor)
+        }
     }
 
     override fun toString() = value.toString()

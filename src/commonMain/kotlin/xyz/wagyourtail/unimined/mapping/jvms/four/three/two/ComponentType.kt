@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.field
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -19,6 +19,12 @@ value class ComponentType private constructor(val value: FieldType) {
             ComponentType(FieldType.read(reader))
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid component type", e)
+        }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            value.accept(visitor)
         }
     }
 

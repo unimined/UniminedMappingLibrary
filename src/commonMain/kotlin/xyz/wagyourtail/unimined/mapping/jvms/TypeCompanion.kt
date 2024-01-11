@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.util.jvms
+package xyz.wagyourtail.unimined.mapping.jvms
 
 import okio.Buffer
 import okio.BufferedSource

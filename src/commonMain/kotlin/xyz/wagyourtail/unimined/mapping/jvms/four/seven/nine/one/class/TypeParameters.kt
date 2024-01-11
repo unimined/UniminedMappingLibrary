@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.`class`
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import okio.Buffer
 import okio.BufferedSource
@@ -48,6 +48,14 @@ value class TypeParameters private constructor(val value: String) {
             }
         }
         return params
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor("<", true)
+            getParts().forEach { it.accept(visitor) }
+            visitor(">", true)
+        }
     }
 
     override fun toString() = value

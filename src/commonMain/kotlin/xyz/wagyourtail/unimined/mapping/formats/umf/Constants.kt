@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.umf.formats.umf
+package xyz.wagyourtail.unimined.mapping.formats.umf
 
 object UMFConstants {
 

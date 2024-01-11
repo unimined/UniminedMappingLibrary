@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
@@ -38,7 +38,19 @@ value class SimpleClassTypeSignature private constructor(val value: String) {
     }
 
     fun getParts(): Pair<String, TypeArguments?> {
-        return Pair(value.substringBefore('<'), if (value.contains("<")) TypeArguments.read("<${value.substringAfter('<')}") else null)
+        return Pair(
+            value.substringBefore('<'),
+            if (value.contains("<")) TypeArguments.read("<${value.substringAfter('<')}") else null
+        )
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            getParts().let {
+                visitor(it.first, true)
+                it.second?.accept(visitor)
+            }
+        }
     }
 
     override fun toString() = value

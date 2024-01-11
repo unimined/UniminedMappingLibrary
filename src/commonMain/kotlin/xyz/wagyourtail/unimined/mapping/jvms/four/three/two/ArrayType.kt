@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.field
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -34,6 +34,13 @@ value class ArrayType private constructor(val value: String) {
         val component = value.trimStart('[')
         val dimensions = value.length - component.length
         return Pair(dimensions, ComponentType.read(component))
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor("[", true)
+            getParts().accept(visitor)
+        }
     }
 
     override fun toString() = value

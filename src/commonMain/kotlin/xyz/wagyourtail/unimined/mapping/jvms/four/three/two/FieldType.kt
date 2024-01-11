@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.field
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -38,6 +38,18 @@ value class FieldType private constructor(val value: String) {
     fun getObjectType() = ObjectType.read(value)
 
     fun getArrayType() = ArrayType.read(value)
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            if (isBaseType()) {
+                getBaseType().accept(visitor)
+            } else if (isObjectType()) {
+                getObjectType().accept(visitor)
+            } else {
+                getArrayType().accept(visitor)
+            }
+        }
+    }
 
     override fun toString() = value
 

@@ -1,8 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.method
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.descriptor.field.FieldType
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import kotlin.jvm.JvmInline
 
 /**
@@ -18,6 +18,12 @@ value class ParameterDescriptor private constructor(val value: FieldType) {
 
         override fun read(reader: BufferedSource) = ParameterDescriptor(FieldType.read(reader))
 
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            value.accept(visitor)
+        }
     }
 
     override fun toString() = value.toString()

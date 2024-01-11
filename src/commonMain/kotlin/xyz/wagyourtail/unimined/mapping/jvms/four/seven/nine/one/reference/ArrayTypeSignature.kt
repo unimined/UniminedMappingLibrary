@@ -1,8 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.signature.JavaTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -36,6 +36,13 @@ value class ArrayTypeSignature private constructor(val value: String) {
 
     fun getParts(): JavaTypeSignature {
         return JavaTypeSignature.read(value.substring(1))
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor("[", true)
+            getParts().accept(visitor)
+        }
     }
 
     override fun toString() = value

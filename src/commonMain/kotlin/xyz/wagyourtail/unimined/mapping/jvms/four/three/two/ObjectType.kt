@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.field
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
@@ -31,10 +31,18 @@ value class ObjectType private constructor(val value: String) {
                     append(end)
                     when (end) {
                         ';' -> {
+                            if (value.isEmpty()) {
+                                throw IllegalArgumentException("Invalid object type, class name cannot be empty")
+                            }
                             return@buildString
                         }
 
-                        '/' -> {}
+                        '/' -> {
+                            if (value.isEmpty()) {
+                                throw IllegalArgumentException("Invalid object type, package name cannot be empty")
+                            }
+                        }
+
                         else -> throw IllegalArgumentException("Invalid object type, found illegal character: $end")
                     }
                 }
@@ -43,6 +51,10 @@ value class ObjectType private constructor(val value: String) {
     }
 
     fun getInternalName() = value.substring(1, value.length - 1)
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        visitor(this, true)
+    }
 
     override fun toString() = value
 

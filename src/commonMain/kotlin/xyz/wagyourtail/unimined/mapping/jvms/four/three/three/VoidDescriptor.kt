@@ -2,7 +2,7 @@
  * This file implements JVMS 4.3.3
  * https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-4.html#jvms-4.3.3
  */
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.method
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -30,6 +30,10 @@ value class VoidDescriptor private constructor(val value: Char) {
             }
             return VoidDescriptor(value.toChar())
         }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        visitor(this, true)
     }
 
     override fun toString() = value.toString()

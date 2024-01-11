@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.`class`
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import okio.Buffer
 import okio.BufferedSource
@@ -46,6 +46,16 @@ value class TypeParameter private constructor(val value: String) {
                 interfaces.add(InterfaceBound.read(buf))
             }
             Triple(name, classBound, interfaces)
+        }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            getParts().let { (name, classBound, interfaces) ->
+                visitor(name, true)
+                classBound.accept(visitor)
+                interfaces.forEach { it.accept(visitor) }
+            }
         }
     }
 

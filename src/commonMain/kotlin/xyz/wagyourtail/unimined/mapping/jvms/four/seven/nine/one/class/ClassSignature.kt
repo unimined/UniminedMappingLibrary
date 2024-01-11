@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.`class`
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import okio.Buffer
 import okio.BufferedSource
@@ -41,13 +41,14 @@ value class ClassSignature private constructor(val value: String) {
             }
         }
 
-        fun create(typeParams: List<String>?, superClass: String, superInterfaces: List<String>) = ClassSignature(buildString {
-            if (typeParams != null) {
-                append(TypeParameters.read("<${typeParams.joinToString("")}>"))
-            }
-            append(SuperclassSignature.read(superClass))
-            superInterfaces.forEach { append(SuperinterfaceSignature.read(it)) }
-        })
+        fun create(typeParams: List<String>?, superClass: String, superInterfaces: List<String>) =
+            ClassSignature(buildString {
+                if (typeParams != null) {
+                    append(TypeParameters.read("<${typeParams.joinToString("")}>"))
+                }
+                append(SuperclassSignature.read(superClass))
+                superInterfaces.forEach { append(SuperinterfaceSignature.read(it)) }
+            })
     }
 
     fun getParts(): Triple<TypeParameters?, SuperclassSignature, List<SuperinterfaceSignature>> {
@@ -62,6 +63,16 @@ value class ClassSignature private constructor(val value: String) {
                 interfaces.add(SuperinterfaceSignature.read(buf))
             }
             Triple(typeParams, superclass, interfaces)
+        }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            getParts().let {
+                it.first?.accept(visitor)
+                it.second.accept(visitor)
+                it.third.forEach { it.accept(visitor) }
+            }
         }
     }
 

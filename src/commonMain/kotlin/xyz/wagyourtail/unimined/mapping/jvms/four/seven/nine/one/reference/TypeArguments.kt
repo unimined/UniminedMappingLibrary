@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.Buffer
 import okio.BufferedSource
@@ -52,6 +52,14 @@ value class TypeArguments private constructor(val value: String) {
                 }
             }
             return args
+        }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor("<", true)
+            getParts().forEach { it.accept(visitor) }
+            visitor(">", true)
         }
     }
 

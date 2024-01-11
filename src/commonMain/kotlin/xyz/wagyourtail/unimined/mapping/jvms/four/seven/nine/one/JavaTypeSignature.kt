@@ -1,9 +1,9 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.descriptor.field.BaseType
-import xyz.wagyourtail.unimined.mapping.jvms.signature.reference.ReferenceTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.BaseType
 import kotlin.jvm.JvmInline
 
 /**
@@ -23,7 +23,11 @@ value class JavaTypeSignature private constructor(val type: String) {
 
         override fun read(reader: BufferedSource) =
             try {
-                JavaTypeSignature(innerTypes.first { it.shouldRead(reader.peek()) }.read(reader).toString())
+                JavaTypeSignature(innerTypes.first {
+                    it.shouldRead(
+                        reader.peek()
+                    )
+                }.read(reader).toString())
             } catch (e: Exception) {
                 throw IllegalArgumentException("Invalid java type signature", e)
             }
@@ -36,6 +40,16 @@ value class JavaTypeSignature private constructor(val type: String) {
     fun getBaseType() = BaseType.read(type)
 
     fun getReferenceTypeSignature() = ReferenceTypeSignature.read(type)
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            if (isBaseType()) {
+                getBaseType().accept(visitor)
+            } else {
+                getReferenceTypeSignature().accept(visitor)
+            }
+        }
+    }
 
     override fun toString() = type
 

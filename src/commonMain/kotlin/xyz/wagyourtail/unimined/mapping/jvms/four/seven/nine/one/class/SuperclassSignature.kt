@@ -1,8 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.`class`
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.signature.reference.ClassTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import kotlin.jvm.JvmInline
 
 /**
@@ -22,6 +22,12 @@ value class SuperclassSignature private constructor(val value: ClassTypeSignatur
             throw IllegalArgumentException("Invalid superclass signature", e)
         }
 
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            value.accept(visitor)
+        }
     }
 
     override fun toString() = value.toString()

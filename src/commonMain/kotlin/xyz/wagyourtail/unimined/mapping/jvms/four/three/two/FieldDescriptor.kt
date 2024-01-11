@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.descriptor.field
+package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
@@ -18,6 +18,12 @@ value class FieldDescriptor(val value: FieldType) {
             FieldDescriptor(FieldType.read(reader))
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid field descriptor", e)
+        }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            value.accept(visitor)
         }
     }
 

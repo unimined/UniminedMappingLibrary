@@ -1,11 +1,11 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.method
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 
 import okio.Buffer
 import okio.BufferedSource
 import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.signature.JavaTypeSignature
-import xyz.wagyourtail.unimined.mapping.jvms.signature.`class`.TypeParameters
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.TypeParameters
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -56,16 +56,23 @@ value class MethodSignature private constructor(val value: String) {
             }
         }
 
-        fun create(typeParams: List<String>?, params: List<String>, returnType: String, throws: List<String>) = MethodSignature(buildString {
-            if (typeParams != null) {
-                append(TypeParameters.read("<${typeParams.joinToString("")}>"))
-            }
-            append('(')
-            params.forEach { append(JavaTypeSignature.read(it)) }
-            append(')')
-            append(Result.read(returnType))
-            throws.forEach { append(ThrowsSignature.read("^$it")) }
-        })
+        fun create(typeParams: List<String>?, params: List<String>, returnType: String, throws: List<String>) =
+            MethodSignature(buildString {
+                if (typeParams != null) {
+                    append(TypeParameters.read("<${typeParams.joinToString("")}>"))
+                }
+                append('(')
+                params.forEach {
+                    append(
+                        JavaTypeSignature.read(
+                            it
+                        )
+                    )
+                }
+                append(')')
+                append(Result.read(returnType))
+                throws.forEach { append(ThrowsSignature.read("^$it")) }
+            })
     }
 
     fun getParts(): Pair<TypeParameters?, Triple<List<JavaTypeSignature>, Result, List<ThrowsSignature>>> {
@@ -92,6 +99,20 @@ value class MethodSignature private constructor(val value: String) {
                 throws.add(ThrowsSignature.read(it))
             }
             return Pair(typeParams, Triple(params, result, throws))
+        }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            getParts().let { (typeParams, values) ->
+                val (params, result, throws) = values
+                typeParams?.accept(visitor)
+                visitor("(", true)
+                params.forEach { it.accept(visitor) }
+                visitor(")", true)
+                result.accept(visitor)
+                throws.forEach { it.accept(visitor) }
+            }
         }
     }
 

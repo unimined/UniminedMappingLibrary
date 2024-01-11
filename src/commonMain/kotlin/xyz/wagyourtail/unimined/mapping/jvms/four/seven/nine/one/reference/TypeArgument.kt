@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.Buffer
 import okio.BufferedSource
@@ -63,6 +63,19 @@ value class TypeArgument private constructor(val value: String) {
                 null
             }
             return Pair(wildcard, ReferenceTypeSignature.read(it))
+        }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            if (isWildcard()) {
+                visitor("*", true)
+            } else {
+                getParts()?.let {
+                    it.first?.accept(visitor)
+                    it.second.accept(visitor)
+                }
+            }
         }
     }
 

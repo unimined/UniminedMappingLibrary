@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
@@ -39,6 +39,10 @@ value class TypeVariableSignature private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid type variable signature", e)
             }
         }
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        visitor(this, true)
     }
 
     override fun toString() = value

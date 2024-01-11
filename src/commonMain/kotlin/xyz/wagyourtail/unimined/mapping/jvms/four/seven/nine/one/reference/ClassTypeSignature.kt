@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.Buffer
 import okio.BufferedSource
@@ -61,12 +61,28 @@ value class ClassTypeSignature private constructor(val value: String) {
             suffixes.add(ClassTypeSignatureSuffix.read(it))
         }
         if (it.readUtf8CodePoint().checkedToChar() != ';') {
-            throw IllegalArgumentException("Invalid class type signature, expected ';' but got '${it.readUtf8CodePoint().checkedToChar()}'")
+            throw IllegalArgumentException(
+                "Invalid class type signature, expected ';' but got '${
+                    it.readUtf8CodePoint().checkedToChar()
+                }'"
+            )
         }
         if (!it.exhausted()) {
             throw IllegalArgumentException("Invalid class type signature")
         }
         Triple(packageSpec, simpleClassTypeSignature, suffixes)
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor("L", true)
+            getParts().let { (packageSpec, simpleClassTypeSignature, suffixes) ->
+                packageSpec?.accept(visitor)
+                simpleClassTypeSignature.accept(visitor)
+                suffixes.forEach { it.accept(visitor) }
+            }
+            visitor(";", true)
+        }
     }
 
     override fun toString() = value

@@ -1,8 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.`class`
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.signature.reference.ReferenceTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -32,6 +32,13 @@ value class InterfaceBound private constructor(val value: String) {
     }
 
     fun getParts(): ReferenceTypeSignature = ReferenceTypeSignature.read(value.substring(1))
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            visitor(":", true)
+            getParts().accept(visitor)
+        }
+    }
 
     override fun toString() = value
 

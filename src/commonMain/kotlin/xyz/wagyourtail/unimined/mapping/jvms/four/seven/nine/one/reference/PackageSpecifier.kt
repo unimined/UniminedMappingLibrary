@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.jvms.signature.reference
+package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
@@ -43,8 +43,20 @@ value class PackageSpecifier private constructor(val value: String) {
         }
     }
 
-    fun getParts(): List<PackageSpecifier> {
-        return value.split('/').map { PackageSpecifier(it) }
+    fun getParts(): List<String> {
+        return value.split('/')
+    }
+
+    fun accept(visitor: (Any, Boolean) -> Boolean) {
+        if (visitor(this, false)) {
+            val parts = getParts()
+            for (i in parts.indices) {
+                visitor(parts[i], true)
+                if (i != parts.lastIndex) {
+                    visitor("/", true)
+                }
+            }
+        }
     }
 
     override fun toString() = value
