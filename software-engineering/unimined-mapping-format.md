@@ -22,6 +22,7 @@ created over the years.
     * [comment / javadoc mappings](#javadoc-comments)
     * [annotations](#annotations)
     * [access transformer / access mappings](#access)
+    * [constant uninlining](#constant-group)
 2. Must be human-readable
 3. Must be relatively easy to parse / write
 4. all notations must be able to represent everything legal by the jvms
@@ -60,7 +61,6 @@ will be considered a comment and will be ignored by the parser.
 the header will be
 ```
 umf 1 0 <ext_key1> <ext_key2> ...
-<t1> <t2>
 <ns1> <ns2> <ns3> ...
 ```
 
@@ -74,10 +74,7 @@ third party extension keys must be at least 2 characters long.
 it is recommended to use a version suffix such as exampleExtension_1_0, but it is not required and the extension will
 handle version parsing of the key itself when it is read.
 
-The second line is a list of the tags that are used in the file, this allows for 
-partial parsing with libraries that don't support all parts of this spec.
-
-and the third line is a list of namespace names.
+the second line is a list of namespace names.
 it is not recommended to have namespaces with spaces in them, but it is allowed by the format.
 
 ## Classes
@@ -154,20 +151,16 @@ i <t> <ns1> <ns2> <ns3> ...
 
 where `<t>` is either `i` for inner classes, `a` for anonymous classes, or `l` for local classes.
 * in the case of `<t>` being `i`, the descriptor is expected to be a class descriptor.
-* in the case of `<t>` being `a`, the descriptor is expected to be a method descriptor or a field descriptor.
+* in the case of `<t>` being `a`, the descriptor is expected to be a method descriptor.
 * in the case of `<t>` being `l`, the descriptor is expected to be a method descriptor.
 
 one of the namespaces must be appended with a `;` followed by either a fully qualified class/method/field descriptor in ns1 names.
 * a class descriptor is normal and matches the return value of `org.objectweb.asm.Type#getDescriptor()` for the class.
     * for example `Lcom/example/ExampleClass;`
 * a method descriptor is a class descriptor + a method name + a method descriptor.
-    * for example `Lcom/example/ExampleClass;exampleMethod(Ljava/lang/String;)V`
+    * for example `Lcom/example/ExampleClass;exampleMethod;(Ljava/lang/String;)V`
     * if the method's descriptor is unknown for some reason (note: please don't) it should be serialized as `()`
-        * for example `Lcom/example/ExampleClass;exampleMethod()`
-* a field descriptor is a class descriptor + a field name + ";" + a field descriptor.
-* for example `Lcom/example/ExampleClass;exampleField;Ljava/lang/String;`
-* if the field's descriptor is unknown for some reason (note: please don't) it should be omitted as well
-    * for example `Lcom/example/ExampleClass;exampleField;`
+        * for example `Lcom/example/ExampleClass;exampleMethod;()`
 
 the `<ns1> <ns2> <ns3> ...` are the inner names of the class in the namespaces, 
 if it is anonymous this should be a number.
@@ -272,6 +265,26 @@ in the case of public/private/protected/package-private the access doesn't need 
 with static, final, abstract, synthetic, bridge, it's additive since these are flags.
 
 package-private is represented as `package`
+
+## Constant Group
+
+constant uninlining targets constants used when setting the value of methods/fields.
+this is a top-level component to declare a constant group and then subcomponents to declare the values and targets.
+```
+u <t> <ns1> <ns2> <ns3> ...
+    n <cls> <fd>
+    t <td> <p>
+```
+
+where `<t>` is the type of constant group.
+currently accepted values are `bitfield` for bitfields (where multiple constants get bitwise OR'd together), and `plain` if only a single constant's value should be used.
+
+the `n` subelement is one of the fields to use for the constant's value, with it's internal class name and field name in `<ns1>` names.
+field name can have `;` followed by a field descriptor.
+
+the `t` subelement contains `<td>`, a fully qualified method or field (see [Inner Class](#inner-class) to know what I mean). and if a method, `<p>` should be the index of the parameter to uninline or `_` if a field.
+
+this will search for all invocations of targets, and search upwards for matching ldc instructions to replace.
 
 ## Extensions
 

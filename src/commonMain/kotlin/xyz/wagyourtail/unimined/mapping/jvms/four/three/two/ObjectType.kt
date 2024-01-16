@@ -3,13 +3,14 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import xyz.wagyourtail.unimined.mapping.util.takeUTF8Until
 import kotlin.jvm.JvmInline
 
 /**
  * ObjectType:
- *   L ClassName ;
+ *   L [InternalName] ;
  */
 @JvmInline
 value class ObjectType private constructor(val value: String) {
@@ -24,36 +25,24 @@ value class ObjectType private constructor(val value: String) {
             }
             return ObjectType(buildString {
                 append('L')
-                while (true) {
-                    val value = reader.takeUTF8Until { it.checkedToChar() in JVMS.unqualifiedNameIllagalChars }
-                    val end = reader.readUtf8CodePoint().checkedToChar()
-                    append(value)
-                    append(end)
-                    when (end) {
-                        ';' -> {
-                            if (value.isEmpty()) {
-                                throw IllegalArgumentException("Invalid object type, class name cannot be empty")
-                            }
-                            return@buildString
-                        }
-
-                        '/' -> {
-                            if (value.isEmpty()) {
-                                throw IllegalArgumentException("Invalid object type, package name cannot be empty")
-                            }
-                        }
-
-                        else -> throw IllegalArgumentException("Invalid object type, found illegal character: $end")
-                    }
+                append(InternalName.read(reader))
+                val end = reader.readUtf8CodePoint().checkedToChar()
+                if (end != ';') {
+                    throw IllegalArgumentException("Invalid object type, expected ;, found $end")
                 }
+                append(';')
             })
         }
     }
 
-    fun getInternalName() = value.substring(1, value.length - 1)
+    fun getInternalName() = InternalName.read(value.substring(1, value.length - 1))
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
+        if (visitor(this, false)) {
+            visitor("L", true)
+            getInternalName().accept(visitor)
+            visitor(";", true)
+        }
     }
 
     override fun toString() = value

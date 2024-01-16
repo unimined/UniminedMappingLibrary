@@ -32,7 +32,7 @@ class FieldDescriptorTests {
         // check object types
         val str = JVMS.parseFieldDescriptor("Ljava/lang/String;")
         assertEquals("Ljava/lang/String;", str.toString())
-        assertEquals("java/lang/String", str.value.getObjectType().getInternalName())
+        assertEquals("java/lang/String", str.value.getObjectType().getInternalName().toString())
         assertEquals(str.value.isBaseType(), false)
         assertEquals(str.value.isObjectType(), true)
         assertEquals(str.value.isArrayType(), false)

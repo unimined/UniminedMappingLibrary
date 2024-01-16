@@ -8,13 +8,17 @@ interface TypeCompanion<T> {
 
     fun shouldRead(reader: BufferedSource): Boolean
 
-    fun read(value: String) = Buffer().use {
-        it.writeUtf8(value)
-        val readVal = read(it)
-        if (!it.exhausted()) {
-            throw IllegalArgumentException("Invalid type: $value")
+    fun read(value: String) = try {
+        Buffer().use {
+            it.writeUtf8(value)
+            val readVal = read(it)
+            if (!it.exhausted()) {
+                throw IllegalArgumentException("Invalid type: $value")
+            }
+            readVal
         }
-        readVal
+    } catch (e: Exception) {
+        throw IllegalArgumentException("Invalid type: $value", e)
     }
 
     fun read(reader: BufferedSource): T

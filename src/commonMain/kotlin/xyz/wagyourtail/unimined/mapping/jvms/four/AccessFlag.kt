@@ -1,7 +1,18 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four
 
-import xyz.wagyourtail.unimined.mapping.ElementType
-import xyz.wagyourtail.unimined.mapping.ElementType.*
+enum class ElementType {
+    CLASS,
+    FIELD,
+    METHOD,
+    PARAMETER,
+    INNER_CLASS,
+}
+
+val CLASS = ElementType.CLASS
+val FIELD = ElementType.FIELD
+val METHOD = ElementType.METHOD
+val PARAMETER = ElementType.PARAMETER
+val INNER_CLASS = ElementType.INNER_CLASS
 
 enum class AccessFlag(val access: Int, vararg e: ElementType) {
     PUBLIC(0x1, CLASS, FIELD, METHOD),
