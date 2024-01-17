@@ -33,7 +33,7 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
         names.filter { it !in namespaces }.forEach { _namespaces.add(it) }
     }
 
-    fun nextUnnamedNs(): Namespace {
+    override fun nextUnnamedNs(): Namespace {
         var i = 0
         while (true) {
             val ns = Namespace("unnamed_$i")

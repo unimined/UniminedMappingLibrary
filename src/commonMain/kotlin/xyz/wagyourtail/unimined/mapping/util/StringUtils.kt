@@ -40,11 +40,10 @@ fun String.translateEscapes() = buildString {
 }
 
 fun String.escape(unicode: Boolean = false, spaces: Boolean = false) = buildString {
-    if (isEmpty()) return@buildString
+    if (this@escape.isEmpty()) return@buildString
     var i = 0
-    while (i < length) {
-        val c = this@escape[i++]
-        when (c) {
+    while (i < this@escape.length) {
+        when (val c = this@escape[i++]) {
             '"' -> append("\\\"")
             '\'' -> append("\\'")
             '\\' -> append("\\\\")

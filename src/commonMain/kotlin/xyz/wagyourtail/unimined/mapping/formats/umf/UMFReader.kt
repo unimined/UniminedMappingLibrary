@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.formats.umf
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.checked
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
@@ -14,7 +15,11 @@ import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-object UMFReader : FormatReader<BufferedSource> {
+object UMFReader : FormatReader {
+
+    override fun isFormat(fileName: String, inputType: BufferedSource): Boolean {
+        return inputType.peek().readUtf8Line()?.lowercase()?.startsWith("umf") ?: false
+    }
 
     fun String.indentCount(): Int {
         var count = 0
@@ -29,14 +34,6 @@ object UMFReader : FormatReader<BufferedSource> {
         return count
     }
 
-    inline fun <reified T, U> checked(value: Any?, action: T.() -> U?): U? {
-        if (value == null) return null
-        if (value !is T) {
-            throw IllegalArgumentException("Expected ${T::class.simpleName}, found ${value?.let { it::class.simpleName}}")
-        }
-        return action(value)
-    }
-
     fun fixValue(value: String): String? {
         val count = value.count { it == '_' }
         if (count == value.length) {
@@ -48,7 +45,7 @@ object UMFReader : FormatReader<BufferedSource> {
         return value
     }
 
-    override fun read(inputType: BufferedSource, into: MappingTree) {
+    override fun read(inputType: BufferedSource, into: MappingVisitor, unnamedNamespaceNames: List<String>) {
         var token = inputType.takeNext()
         if (token.second.lowercase() != "umf") {
             throw IllegalArgumentException("Invalid UMF file, expected UMF header found ${token.second}")
@@ -66,14 +63,20 @@ object UMFReader : FormatReader<BufferedSource> {
         // TODO: check extensions
 
         inputType.takeWhitespace()
-        val namespaces = inputType.takeRemainingOnLine().map { Namespace(it.second) }.toMutableList()
-        into.mergeNs(namespaces)
+        val namespaces = inputType.takeRemainingOnLine().map { it.second }.toMutableList()
+        into.visitHeader(*namespaces.toTypedArray())
+
+        val unnamed = unnamedNamespaceNames.toMutableList()
 
         fun getNamespace(i: Int): Namespace {
             while (i !in namespaces.indices) {
-                namespaces.add(into.nextUnnamedNs())
+                if (unnamed.isNotEmpty()) {
+                    namespaces.add(unnamed.removeFirst())
+                } else {
+                    namespaces.add(into.nextUnnamedNs().name)
+                }
             }
-            return namespaces[i]
+            return Namespace(namespaces[i])
         }
 
         val visitStack = mutableListOf<BaseVisitor<*>?>(into)
@@ -94,128 +97,136 @@ object UMFReader : FormatReader<BufferedSource> {
             val last = visitStack.last()
             val next: BaseVisitor<*>? = when (entryType) {
                 EntryType.CLASS -> {
+                    val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        getNamespace(idx) to InternalName.read(name)
+                    }
                     checked<MappingVisitor, ClassVisitor>(last) {
-                        val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                            getNamespace(idx) to InternalName.read(name)
-                        }
                         visitClass(names)
                     }
                 }
                 EntryType.METHOD -> {
+                    val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        val nd = NameAndDescriptor.read(name).getParts()
+                        getNamespace(idx) to (nd.first.value to nd.second?.getMethodDescriptor())
+                    }
                     checked<ClassVisitor, MethodVisitor>(last) {
-                        val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                            val nd = NameAndDescriptor.read(name).getParts()
-                            getNamespace(idx) to (nd.first.value to nd.second?.getMethodDescriptor())
-                        }
                         visitMethod(names)
                     }
                 }
                 EntryType.PARAMETER -> {
+                    val index = fixValue(line.takeNext().second)?.toIntOrNull()
+                    val lvOrd = fixValue(line.takeNext().second)?.toIntOrNull()
+                    if (index == null && lvOrd == null) {
+                        throw IllegalArgumentException("Invalid parameter entry, no index or lvOrd")
+                    }
+                    val remain = line.takeRemainingOnLine()
+                    val names = remain.map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        getNamespace(idx) to name
+                    }
                     checked<MethodVisitor, ParameterVisitor>(last) {
-                        val index = fixValue(line.takeNext().second)?.toIntOrNull()
-                        val lvOrd = fixValue(line.takeNext().second)?.toIntOrNull()
-                        if (index == null && lvOrd == null) {
-                            throw IllegalArgumentException("Invalid parameter entry, no index or lvOrd")
-                        }
-                        val remain = line.takeRemainingOnLine()
-                        val names = remain.map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                            getNamespace(idx) to name
-                        }
                         visitParameter(index, lvOrd, names)
                     }
                 }
                 EntryType.LOCAL_VARIABLE -> {
+                    val lvOrd = fixValue(line.takeNext().second)!!.toInt()
+                    val startOp = fixValue(line.takeNext().second)?.toIntOrNull()
+                    val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        getNamespace(idx) to name
+                    }
                     checked<MethodVisitor, LocalVariableVisitor>(last) {
-                        val lvOrd = fixValue(line.takeNext().second)!!.toInt()
-                        val startOp = fixValue(line.takeNext().second)?.toIntOrNull()
-                        val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                            getNamespace(idx) to name
-                        }
                         visitLocalVariable(lvOrd, startOp, names)
                     }
                 }
                 EntryType.FIELD -> {
+                    val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        val nd = NameAndDescriptor.read(name).getParts()
+                        getNamespace(idx) to (nd.first.value to nd.second?.getFieldDescriptor())
+                    }
                     checked<ClassVisitor, FieldVisitor>(last) {
-                        val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                            val nd = NameAndDescriptor.read(name).getParts()
-                            getNamespace(idx) to (nd.first.value to nd.second?.getFieldDescriptor())
-                        }
                         visitField(names)
                     }
                 }
                 EntryType.INNER_CLASS -> {
+                    val type = fixValue(line.takeNext().second)!!.let {
+                        when (it) {
+                            "i" -> InnerClassNode.InnerType.INNER
+                            "a" -> InnerClassNode.InnerType.ANONYMOUS
+                            "l" -> InnerClassNode.InnerType.LOCAL
+                            else -> throw IllegalArgumentException("Invalid inner class type $it")
+                        }
+                    }
+                    val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        val innerName = name.substringBefore(';')
+                        val fqn = if (';' in name) {
+                            FullyQualifiedName.read(name.substringAfter(';'))
+                        } else {
+                            null
+                        }
+                        getNamespace(idx) to (innerName to fqn)
+                    }
                     checked<ClassVisitor, InnerClassVisitor>(last) {
-                        val type = fixValue(line.takeNext().second)!!.let {
-                            when (it) {
-                                "i" -> InnerClassNode.InnerType.INNER
-                                "a" -> InnerClassNode.InnerType.ANONYMOUS
-                                "l" -> InnerClassNode.InnerType.LOCAL
-                                else -> throw IllegalArgumentException("Invalid inner class type $it")
-                            }
-                        }
-                        val names = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                            val innerName = name.substringBefore(';')
-                            val fqn = if (';' in name) {
-                                FullyQualifiedName.read(name.substringAfter(';'))
-                            } else {
-                                null
-                            }
-                            getNamespace(idx) to (innerName to fqn)
-                        }
                         visitInnerClass(type, names)
                     }
                 }
                 EntryType.JAVADOC -> {
-                    checked<MemberVisitor<*>, CommentVisitor>(last) {
-                        val values = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                            getNamespace(idx) to name
+                    val values = line.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        getNamespace(idx) to name
+                    }
+                    val fixed = values.mapValues {
+                        val ref = it.value.toIntOrNull()
+                        if (ref != null) {
+                            values[getNamespace(ref)]!!
+                        } else {
+                            it.value.removePrefix("_").toIntOrNull()?.toString() ?: it.value
                         }
-                        visitComment(values)
+                    }
+                    checked<MemberVisitor<*>, CommentVisitor>(last) {
+                        visitComment(fixed)
                     }
                 }
                 EntryType.ANNOTATION -> {
-                    checked<MemberVisitor<*>, AnnotationVisitor>(last) {
-                        val type = fixValue(line.takeNext().second)!!.let {
-                            when (it) {
-                                "+" -> AnnotationType.ADD
-                                "-" -> AnnotationType.REMOVE
-                                "m" -> AnnotationType.MODIFY
-                                else -> throw IllegalArgumentException("Invalid annotation type $it")
-                            }
+                    val type = fixValue(line.takeNext().second)!!.let {
+                        when (it) {
+                            "+" -> AnnotationType.ADD
+                            "-" -> AnnotationType.REMOVE
+                            "m" -> AnnotationType.MODIFY
+                            else -> throw IllegalArgumentException("Invalid annotation type $it")
                         }
-                        val key = fixValue(line.takeNext().second)
-                        val value = fixValue(line.takeNext().second) ?: "()"
-                        val annotation = Annotation.read("@$key$value")
-                        val baseNs = getNamespace(line.takeNext().second.toInt())
-                        val namespaces = line.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
+                    }
+                    val key = fixValue(line.takeNext().second)
+                    val value = fixValue(line.takeNext().second) ?: "()"
+                    val annotation = Annotation.read("@$key$value")
+                    val baseNs = getNamespace(line.takeNext().second.toInt())
+                    val namespaces = line.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
+                    checked<MemberVisitor<*>, AnnotationVisitor>(last) {
                         visitAnnotation(type, baseNs, annotation, namespaces)
                     }
                 }
                 EntryType.ACCESS -> {
-                    checked<MemberVisitor<*>, AccessVisitor>(last) {
-                        val type = fixValue(line.takeNext().second)!!.let {
-                            when (it) {
-                                "+" -> AccessType.ADD
-                                "-" -> AccessType.REMOVE
-                                else -> throw IllegalArgumentException("Invalid access type $it")
-                            }
+                    val type = fixValue(line.takeNext().second)!!.let {
+                        when (it) {
+                            "+" -> AccessType.ADD
+                            "-" -> AccessType.REMOVE
+                            else -> throw IllegalArgumentException("Invalid access type $it")
                         }
-                        val value = AccessFlag.valueOf(fixValue(line.takeNext().second)!!.uppercase())
-                        val namespaces = line.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
+                    }
+                    val value = AccessFlag.valueOf(fixValue(line.takeNext().second)!!.uppercase())
+                    val namespaces = line.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
+                    checked<MemberVisitor<*>, AccessVisitor>(last) {
                         visitAccess(type, value, namespaces)
                     }
                 }
                 EntryType.CONSTANT_GROUP -> {
+                    val type = ConstantGroupNode.InlineType.valueOf(line.takeNext().second.uppercase())
+                    val names = line.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.iterator()
                     checked<MappingVisitor, ConstantGroupVisitor>(last) {
-                        val type = ConstantGroupNode.InlineType.valueOf(line.takeNext().second.uppercase())
-                        val names = line.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.iterator()
                         visitConstantGroup(type, names.next(), names.asSequence().toSet())
                     }
                 }
                 EntryType.CONSTANT -> {
+                    val cls = InternalName.read(line.takeNext().second)
+                    val fd = NameAndDescriptor.read(line.takeNext().second).getParts()
                     checked<ConstantGroupVisitor, ConstantVisitor>(last) {
-                        val cls = InternalName.read(line.takeNext().second)
-                        val fd = NameAndDescriptor.read(line.takeNext().second).getParts()
                         visitConstant(cls, fd.first, fd.second?.getFieldDescriptor())
                     }
                 }

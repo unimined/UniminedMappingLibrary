@@ -23,6 +23,8 @@ interface ExtensionVisitor<T: ExtensionVisitor<T, V>, V> : BaseVisitor<T>
 
 interface MappingVisitor : BaseVisitor<MappingVisitor> {
 
+    fun nextUnnamedNs(): Namespace
+
     fun visitHeader(vararg namespaces: String)
 
     fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor?

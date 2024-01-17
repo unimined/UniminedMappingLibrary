@@ -1,10 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.formats
 
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import okio.BufferedSink
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
-interface FormatWriter<T> {
+interface FormatWriter {
 
-    fun write(into: T): MappingVisitor
+    val name: String
+        get() = this::class.simpleName!!.removeSuffix("Reader")
+
+    fun write(into: BufferedSink): MappingVisitor
 
 }

@@ -17,7 +17,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-object UMFWriter : FormatWriter<BufferedSink> {
+object UMFWriter : FormatWriter {
 
     fun String?.maybeEscape(): String {
         if (this == null) return "_"
@@ -58,7 +58,19 @@ object UMFWriter : FormatWriter<BufferedSink> {
     open class UMFMemberWriter<T: MemberVisitor<T>>(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : BaseUMFWriter<T>(into, parent, indent), MemberVisitor<T> {
         override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
             into.write("${indent}*\t".encodeUtf8())
-            into.writeNamespaced(values)
+            into.writeNamespaced(values.mapValues {
+                val num = it.value.toIntOrNull()
+                if (num != null) {
+                    "_${num}"
+                } else {
+                    for (ns in root.namespaces.subList(0, root.namespaces.indexOf(it.key))) {
+                        if (it.value == values[ns]) {
+                            return@mapValues root.namespaces.indexOf(ns).toString()
+                        }
+                    }
+                    it.value
+                }
+            })
             into.write("\n".encodeUtf8())
             return UMFCommentWriter(into, this, indent + "\t")
         }
@@ -111,6 +123,12 @@ object UMFWriter : FormatWriter<BufferedSink> {
 
     class UMFMappingWriter(into: BufferedSink) : BaseUMFWriter<MappingVisitor>(into, null), MappingVisitor {
         lateinit var namespaces: List<Namespace>
+
+        override fun nextUnnamedNs(): Namespace {
+            val ns = Namespace("unnamed_${namespaces.size}")
+            namespaces += ns
+            return ns
+        }
 
         override fun visitHeader(vararg namespaces: String) {
             this.namespaces = namespaces.map { Namespace(it) }

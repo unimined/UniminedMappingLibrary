@@ -15,6 +15,7 @@ class UMFReadWriteTest {
 umf 1 0
 intermediary named
 c net/minecraft/class_310 net/minecraft/client/MinecraftClient
+ * "example\tcomment" 0
  f field_1724 _
  m method_1507;()V testMethod
   p _ 0 _ this
