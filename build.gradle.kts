@@ -40,8 +40,12 @@ kotlin {
         }
     }
     js {
-        browser()
-        nodejs()
+        browser {
+            useCommonJs()
+        }
+        nodejs {
+            useCommonJs()
+        }
         binaries.executable()
     }
 
@@ -52,12 +56,14 @@ kotlin {
                 implementation("com.github.ajalt.clikt:clikt:$cliktVersion")
                 implementation("com.squareup.okio:okio:3.7.0")
                 implementation("com.sschr15.annotations:jb-annotations-kmp:24.1.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC2")
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0-RC2")
             }
         }
         val jvmMain by getting {
@@ -66,6 +72,8 @@ kotlin {
                 runtimeOnly("ch.qos.logback:logback-classic:1.4.14") {
                     exclude(group= "org.slf4j", module= "slf4j-api")
                 }
+                // apache compress
+                implementation("org.apache.commons:commons-compress:1.25.0")
             }
         }
         val jvmTest by getting {
