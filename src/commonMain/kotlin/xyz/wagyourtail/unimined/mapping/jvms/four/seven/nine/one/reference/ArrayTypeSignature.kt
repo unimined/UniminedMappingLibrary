@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -15,11 +16,11 @@ value class ArrayTypeSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<ArrayTypeSignature> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == '['
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == '['
         }
 
-        override fun read(reader: BufferedSource): ArrayTypeSignature {
+        override fun read(reader: CharReader): ArrayTypeSignature {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid type value signature")
             }

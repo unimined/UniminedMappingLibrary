@@ -4,6 +4,7 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -15,21 +16,21 @@ import kotlin.jvm.JvmInline
 value class InternalName private constructor(val value: String) {
 
     companion object: TypeCompanion<InternalName> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() !in JVMS.unqualifiedNameIllagalChars
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() !in JVMS.unqualifiedNameIllagalChars
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             InternalName(buildString {
                 while (true) {
                     append(UnqualifiedName.read(reader))
                     if (reader.exhausted()) {
                         return@buildString
                     }
-                    if (reader.peek().readUtf8CodePoint().checkedToChar() != '/') {
+                    if (reader.peek() != '/') {
                         return@buildString
                     } else {
-                        reader.readUtf8CodePoint()
+                        reader.take()
                         append('/')
 
                     }

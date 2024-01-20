@@ -18,7 +18,7 @@ actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
     }
 
     actual suspend fun getContents(path: String): BufferedSource {
-        return Buffer().readFrom(zipFile.getInputStream(zipFile.getEntry(path)))
+        return zipFile.getInputStream(zipFile.getEntry(path)).use { Buffer().readFrom(it) }
     }
 
     override fun close() {

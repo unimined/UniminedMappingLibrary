@@ -1,12 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
-import xyz.wagyourtail.unimined.mapping.util.takeUTF8Until
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -18,18 +14,18 @@ value class TypeParameter private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeParameter> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() !in JVMS.identifierIllegalChars
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() !in JVMS.identifierIllegalChars
         }
 
-        override fun read(reader: BufferedSource): TypeParameter {
-            if (!shouldRead(reader.peek())) {
+        override fun read(reader: CharReader): TypeParameter {
+            if (!shouldRead(reader.copy())) {
                 throw IllegalArgumentException("Invalid type parameter")
             }
             return TypeParameter(buildString {
-                append(reader.takeUTF8Until { it.checkedToChar() in JVMS.identifierIllegalChars })
+                append(reader.takeUntil { it in JVMS.identifierIllegalChars })
                 append(ClassBound.read(reader))
-                while (!reader.exhausted() && InterfaceBound.shouldRead(reader.peek())) {
+                while (!reader.exhausted() && InterfaceBound.shouldRead(reader.copy())) {
                     append(InterfaceBound.read(reader))
                 }
             })
@@ -37,9 +33,8 @@ value class TypeParameter private constructor(val value: String) {
     }
 
     fun getParts(): Triple<String, ClassBound, List<InterfaceBound>> {
-        return Buffer().use { buf ->
-            buf.writeUtf8(value)
-            val name = buf.takeUTF8Until { it.checkedToChar() == ':' }
+        return CharReader(value).use { buf ->
+            val name = buf.takeUntil { it == ':' }
             val classBound = ClassBound.read(buf)
             val interfaces = mutableListOf<InterfaceBound>()
             while (!buf.exhausted()) {

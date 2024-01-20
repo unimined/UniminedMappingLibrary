@@ -1,9 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -15,17 +13,17 @@ value class ClassSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<ClassSignature> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            if (TypeParameters.shouldRead(reader.peek())) {
+        override fun shouldRead(reader: CharReader): Boolean {
+            if (TypeParameters.shouldRead(reader.copy())) {
                 return TypeParameters.shouldRead(reader)
             }
             return SuperclassSignature.shouldRead(reader)
         }
 
-        override fun read(reader: BufferedSource): ClassSignature {
+        override fun read(reader: CharReader): ClassSignature {
             try {
                 return ClassSignature(buildString {
-                    if (TypeParameters.shouldRead(reader.peek())) {
+                    if (TypeParameters.shouldRead(reader.copy())) {
                         append(TypeParameters.read(reader))
                     }
                     append(SuperclassSignature.read(reader))
@@ -52,9 +50,8 @@ value class ClassSignature private constructor(val value: String) {
     }
 
     fun getParts(): Triple<TypeParameters?, SuperclassSignature, List<SuperinterfaceSignature>> {
-        return Buffer().use { buf ->
-            buf.writeUtf8(value)
-            val typeParams = if (TypeParameters.shouldRead(buf.peek())) {
+        return CharReader(value).use { buf ->
+            val typeParams = if (TypeParameters.shouldRead(buf.copy())) {
                 TypeParameters.read(buf)
             } else null
             val superclass = SuperclassSignature.read(buf)

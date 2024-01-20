@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,11 +14,11 @@ import kotlin.jvm.JvmInline
 value class ClassConstant private constructor(val value: ObjectType) {
 
     companion object: TypeCompanion<ClassConstant> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
+        override fun shouldRead(reader: CharReader): Boolean {
             return ObjectType.shouldRead(reader)
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             ClassConstant(ObjectType.read(reader))
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid class constant", e)

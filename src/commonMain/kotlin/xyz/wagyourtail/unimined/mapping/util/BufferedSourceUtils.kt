@@ -10,14 +10,13 @@ enum class TokenType {
 }
 
 fun BufferedSource.takeWhitespace(): String {
-    return Buffer().use {
+    return buildString {
         while (!exhausted()) {
             if (peek().readUtf8CodePoint().checkedToChar()?.isWhitespace() != true) {
                 break
             }
-            it.writeUtf8CodePoint(readUtf8CodePoint())
+            appendCodePoint(readUtf8CodePoint())
         }
-        it.readUtf8()
     }
 }
 
@@ -65,16 +64,15 @@ fun BufferedSource.takeLineAsBuffer(): BufferedSource {
     }
 }
 
-fun BufferedSource.takeUTF8Until(condition: (Int) -> Boolean): String {
-    return Buffer().use {
+inline fun BufferedSource.takeUTF8Until(condition: (Int) -> Boolean): String {
+    return buildString {
         while (!exhausted()) {
             val c = peek().readUtf8CodePoint()
             if (condition(c)) {
                 break
             }
-            it.writeUtf8CodePoint(readUtf8CodePoint())
+            appendCodePoint(readUtf8CodePoint())
         }
-        it.readUtf8()
     }
 }
 
@@ -83,17 +81,17 @@ fun BufferedSource.takeUTF8Until(condition: (Int) -> Boolean): String {
  * " characters "
  */
 fun BufferedSource.takeString(): String {
-    return Buffer().use {
+    return buildString {
         var c = readUtf8CodePoint()
         if (c.checkedToChar() != '"') {
             throw IllegalArgumentException("Expected \", found ${c.checkedToChar()}")
         }
-        it.writeUtf8CodePoint(c)
+        appendCodePoint(c)
         var escapes = 0
         while (true) {
             c = readUtf8CodePoint()
             if (c == '"'.code && escapes == 0) {
-                it.writeUtf8CodePoint(c)
+                appendCodePoint(c)
                 break
             }
             if (c == '\\'.code) {
@@ -101,11 +99,10 @@ fun BufferedSource.takeString(): String {
             } else {
                 escapes = 0
             }
-            it.writeUtf8CodePoint(c)
+            appendCodePoint(c)
             if (escapes == 2) {
                 escapes = 0
             }
         }
-        it.readUtf8()
     }
 }

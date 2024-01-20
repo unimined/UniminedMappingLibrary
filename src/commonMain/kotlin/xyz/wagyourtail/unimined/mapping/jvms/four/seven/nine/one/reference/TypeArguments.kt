@@ -4,6 +4,7 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -15,11 +16,11 @@ import kotlin.jvm.JvmInline
 value class TypeArguments private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeArguments> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == '<'
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == '<'
         }
 
-        override fun read(reader: BufferedSource): TypeArguments {
+        override fun read(reader: CharReader): TypeArguments {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid type arguments")
             }
@@ -28,8 +29,8 @@ value class TypeArguments private constructor(val value: String) {
                     append('<')
                     while (true) {
                         append(TypeArgument.read(reader))
-                        if (reader.peek().readUtf8CodePoint().checkedToChar() == '>') {
-                            reader.readUtf8CodePoint()
+                        if (reader.peek() == '>') {
+                            reader.take()
                             break
                         }
                     }
@@ -42,8 +43,7 @@ value class TypeArguments private constructor(val value: String) {
     }
 
     fun getParts(): List<TypeArgument> {
-        Buffer().use {
-            it.writeUtf8(value.substring(1, value.length - 1))
+        CharReader(value.substring(1, value.length - 1)).use {
             val args = mutableListOf<TypeArgument>()
             while (true) {
                 args.add(TypeArgument.read(it))

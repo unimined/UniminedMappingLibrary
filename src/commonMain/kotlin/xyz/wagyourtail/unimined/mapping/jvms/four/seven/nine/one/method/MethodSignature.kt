@@ -1,12 +1,9 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.TypeParameters
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -18,26 +15,26 @@ value class MethodSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<MethodSignature> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            if (TypeParameters.shouldRead(reader.peek())) {
+        override fun shouldRead(reader: CharReader): Boolean {
+            if (TypeParameters.shouldRead(reader.copy())) {
                 return TypeParameters.shouldRead(reader)
             }
-            return reader.readUtf8CodePoint().checkedToChar() == '('
+            return reader.take() == '('
         }
 
-        override fun read(reader: BufferedSource): MethodSignature {
+        override fun read(reader: CharReader): MethodSignature {
             try {
                 return MethodSignature(buildString {
-                    if (TypeParameters.shouldRead(reader.peek())) {
+                    if (TypeParameters.shouldRead(reader.copy())) {
                         append(TypeParameters.read(reader))
                     }
-                    if (reader.readUtf8CodePoint().checkedToChar() != '(') {
+                    if (reader.take() != '(') {
                         throw IllegalArgumentException("Invalid method signature")
                     }
                     append('(')
                     while (true) {
-                        if (reader.peek().readUtf8CodePoint().checkedToChar() == ')') {
-                            reader.readUtf8CodePoint()
+                        if (reader.peek() == ')') {
+                            reader.take()
                             break
                         }
                         append(JavaTypeSignature.read(reader))
@@ -76,19 +73,18 @@ value class MethodSignature private constructor(val value: String) {
     }
 
     fun getParts(): Pair<TypeParameters?, Triple<List<JavaTypeSignature>, Result, List<ThrowsSignature>>> {
-        Buffer().use {
-            it.writeUtf8(value)
-            val typeParams = if (TypeParameters.shouldRead(it.peek())) {
+        CharReader(value).use {
+            val typeParams = if (TypeParameters.shouldRead(it.copy())) {
                 TypeParameters.read(it)
             } else null
-            if (it.readUtf8CodePoint().checkedToChar() != '(') {
+            if (it.take() != '(') {
                 throw IllegalArgumentException("Invalid method signature")
             }
             val params = mutableListOf<JavaTypeSignature>()
             while (true) {
-                val value = it.peek().readUtf8CodePoint().checkedToChar()
+                val value = it.peek()
                 if (value == ')') {
-                    it.readUtf8CodePoint()
+                    it.take()
                     break
                 }
                 params.add(JavaTypeSignature.read(it))

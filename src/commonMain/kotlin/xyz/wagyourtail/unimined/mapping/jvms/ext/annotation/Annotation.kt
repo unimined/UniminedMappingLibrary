@@ -6,6 +6,7 @@ import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -20,32 +21,32 @@ val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllagalChars + s
 value class Annotation private constructor(val value: String) {
 
     companion object: TypeCompanion<Annotation> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == '@'
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == '@'
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             Annotation(buildString {
-                val at = reader.readUtf8CodePoint().checkedToChar()
+                val at = reader.take()
                 if (at != '@') {
                     throw IllegalArgumentException("Invalid annotation, expected @, found $at")
                 }
                 append('@')
                 append(ObjectType.read(reader))
-                val next = reader.readUtf8CodePoint().checkedToChar()
+                val next = reader.take()
                 if (next != '(') {
                     throw IllegalArgumentException("Invalid annotation, expected (, found $next")
                 }
                 append('(')
-                if (AnnotationElements.shouldRead(reader.peek())) {
+                if (AnnotationElements.shouldRead(reader.copy())) {
                     append(AnnotationElements.read(reader))
                 }
-                val end = reader.readUtf8CodePoint().checkedToChar()
+                val end = reader.take()
                 if (end != ')') {
                     throw IllegalArgumentException("Invalid annotation, expected ), found $end")
                 }
                 append(')')
-                if (Invisible.shouldRead(reader.peek())) {
+                if (Invisible.shouldRead(reader.copy())) {
                     append(Invisible.read(reader))
                 }
             })
@@ -55,23 +56,22 @@ value class Annotation private constructor(val value: String) {
 
     }
 
-    fun getParts(): Triple<ObjectType, AnnotationElements?, Invisible?> = Buffer().use {
-        it.writeUtf8(value.substring(1))
+    fun getParts(): Triple<ObjectType, AnnotationElements?, Invisible?> = CharReader(value.substring(1)).let {
         val obj = ObjectType.read(it)
-        val open = it.readUtf8CodePoint().checkedToChar()
+        val open = it.take()
         if (open != '(') {
             throw IllegalArgumentException("Invalid annotation, expected (, found $open")
         }
-        val elements = if (AnnotationElements.shouldRead(it.peek())) {
+        val elements = if (AnnotationElements.shouldRead(it.copy())) {
             AnnotationElements.read(it)
         } else {
             null
         }
-        val close = it.readUtf8CodePoint().checkedToChar()
+        val close = it.take()
         if (close != ')') {
             throw IllegalArgumentException("Invalid annotation, expected ), found $close")
         }
-        val invis = if (Invisible.shouldRead(it.peek())) {
+        val invis = if (Invisible.shouldRead(it.copy())) {
             Invisible.read(it)
         } else {
             null

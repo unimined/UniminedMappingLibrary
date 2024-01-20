@@ -1,10 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -16,11 +13,11 @@ value class ClassTypeSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<ClassTypeSignature> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == 'L'
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == 'L'
         }
 
-        override fun read(reader: BufferedSource): ClassTypeSignature {
+        override fun read(reader: CharReader): ClassTypeSignature {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid class type signature")
             }
@@ -28,15 +25,15 @@ value class ClassTypeSignature private constructor(val value: String) {
                 return ClassTypeSignature(buildString {
                     append('L')
                     // optional package specifier
-                    if (PackageSpecifier.shouldRead(reader.peek())) {
+                    if (PackageSpecifier.shouldRead(reader.copy())) {
                         append(PackageSpecifier.read(reader))
                     }
                     // simple class value signature
                     append(SimpleClassTypeSignature.read(reader))
-                    while (!reader.exhausted() && ClassTypeSignatureSuffix.shouldRead(reader.peek())) {
+                    while (!reader.exhausted() && ClassTypeSignatureSuffix.shouldRead(reader.copy())) {
                         append(ClassTypeSignatureSuffix.read(reader))
                     }
-                    val end = reader.readUtf8CodePoint().checkedToChar()
+                    val end = reader.take()
                     if (end != ';') {
                         throw IllegalArgumentException("Invalid class type signature, expected ';' but got '$end'")
                     }
@@ -48,22 +45,21 @@ value class ClassTypeSignature private constructor(val value: String) {
         }
     }
 
-    fun getParts(): Triple<PackageSpecifier?, SimpleClassTypeSignature, List<ClassTypeSignatureSuffix>> = Buffer().use {
-        it.writeUtf8(value.substring(1))
-        val packageSpec = if (PackageSpecifier.shouldRead(it.peek())) {
+    fun getParts(): Triple<PackageSpecifier?, SimpleClassTypeSignature, List<ClassTypeSignatureSuffix>> = CharReader(value.substring(1)).use {
+        val packageSpec = if (PackageSpecifier.shouldRead(it.copy())) {
             PackageSpecifier.read(it)
         } else {
             null
         }
         val simpleClassTypeSignature = SimpleClassTypeSignature.read(it)
         val suffixes = mutableListOf<ClassTypeSignatureSuffix>()
-        while (!it.exhausted() && ClassTypeSignatureSuffix.shouldRead(it.peek())) {
+        while (!it.exhausted() && ClassTypeSignatureSuffix.shouldRead(it.copy())) {
             suffixes.add(ClassTypeSignatureSuffix.read(it))
         }
-        if (it.readUtf8CodePoint().checkedToChar() != ';') {
+        if (it.take() != ';') {
             throw IllegalArgumentException(
                 "Invalid class type signature, expected ';' but got '${
-                    it.readUtf8CodePoint().checkedToChar()
+                    it.take()
                 }'"
             )
         }

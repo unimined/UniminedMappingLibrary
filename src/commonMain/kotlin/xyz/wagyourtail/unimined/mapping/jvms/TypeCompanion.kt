@@ -1,16 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.jvms
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 
 interface TypeCompanion<T> {
 
-    fun shouldRead(reader: BufferedSource): Boolean
+    fun shouldRead(reader: CharReader): Boolean
 
     fun read(value: String) = try {
-        Buffer().use {
-            it.writeUtf8(value)
+        CharReader(value).let {
             val readVal = read(it)
             if (!it.exhausted()) {
                 throw IllegalArgumentException("Invalid type: $value")
@@ -21,6 +18,6 @@ interface TypeCompanion<T> {
         throw IllegalArgumentException("Invalid type: $value", e)
     }
 
-    fun read(reader: BufferedSource): T
+    fun read(reader: CharReader): T
 
 }

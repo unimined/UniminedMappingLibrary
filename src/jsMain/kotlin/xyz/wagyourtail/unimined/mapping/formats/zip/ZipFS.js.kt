@@ -19,10 +19,13 @@ external class JSZipFile {
 }
 
 
+private fun getFiles(jsZip: JSZip): Array<String> = js("""
+    Object.keys(jsZip.files)
+""").unsafeCast<Array<String>>()
 
 actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
-    val bytes = zip.readByteArray().toTypedArray()
-    lateinit var jsZip: JSZip
+    private val bytes = zip.readByteArray().toTypedArray()
+    private lateinit var jsZip: JSZip
 
     private suspend fun getJSZip(): JSZip {
         if (!::jsZip.isInitialized) {
@@ -32,8 +35,7 @@ actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
     }
 
     actual suspend fun getFiles(): List<String> {
-        val keys = js("Object.keys")
-        return keys(getJSZip().files).unsafeCast<Array<String>>().toList()
+        return getFiles(getJSZip()).toList()
     }
 
     actual suspend fun getContents(path: String): BufferedSource {

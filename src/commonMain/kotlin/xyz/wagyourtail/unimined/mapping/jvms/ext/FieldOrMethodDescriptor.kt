@@ -4,6 +4,7 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -15,13 +16,13 @@ value class FieldOrMethodDescriptor private constructor(val value: String) {
             MethodDescriptor
         )
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return innterTypes.firstOrNull { it.shouldRead(reader.peek()) }?.shouldRead(reader) == true
+        override fun shouldRead(reader: CharReader): Boolean {
+            return innterTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: BufferedSource): FieldOrMethodDescriptor {
+        override fun read(reader: CharReader): FieldOrMethodDescriptor {
             return FieldOrMethodDescriptor(
-                innterTypes.first { it.shouldRead(reader.peek()) }.read(reader).toString()
+                innterTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString()
             )
         }
 

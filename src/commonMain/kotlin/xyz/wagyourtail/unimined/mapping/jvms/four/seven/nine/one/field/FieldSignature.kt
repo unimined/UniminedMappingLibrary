@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,9 +14,9 @@ import kotlin.jvm.JvmInline
 value class FieldSignature private constructor(val value: ReferenceTypeSignature) {
 
     companion object: TypeCompanion<FieldSignature> {
-        override fun shouldRead(reader: BufferedSource) = ReferenceTypeSignature.shouldRead(reader)
+        override fun shouldRead(reader: CharReader) = ReferenceTypeSignature.shouldRead(reader)
 
-        override fun read(reader: BufferedSource) =
+        override fun read(reader: CharReader) =
             try {
                 FieldSignature(ReferenceTypeSignature.read(reader))
             } catch (e: Exception) {

@@ -4,6 +4,7 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -16,26 +17,26 @@ import kotlin.jvm.JvmInline
 value class TypeArgument private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeArgument> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            if (reader.peek().readUtf8CodePoint().checkedToChar() == '*') {
-                reader.readUtf8CodePoint()
+        override fun shouldRead(reader: CharReader): Boolean {
+            if (reader.peek() == '*') {
+                reader.take()
                 return true
             }
-            if (WildcardIndicator.shouldRead(reader.peek())) {
+            if (WildcardIndicator.shouldRead(reader.copy())) {
                 return WildcardIndicator.shouldRead(reader)
             }
             return ReferenceTypeSignature.shouldRead(reader)
         }
 
-        override fun read(reader: BufferedSource): TypeArgument {
-            if (!shouldRead(reader.peek())) {
+        override fun read(reader: CharReader): TypeArgument {
+            if (!shouldRead(reader.copy())) {
                 throw IllegalArgumentException("Invalid type argument")
             }
-            if (reader.peek().readUtf8CodePoint().checkedToChar() == '*') {
-                reader.readUtf8CodePoint()
+            if (reader.peek() == '*') {
+                reader.take()
                 return TypeArgument("*")
             }
-            val wildcard = if (WildcardIndicator.shouldRead(reader.peek())) {
+            val wildcard = if (WildcardIndicator.shouldRead(reader.copy())) {
                 WildcardIndicator.read(reader)
             } else {
                 null
@@ -55,9 +56,8 @@ value class TypeArgument private constructor(val value: String) {
         if (isWildcard()) {
             return null
         }
-        Buffer().use {
-            it.writeUtf8(value)
-            val wildcard = if (WildcardIndicator.shouldRead(it.peek())) {
+        CharReader(value).use {
+            val wildcard = if (WildcardIndicator.shouldRead(it.copy())) {
                 WildcardIndicator.read(it)
             } else {
                 null

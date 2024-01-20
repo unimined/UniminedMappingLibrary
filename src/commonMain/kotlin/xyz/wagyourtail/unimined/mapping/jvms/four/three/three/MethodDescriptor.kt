@@ -4,6 +4,7 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -16,11 +17,11 @@ value class MethodDescriptor private constructor(val value: String) {
 
     companion object: TypeCompanion<MethodDescriptor> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == '('
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == '('
         }
 
-        override fun read(reader: BufferedSource): MethodDescriptor {
+        override fun read(reader: CharReader): MethodDescriptor {
             try {
                 if (!shouldRead(reader)) {
                     throw IllegalArgumentException("Invalid method type")
@@ -28,8 +29,8 @@ value class MethodDescriptor private constructor(val value: String) {
                 return MethodDescriptor(buildString {
                     append('(')
                     while (true) {
-                        if (reader.peek().readUtf8CodePoint().checkedToChar() == ')') {
-                            reader.readUtf8CodePoint()
+                        if (reader.peek() == ')') {
+                            reader.take()
                             break
                         }
                         append(ParameterDescriptor.read(reader))
@@ -51,13 +52,12 @@ value class MethodDescriptor private constructor(val value: String) {
 
     }
 
-    fun getParts(): Pair<ReturnDescriptor, List<ParameterDescriptor>> = Buffer().use {
-        it.writeUtf8(value.substring(1))
+    fun getParts(): Pair<ReturnDescriptor, List<ParameterDescriptor>> = CharReader(value.substring(1)).use {
         val params = mutableListOf<ParameterDescriptor>()
         while (true) {
-            val value = it.peek().readUtf8CodePoint().checkedToChar()
+            val value = it.peek()
             if (value == ')') {
-                it.readUtf8CodePoint()
+                it.take()
                 break
             }
             params.add(ParameterDescriptor.read(it))

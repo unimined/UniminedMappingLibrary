@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.test.tinyv2
 
+import kotlinx.coroutines.test.runTest
 import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Reader
@@ -111,16 +112,16 @@ class TinyV2ReadWriteTest {
     """.trimIndent()
 
     @Test
-    fun testTinyV2ReadWrite() {
-        val mappings = Buffer().use { input ->
+    fun testTinyV2ReadWrite() = runTest {
+        val m = Buffer().use { input ->
             input.writeUtf8(mappings)
             TinyV2Reader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(TinyV2Writer.write(output))
+            m.accept(TinyV2Writer.write(output))
             output.readUtf8()
         }
-        assertEquals(this.mappings.trimEnd(), output.trimEnd())
+        assertEquals(mappings.trimEnd(), output.trimEnd())
     }
 
 }

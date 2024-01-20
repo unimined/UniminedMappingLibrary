@@ -2,10 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
-import xyz.wagyourtail.unimined.mapping.util.takeString
-import xyz.wagyourtail.unimined.mapping.util.takeUTF8Until
-import xyz.wagyourtail.unimined.mapping.util.translateEscapes
+import xyz.wagyourtail.unimined.mapping.util.*
 import kotlin.jvm.JvmInline
 
 /**
@@ -18,17 +15,17 @@ import kotlin.jvm.JvmInline
 value class AnnotationElementName private constructor(val value: String) {
 
     companion object: TypeCompanion<AnnotationElementName> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.peek().readUtf8CodePoint().checkedToChar() !in annotationIdentifierIllegalCharacters
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() !in annotationIdentifierIllegalCharacters
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             AnnotationElementName(buildString {
-                if (reader.peek().readUtf8CodePoint().checkedToChar() == '"') {
+                if (reader.peek() == '"') {
                     append(reader.takeString())
                     return@buildString
                 }
-                append(reader.takeUTF8Until { it.checkedToChar() in annotationIdentifierIllegalCharacters })
+                append(reader.takeUntil { it in annotationIdentifierIllegalCharacters })
             })
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid annotation element name", e)

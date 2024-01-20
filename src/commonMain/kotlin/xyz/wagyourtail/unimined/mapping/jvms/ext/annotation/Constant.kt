@@ -2,10 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
-import xyz.wagyourtail.unimined.mapping.util.takeString
-import xyz.wagyourtail.unimined.mapping.util.takeUTF8Until
-import xyz.wagyourtail.unimined.mapping.util.translateEscapes
+import xyz.wagyourtail.unimined.mapping.util.*
 import kotlin.jvm.JvmInline
 
 /**
@@ -21,36 +18,36 @@ import kotlin.jvm.JvmInline
 value class Constant private constructor(val value: String) {
 
     companion object: TypeCompanion<Constant> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            val first = reader.readUtf8CodePoint().checkedToChar()
+        override fun shouldRead(reader: CharReader): Boolean {
+            val first = reader.take()
             // string or number
             if (first == '"' || first?.isDigit() == true) {
                 return true
             }
             // boolean
             if (first == 't') {
-                return reader.readUtf8CodePoint().checkedToChar() == 'r' &&
-                        reader.readUtf8CodePoint().checkedToChar() == 'u' &&
-                        reader.readUtf8CodePoint().checkedToChar() == 'e'
+                return reader.take() == 'r' &&
+                        reader.take() == 'u' &&
+                        reader.take() == 'e'
             }
             if (first == 'f') {
-                return reader.readUtf8CodePoint().checkedToChar() == 'a' &&
-                        reader.readUtf8CodePoint().checkedToChar() == 'l' &&
-                        reader.readUtf8CodePoint().checkedToChar() == 's' &&
-                        reader.readUtf8CodePoint().checkedToChar() == 'e'
+                return reader.take() == 'a' &&
+                        reader.take() == 'l' &&
+                        reader.take() == 's' &&
+                        reader.take() == 'e'
             }
             return false
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             Constant(buildString {
                 // string
-                if (reader.peek().readUtf8CodePoint().checkedToChar() == '"') {
+                if (reader.peek() == '"') {
                     append(reader.takeString())
                     return@buildString
                 }
                 // boolean
-                val value = reader.takeUTF8Until { it.checkedToChar() in annotationIdentifierIllegalCharacters }
+                val value = reader.takeUntil { it in annotationIdentifierIllegalCharacters }
                 if (value == "true" || value == "false") {
                     append(value)
                     return@buildString

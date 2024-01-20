@@ -1,10 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -16,15 +13,15 @@ import kotlin.jvm.JvmInline
 value class AnnotationElements private constructor(val value: String) {
 
     companion object: TypeCompanion<AnnotationElements> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
+        override fun shouldRead(reader: CharReader): Boolean {
             return AnnotationElement.shouldRead(reader)
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             AnnotationElements(buildString {
                 append(AnnotationElement.read(reader))
-                while (reader.peek().readUtf8CodePoint().checkedToChar() == ',') {
-                    reader.readUtf8CodePoint()
+                while (reader.peek() == ',') {
+                    reader.take()
                     append(',')
                     append(AnnotationElement.read(reader))
                 }
@@ -34,15 +31,14 @@ value class AnnotationElements private constructor(val value: String) {
         }
     }
 
-    fun getParts(): List<AnnotationElement> = Buffer().use {
-        it.writeUtf8(value)
+    fun getParts(): List<AnnotationElement> = CharReader(value).use {
         val parts = mutableListOf<AnnotationElement>()
         while (true) {
             parts.add(AnnotationElement.read(it))
-            if (it.exhausted() || it.peek().readUtf8CodePoint().checkedToChar() != ',') {
+            if (it.exhausted() || it.peek() != ',') {
                 break
             }
-            it.readUtf8CodePoint()
+            it.take()
         }
         parts
     }

@@ -2,7 +2,7 @@ package xyz.wagyourtail.unimined.mapping.util
 
 import kotlin.jvm.JvmName
 
-fun <E, K, V> Iterable<E>.associateNonNull(apply: (E) -> Pair<K, V>?): Map<K, V> {
+inline fun <E, K, V> Iterable<E>.associateNonNull(apply: (E) -> Pair<K, V>?): Map<K, V> {
     val mut = mutableMapOf<K, V>()
     for (e in this) {
         apply(e)?.let {
@@ -12,7 +12,7 @@ fun <E, K, V> Iterable<E>.associateNonNull(apply: (E) -> Pair<K, V>?): Map<K, V>
     return mut
 }
 
-fun <K, V> Iterable<K>.associateWithNonNull(apply: (K) -> V?): Map<K, V> {
+inline fun <K, V> Iterable<K>.associateWithNonNull(apply: (K) -> V?): Map<K, V> {
     val mut = mutableMapOf<K, V>()
     for (e in this) {
         apply(e)?.let {
@@ -32,4 +32,4 @@ fun <V> Iterable<IndexedValue<V?>>.filterNotNullValues(): List<IndexedValue<V>> 
 @Suppress("UNCHECKED_CAST")
 fun <K, V> Map<K, V?>.filterNotNullValues(): Map<K, V> = filterValues { it != null } as Map<K, V>
 
-fun <K, V, U> Map<K, V>.mapNotNullValues(mapper: (Map.Entry<K, V>) -> U?): Map<K, U> = mapValues(mapper).filterNotNullValues()
+inline fun <K, V, U> Map<K, V>.mapNotNullValues(mapper: (Map.Entry<K, V>) -> U?): Map<K, U> = mapValues(mapper).filterNotNullValues()

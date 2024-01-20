@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -12,9 +13,9 @@ import kotlin.jvm.JvmInline
 value class FieldDescriptor(val value: FieldType) {
 
     companion object: TypeCompanion<FieldDescriptor> {
-        override fun shouldRead(reader: BufferedSource) = FieldType.shouldRead(reader)
+        override fun shouldRead(reader: CharReader) = FieldType.shouldRead(reader)
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             FieldDescriptor(FieldType.read(reader))
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid field descriptor", e)

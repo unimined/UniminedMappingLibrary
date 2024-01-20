@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.util.appendCodePoint
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import xyz.wagyourtail.unimined.mapping.util.translateEscapes
 import xyz.wagyourtail.unimined.mapping.visitor.*
@@ -25,19 +26,18 @@ object TinyV2Reader : FormatReader {
         if (peek().readUtf8CodePoint().checkedToChar() == '\n') {
             return null
         }
-        return Buffer().use {
+        return buildString {
             while (!exhausted()) {
                 val b = peek().readUtf8CodePoint()
                 if (b.checkedToChar() == '\n') break
                 val c = readUtf8CodePoint()
                 if (c.checkedToChar() == '\t') break
-                it.writeUtf8CodePoint(c)
+                appendCodePoint(c)
             }
-            it.readUtf8()
         }
     }
 
-    override fun read(inputType: BufferedSource, into: MappingVisitor, unnamedNamespaceNames: List<String>) {
+    override suspend fun read(inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, unnamedNamespaceNames: List<String>) {
         val v = inputType.nextCol()
         if (v != "tiny") throw IllegalArgumentException("Invalid tinyv2 file")
         if (inputType.nextCol() != "2") throw IllegalArgumentException("Invalid tinyv2 file")

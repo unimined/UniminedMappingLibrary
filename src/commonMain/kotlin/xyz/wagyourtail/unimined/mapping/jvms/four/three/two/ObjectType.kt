@@ -4,6 +4,7 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import xyz.wagyourtail.unimined.mapping.util.takeUTF8Until
 import kotlin.jvm.JvmInline
@@ -17,16 +18,16 @@ value class ObjectType private constructor(val value: String) {
 
     companion object: TypeCompanion<ObjectType> {
 
-        override fun shouldRead(reader: BufferedSource) = reader.readUtf8CodePoint().checkedToChar() == 'L'
+        override fun shouldRead(reader: CharReader) = reader.take() == 'L'
 
-        override fun read(reader: BufferedSource): ObjectType {
+        override fun read(reader: CharReader): ObjectType {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid object type")
             }
             return ObjectType(buildString {
                 append('L')
                 append(InternalName.read(reader))
-                val end = reader.readUtf8CodePoint().checkedToChar()
+                val end = reader.take()
                 if (end != ';') {
                     throw IllegalArgumentException("Invalid object type, expected ;, found $end")
                 }

@@ -1,14 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -19,14 +13,14 @@ import kotlin.jvm.JvmInline
 value class FullyQualifiedName(val value: String) {
 
     companion object : TypeCompanion<FullyQualifiedName> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == 'L'
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == 'L'
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             FullyQualifiedName(buildString {
                 append(ObjectType.read(reader))
-                if (!reader.exhausted() && NameAndDescriptor.shouldRead(reader.peek())) {
+                if (reader.exhausted() && NameAndDescriptor.shouldRead(reader.copy())) {
                     append(NameAndDescriptor.read(reader))
                 }
             })
@@ -36,8 +30,7 @@ value class FullyQualifiedName(val value: String) {
 
     }
 
-    fun getParts(): Pair<ObjectType, NameAndDescriptor?> = Buffer().use {
-        it.writeUtf8(value)
+    fun getParts(): Pair<ObjectType, NameAndDescriptor?> = CharReader(value).let {
         val objectType = ObjectType.read(it)
         if (it.exhausted()) {
             objectType to null

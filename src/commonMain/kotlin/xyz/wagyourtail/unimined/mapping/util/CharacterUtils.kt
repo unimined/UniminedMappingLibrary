@@ -24,3 +24,14 @@ fun Int.checkedToChar(): Char? =
     } else {
         null
     }
+
+fun StringBuilder.appendCodePoint(value: Int) {
+    if (value in (Char.MIN_VALUE.code..Char.MAX_VALUE.code)) {
+        append(value.toChar())
+    } else if (value.isValidUnicodeCodePoint()) {
+        append(value.highUnicodeSurrogate())
+        append(value.lowUnicodeSurrogate())
+    } else {
+        throw IllegalArgumentException("Invalid unicode code point: $value")
+    }
+}

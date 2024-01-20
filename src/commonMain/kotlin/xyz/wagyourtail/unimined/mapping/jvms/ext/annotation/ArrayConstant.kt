@@ -4,6 +4,7 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
@@ -15,20 +16,20 @@ import kotlin.jvm.JvmInline
 value class ArrayConstant private constructor(val value: String) {
 
     companion object: TypeCompanion<ArrayConstant> {
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == '{'
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == '{'
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid array constant")
             }
             ArrayConstant(buildString {
                 append('{')
-                if (reader.peek().readUtf8CodePoint().checkedToChar() != '}') {
+                if (reader.peek() != '}') {
                     append(ArrayElements.read(reader))
                 }
-                val end = reader.readUtf8CodePoint().checkedToChar()
+                val end = reader.take()
                 if (end != '}') {
                     throw IllegalArgumentException("Invalid array constant, expected }, found $end")
                 }
@@ -39,9 +40,8 @@ value class ArrayConstant private constructor(val value: String) {
         }
     }
 
-    fun getParts(): ArrayElements? = Buffer().use {
-        it.writeUtf8(value.substring(1))
-        if (it.peek().readUtf8CodePoint().checkedToChar() == '}') {
+    fun getParts(): ArrayElements? = CharReader(value.substring(1)).use {
+        if (it.peek() == '}') {
             return null
         }
         return ArrayElements.read(it)

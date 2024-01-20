@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -16,11 +17,11 @@ value class ReferenceTypeSignature private constructor(val value: String) {
     companion object: TypeCompanion<ReferenceTypeSignature> {
         val innerTypes: Set<TypeCompanion<*>> = setOf(ClassTypeSignature, TypeVariableSignature, ArrayTypeSignature)
 
-        override fun shouldRead(reader: BufferedSource) =
-            innerTypes.firstOrNull { it.shouldRead(reader.peek()) }?.shouldRead(reader) == true
+        override fun shouldRead(reader: CharReader) =
+            innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
 
-        override fun read(reader: BufferedSource) = try {
-            ReferenceTypeSignature(innerTypes.first { it.shouldRead(reader.peek()) }.read(reader).toString())
+        override fun read(reader: CharReader) = try {
+            ReferenceTypeSignature(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid reference type signature", e)
         }

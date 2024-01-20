@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,9 +15,9 @@ value class ParameterDescriptor private constructor(val value: FieldType) {
 
     companion object: TypeCompanion<ParameterDescriptor> {
 
-        override fun shouldRead(reader: BufferedSource) = FieldType.shouldRead(reader)
+        override fun shouldRead(reader: CharReader) = FieldType.shouldRead(reader)
 
-        override fun read(reader: BufferedSource) = ParameterDescriptor(FieldType.read(reader))
+        override fun read(reader: CharReader) = ParameterDescriptor(FieldType.read(reader))
 
     }
 

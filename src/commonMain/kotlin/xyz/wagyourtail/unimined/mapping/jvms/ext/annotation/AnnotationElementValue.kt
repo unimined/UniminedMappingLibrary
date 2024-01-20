@@ -4,6 +4,7 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -27,12 +28,12 @@ value class AnnotationElementValue private constructor(val value: String) {
             Constant
         )
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return innerTypes.firstOrNull { it.shouldRead(reader.peek()) }?.shouldRead(reader) == true
+        override fun shouldRead(reader: CharReader): Boolean {
+            return innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: BufferedSource) = try {
-            AnnotationElementValue(innerTypes.first { it.shouldRead(reader.peek()) }.read(reader).toString())
+        override fun read(reader: CharReader) = try {
+            AnnotationElementValue(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid annotation element value", e)
         }
@@ -42,8 +43,7 @@ value class AnnotationElementValue private constructor(val value: String) {
 
     fun isArrayConstant() = value[0] == '{'
 
-    fun isEnumConstant() = Buffer().use {
-        it.writeUtf8(value)
+    fun isEnumConstant() = CharReader(value).use {
         EnumConstant.shouldRead(it)
     }
 

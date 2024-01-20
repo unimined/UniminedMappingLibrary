@@ -14,19 +14,20 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor {
     private val _namespaces = mutableListOf<Namespace>()
-    private val classes = mutableSetOf<ClassNode>()
+    private val _classes = mutableSetOf<ClassNode>()
     private val constantGroups = mutableSetOf<ConstantGroupNode>()
 
     val namespaces: List<Namespace> get() = _namespaces
+    val classes: Set<ClassNode> get() = _classes
 
-    internal val byNamespace = mutableMapOf<Namespace, MutableMap<InternalName, ClassNode>>().withDefault { ns ->
-        val map = mutableMapOf<InternalName, ClassNode>()
-        classes.forEach { c -> c.getName(ns)?.let { map[it] = c } }
-        map
-    }
+    internal val byNamespace = mutableMapOf<Namespace, MutableMap<InternalName, ClassNode>>()
 
     fun getClass(namespace: Namespace, name: InternalName): ClassNode? {
-        return byNamespace.getValue(namespace)[name]
+        return (byNamespace.getOrPut(namespace) {
+            val map = mutableMapOf<InternalName, ClassNode>()
+            _classes.forEach { c -> c.getName(namespace)?.let { map[it] = c } }
+            map
+        })[name]
     }
 
     internal fun mergeNs(names: Iterable<Namespace>) {
@@ -195,7 +196,7 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
         names.keys.filter { it !in namespaces }.forEach { _namespaces.add(it) }
         val node = ClassNode(this)
         node.setNames(names)
-        classes.add(node)
+        _classes.add(node)
         return node
     }
 

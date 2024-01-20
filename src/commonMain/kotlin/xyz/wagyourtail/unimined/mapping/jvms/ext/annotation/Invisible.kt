@@ -1,8 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,17 +13,17 @@ value class Invisible private constructor(val value: String) {
 
     companion object: TypeCompanion<Invisible> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
+        override fun shouldRead(reader: CharReader): Boolean {
             if (reader.exhausted()) {
                 return false
             }
-            return reader.readUtf8CodePoint().checkedToChar() == '.'
+            return reader.take() == '.'
         }
 
-        override fun read(reader: BufferedSource) = try {
+        override fun read(reader: CharReader) = try {
             Invisible(buildString {
                 for (i in ".invisible") {
-                    val char = reader.readUtf8CodePoint().checkedToChar()
+                    val char = reader.take()
                     if (char != i) {
                         throw IllegalArgumentException("Invalid invisible, expected $i, found $char")
                     }

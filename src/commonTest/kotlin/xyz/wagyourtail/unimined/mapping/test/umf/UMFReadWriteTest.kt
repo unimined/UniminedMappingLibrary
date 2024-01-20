@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.test.umf
 
+import kotlinx.coroutines.test.runTest
 import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
@@ -10,7 +11,7 @@ import kotlin.test.assertEquals
 class UMFReadWriteTest {
 
     @Test
-    fun testReadWrite() {
+    fun testReadWrite() = runTest {
         val inp = """
 umf	1	0
 intermediary	named
@@ -34,7 +35,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
     }
 
     @Test
-    fun testMergableMethods() {
+    fun testMergableMethods() = runTest {
         val inp = """
 umf	1	0
 intermediary	named	extra
@@ -71,7 +72,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
     }
 
     @Test
-    fun testMinimize() {
+    fun testMinimize() = runTest {
         val inp = """
 umf	1	0
 intermediary	named	extra

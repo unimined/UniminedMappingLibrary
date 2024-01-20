@@ -1,10 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -16,19 +13,19 @@ value class TypeParameters private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeParameters> {
 
-        override fun shouldRead(reader: BufferedSource): Boolean {
-            return reader.readUtf8CodePoint().checkedToChar() == '<'
+        override fun shouldRead(reader: CharReader): Boolean {
+            return reader.take() == '<'
         }
 
-        override fun read(reader: BufferedSource): TypeParameters {
+        override fun read(reader: CharReader): TypeParameters {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid type parameters")
             }
             return TypeParameters(buildString {
                 append('<')
                 while (true) {
-                    if (reader.peek().readUtf8CodePoint().checkedToChar() == '>') {
-                        reader.readUtf8CodePoint()
+                    if (reader.peek() == '>') {
+                        reader.take()
                         break
                     }
                     append(TypeParameter.read(reader))
@@ -41,8 +38,7 @@ value class TypeParameters private constructor(val value: String) {
 
     fun getParts(): List<TypeParameter> {
         val params = mutableListOf<TypeParameter>()
-        Buffer().use {
-            it.writeUtf8(value.substring(1, value.length - 1))
+        CharReader(value.substring(1, value.length - 1)).use {
             while (!it.exhausted()) {
                 params.add(TypeParameter.read(it))
             }

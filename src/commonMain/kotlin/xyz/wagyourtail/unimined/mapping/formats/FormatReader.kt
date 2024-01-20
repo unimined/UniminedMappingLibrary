@@ -7,13 +7,15 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 interface FormatReader {
 
     val name: String
-        get() = this::class.simpleName!!.removeSuffix("Reader")
+        get() = this::class.simpleName!!.removeSuffix("Reader").lowercase()
 
     fun isFormat(fileName: String, inputType: BufferedSource): Boolean
 
-    fun read(inputType: BufferedSource, unnamedNamespaceNames: List<String> = listOf()): MappingTree = MappingTree().also { read(inputType, it, unnamedNamespaceNames) }
+    suspend fun read(inputType: BufferedSource, unnamedNamespaceNames: List<String> = listOf()): MappingTree = MappingTree().also { read(inputType, it, it, unnamedNamespaceNames) }
 
-    fun read(inputType: BufferedSource, into: MappingVisitor, unnamedNamespaceNames: List<String> = listOf())
+    suspend fun read(inputType: BufferedSource, into: MappingTree, unnamedNamespaceNames: List<String> = listOf()) = read(inputType, into, into, unnamedNamespaceNames)
+
+    suspend fun read(inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, unnamedNamespaceNames: List<String> = listOf())
 
 }
 
