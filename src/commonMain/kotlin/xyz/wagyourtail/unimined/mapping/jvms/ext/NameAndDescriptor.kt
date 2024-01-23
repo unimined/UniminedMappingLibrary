@@ -13,6 +13,14 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class NameAndDescriptor(val value: String) {
 
+    constructor(name: UnqualifiedName, descriptor: FieldOrMethodDescriptor?) : this(buildString {
+        append(name)
+        if (descriptor != null) {
+            append(';')
+            append(descriptor)
+        }
+    })
+
     companion object : TypeCompanion<NameAndDescriptor> {
         override fun shouldRead(reader: CharReader): Boolean {
             return reader.take() !in JVMS.unqualifiedNameIllagalChars
@@ -29,6 +37,7 @@ value class NameAndDescriptor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid fully qualified member type", e)
         }
+
     }
 
     fun getParts(): Pair<UnqualifiedName, FieldOrMethodDescriptor?> {

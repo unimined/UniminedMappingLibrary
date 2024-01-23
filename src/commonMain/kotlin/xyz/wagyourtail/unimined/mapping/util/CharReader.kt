@@ -1,26 +1,36 @@
 package xyz.wagyourtail.unimined.mapping.util
 
-class CharReader(val buffer: CharArray, var pos: Int = 0) {
-
-    constructor(input: String, pos: Int = 0): this(input.toCharArray(), pos)
+class CharReader(val buffer: String, var pos: Int = 0) {
 
     fun copy() = CharReader(buffer, pos)
 
-    fun exhausted() = pos >= buffer.size
+    fun exhausted() = pos >= buffer.length
 
     fun peek(): Char? {
-        if (pos >= buffer.size) return null
+        if (pos >= buffer.length) return null
         return buffer[pos]
     }
 
     fun take(): Char? {
-        if (pos > buffer.size) return null
+        if (pos >= buffer.length) return null
         return buffer[pos++]
+    }
+
+    fun takeLine(): String {
+        return takeUntil { it == '\n' }
     }
 
     inline fun takeUntil(predicate: (Char) -> Boolean): String {
         return buildString {
-            while (pos < buffer.size && !predicate(buffer[pos])) {
+            while (pos < buffer.length && !predicate(buffer[pos])) {
+                append(buffer[pos++])
+            }
+        }
+    }
+
+    inline fun takeWhile(predicate: (Char) -> Boolean): String {
+        return buildString {
+            while (pos < buffer.length && predicate(buffer[pos])) {
                 append(buffer[pos++])
             }
         }
@@ -30,9 +40,9 @@ class CharReader(val buffer: CharArray, var pos: Int = 0) {
         return takeUntil { !it.isWhitespace() }
     }
 
-    fun takeNext(): Pair<TokenType, String> {
-        takeWhitespace()
-        if (pos >= buffer.size) {
+    fun takeNext(sep: (Char) -> Boolean = { it.isWhitespace() }): Pair<TokenType, String> {
+        takeWhile(sep)
+        if (pos >= buffer.length) {
             return TokenType.LITERAL to ""
         }
         val next = peek()
@@ -41,7 +51,23 @@ class CharReader(val buffer: CharArray, var pos: Int = 0) {
                 it.substring(1, it.length - 1).translateEscapes()
             }
         }
-        return TokenType.LITERAL to takeUntil { it.isWhitespace() }
+        return TokenType.LITERAL to takeUntil(sep)
+    }
+
+    fun takeNextLiteral(sep: Char = '\t'): String? {
+        if (exhausted()) return null
+        if (peek() == '\n') {
+            return null
+        }
+        return buildString {
+            while (!exhausted()) {
+                val b = peek()
+                if (b == '\n') break
+                val c = take()
+                if (c == sep) break
+                append(c)
+            }
+        }
     }
 
     fun takeNonNewlineWhitespace(): String {
@@ -50,7 +76,7 @@ class CharReader(val buffer: CharArray, var pos: Int = 0) {
 
     fun takeRemainingOnLine(): List<Pair<TokenType, String>> {
         val list = mutableListOf<Pair<TokenType, String>>()
-        while (pos < buffer.size) {
+        while (pos < buffer.length) {
             takeNonNewlineWhitespace()
             val next = peek()
             if (next == '\n') {
@@ -65,7 +91,7 @@ class CharReader(val buffer: CharArray, var pos: Int = 0) {
         expect('"')
         append('"')
         var escapes = 0
-        while (pos < buffer.size) {
+        while (pos < buffer.length) {
             val c = take()
             if (c == '"' && escapes == 0) {
                 append(c)

@@ -10,7 +10,7 @@ interface TypeCompanion<T> {
         CharReader(value).let {
             val readVal = read(it)
             if (!it.exhausted()) {
-                throw IllegalArgumentException("Invalid type: $value")
+                throw IllegalArgumentException("Invalid type: \"$value\", not fully read")
             }
             readVal
         }

@@ -2,11 +2,14 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
+import xyz.wagyourtail.unimined.mapping.visitor.AccessType
+import xyz.wagyourtail.unimined.mapping.visitor.AccessVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.InnerClassVisitor
 
-class InnerClassNode(parent: ClassNode, val innerType: InnerType) : BaseNode<InnerClassVisitor, ClassVisitor>(parent), InnerClassVisitor {
+class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParentNode<InnerClassVisitor, ClassVisitor>(parent), InnerClassVisitor {
     private val _names: MutableMap<Namespace, String> = mutableMapOf()
     private val _targets: MutableMap<Namespace, FullyQualifiedName> = mutableMapOf()
 

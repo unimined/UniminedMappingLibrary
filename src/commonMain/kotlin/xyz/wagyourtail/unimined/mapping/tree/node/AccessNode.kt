@@ -2,11 +2,9 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
-import xyz.wagyourtail.unimined.mapping.visitor.AccessVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class AccessNode<U: MemberVisitor<U>>(parent: MemberNode<U, *>, val accessType: AccessType, val accessFlag: AccessFlag) : BaseNode<AccessVisitor, U>(parent), AccessVisitor {
+class AccessNode<U: AccessParentVisitor<U>>(parent: BaseNode<U, *>, val accessType: AccessType, val accessFlag: AccessFlag) : BaseNode<AccessVisitor, U>(parent), AccessVisitor {
     private val _namespaces: MutableSet<Namespace> = mutableSetOf()
     val namespaces: Set<Namespace> get() = _namespaces
 

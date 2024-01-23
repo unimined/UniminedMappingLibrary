@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.test.tinyv2
+package xyz.wagyourtail.unimined.mapping.test.formats.tinyv2
 
 import kotlinx.coroutines.test.runTest
 import okio.Buffer

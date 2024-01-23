@@ -12,6 +12,13 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class FullyQualifiedName(val value: String) {
 
+    constructor(type: ObjectType, nameAndDescriptor: NameAndDescriptor?) : this(buildString {
+        append(type)
+        if (nameAndDescriptor != null) {
+            append(nameAndDescriptor)
+        }
+    })
+
     companion object : TypeCompanion<FullyQualifiedName> {
         override fun shouldRead(reader: CharReader): Boolean {
             return reader.take() == 'L'

@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline
+import kotlin.jvm.JvmName
 
 @JvmInline
 value class FieldOrMethodDescriptor private constructor(val value: String) {
@@ -26,6 +27,11 @@ value class FieldOrMethodDescriptor private constructor(val value: String) {
             )
         }
 
+        @JvmName("ofField")
+        operator fun invoke(descriptor: FieldDescriptor) = FieldOrMethodDescriptor(descriptor.toString())
+
+        @JvmName("ofMethod")
+        operator fun invoke(descriptor: MethodDescriptor) = FieldOrMethodDescriptor(descriptor.toString())
     }
 
     fun isMethodDescriptor() = value[0] == '('

@@ -10,14 +10,18 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.Class
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.tree.node.PackageNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor {
     private val _namespaces = mutableListOf<Namespace>()
+    private val _packages = mutableSetOf<PackageNode>()
     private val _classes = mutableSetOf<ClassNode>()
     private val constantGroups = mutableSetOf<ConstantGroupNode>()
 
     val namespaces: List<Namespace> get() = _namespaces
+    val packages: Set<PackageNode> get() = _packages
     val classes: Set<ClassNode> get() = _classes
 
     internal val byNamespace = mutableMapOf<Namespace, MutableMap<InternalName, ClassNode>>()
@@ -183,6 +187,22 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
         mergeNs(namespaces.map { Namespace(it) }.toSet())
     }
 
+    override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
+        for (ns in namespaces.filter { it in names }) {
+            // check if exists
+            val existing = packages.firstOrNull { it.names[ns] == names[ns] }
+            if (existing != null) {
+                // add other names
+                existing.setNames(names)
+                return existing
+            }
+        }
+        val node = PackageNode(this)
+        node.setNames(names)
+        _packages.add(node)
+        return node
+    }
+
     override fun visitClass(names: Map<Namespace, InternalName>): ClassNode {
         for (ns in namespaces.filter { it in names }) {
             // check if exists
@@ -193,7 +213,6 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
                 return existing
             }
         }
-        names.keys.filter { it !in namespaces }.forEach { _namespaces.add(it) }
         val node = ClassNode(this)
         node.setNames(names)
         _classes.add(node)
@@ -222,6 +241,9 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
     override fun acceptInner(visitor: MappingVisitor, minimize: Boolean) {
         visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
         super.acceptInner(visitor, minimize)
+        for (pkg in packages) {
+            pkg.accept(visitor, minimize)
+        }
         for (cls in classes) {
             cls.accept(visitor, minimize)
         }

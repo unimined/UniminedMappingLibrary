@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats.umf
 
 import okio.BufferedSource
+import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.checked
@@ -17,7 +18,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 object UMFReader : FormatReader {
 
-    override fun isFormat(fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         return inputType.peek().readUtf8Line()?.lowercase()?.startsWith("umf") ?: false
     }
 
@@ -45,8 +46,7 @@ object UMFReader : FormatReader {
         return value
     }
 
-    override suspend fun read(inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, unnamedNamespaceNames: List<String>) {
-        val input = CharReader(inputType.readUtf8())
+    override suspend fun read(envType: EnvType, input: CharReader, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
         var token = input.takeNext()
         if (token.second.lowercase() != "umf") {
             throw IllegalArgumentException("Invalid UMF file, expected UMF header found ${token.second}")
@@ -64,18 +64,12 @@ object UMFReader : FormatReader {
         // TODO: check extensions
 
         input.takeWhitespace()
-        val namespaces = input.takeRemainingOnLine().map { it.second }.toMutableList()
+        val namespaces = input.takeRemainingOnLine().map { nsMapping[it.second] ?: it.second }.toMutableList()
         into.visitHeader(*namespaces.toTypedArray())
-
-        val unnamed = unnamedNamespaceNames.toMutableList()
 
         fun getNamespace(i: Int): Namespace {
             while (i !in namespaces.indices) {
-                if (unnamed.isNotEmpty()) {
-                    namespaces.add(unnamed.removeFirst())
-                } else {
-                    namespaces.add(into.nextUnnamedNs().name)
-                }
+                namespaces.add(into.nextUnnamedNs().name)
             }
             return Namespace(namespaces[i])
         }

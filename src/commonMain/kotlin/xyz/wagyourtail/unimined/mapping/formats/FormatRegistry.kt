@@ -2,10 +2,15 @@ package xyz.wagyourtail.unimined.mapping.formats
 
 import okio.BufferedSink
 import okio.BufferedSource
+import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.formats.nests.NestReader
+import xyz.wagyourtail.unimined.mapping.formats.srg.SrgReader
+import xyz.wagyourtail.unimined.mapping.formats.srg.SrgWriter
 import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Writer
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
+import xyz.wagyourtail.unimined.mapping.formats.unpick.UnpickReader
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipReader
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
@@ -13,9 +18,12 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object FormatRegistry {
 
     val builtinFormats = listOf(
+        FormatProvider(ZipReader, null, listOf()),
         FormatProvider(UMFReader, UMFWriter, listOf()),
         FormatProvider(TinyV2Reader, TinyV2Writer, listOf()),
-        FormatProvider(ZipReader, null, listOf())
+        FormatProvider(NestReader, null, listOf()),
+        FormatProvider(UnpickReader, null, listOf()),
+        FormatProvider(SrgReader, SrgWriter, listOf())
     )
 
     private val _formats = mutableListOf<FormatProvider>()
@@ -52,18 +60,8 @@ object FormatRegistry {
         _formats.add(format)
     }
 
-    fun autodetectFormat(fileName: String, inputType: BufferedSource): FormatProvider? {
-        return formats.firstOrNull { it.reader.isFormat(fileName, inputType) }
-    }
-
-    suspend fun read(fileName: String, inputType: BufferedSource, unnamedNamespaceNames: List<String> = listOf()) = MappingTree().also { read(fileName, inputType, it, it, unnamedNamespaceNames) }
-
-    suspend fun read(fileName: String, inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, unnamedNamespaceNames: List<String> = listOf()) {
-        autodetectFormat(fileName, inputType)?.read(inputType, context, into, unnamedNamespaceNames)  ?: throw IllegalArgumentException("No valid format readers for $fileName")
-    }
-
-    fun writer(type: String, output: BufferedSink): MappingVisitor {
-        return formats.filter { it.name == type }.map { it.writer }.firstOrNull()?.write(output) ?: throw IllegalArgumentException("No valid format writers for $type")
+    fun autodetectFormat(envType: EnvType, fileName: String, inputType: BufferedSource): FormatProvider? {
+        return formats.firstOrNull { it.reader.isFormat(envType, fileName, inputType) }
     }
 
 }
@@ -79,16 +77,20 @@ class FormatProvider(val reader: FormatReader, val writer: FormatWriter?, val mu
     val name: String
         get() = reader.name
 
-    fun isFormat(fileName: String, inputType: BufferedSource): Boolean {
-        return reader.isFormat(fileName, inputType)
+    fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+        return reader.isFormat(envType, fileName, inputType)
     }
 
-    suspend fun read(inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, unnamedNamespaceNames: List<String>) {
-        reader.read(inputType, context, into, unnamedNamespaceNames)
+    fun getSide(fileName: String, inputType: BufferedSource): Set<EnvType> {
+        return reader.getSide(fileName, inputType)
     }
 
-    fun write(output: BufferedSink): MappingVisitor {
-        return writer!!.write(output)
+    suspend fun read(envType: EnvType, inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, nsMap: Map<String, String>) {
+        reader.read(envType, inputType, context, into, nsMap)
+    }
+
+    fun write(envType: EnvType, output: BufferedSink): MappingVisitor {
+        return writer!!.write(envType, output)
     }
 
 }

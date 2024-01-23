@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.formats.zip
 import okio.BufferedSource
 import okio.ByteString.Companion.encodeUtf8
 import okio.use
+import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
@@ -11,7 +12,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object ZipReader : FormatReader {
 
-    override fun isFormat(fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         inputType.peek().use {
             try {
                 val bs = it.readByteString(4)
@@ -22,11 +23,12 @@ object ZipReader : FormatReader {
         }
     }
 
-    override suspend fun read(inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, unnamedNamespaceNames: List<String>) {
+    override suspend fun read(envType: EnvType, inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
         ZipFS(inputType).use { zip ->
-            val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(it, zip.getContents(it)) }
+            val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it, zip.getContents(it)) }
             for ((file, format) in files.entries.sortedBy { FormatRegistry.formats.indexOf(it.value) }) {
-                format.reader.read(zip.getContents(file), context, into, unnamedNamespaceNames)
+                if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
+                format.reader.read(envType, zip.getContents(file), context, into, nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") })
             }
         }
     }

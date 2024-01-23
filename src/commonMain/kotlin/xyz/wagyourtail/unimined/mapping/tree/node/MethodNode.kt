@@ -3,18 +3,18 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.LocalVariableVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ParameterVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
     private val _params: MutableList<ParameterNode> = mutableListOf()
     private val _locals: MutableList<LocalNode> = mutableListOf()
+    private val _exceptions: MutableList<ExceptionNode> = mutableListOf()
 
     val params: List<ParameterNode> get() = _params
     val locals: List<LocalNode> get() = _locals
+    val exceptions: List<ExceptionNode> get() = _exceptions
 
 
     fun getMethodDesc(namespace: Namespace) = getDescriptor(namespace)?.getMethodDescriptor()
@@ -78,6 +78,18 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return newLocal
     }
 
+    override fun visitException(
+        type: ExceptionType,
+        exception: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): ExceptionVisitor? {
+        val node = ExceptionNode(this, type, exception, baseNs)
+        node.addNamespaces(namespaces)
+        _exceptions.add(node)
+        return node
+    }
+
     override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean): MethodVisitor? {
         return visitor.visitMethod(if (minimize) {
             val descNs = root.namespaces.firstOrNull { it in names }
@@ -93,6 +105,9 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
 
     override fun acceptInner(visitor: MethodVisitor, minimize: Boolean) {
         super.acceptInner(visitor, minimize)
+        for (exception in exceptions) {
+            exception.accept(visitor, minimize)
+        }
         for (param in params) {
             param.accept(visitor, minimize)
         }

@@ -16,9 +16,9 @@ val INNER_CLASS = ElementType.INNER_CLASS
 
 enum class AccessFlag(val access: Int, vararg e: ElementType) {
     PUBLIC(0x1, CLASS, FIELD, METHOD),
-    PRIVATE(0x2, CLASS, FIELD, METHOD),
-    PROTECTED(0x4, CLASS, FIELD, METHOD),
-    STATIC(0x8, FIELD, METHOD),
+    PRIVATE(0x2, INNER_CLASS, FIELD, METHOD),
+    PROTECTED(0x4, INNER_CLASS, FIELD, METHOD),
+    STATIC(0x8, INNER_CLASS, FIELD, METHOD),
     FINAL(0x10, CLASS, FIELD, METHOD, PARAMETER),
     SUPER(0x20, CLASS),
     SYNCHRONIZED(0x20, METHOD),
@@ -50,6 +50,10 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
         } else {
             e.toSet()
         }
+    }
+
+    companion object {
+        fun of(type: ElementType, access: Int) = entries.filter { it.elements.contains(type) && it.access and access != 0 }.toSet()
     }
 
 }

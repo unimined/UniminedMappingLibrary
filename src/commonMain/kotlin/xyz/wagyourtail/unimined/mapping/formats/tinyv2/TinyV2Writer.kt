@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.formats.tinyv2
 
 import okio.BufferedSink
 import okio.ByteString.Companion.encodeUtf8
+import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
@@ -10,13 +11,14 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 object TinyV2Writer : FormatWriter {
-    override fun write(into: BufferedSink): MappingVisitor {
+    override fun write(envType: EnvType, into: BufferedSink): MappingVisitor {
         return TinyV2MappingWriter(into)
     }
 
@@ -86,6 +88,10 @@ object TinyV2Writer : FormatWriter {
             into.write("\n".encodeUtf8())
         }
 
+        override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
+            return null
+        }
+
         override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
             into.write("c\t".encodeUtf8())
             into.writeNamespaced(names.mapValues { it.value.toString() })
@@ -98,7 +104,7 @@ object TinyV2Writer : FormatWriter {
             baseNs: Namespace,
             namespaces: Set<Namespace>
         ): ConstantGroupVisitor? {
-            TODO("Not yet implemented")
+            return null
         }
 
     }
@@ -163,6 +169,15 @@ object TinyV2Writer : FormatWriter {
             into.writeNamespaced(names)
             into.write("\n".encodeUtf8())
             return object : TinyV2MemberWriter<LocalVariableVisitor>(into, this, indent + "\t"), LocalVariableVisitor {}
+        }
+
+        override fun visitException(
+            type: ExceptionType,
+            exception: InternalName,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
+        ): ExceptionVisitor? {
+            return null
         }
 
     }

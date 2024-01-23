@@ -16,6 +16,7 @@ import kotlin.js.JsName
 
 class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val names: MutableMap<Namespace, InternalName?> = mutableMapOf()
+
     val fields = LazyResolvables<FieldVisitor, FieldNode, FieldNode>(parent) {
         FieldNode(this)
     }

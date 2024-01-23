@@ -10,7 +10,7 @@ import kotlin.jvm.JvmInline
 
 /**
  * InternalName:
- *   [UnqualifiedName] { / [UnqualifiedName] }
+ *   [[PackageName]] [UnqualifiedName]
  */
 @JvmInline
 value class InternalName private constructor(val value: String) {
@@ -22,38 +22,25 @@ value class InternalName private constructor(val value: String) {
 
         override fun read(reader: CharReader) = try {
             InternalName(buildString {
-                while (true) {
-                    append(UnqualifiedName.read(reader))
-                    if (reader.exhausted()) {
-                        return@buildString
-                    }
-                    if (reader.peek() != '/') {
-                        return@buildString
-                    } else {
-                        reader.take()
-                        append('/')
-
-                    }
-                }
+                append(PackageName.read(reader))
+                append(UnqualifiedName.read(reader))
             })
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid internal name", e)
         }
     }
 
-    fun getParts(): List<UnqualifiedName> {
-        return value.split('/').map { UnqualifiedName.read(it) }
+    fun getParts(): Pair<PackageName, UnqualifiedName> {
+        val parts = value.split('/')
+        val pkg = parts.dropLast(1).joinToString("/").let { if (it.isEmpty()) it else "$it/" }
+        return PackageName.read(pkg) to UnqualifiedName.read(parts.last())
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {
             val parts = getParts()
-            for (i in parts.indices) {
-                parts[i].accept(visitor)
-                if (i != parts.size - 1) {
-                    visitor("/", true)
-                }
-            }
+            parts.first.accept(visitor)
+            parts.second.accept(visitor)
         }
     }
 

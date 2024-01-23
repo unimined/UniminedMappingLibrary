@@ -11,6 +11,7 @@ class FieldDescriptorTests {
     fun basics() {
         // identifier
         JVMS.parseFieldDescriptor("Ljava/lang/String;")
+        JVMS.parseFieldDescriptor("Laab;")
         // all base types
         JVMS.parseFieldDescriptor("Z")
         JVMS.parseFieldDescriptor("B")

@@ -34,6 +34,8 @@ value class ObjectType private constructor(val value: String) {
                 append(';')
             })
         }
+
+        operator fun invoke(internalName: InternalName) = ObjectType("L$internalName;")
     }
 
     fun getInternalName() = InternalName.read(value.substring(1, value.length - 1))

@@ -8,10 +8,7 @@ created over the years.
 # Requirements
 
 1. Must support all features of other mapping formats
-    * ~~package mappings~~ 
-      * this will get inlined into the class mappings when read in from other formats.
-        this does mean they will only remap classes that are present in the mappings,
-        but this can be remedied with propagation. So parsers remapping to this format should probably support that.
+    * [package mappings](#packages)
     * [class mappings](#classes)
     * [method mappings](#methods)
     * [field mappings](#fields)
@@ -23,6 +20,7 @@ created over the years.
     * [annotations](#annotations)
     * [access transformer / access mappings](#access)
     * [constant uninlining](#constant-group)
+    * [exceptions](#exceptions)
 2. Must be human-readable
 3. Must be relatively easy to parse / write
 4. all notations must be able to represent everything legal by the jvms
@@ -76,6 +74,18 @@ handle version parsing of the key itself when it is read.
 
 the second line is a list of namespace names.
 it is not recommended to have namespaces with spaces in them, but it is allowed by the format.
+
+## Packages
+
+packages will be defined as
+```
+k <ns1> <ns2> <ns3> ...
+```
+
+where `<ns1>` is the fully qualified internal package name with a trailing / using ns1 class names, `<ns2>` is for ns2, etc.
+
+package mappings will be applied last and will not mutate names of classes that are already in the mappings.
+package mappings can have an annotation subcomponent to add annotations to the package-info class if it doesn't exist in the mappings or at all.
 
 ## Classes
 
@@ -144,6 +154,8 @@ this notation is specifically for the inner/outer class attribute,
 so the mapped names of the class should be written appropriate for that.
 
 inner class information will be a component under the class that indicates the parent class/method of this class.
+or on other words, this notation labels the outer class for the current class.
+
 it will be defined as
 ```
 i <t> <ns1> <ns2> <ns3> ...
@@ -175,6 +187,22 @@ i a _ 0;Lcom/example/ExampleClass;exampleMethod2(Ljava/lang/String;)V
 this would indicate that `ns1` wants the inner class under `exampleMethod` to be named `InnerNameA` 
 while`ns2` wants the inner class under `exampleMethod2` to be named `InnerNameB`.
 allowing for different mappings to represent nesting differently.
+
+the access of the inner class is equal to the access of the actual class, so to mutate that, use the access component inside this.
+(this is basically just adding private/protected to the inner class)
+
+# Exceptions
+
+exceptions will be defined as
+```
+x <t> <ns1> <ns1_name> <ns2_name> ...
+```
+
+where `<t>` is either `+` or `-` to add or remove an exception,
+
+`<ns1>` is the fully qualified internal class name using ns1 class names, 
+and `<ns1_name>` is the name(s) of the namespaces to apply to.
+
 
 ## Javadoc Comments
 
@@ -283,6 +311,7 @@ the `n` subelement is one of the fields to use for the constant's value, with it
 field name can have `;` followed by a field descriptor.
 
 the `t` subelement contains `<td>`, a fully qualified method or field (see [Inner Class](#inner-class) to know what I mean). and if a method, `<p>` should be the index of the parameter to uninline or `_` if a field.
+use `-1` if the return value should be used, this would be in the case of comparing against a constant.
 
 this will search for all invocations of targets, and search upwards for matching ldc instructions to replace.
 

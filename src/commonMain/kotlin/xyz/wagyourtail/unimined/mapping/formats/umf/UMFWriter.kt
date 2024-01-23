@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.formats.umf
 
 import okio.BufferedSink
 import okio.ByteString.Companion.encodeUtf8
+import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
@@ -10,6 +11,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
@@ -24,13 +26,13 @@ object UMFWriter : FormatWriter {
         if (any { it.isWhitespace() } || startsWith("\"")) {
             return "\"${escape(unicode = true)}\""
         }
-        if (all { it == '_' })  {
+        if (isNotEmpty() && all { it == '_' })  {
             return "${this}_"
         }
         return this
     }
 
-    override fun write(into: BufferedSink): MappingVisitor {
+    override fun write(envType: EnvType, into: BufferedSink): MappingVisitor {
         into.write("umf\t1\t0\n".encodeUtf8()) //TODO: extensions
         return UMFMappingWriter(into)
     }
@@ -53,43 +55,7 @@ object UMFWriter : FormatWriter {
             TODO()
         }
 
-    }
-
-    open class UMFMemberWriter<T: MemberVisitor<T>>(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : BaseUMFWriter<T>(into, parent, indent), MemberVisitor<T> {
-        override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-            into.write("${indent}*\t".encodeUtf8())
-            into.writeNamespaced(values.mapValues {
-                val num = it.value.toIntOrNull()
-                if (num != null) {
-                    "_${num}"
-                } else {
-                    for (ns in root.namespaces.subList(0, root.namespaces.indexOf(it.key))) {
-                        if (it.value == values[ns]) {
-                            return@mapValues root.namespaces.indexOf(ns).toString()
-                        }
-                    }
-                    it.value
-                }
-            })
-            into.write("\n".encodeUtf8())
-            return UMFCommentWriter(into, this, indent + "\t")
-        }
-
-        override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
-            into.write("${indent}g\t".encodeUtf8())
-            into.writeNamespaced(values)
-            into.write("\n".encodeUtf8())
-            return UMFSignatureWriter(into, this, indent + "\t")
-        }
-
-        override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-            into.write("${indent}${type.name.lowercase()}\t${value.name.lowercase()}\t".encodeUtf8())
-            into.write(namespaces.joinToString("\t") { it.name.maybeEscape() }.encodeUtf8())
-            into.write("\n".encodeUtf8())
-            return UMFAccessWriter(into, this, indent + "\t")
-        }
-
-        override fun visitAnnotation(
+        fun visitAnnotation(
             type: AnnotationType,
             baseNs: Namespace,
             annotation: Annotation,
@@ -119,6 +85,46 @@ object UMFWriter : FormatWriter {
             into.write("\n".encodeUtf8())
             return UMFAnnotationWriter(into, this, indent + "\t")
         }
+
+    }
+
+    open class UMFAccessParentWriter<T: AccessParentVisitor<T>>(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : BaseUMFWriter<T>(into, parent, indent), AccessParentVisitor<T> {
+
+        override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
+            into.write("${indent}a\t${type.name.lowercase()}\t${value.name.lowercase()}\t".encodeUtf8())
+            into.write(namespaces.joinToString("\t") { it.name.maybeEscape() }.encodeUtf8())
+            into.write("\n".encodeUtf8())
+            return UMFAccessWriter(into, this, indent + "\t")
+        }
+
+    }
+
+    open class UMFMemberWriter<T: MemberVisitor<T>>(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : UMFAccessParentWriter<T>(into, parent, indent), MemberVisitor<T> {
+        override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+            into.write("${indent}*\t".encodeUtf8())
+            into.writeNamespaced(values.mapValues {
+                val num = it.value.toIntOrNull()
+                if (num != null) {
+                    "_${num}"
+                } else {
+                    for (ns in root.namespaces.subList(0, root.namespaces.indexOf(it.key))) {
+                        if (it.value == values[ns]) {
+                            return@mapValues root.namespaces.indexOf(ns).toString()
+                        }
+                    }
+                    it.value
+                }
+            })
+            into.write("\n".encodeUtf8())
+            return UMFCommentWriter(into, this, indent + "\t")
+        }
+
+        override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
+            into.write("${indent}g\t".encodeUtf8())
+            into.writeNamespaced(values)
+            into.write("\n".encodeUtf8())
+            return UMFSignatureWriter(into, this, indent + "\t")
+        }
     }
 
     class UMFMappingWriter(into: BufferedSink) : BaseUMFWriter<MappingVisitor>(into, null), MappingVisitor {
@@ -133,6 +139,13 @@ object UMFWriter : FormatWriter {
         override fun visitHeader(vararg namespaces: String) {
             this.namespaces = namespaces.map { Namespace(it) }
             into.write("${namespaces.joinToString("\t") { it.maybeEscape() }}\n".encodeUtf8())
+        }
+
+        override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
+            into.write("p\t".encodeUtf8())
+            into.writeNamespaced(names.mapValues { it.value.value })
+            into.write("\n".encodeUtf8())
+            return UMFPackageWriter(into, this)
         }
 
         override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
@@ -158,6 +171,8 @@ object UMFWriter : FormatWriter {
         }
 
     }
+
+    class UMFPackageWriter(into: BufferedSink, parent: BaseUMFWriter<*>) : BaseUMFWriter<PackageVisitor>(into, parent, "\t"), PackageVisitor
 
     class UMFClassWriter(into: BufferedSink, parent: BaseUMFWriter<*>) : UMFMemberWriter<ClassVisitor>(into, parent, "\t"), ClassVisitor {
         lateinit var names: Map<Namespace, InternalName>
@@ -188,7 +203,7 @@ object UMFWriter : FormatWriter {
                 InnerClassNode.InnerType.ANONYMOUS -> "a"
             }
             into.write(indent.encodeUtf8())
-            into.write("i\t${typeStr}".encodeUtf8())
+            into.write("i\t$typeStr\t".encodeUtf8())
             into.writeNamespaced(names.mapValues { v -> v.value.second?.let { "${v.value.first};${v.value.second!!.value}" } ?: v.value.first })
             into.write("\n".encodeUtf8())
             return UMFInnerClassWriter(into, this, indent + "\t")
@@ -260,11 +275,37 @@ object UMFWriter : FormatWriter {
             return UMFLocalVariableWriter(into, this, indent + "\t")
         }
 
+        override fun visitException(
+            type: ExceptionType,
+            exception: InternalName,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
+        ): ExceptionVisitor? {
+            into.write(indent.encodeUtf8())
+            into.write("x\t".encodeUtf8())
+            when (type) {
+                ExceptionType.ADD -> into.write("+\t".encodeUtf8())
+                ExceptionType.REMOVE -> into.write("-\t".encodeUtf8())
+            }
+            into.write("\t".encodeUtf8())
+            into.write(exception.value.maybeEscape().encodeUtf8())
+            into.write("\t".encodeUtf8())
+            into.write(baseNs.name.maybeEscape().encodeUtf8())
+            for (ns in root.namespaces) {
+                if (ns in namespaces) {
+                    into.write("\t".encodeUtf8())
+                    into.write(ns.name.maybeEscape().encodeUtf8())
+                }
+            }
+            into.write("\n".encodeUtf8())
+            return UMFExceptionWriter(into, this, indent + "\t")
+        }
+
     }
 
     class UMFFieldWriter(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : UMFMemberWriter<FieldVisitor>(into, parent, indent), FieldVisitor
 
-    class UMFInnerClassWriter(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : BaseUMFWriter<InnerClassVisitor>(into, parent, indent), InnerClassVisitor
+    class UMFInnerClassWriter(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : UMFAccessParentWriter<InnerClassVisitor>(into, parent, indent), InnerClassVisitor
 
     class UMFConstantWriter(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : BaseUMFWriter<ConstantVisitor>(into, parent, indent), ConstantVisitor
 
@@ -274,5 +315,6 @@ object UMFWriter : FormatWriter {
 
     class UMFLocalVariableWriter(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : UMFMemberWriter<LocalVariableVisitor>(into, parent, indent), LocalVariableVisitor
 
+    class UMFExceptionWriter(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : BaseUMFWriter<ExceptionVisitor>(into, parent, indent), ExceptionVisitor
 
 }
