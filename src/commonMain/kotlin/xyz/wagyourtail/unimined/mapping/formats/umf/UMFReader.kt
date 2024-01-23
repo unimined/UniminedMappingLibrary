@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
@@ -91,6 +92,14 @@ object UMFReader : FormatReader {
             }
             val last = visitStack.last()
             val next: BaseVisitor<*>? = when (entryType) {
+                EntryType.PACKAGE -> {
+                    val names = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        getNamespace(idx) to PackageName.read(name)
+                    }
+                    checked<MappingVisitor, PackageVisitor>(last) {
+                        visitPackage(names)
+                    }
+                }
                 EntryType.CLASS -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         getNamespace(idx) to InternalName.read(name)
@@ -130,6 +139,21 @@ object UMFReader : FormatReader {
                     }
                     checked<MethodVisitor, LocalVariableVisitor>(last) {
                         visitLocalVariable(lvOrd, startOp, names)
+                    }
+                }
+                EntryType.EXCEPTION -> {
+                    val type = fixValue(input.takeNext().second)!!.let {
+                        when (it) {
+                            "+" -> ExceptionType.ADD
+                            "-" -> ExceptionType.REMOVE
+                            else -> throw IllegalArgumentException("Invalid exception type $it")
+                        }
+                    }
+                    val exception = InternalName.read(fixValue(input.takeNext().second)!!)
+                    val baseNs = getNamespace(input.takeNext().second.toInt())
+                    val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
+                    checked<MethodVisitor, ExceptionVisitor>(last) {
+                        visitException(type, exception, baseNs, namespaces)
                     }
                 }
                 EntryType.FIELD -> {
@@ -244,10 +268,12 @@ object UMFReader : FormatReader {
     }
 
     enum class EntryType(val key: Char) {
+        PACKAGE('k'),
         CLASS('c'),
         METHOD('m'),
         PARAMETER('p'),
         LOCAL_VARIABLE('v'),
+        EXCEPTION('x'),
         FIELD('f'),
         INNER_CLASS('i'),
         JAVADOC('*'),
