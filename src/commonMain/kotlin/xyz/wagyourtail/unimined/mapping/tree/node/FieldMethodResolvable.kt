@@ -33,16 +33,6 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: Signa
             return element
         }
 
-//        val nameNs = names.keys.filter { element.names.keys.contains(it) }
-//        if (nameNs.isEmpty()) {
-//            // dont merge
-//            return null
-//        }
-//        // check the values match
-//        if (nameNs.any { element.names[it] != names[it] }) {
-//            // dont merge
-//            return null
-//        }
         var matched = false
         for (name in names.keys) {
             val nameVal = names[name]!!
@@ -53,10 +43,12 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: Signa
             }
             matched = true
         }
+
         if (!matched) {
             // dont merge
             return null
         }
+
         return if (element.hasDescriptor()) {
             if (descs.isNotEmpty()) {
                 val descNs = descs.keys.first()

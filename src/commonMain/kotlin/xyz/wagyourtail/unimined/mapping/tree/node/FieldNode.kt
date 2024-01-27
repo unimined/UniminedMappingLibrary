@@ -12,7 +12,7 @@ class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisito
 
     fun setFieldDescs(descs: Map<Namespace, FieldDescriptor>) {
         root.mergeNs(descs.keys)
-        setDescriptors(descs.mapValues { FieldOrMethodDescriptor.read(it.value.toString()) })
+        setDescriptors(descs.mapValues { FieldOrMethodDescriptor.unchecked(it.value.toString()) })
     }
 
     override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean): FieldVisitor? {

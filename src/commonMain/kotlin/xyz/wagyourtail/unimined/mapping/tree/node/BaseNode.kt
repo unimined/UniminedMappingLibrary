@@ -7,13 +7,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.ExtensionVisitor
 abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNode<U, *>?) : BaseVisitor<T> {
     val extensions: MutableMap<String, ExtensionNode<*, T, *>> = mutableMapOf()
 
-    val root: MappingTree by lazy {
-        var node: BaseNode<*, *> = this
-        while (node.parent != null) {
-            node = node.parent!!
-        }
-        node as MappingTree
-    }
+    val root: MappingTree = parent?.root ?: this as MappingTree
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         TODO()

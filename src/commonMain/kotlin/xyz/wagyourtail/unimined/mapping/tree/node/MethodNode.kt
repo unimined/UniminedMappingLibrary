@@ -21,7 +21,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
 
     fun setMethodDescs(descs: Map<Namespace, MethodDescriptor>) {
         root.mergeNs(descs.keys)
-        setDescriptors(descs.mapValues { FieldOrMethodDescriptor.read(it.value.toString()) })
+        setDescriptors(descs.mapValues { FieldOrMethodDescriptor.unchecked(it.value.toString()) })
     }
 
     class ParameterNode(parent: MethodNode, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, MethodVisitor, MethodVisitor>(parent), ParameterVisitor {

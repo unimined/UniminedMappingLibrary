@@ -35,7 +35,11 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
     }
 
     internal fun mergeNs(names: Iterable<Namespace>) {
-        names.filter { it !in namespaces }.forEach { _namespaces.add(it) }
+        for (ns in names) {
+            if (ns !in _namespaces) {
+                _namespaces.add(ns)
+            }
+        }
     }
 
     override fun nextUnnamedNs(): Namespace {
