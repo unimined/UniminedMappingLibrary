@@ -17,6 +17,9 @@ import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
+/**
+ * Our format to represent everything.
+ */
 object UMFReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {

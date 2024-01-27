@@ -35,6 +35,8 @@ value class FullyQualifiedName(val value: String) {
             throw IllegalArgumentException("Invalid fully qualified member type", e)
         }
 
+        override fun unchecked(value: String) = FullyQualifiedName(value)
+
     }
 
     fun getParts(): Pair<ObjectType, NameAndDescriptor?> = CharReader(value).let {

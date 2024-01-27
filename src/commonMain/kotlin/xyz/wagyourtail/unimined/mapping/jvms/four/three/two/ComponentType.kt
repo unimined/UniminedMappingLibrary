@@ -21,6 +21,8 @@ value class ComponentType private constructor(val value: FieldType) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid component type", e)
         }
+
+        override fun unchecked(value: String) = ComponentType(FieldType.unchecked(value))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

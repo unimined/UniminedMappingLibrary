@@ -29,6 +29,8 @@ value class BaseType private constructor(val value: Char) {
             }
             return BaseType(value!!)
         }
+
+        override fun unchecked(value: String) = BaseType(value.toCharArray()[0])
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

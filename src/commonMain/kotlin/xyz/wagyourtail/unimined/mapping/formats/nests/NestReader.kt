@@ -19,6 +19,10 @@ import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
+/**
+ * Ornithe's mapping format for adding inner class information to classes.
+ *
+ */
 object NestReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {

@@ -26,6 +26,8 @@ value class FieldType private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid field type", e)
         }
+
+        override fun unchecked(value: String) = FieldType(value)
     }
 
     fun isBaseType() = value.length == 1
@@ -34,11 +36,11 @@ value class FieldType private constructor(val value: String) {
 
     fun isArrayType() = value.startsWith('[')
 
-    fun getBaseType() = BaseType.read(value)
+    fun getBaseType() = BaseType.unchecked(value)
 
-    fun getObjectType() = ObjectType.read(value)
+    fun getObjectType() = ObjectType.unchecked(value)
 
-    fun getArrayType() = ArrayType.read(value)
+    fun getArrayType() = ArrayType.unchecked(value)
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

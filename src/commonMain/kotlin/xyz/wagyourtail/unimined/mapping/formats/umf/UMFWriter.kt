@@ -91,7 +91,12 @@ object UMFWriter : FormatWriter {
     open class UMFAccessParentWriter<T: AccessParentVisitor<T>>(into: BufferedSink, parent: BaseUMFWriter<*>, indent: String = "") : BaseUMFWriter<T>(into, parent, indent), AccessParentVisitor<T> {
 
         override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-            into.write("${indent}a\t${type.name.lowercase()}\t${value.name.lowercase()}\t".encodeUtf8())
+            into.write("${indent}a\t".encodeUtf8())
+            when (type) {
+                AccessType.ADD -> into.write("+\t".encodeUtf8())
+                AccessType.REMOVE -> into.write("-\t".encodeUtf8())
+            }
+            into.write("${value.name.lowercase()}\t".encodeUtf8())
             into.write(namespaces.joinToString("\t") { it.name.maybeEscape() }.encodeUtf8())
             into.write("\n".encodeUtf8())
             return UMFAccessWriter(into, this, indent + "\t")
@@ -119,7 +124,7 @@ object UMFWriter : FormatWriter {
             return UMFCommentWriter(into, this, indent + "\t")
         }
 
-        override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
+        fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
             into.write("${indent}g\t".encodeUtf8())
             into.writeNamespaced(values)
             into.write("\n".encodeUtf8())

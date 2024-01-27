@@ -49,6 +49,8 @@ value class EnumConstant private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid enum constant", e)
         }
+
+        override fun unchecked(value: String) = EnumConstant(value)
     }
 
     fun getParts(): Pair<ObjectType, String> = CharReader(value).use {

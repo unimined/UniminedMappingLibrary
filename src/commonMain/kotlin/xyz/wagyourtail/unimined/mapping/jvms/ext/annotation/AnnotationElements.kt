@@ -29,6 +29,8 @@ value class AnnotationElements private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid annotation elements", e)
         }
+
+        override fun unchecked(value: String) = AnnotationElements(value)
     }
 
     fun getParts(): List<AnnotationElement> = CharReader(value).use {

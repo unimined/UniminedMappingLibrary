@@ -13,6 +13,9 @@ import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.translateEscapes
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
+/**
+ * FabricMC's tinyv2 format.
+ */
 object TinyV2Reader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {

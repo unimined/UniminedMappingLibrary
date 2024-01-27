@@ -11,6 +11,9 @@ import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
+/**
+ * MCP's SRG format.
+ */
 object SrgReader : FormatReader {
 
     val keys = setOf("PK:", "CL:", "FD:", "MD:")

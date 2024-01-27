@@ -40,6 +40,8 @@ value class TypeArguments private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid type arguments", e)
             }
         }
+
+        override fun unchecked(value: String) = TypeArguments(value)
     }
 
     fun getParts(): List<TypeArgument> {

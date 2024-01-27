@@ -46,11 +46,15 @@ interface AnnotationParentVisitor<T: AnnotationParentVisitor<T>> : BaseVisitor<T
     fun visitAnnotation(type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor?
 }
 
+interface SignatureParentVisitor<T: SignatureParentVisitor<T>> : BaseVisitor<T> {
+
+    fun visitSignature(values: Map<Namespace, String>): SignatureVisitor?
+
+}
+
 interface MemberVisitor<T: MemberVisitor<T>> : AccessParentVisitor<T>, AnnotationParentVisitor<T> {
 
     fun visitComment(values: Map<Namespace, String>): CommentVisitor?
-
-    fun visitSignature(values: Map<Namespace, String>): SignatureVisitor?
 
 }
 
@@ -72,7 +76,7 @@ enum class ExceptionType {
 
 interface PackageVisitor : AnnotationParentVisitor<PackageVisitor>
 
-interface ClassVisitor : MemberVisitor<ClassVisitor> {
+interface ClassVisitor : MemberVisitor<ClassVisitor>, SignatureParentVisitor<ClassVisitor> {
 
     fun visitMethod(namespaces: Map<Namespace, Pair<String, MethodDescriptor?>>): MethodVisitor?
 
@@ -82,7 +86,7 @@ interface ClassVisitor : MemberVisitor<ClassVisitor> {
 
 }
 
-interface MethodVisitor : MemberVisitor<MethodVisitor> {
+interface MethodVisitor : MemberVisitor<MethodVisitor>, SignatureParentVisitor<MethodVisitor> {
 
     fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor?
 
@@ -92,7 +96,7 @@ interface MethodVisitor : MemberVisitor<MethodVisitor> {
 
 }
 
-interface FieldVisitor : MemberVisitor<FieldVisitor>
+interface FieldVisitor : MemberVisitor<FieldVisitor>, SignatureParentVisitor<FieldVisitor>
 
 interface ParameterVisitor : MemberVisitor<ParameterVisitor>
 
@@ -116,8 +120,9 @@ interface ConstantGroupVisitor : BaseVisitor<ConstantGroupVisitor> {
 
 }
 
-interface InnerClassVisitor : AccessParentVisitor<InnerClassVisitor>
-
 interface ConstantVisitor : BaseVisitor<ConstantVisitor>
 
 interface TargetVisitor : BaseVisitor<TargetVisitor>
+
+interface InnerClassVisitor : AccessParentVisitor<InnerClassVisitor>
+

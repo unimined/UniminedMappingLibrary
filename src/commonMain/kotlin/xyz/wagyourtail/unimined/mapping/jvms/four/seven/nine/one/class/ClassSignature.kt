@@ -47,6 +47,8 @@ value class ClassSignature private constructor(val value: String) {
                 append(SuperclassSignature.read(superClass))
                 superInterfaces.forEach { append(SuperinterfaceSignature.read(it)) }
             })
+
+        override fun unchecked(value: String) = ClassSignature(value)
     }
 
     fun getParts(): Triple<TypeParameters?, SuperclassSignature, List<SuperinterfaceSignature>> {

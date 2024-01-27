@@ -25,15 +25,16 @@ value class Result private constructor(val value: String) {
         override fun read(reader: CharReader) =
             Result(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
 
+        override fun unchecked(value: String) = Result(value)
     }
 
     fun isJavaTypeSignature() = value[0] == 'L'
 
     fun isVoidDescriptor() = value[0] == 'V'
 
-    fun getJavaTypeSignature() = JavaTypeSignature.read(value)
+    fun getJavaTypeSignature() = JavaTypeSignature.unchecked(value)
 
-    fun getVoidDescriptor() = VoidDescriptor.read(value)
+    fun getVoidDescriptor() = VoidDescriptor.unchecked(value)
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

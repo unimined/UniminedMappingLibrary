@@ -23,6 +23,8 @@ value class SuperinterfaceSignature private constructor(val value: ClassTypeSign
             throw IllegalArgumentException("Invalid superinterface signature", e)
         }
 
+        override fun unchecked(value: String) = SuperinterfaceSignature(ClassTypeSignature.unchecked(value))
+
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

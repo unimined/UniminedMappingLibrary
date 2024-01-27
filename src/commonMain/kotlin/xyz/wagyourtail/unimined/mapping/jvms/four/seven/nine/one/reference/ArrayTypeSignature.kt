@@ -33,10 +33,12 @@ value class ArrayTypeSignature private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid type value signature", e)
             }
         }
+
+        override fun unchecked(value: String) = ArrayTypeSignature(value)
     }
 
     fun getParts(): JavaTypeSignature {
-        return JavaTypeSignature.read(value.substring(1))
+        return JavaTypeSignature.unchecked(value.substring(1))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

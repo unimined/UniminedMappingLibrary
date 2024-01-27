@@ -14,13 +14,13 @@ import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import kotlin.js.JsName
 
-class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, MappingVisitor>(parent), ClassVisitor {
+class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val names: MutableMap<Namespace, InternalName?> = mutableMapOf()
 
-    val fields = LazyResolvables<FieldVisitor, FieldNode, FieldNode>(parent) {
+    val fields = LazyResolvables(parent) {
         FieldNode(this)
     }
-    val methods = LazyResolvables<MethodVisitor, MethodNode, MethodNode>(parent) {
+    val methods = LazyResolvables(parent) {
         MethodNode(this)
     }
     val inners = mutableSetOf<InnerClassNode>()

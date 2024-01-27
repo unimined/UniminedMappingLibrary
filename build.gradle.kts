@@ -36,7 +36,7 @@ kotlin {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         mainRun {
             mainClass.set(main)
-            args("--name=test")
+            args("-i", "int.tiny", "-i", "yarn.tiny", "-pns", "official", "-p", "mc.jar", "-m", "official", "intermediary", "-m", "intermediary", "named", "-o", "tinyv2", "joined.tiny")
         }
     }
     js {
@@ -53,7 +53,6 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation("io.github.oshai:kotlin-logging:6.0.1")
-                implementation("com.github.ajalt.clikt:clikt:$cliktVersion")
                 implementation("com.squareup.okio:okio:3.7.0")
                 implementation("com.sschr15.annotations:jb-annotations-kmp:24.1.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC2")
@@ -68,12 +67,15 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
-                // slf4j logback
-                runtimeOnly("ch.qos.logback:logback-classic:1.4.14") {
-                    exclude(group= "org.slf4j", module= "slf4j-api")
-                }
+                implementation("com.github.ajalt.clikt:clikt:$cliktVersion")
+
+                implementation("org.slf4j:slf4j-api:2.0.10")
+                implementation("org.slf4j:slf4j-simple:2.0.10")
+
                 // apache compress
                 implementation("org.apache.commons:commons-compress:1.25.0")
+                implementation("org.ow2.asm:asm:9.6")
+                implementation("org.ow2.asm:asm-tree:9.6")
             }
         }
         val jvmTest by getting {

@@ -33,6 +33,8 @@ value class ArrayElements private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid array elements", e)
         }
+
+        override fun unchecked(value: String) = ArrayElements(value)
     }
 
     fun getParts(): List<AnnotationElementValue> = CharReader(value).use {

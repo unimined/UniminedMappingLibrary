@@ -32,10 +32,12 @@ value class ClassTypeSignatureSuffix private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid class type signature suffix", e)
             }
         }
+
+        override fun unchecked(value: String) = ClassTypeSignatureSuffix(value)
     }
 
     fun getParts(): SimpleClassTypeSignature {
-        return SimpleClassTypeSignature.read(value.substring(1))
+        return SimpleClassTypeSignature.unchecked(value.substring(1))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

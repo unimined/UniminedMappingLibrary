@@ -50,6 +50,8 @@ value class MethodDescriptor private constructor(val value: String) {
             append(ReturnDescriptor.read(returnValue))
         })
 
+        override fun unchecked(value: String) = MethodDescriptor(value)
+
     }
 
     fun getParts(): Pair<ReturnDescriptor, List<ParameterDescriptor>> = CharReader(value.substring(1)).use {

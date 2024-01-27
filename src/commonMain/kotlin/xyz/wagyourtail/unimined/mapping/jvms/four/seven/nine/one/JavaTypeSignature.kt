@@ -32,15 +32,17 @@ value class JavaTypeSignature private constructor(val type: String) {
             } catch (e: Exception) {
                 throw IllegalArgumentException("Invalid java type signature", e)
             }
+
+        override fun unchecked(value: String) = JavaTypeSignature(value)
     }
 
     fun isBaseType() = type.length == 1
 
     fun isReferenceTypeSignature() = !isBaseType()
 
-    fun getBaseType() = BaseType.read(type)
+    fun getBaseType() = BaseType.unchecked(type)
 
-    fun getReferenceTypeSignature() = ReferenceTypeSignature.read(type)
+    fun getReferenceTypeSignature() = ReferenceTypeSignature.unchecked(type)
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

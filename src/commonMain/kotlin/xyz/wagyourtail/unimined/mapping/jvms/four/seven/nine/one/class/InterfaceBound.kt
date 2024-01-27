@@ -30,9 +30,11 @@ value class InterfaceBound private constructor(val value: String) {
             })
         }
 
+        override fun unchecked(value: String) = InterfaceBound(value)
+
     }
 
-    fun getParts(): ReferenceTypeSignature = ReferenceTypeSignature.read(value.substring(1))
+    fun getParts(): ReferenceTypeSignature = ReferenceTypeSignature.unchecked(value.substring(1))
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

@@ -3,7 +3,9 @@ package xyz.wagyourtail.unimined.mapping.formats
 import okio.BufferedSink
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.formats.mcp.OlderMethodReader
 import xyz.wagyourtail.unimined.mapping.formats.nests.NestReader
+import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgWriter
 import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Reader
@@ -23,12 +25,18 @@ object FormatRegistry {
         FormatProvider(TinyV2Reader, TinyV2Writer, listOf()),
         FormatProvider(NestReader, null, listOf()),
         FormatProvider(UnpickReader, null, listOf()),
-        FormatProvider(SrgReader, SrgWriter, listOf())
+        FormatProvider(SrgReader, SrgWriter, listOf()),
+        FormatProvider(RetroguardReader, null, listOf()),
+        FormatProvider(OlderMethodReader, null, listOf("retroguard"))
     )
 
     private val _formats = mutableListOf<FormatProvider>()
     val formats: List<FormatProvider>
         get() = _formats
+
+    val byName: Map<String, FormatProvider> by lazy {
+        formats.associateBy { it.name }
+    }
 
     init {
         val formatBuffer = mutableListOf<FormatProvider>()
@@ -61,7 +69,7 @@ object FormatRegistry {
     }
 
     fun autodetectFormat(envType: EnvType, fileName: String, inputType: BufferedSource): FormatProvider? {
-        return formats.firstOrNull { it.reader.isFormat(envType, fileName, inputType) }
+        return formats.firstOrNull { it.reader.isFormat(envType, fileName, inputType.peek()) }
     }
 
 }

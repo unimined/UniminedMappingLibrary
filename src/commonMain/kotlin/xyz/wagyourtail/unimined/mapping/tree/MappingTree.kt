@@ -55,7 +55,7 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
             throw IllegalArgumentException("Invalid namespace")
         }
         if (fromNs == toNs) return descriptor
-        return FieldOrMethodDescriptor.read(buildString {
+        return FieldOrMethodDescriptor.unchecked(buildString {
             descriptor.accept(descRemapAcceptor(fromNs, toNs))
         })
     }
@@ -65,7 +65,7 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
             throw IllegalArgumentException("Invalid namespace")
         }
         if (fromNs == toNs) return descriptor
-        return FieldDescriptor.read(buildString {
+        return FieldDescriptor.unchecked(buildString {
             descriptor.accept(descRemapAcceptor(fromNs, toNs))
         })
     }
@@ -75,7 +75,7 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
             throw IllegalArgumentException("Invalid namespace")
         }
         if (fromNs == toNs) return descriptor
-        return MethodDescriptor.read(buildString {
+        return MethodDescriptor.unchecked(buildString {
             descriptor.accept(descRemapAcceptor(fromNs, toNs))
         })
     }

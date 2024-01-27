@@ -32,15 +32,17 @@ value class FieldOrMethodDescriptor private constructor(val value: String) {
 
         @JvmName("ofMethod")
         operator fun invoke(descriptor: MethodDescriptor) = FieldOrMethodDescriptor(descriptor.toString())
+
+        override fun unchecked(value: String) = FieldOrMethodDescriptor(value)
     }
 
     fun isMethodDescriptor() = value[0] == '('
 
     fun isFieldDescriptor() = !isMethodDescriptor()
 
-    fun getFieldDescriptor() = FieldDescriptor.read(value)
+    fun getFieldDescriptor() = FieldDescriptor.unchecked(value)
 
-    fun getMethodDescriptor() = MethodDescriptor.read(value)
+    fun getMethodDescriptor() = MethodDescriptor.unchecked(value)
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

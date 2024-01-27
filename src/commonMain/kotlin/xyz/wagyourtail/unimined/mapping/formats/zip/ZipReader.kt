@@ -25,7 +25,7 @@ object ZipReader : FormatReader {
 
     override suspend fun read(envType: EnvType, inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
         ZipFS(inputType).use { zip ->
-            val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it, zip.getContents(it)) }
+            val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
             for ((file, format) in files.entries.sortedBy { FormatRegistry.formats.indexOf(it.value) }) {
                 if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
                 format.reader.read(envType, zip.getContents(file), context, into, nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") })

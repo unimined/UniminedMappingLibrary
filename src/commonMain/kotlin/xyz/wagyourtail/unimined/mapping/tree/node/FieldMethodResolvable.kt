@@ -6,8 +6,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.visitor.BaseVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 
-abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVisitor<U>>(parent: ClassNode, val create: (ClassNode) -> T) : AbstractFieldMethodNode<U>(parent), LazyResolvableEntry<T, U> {
+abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: SignatureParentVisitor<V>, U: MemberVisitor<U>>(parent: ClassNode, val create: (ClassNode) -> T) : AbstractFieldMethodNode<U, V>(parent), LazyResolvableEntry<T, U> {
 
     fun MappingTree.getDescriptor(namespace: Namespace): FieldOrMethodDescriptor? {
         if (descs.isEmpty()) return null
@@ -31,13 +32,28 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
             doMerge(element)
             return element
         }
-        val nameNs = names.keys.intersect(element.names.keys)
-        if (nameNs.isEmpty()) {
-            // dont merge
-            return null
+
+//        val nameNs = names.keys.filter { element.names.keys.contains(it) }
+//        if (nameNs.isEmpty()) {
+//            // dont merge
+//            return null
+//        }
+//        // check the values match
+//        if (nameNs.any { element.names[it] != names[it] }) {
+//            // dont merge
+//            return null
+//        }
+        var matched = false
+        for (name in names.keys) {
+            val nameVal = names[name]!!
+            val elementNameVal = element.names[name] ?: continue
+            if (elementNameVal != nameVal) {
+                // dont merge
+                return null
+            }
+            matched = true
         }
-        // check the values match
-        if (nameNs.any { element.names[it] != names[it] }) {
+        if (!matched) {
             // dont merge
             return null
         }

@@ -36,12 +36,14 @@ value class SimpleClassTypeSignature private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid simple class type signature", e)
             }
         }
+
+        override fun unchecked(value: String) = SimpleClassTypeSignature(value)
     }
 
     fun getParts(): Pair<String, TypeArguments?> {
         return Pair(
             value.substringBefore('<'),
-            if (value.contains("<")) TypeArguments.read("<${value.substringAfter('<')}") else null
+            if (value.contains("<")) TypeArguments.unchecked("<${value.substringAfter('<')}") else null
         )
     }
 

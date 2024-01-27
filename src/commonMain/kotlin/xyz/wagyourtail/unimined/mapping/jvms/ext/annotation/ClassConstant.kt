@@ -23,6 +23,8 @@ value class ClassConstant private constructor(val value: ObjectType) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid class constant", e)
         }
+
+        override fun unchecked(value: String) = ClassConstant(ObjectType.unchecked(value))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

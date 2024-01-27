@@ -54,6 +54,8 @@ value class Annotation private constructor(val value: String) {
             throw IllegalArgumentException("Invalid annotation", e)
         }
 
+        override fun unchecked(value: String) = Annotation(value)
+
     }
 
     fun getParts(): Triple<ObjectType, AnnotationElements?, Invisible?> = CharReader(value.substring(1)).let {

@@ -40,6 +40,8 @@ value class TypeVariableSignature private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid type variable signature", e)
             }
         }
+
+        override fun unchecked(value: String) = TypeVariableSignature(value)
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

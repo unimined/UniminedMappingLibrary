@@ -29,6 +29,8 @@ value class WildcardIndicator private constructor(val value: Char) {
             }
             return WildcardIndicator(value!!)
         }
+
+        override fun unchecked(value: String) = WildcardIndicator(value.toCharArray()[0])
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

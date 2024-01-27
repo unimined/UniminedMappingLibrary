@@ -5,9 +5,10 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.ClassSi
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
 import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureVisitor
 
-class SignatureNode<T: MemberVisitor<T>>(parent: BaseNode<T, *>) : BaseNode<SignatureVisitor, T>(parent), SignatureVisitor {
+class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>) : BaseNode<SignatureVisitor, T>(parent), SignatureVisitor {
     private val _names: MutableMap<Namespace, String> = mutableMapOf()
     val names: Map<Namespace, String> get() = _names
 

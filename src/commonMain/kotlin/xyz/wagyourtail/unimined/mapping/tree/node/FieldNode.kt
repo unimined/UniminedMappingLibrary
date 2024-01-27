@@ -6,7 +6,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
 
-class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisitor>(parent, ::FieldNode), FieldVisitor {
+class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisitor, FieldVisitor>(parent, ::FieldNode), FieldVisitor {
 
     fun getFieldDesc(namespace: Namespace) = getDescriptor(namespace)?.getFieldDescriptor()
 

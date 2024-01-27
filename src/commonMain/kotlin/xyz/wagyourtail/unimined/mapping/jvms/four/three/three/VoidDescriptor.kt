@@ -31,6 +31,8 @@ value class VoidDescriptor private constructor(val value: Char) {
             }
             return VoidDescriptor(value)
         }
+
+        override fun unchecked(value: String) = VoidDescriptor(value.toCharArray()[0])
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

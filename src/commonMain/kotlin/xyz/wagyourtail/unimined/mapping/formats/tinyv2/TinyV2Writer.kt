@@ -53,7 +53,7 @@ object TinyV2Writer : FormatWriter {
             return null
         }
 
-        override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
+        fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
             return null
         }
 
@@ -112,7 +112,7 @@ object TinyV2Writer : FormatWriter {
     class TinyV2ClassWriter(into: BufferedSink, parent: BaseTinyV2Writer<*>?): TinyV2MemberWriter<ClassVisitor>(into, parent, "\t"), ClassVisitor {
         override fun visitMethod(namespaces: Map<Namespace, Pair<String, MethodDescriptor?>>): MethodVisitor? {
             // get desc in first namespace
-            val desc = namespaces[root.namespaces.first()]!!.second!!
+            val desc = namespaces[root.namespaces.first()]?.second ?: return null
             into.write(indent.encodeUtf8())
             into.write("m\t".encodeUtf8())
             into.write(desc.toString().encodeUtf8())
@@ -124,7 +124,7 @@ object TinyV2Writer : FormatWriter {
 
         override fun visitField(namespaces: Map<Namespace, Pair<String, FieldDescriptor?>>): FieldVisitor? {
             // get desc in first namespace
-            val desc = namespaces[root.namespaces.first()]!!.second!!
+            val desc = namespaces[root.namespaces.first()]?.second ?: return null
             into.write(indent.encodeUtf8())
             into.write("f\t".encodeUtf8())
             into.write(desc.toString().encodeUtf8())

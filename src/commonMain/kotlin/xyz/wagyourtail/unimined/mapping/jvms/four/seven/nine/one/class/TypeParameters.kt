@@ -34,6 +34,8 @@ value class TypeParameters private constructor(val value: String) {
             })
         }
 
+        override fun unchecked(value: String) = TypeParameters(value)
+
     }
 
     fun getParts(): List<TypeParameter> {

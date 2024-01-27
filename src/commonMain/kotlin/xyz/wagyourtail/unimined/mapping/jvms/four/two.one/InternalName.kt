@@ -28,12 +28,14 @@ value class InternalName private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid internal name", e)
         }
+
+        override fun unchecked(value: String) = InternalName(value)
     }
 
     fun getParts(): Pair<PackageName, UnqualifiedName> {
         val parts = value.split('/')
         val pkg = parts.dropLast(1).joinToString("/").let { if (it.isEmpty()) it else "$it/" }
-        return PackageName.read(pkg) to UnqualifiedName.read(parts.last())
+        return PackageName.unchecked(pkg) to UnqualifiedName.unchecked(parts.last())
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

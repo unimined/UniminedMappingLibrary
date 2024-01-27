@@ -70,6 +70,8 @@ value class MethodSignature private constructor(val value: String) {
                 append(Result.read(returnType))
                 throws.forEach { append(ThrowsSignature.read("^$it")) }
             })
+
+        override fun unchecked(value: String) = MethodSignature(value)
     }
 
     fun getParts(): Pair<TypeParameters?, Triple<List<JavaTypeSignature>, Result, List<ThrowsSignature>>> {

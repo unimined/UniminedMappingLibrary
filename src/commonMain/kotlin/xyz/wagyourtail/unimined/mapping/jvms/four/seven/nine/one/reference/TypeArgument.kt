@@ -48,6 +48,8 @@ value class TypeArgument private constructor(val value: String) {
                 append(ReferenceTypeSignature.read(reader))
             })
         }
+
+        override fun unchecked(value: String) = TypeArgument(value)
     }
 
     fun isWildcard() = value == "*"

@@ -34,6 +34,8 @@ value class Invisible private constructor(val value: String) {
             throw IllegalArgumentException("Invalid invisible", e)
         }
 
+        override fun unchecked(value: String) = Invisible(value)
+
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

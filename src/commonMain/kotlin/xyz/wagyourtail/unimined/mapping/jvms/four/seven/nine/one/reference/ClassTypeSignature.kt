@@ -43,6 +43,8 @@ value class ClassTypeSignature private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid class type signature", e)
             }
         }
+
+        override fun unchecked(value: String) = ClassTypeSignature(value)
     }
 
     fun getParts(): Triple<PackageSpecifier?, SimpleClassTypeSignature, List<ClassTypeSignatureSuffix>> = CharReader(value.substring(1)).use {

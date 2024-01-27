@@ -25,6 +25,8 @@ value class ReferenceTypeSignature private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid reference type signature", e)
         }
+
+        override fun unchecked(value: String) = ReferenceTypeSignature(value)
     }
 
     fun isClassTypeSignature() = value.startsWith('L')
@@ -33,11 +35,11 @@ value class ReferenceTypeSignature private constructor(val value: String) {
 
     fun isArrayTypeSignature() = value.startsWith('[')
 
-    fun getClassTypeSignature() = ClassTypeSignature.read(value)
+    fun getClassTypeSignature() = ClassTypeSignature.unchecked(value)
 
-    fun getTypeVariableSignature() = TypeVariableSignature.read(value)
+    fun getTypeVariableSignature() = TypeVariableSignature.unchecked(value)
 
-    fun getArrayTypeSignature() = ArrayTypeSignature.read(value)
+    fun getArrayTypeSignature() = ArrayTypeSignature.unchecked(value)
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

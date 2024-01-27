@@ -30,6 +30,8 @@ value class TypeParameter private constructor(val value: String) {
                 }
             })
         }
+
+        override fun unchecked(value: String) = TypeParameter(value)
     }
 
     fun getParts(): Triple<String, ClassBound, List<InterfaceBound>> {

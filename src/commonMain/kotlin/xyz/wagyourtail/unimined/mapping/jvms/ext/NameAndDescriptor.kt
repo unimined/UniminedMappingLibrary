@@ -38,16 +38,18 @@ value class NameAndDescriptor(val value: String) {
             throw IllegalArgumentException("Invalid fully qualified member type", e)
         }
 
+        override fun unchecked(value: String) = NameAndDescriptor(value)
+
     }
 
     fun getParts(): Pair<UnqualifiedName, FieldOrMethodDescriptor?> {
         val name = value.substringBefore(';')
         val desc = if (';' in value) {
-            FieldOrMethodDescriptor.read(value.substringAfter(';'))
+            FieldOrMethodDescriptor.unchecked(value.substringAfter(';'))
         } else {
             null
         }
-        return UnqualifiedName.read(name) to desc
+        return UnqualifiedName.unchecked(name) to desc
     }
 
     override fun toString() = value

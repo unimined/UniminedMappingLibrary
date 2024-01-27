@@ -35,15 +35,17 @@ value class ThrowsSignature private constructor(val value: String) {
                 }
             })
         }
+
+        override fun unchecked(value: String) = ThrowsSignature(value)
     }
 
     fun isClassTypeSignature() = value[1] == 'L'
 
     fun isTypeVariableSignature() = value[1] == 'T'
 
-    fun getClassTypeSignature() = ClassTypeSignature.read(value.substring(1))
+    fun getClassTypeSignature() = ClassTypeSignature.unchecked(value.substring(1))
 
-    fun getTypeVariableSignature() = TypeVariableSignature.read(value.substring(1))
+    fun getTypeVariableSignature() = TypeVariableSignature.unchecked(value.substring(1))
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

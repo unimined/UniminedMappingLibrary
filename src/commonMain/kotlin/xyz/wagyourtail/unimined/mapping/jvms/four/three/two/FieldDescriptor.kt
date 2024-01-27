@@ -20,6 +20,8 @@ value class FieldDescriptor(val value: FieldType) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid field descriptor", e)
         }
+
+        override fun unchecked(value: String) = FieldDescriptor(FieldType.unchecked(value))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

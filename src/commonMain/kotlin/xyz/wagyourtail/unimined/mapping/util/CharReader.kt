@@ -16,9 +16,15 @@ class CharReader(val buffer: String, var pos: Int = 0) {
         return buffer[pos++]
     }
 
+    fun takeRemaining() = takeUntil { false }
+
     fun takeLine(): String {
         return takeUntil { it == '\n' }
     }
+
+    fun takeRemainingCol() = takeRemainingOnLine { it == ',' || it == '\n' }
+
+    fun takeCol() = takeNext { it == ',' || it == '\n' }
 
     inline fun takeUntil(predicate: (Char) -> Boolean): String {
         return buildString {
@@ -41,7 +47,7 @@ class CharReader(val buffer: String, var pos: Int = 0) {
     }
 
     fun takeNext(sep: (Char) -> Boolean = { it.isWhitespace() }): Pair<TokenType, String> {
-        takeWhile(sep)
+        takeWhile { sep(it) && it != '\n' }
         if (pos >= buffer.length) {
             return TokenType.LITERAL to ""
         }
@@ -74,15 +80,15 @@ class CharReader(val buffer: String, var pos: Int = 0) {
         return takeUntil { !it.isWhitespace() || it == '\n' }
     }
 
-    fun takeRemainingOnLine(): List<Pair<TokenType, String>> {
+    fun takeRemainingOnLine(sep: (Char) -> Boolean = { it.isWhitespace() }): List<Pair<TokenType, String>> {
         val list = mutableListOf<Pair<TokenType, String>>()
         while (pos < buffer.length) {
-            takeNonNewlineWhitespace()
+            takeWhile{ sep(it) && it != '\n' }
             val next = peek()
             if (next == '\n') {
                 break
             }
-            list.add(takeNext())
+            list.add(takeNext(sep))
         }
         return list
     }

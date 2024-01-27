@@ -23,6 +23,8 @@ value class FieldSignature private constructor(val value: ReferenceTypeSignature
                 throw IllegalArgumentException("Invalid field signature", e)
             }
 
+        override fun unchecked(value: String) = FieldSignature(ReferenceTypeSignature.unchecked(value))
+
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

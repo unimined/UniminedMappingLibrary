@@ -32,11 +32,13 @@ value class ClassBound private constructor(val value: String) {
             })
         }
 
+        override fun unchecked(value: String) = ClassBound(value)
+
     }
 
     fun getParts(): ReferenceTypeSignature? {
         if (value.length == 1) return null
-        return ReferenceTypeSignature.read(value.substring(1))
+        return ReferenceTypeSignature.unchecked(value.substring(1))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

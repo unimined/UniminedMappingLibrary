@@ -34,6 +34,8 @@ value class PackageName private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid package name", e)
         }
+
+        override fun unchecked(value: String) = PackageName(value)
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

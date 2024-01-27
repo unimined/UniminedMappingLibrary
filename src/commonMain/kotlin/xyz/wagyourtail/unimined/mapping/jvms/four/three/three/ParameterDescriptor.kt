@@ -19,6 +19,7 @@ value class ParameterDescriptor private constructor(val value: FieldType) {
 
         override fun read(reader: CharReader) = ParameterDescriptor(FieldType.read(reader))
 
+        override fun unchecked(value: String) = ParameterDescriptor(FieldType.unchecked(value))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

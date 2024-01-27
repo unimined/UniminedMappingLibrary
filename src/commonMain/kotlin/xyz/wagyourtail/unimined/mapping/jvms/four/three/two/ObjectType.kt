@@ -36,9 +36,11 @@ value class ObjectType private constructor(val value: String) {
         }
 
         operator fun invoke(internalName: InternalName) = ObjectType("L$internalName;")
+
+        override fun unchecked(value: String) = ObjectType(value)
     }
 
-    fun getInternalName() = InternalName.read(value.substring(1, value.length - 1))
+    fun getInternalName() = InternalName.unchecked(value.substring(1, value.length - 1))
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

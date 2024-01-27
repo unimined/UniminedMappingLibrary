@@ -17,6 +17,9 @@ import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 
+/**
+ * FabricMC's unpick format to represent constant groups.
+ */
 object UnpickReader : FormatReader {
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         return fileName.endsWith(".unpick") && inputType.peek().readUtf8Line()?.startsWith("v2") ?: false

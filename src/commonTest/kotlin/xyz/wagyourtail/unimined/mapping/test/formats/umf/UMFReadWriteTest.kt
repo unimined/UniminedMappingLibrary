@@ -47,6 +47,8 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 		p	_	0	_	this	_
 		v	1	_	_	lv1	lv1Extra
 	m	__	dontMerge;()V	dontMerge2
+    m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>	<init>
         """.trimIndent().trimEnd()
 
         val mappings = Buffer().use { input ->
@@ -66,6 +68,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 		p	_	0	_	this	p1
 		v	1	_	_	lv1	lv1Extra
 	m	__	dontMerge;()V	dontMerge2
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>	<init>
         """.trimIndent().replace(' ', '\t').trimEnd()
 
         assertEquals(testOutput, output.trimEnd())

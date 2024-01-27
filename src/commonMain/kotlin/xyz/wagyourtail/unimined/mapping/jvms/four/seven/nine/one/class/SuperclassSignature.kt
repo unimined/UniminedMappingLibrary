@@ -23,6 +23,8 @@ value class SuperclassSignature private constructor(val value: ClassTypeSignatur
             throw IllegalArgumentException("Invalid superclass signature", e)
         }
 
+        override fun unchecked(value: String) = SuperclassSignature(ClassTypeSignature.unchecked(value))
+
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

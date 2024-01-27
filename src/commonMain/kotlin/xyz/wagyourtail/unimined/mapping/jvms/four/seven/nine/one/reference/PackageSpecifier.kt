@@ -43,6 +43,8 @@ value class PackageSpecifier private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid package specifier", e)
             }
         }
+
+        override fun unchecked(value: String) = PackageSpecifier(value)
     }
 
     fun getParts(): List<String> {

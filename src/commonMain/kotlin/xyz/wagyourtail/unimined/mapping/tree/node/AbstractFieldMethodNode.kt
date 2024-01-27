@@ -4,8 +4,9 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 
-abstract class AbstractFieldMethodNode<T: MemberVisitor<T>>(parent: ClassNode) : MemberNode<T, ClassVisitor>(parent) {
+abstract class AbstractFieldMethodNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>>(parent: ClassNode) : MemberNode<T, V, ClassVisitor>(parent) {
 
     private val _names = mutableMapOf<Namespace, String>()
     private val _descs = mutableMapOf<Namespace, FieldOrMethodDescriptor>()

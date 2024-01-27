@@ -20,4 +20,6 @@ interface TypeCompanion<T> {
 
     fun read(reader: CharReader): T
 
+    fun unchecked(value: String): T
+
 }

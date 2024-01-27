@@ -7,7 +7,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
+class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
     private val _params: MutableList<ParameterNode> = mutableListOf()
     private val _locals: MutableList<LocalNode> = mutableListOf()
     private val _exceptions: MutableList<ExceptionNode> = mutableListOf()
@@ -24,7 +24,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         setDescriptors(descs.mapValues { FieldOrMethodDescriptor.read(it.value.toString()) })
     }
 
-    class ParameterNode(parent: MethodNode, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, MethodVisitor>(parent), ParameterVisitor {
+    class ParameterNode(parent: MethodNode, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, MethodVisitor, MethodVisitor>(parent), ParameterVisitor {
         private val _names: MutableMap<Namespace, String> = mutableMapOf()
         val names: Map<Namespace, String> get() = _names
 
@@ -36,7 +36,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         override fun acceptOuter(visitor: MethodVisitor, minimize: Boolean) = visitor.visitParameter(index, lvOrd, names)
     }
 
-    class LocalNode(parent: MethodNode, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, MethodVisitor>(parent), LocalVariableVisitor {
+    class LocalNode(parent: MethodNode, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, MethodVisitor, MethodVisitor>(parent), LocalVariableVisitor {
         private val _names: MutableMap<Namespace, String> = mutableMapOf()
         val names: Map<Namespace, String> get() = _names
 

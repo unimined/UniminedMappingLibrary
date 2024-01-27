@@ -25,16 +25,18 @@ value class ArrayType private constructor(val value: String) {
             }
             return ArrayType("[${ComponentType.read(reader)}")
         }
+
+        override fun unchecked(value: String) = ArrayType(value)
     }
 
     fun getParts(): ComponentType {
-        return ComponentType.read(value.substring(1))
+        return ComponentType.unchecked(value.substring(1))
     }
 
     fun getDimensionsAndComponent(): Pair<Int, ComponentType> {
         val component = value.trimStart('[')
         val dimensions = value.length - component.length
-        return Pair(dimensions, ComponentType.read(component))
+        return Pair(dimensions, ComponentType.unchecked(component))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

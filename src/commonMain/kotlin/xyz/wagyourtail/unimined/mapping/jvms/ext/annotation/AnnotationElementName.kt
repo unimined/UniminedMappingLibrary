@@ -30,6 +30,8 @@ value class AnnotationElementName private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid annotation element name", e)
         }
+
+        override fun unchecked(value: String) = AnnotationElementName(value)
     }
 
     fun unescape(): String {

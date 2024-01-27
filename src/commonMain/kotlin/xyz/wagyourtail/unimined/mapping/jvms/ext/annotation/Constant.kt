@@ -67,6 +67,8 @@ value class Constant private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid constant", e)
         }
+
+        override fun unchecked(value: String) = Constant(value)
     }
 
     fun isString() = value.first() == '"'

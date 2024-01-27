@@ -26,15 +26,17 @@ value class ReturnDescriptor private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid return type", e)
         }
+
+        override fun unchecked(value: String) = ReturnDescriptor(value)
     }
 
     fun isVoidType() = value == "V"
 
     fun isFieldType() = !isVoidType()
 
-    fun getVoidType() = VoidDescriptor.read(value)
+    fun getVoidType() = VoidDescriptor.unchecked(value)
 
-    fun getFieldType() = FieldType.read(value)
+    fun getFieldType() = FieldType.unchecked(value)
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

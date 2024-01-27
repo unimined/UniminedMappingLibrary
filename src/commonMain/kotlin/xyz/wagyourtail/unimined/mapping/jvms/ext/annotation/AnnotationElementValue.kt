@@ -37,6 +37,8 @@ value class AnnotationElementValue private constructor(val value: String) {
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid annotation element value", e)
         }
+
+        override fun unchecked(value: String) = AnnotationElementValue(value)
     }
 
     fun isAnnotation() = value[0] == '@'
@@ -51,15 +53,15 @@ value class AnnotationElementValue private constructor(val value: String) {
 
     fun isConstant() = value[0].isDigit() || value[0] == '"' || value[0] == 't' || value[0] == 'f'
 
-    fun getAnnotation() = Annotation.read(value)
+    fun getAnnotation() = Annotation.unchecked(value)
 
-    fun getArrayConstant() = ArrayConstant.read(value)
+    fun getArrayConstant() = ArrayConstant.unchecked(value)
 
-    fun getEnumConstant() = EnumConstant.read(value)
+    fun getEnumConstant() = EnumConstant.unchecked(value)
 
-    fun getClassConstant() = ClassConstant.read(value)
+    fun getClassConstant() = ClassConstant.unchecked(value)
 
-    fun getConstant() = Constant.read(value)
+    fun getConstant() = Constant.unchecked(value)
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

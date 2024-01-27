@@ -38,13 +38,15 @@ value class ArrayConstant private constructor(val value: String) {
         } catch (e: IllegalArgumentException) {
             throw IllegalArgumentException("Invalid array constant", e)
         }
+
+        override fun unchecked(value: String) = ArrayConstant(value)
     }
 
-    fun getParts(): ArrayElements? = CharReader(value.substring(1)).use {
-        if (it.peek() == '}') {
+    fun getParts(): ArrayElements? {
+        if (value.length <= 2) {
             return null
         }
-        return ArrayElements.read(it)
+        return ArrayElements.unchecked(value.substring(1, value.length - 1))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

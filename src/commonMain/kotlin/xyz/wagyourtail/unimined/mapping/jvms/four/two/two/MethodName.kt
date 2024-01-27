@@ -28,6 +28,8 @@ value class MethodName private constructor(val value: UnqualifiedName) {
             throw IllegalArgumentException("Invalid unqualified name", e)
         }
 
+        override fun unchecked(value: String) = MethodName(UnqualifiedName.unchecked(value))
+
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

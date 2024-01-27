@@ -27,6 +27,8 @@ value class UnqualifiedName private constructor(val value: String) {
             throw IllegalArgumentException("Invalid unqualified name", e)
         }
 
+        override fun unchecked(value: String) = UnqualifiedName(value)
+
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
