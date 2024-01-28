@@ -2,12 +2,11 @@ package xyz.wagyourtail.unimined.mapping.test.formats.mcp
 
 import kotlinx.coroutines.test.runTest
 import okio.Buffer
-import okio.ByteString.Companion.encodeUtf8
 import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
-import xyz.wagyourtail.unimined.mapping.formats.mcp.ClassesReader
-import xyz.wagyourtail.unimined.mapping.formats.mcp.OlderFieldReader
-import xyz.wagyourtail.unimined.mapping.formats.mcp.OlderMethodReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3ClassesReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1FieldReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.rgs.RetroguardReadTest
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
@@ -29,7 +28,7 @@ class MCPReadTest {
                 a (Minecraft),method_1507,*,*,minecraftMethod,comment data,,[1]
                 b (World),method_1204,*,*,worldMethod,comment data
             """.trimIndent())
-            OlderMethodReader.read(EnvType.CLIENT, it, tree)
+            MCPv1MethodReader.read(EnvType.CLIENT, it, tree)
         }
 
         val out = Buffer().use {
@@ -70,7 +69,7 @@ c	b	net/minecraft/src/World	_
                 b,a,field_1725,*,*,worldField,comment data
             """.trimIndent()
             )
-            OlderFieldReader.read(EnvType.CLIENT, it, tree)
+            MCPv1FieldReader.read(EnvType.CLIENT, it, tree)
         }
 
         val out = Buffer().use {
@@ -97,7 +96,7 @@ c	b	net/minecraft/src/World	_
     suspend fun readMCPClasses(): MappingTree {
         return Buffer().use {
             it.writeUtf8(mcpClasses)
-            ClassesReader.read(EnvType.CLIENT, it)
+            MCPv3ClassesReader.read(EnvType.CLIENT, it)
         }
     }
 

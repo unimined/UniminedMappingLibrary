@@ -32,47 +32,50 @@ class Main: CliktCommand() {
     val output by option("-o", "--output", help = "The output").transformValues(nvalues = 2) { FormatRegistry.byName[it[0]] to File(it[1]) }.required()
 
     override fun run() = runBlocking {
-        val mappings = MappingTree()
-        val nsMapMap = nsMap.mutliAssociate { it.first to (it.second to it.third) }
-        for ((idx, input) in mappingFiles.withIndex()) {
-            LOGGER.info { "Loading ${input.name}..." }
+        val totalTime = measureTime {
+            val mappings = MappingTree()
+            val nsMapMap = nsMap.mutliAssociate { it.first to (it.second to it.third) }
+            for ((idx, input) in mappingFiles.withIndex()) {
+                LOGGER.info { "Loading ${input.name}..." }
+                val t = measureTime {
+                    input.source().buffer().use { buf ->
+                        FormatRegistry.autodetectFormat(envType, input.name, buf.peek())
+                            ?.read(envType, buf, mappings, mappings, nsMapMap[idx]?.associate { it } ?: emptyMap())
+                            ?: throw IllegalArgumentException("Could not autodetect format for ${input.name}")
+                    }
+                }
+                LOGGER.info { "Loaded in ${t.inWholeMilliseconds}ms" }
+            }
+            val prop = propogation.map { it.toPath() }.toSet()
+            val cp = classpath.map { it.toPath() }.toSet()
+            if (prop.isNotEmpty() || cp.isNotEmpty()) {
+                LOGGER.info { "Propogating..." }
+                val t = measureTime {
+                    mappings.propogate(
+                        PropogationInfoImpl(Namespace(propogationNs!!), prop, cp),
+                        mappings.namespaces.toSet() - Namespace(propogationNs!!)
+                    )
+                }
+                LOGGER.info { "Propogated in ${t.inWholeMilliseconds}ms" }
+            }
+            val copyMissingMap = copyMissing.mutliAssociate { it }
+            for ((from, to) in copyMissingMap) {
+                LOGGER.info { "Copying missing names from $from to ${to.joinToString(", ")}" }
+                val t = measureTime {
+                    mappings.accept(mappings.copyNames(Namespace(from), to.map { Namespace(it) }.toSet()))
+                }
+                LOGGER.info { "Copied missing names in ${t.inWholeMilliseconds}ms" }
+            }
+            LOGGER.info { "Writing ${output.second.name}..." }
             val t = measureTime {
-                input.source().buffer().use { buf ->
-                    FormatRegistry.autodetectFormat(envType, input.name, buf.peek())
-                        ?.read(envType, buf, mappings, mappings, nsMapMap[idx]?.associate { it } ?: emptyMap())
-                        ?: throw IllegalArgumentException("Could not autodetect format for ${input.name}")
+                output.second.parentFile?.mkdirs()
+                output.second.sink().buffer().use { buf ->
+                    mappings.accept(output.first?.write(envType, buf)!!)
                 }
             }
-            LOGGER.info { "Loaded in ${t.inWholeMilliseconds}ms" }
+            LOGGER.info { "Wrote in ${t.inWholeMilliseconds}ms" }
         }
-        val prop = propogation.map { it.toPath() }.toSet()
-        val cp = classpath.map { it.toPath() }.toSet()
-        if (prop.isNotEmpty() || cp.isNotEmpty()) {
-            LOGGER.info { "Propogating..." }
-            val t = measureTime {
-                mappings.propogate(
-                    PropogationInfoImpl(Namespace(propogationNs!!), prop, cp),
-                    mappings.namespaces.toSet() - Namespace(propogationNs!!)
-                )
-            }
-            LOGGER.info { "Propogated in ${t.inWholeMilliseconds}ms" }
-        }
-        val copyMissingMap = copyMissing.mutliAssociate { it }
-        for ((from, to) in copyMissingMap) {
-            LOGGER.info { "Copying missing names from $from to ${to.joinToString(", ")}" }
-            val t = measureTime {
-                mappings.accept(mappings.copyNames(Namespace(from), to.map { Namespace(it) }.toSet()))
-            }
-            LOGGER.info { "Copied missing names in ${t.inWholeMilliseconds}ms" }
-        }
-        LOGGER.info { "Writing ${output.second.name}..." }
-        val t = measureTime {
-            output.second.parentFile?.mkdirs()
-            output.second.sink().buffer().use { buf ->
-                mappings.accept(output.first?.write(envType, buf)!!)
-            }
-        }
-        LOGGER.info { "Wrote in ${t.inWholeMilliseconds}ms" }
+        LOGGER.info { "Finished in ${totalTime.inWholeMilliseconds}ms" }
     }
 
 }

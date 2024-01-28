@@ -3,7 +3,15 @@ package xyz.wagyourtail.unimined.mapping.formats
 import okio.BufferedSink
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
-import xyz.wagyourtail.unimined.mapping.formats.mcp.OlderMethodReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.MCPExceptionReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1FieldReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3ClassesReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3FieldReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3MethodReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6FieldReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6MethodReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6ParamReader
 import xyz.wagyourtail.unimined.mapping.formats.nests.NestReader
 import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgReader
@@ -20,14 +28,22 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object FormatRegistry {
 
     val builtinFormats = listOf(
-        FormatProvider(ZipReader, null, listOf()),
-        FormatProvider(UMFReader, UMFWriter, listOf()),
-        FormatProvider(TinyV2Reader, TinyV2Writer, listOf()),
-        FormatProvider(NestReader, null, listOf()),
-        FormatProvider(UnpickReader, null, listOf()),
-        FormatProvider(SrgReader, SrgWriter, listOf()),
-        FormatProvider(RetroguardReader, null, listOf()),
-        FormatProvider(OlderMethodReader, null, listOf("retroguard"))
+        FormatProvider(ZipReader, null),
+        FormatProvider(UMFReader, UMFWriter),
+        FormatProvider(TinyV2Reader, TinyV2Writer),
+        FormatProvider(NestReader, null),
+        FormatProvider(UnpickReader, null),
+        FormatProvider(SrgReader, SrgWriter),
+        FormatProvider(RetroguardReader, null),
+        FormatProvider(MCPv1MethodReader, null, listOf(RetroguardReader)),
+        FormatProvider(MCPv1FieldReader, null, listOf(RetroguardReader)),
+        FormatProvider(MCPv3ClassesReader, null),
+        FormatProvider(MCPv3MethodReader, null, listOf(MCPv3ClassesReader)),
+        FormatProvider(MCPv3FieldReader, null, listOf(MCPv3ClassesReader)),
+        FormatProvider(MCPExceptionReader, null, listOf(RetroguardReader.name, MCPv3ClassesReader.name, SrgReader.name, "tsrg", "tsrg2")),
+        FormatProvider(MCPv6MethodReader, null, listOf(SrgReader.name, "tsrg", "tsrg2")),
+        FormatProvider(MCPv6FieldReader, null, listOf(SrgReader.name, "tsrg", "tsrg2")),
+        FormatProvider(MCPv6ParamReader, null, listOf(SrgReader.name, "tsrg", "tsrg2", MCPExceptionReader.name)),
     )
 
     private val _formats = mutableListOf<FormatProvider>()
@@ -80,7 +96,9 @@ expect class FormatSupplier() {
 
 }
 
-class FormatProvider(val reader: FormatReader, val writer: FormatWriter?, val mustBeAfter: List<String>) {
+class FormatProvider(val reader: FormatReader, val writer: FormatWriter?, val mustBeAfter: List<String> = listOf()) {
+
+    constructor(reader: FormatReader, writer: FormatWriter?, mustBeAfter: List<FormatReader>): this(reader, writer, mustBeAfter.map { it.name })
 
     val name: String
         get() = reader.name
