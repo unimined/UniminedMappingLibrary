@@ -161,6 +161,7 @@ abstract class MinecraftMappingResolver(name: String, createResolver: (String) -
                      }
                 }
             }
+            action()
         })
     }
 
