@@ -4,7 +4,6 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
-import xyz.wagyourtail.unimined.mapping.formats.checked
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -31,6 +30,19 @@ object TinyV2Reader : FormatReader {
         while (true) {
             namespaces.add(input.takeNextLiteral()?.let { Namespace(nsMapping[it] ?: it) } ?: break)
         }
+        while (input.peek() == '\n') {
+            input.take()
+        }
+        val metadataKeys = mutableListOf<String>()
+        while (input.peek() == '\t') {
+            input.take()
+            if (input.peek() == '\n') {
+                input.take()
+                break
+            }
+            metadataKeys.add(input.takeLine())
+        }
+        val escaped = metadataKeys.contains("escaped-names")
         into.visitHeader(*namespaces.map { it.name }.toTypedArray())
         val stack = mutableListOf<BaseVisitor<*>?>(into)
         outer@while (!input.exhausted()) {
@@ -58,25 +70,23 @@ object TinyV2Reader : FormatReader {
                         // class
                         val names = mutableListOf<InternalName>()
                         while (true) {
-                            names.add(InternalName.read(input.takeNextLiteral() ?: break))
+                            names.add(InternalName.read(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break))
                         }
-                        checked<MappingVisitor, ClassVisitor>(last) {
-                            visitClass(namespaces.zip(names).toMap())
-                        }
+                        last as MappingVisitor?
+                        last?.visitClass(namespaces.zip(names).toMap())
                     } else {
                         // comment
                         val comment = input.takeLine().removePrefix("\t").translateEscapes()
-                        checked<MemberVisitor<*>, CommentVisitor>(last) {
-                            visitComment(namespaces.associateWith { comment })
-                        }
+                        last as ClassVisitor?
+                        last?.visitComment(namespaces.associateWith { comment })
                     }
                 }
                 "f" -> {
                     // field
-                    val desc = input.takeNextLiteral()!!
+                    val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
                     val names = mutableListOf<String>()
                     while (true) {
-                        names.add(input.takeNextLiteral() ?: break)
+                        names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break)
                     }
                     val nameIter = names.iterator()
                     val nsIter = namespaces.iterator()
@@ -85,16 +95,15 @@ object TinyV2Reader : FormatReader {
                     while (nameIter.hasNext()) {
                         nameMap[nsIter.next()] = nameIter.next() to null
                     }
-                    checked<ClassVisitor, FieldVisitor>(last) {
-                        visitField(nameMap)
-                    }
+                    last as ClassVisitor?
+                    last?.visitField(nameMap)
                 }
                 "m" -> {
                     // method
-                    val desc = input.takeNextLiteral()!!
+                    val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
                     val names = mutableListOf<String>()
                     while (true) {
-                        names.add(input.takeNextLiteral() ?: break)
+                        names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break)
                     }
                     val nameIter = names.iterator()
                     val nsIter = namespaces.iterator()
@@ -103,16 +112,15 @@ object TinyV2Reader : FormatReader {
                     while (nameIter.hasNext()) {
                         nameMap[nsIter.next()] = nameIter.next() to null
                     }
-                    checked<ClassVisitor, MethodVisitor>(last) {
-                        visitMethod(nameMap)
-                    }
+                    last as ClassVisitor?
+                    last?.visitMethod(nameMap)
                 }
                 "p" -> {
                     // parameter
                     val lvOrd = input.takeNextLiteral()?.toIntOrNull()
                     val names = mutableListOf<String>()
                     while (true) {
-                        names.add(input.takeNextLiteral() ?: break)
+                        names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break)
                     }
                     val nameIter = names.iterator()
                     val nsIter = namespaces.iterator()
@@ -121,9 +129,8 @@ object TinyV2Reader : FormatReader {
                     while (nameIter.hasNext()) {
                         nameMap[nsIter.next()] = nameIter.next()
                     }
-                    checked<MethodVisitor, ParameterVisitor>(last) {
-                        visitParameter(null, lvOrd, nameMap)
-                    }
+                    last as MethodVisitor?
+                    last?.visitParameter(null, lvOrd, nameMap)
                 }
                 else -> {
                     throw IllegalArgumentException("Invalid tinyv2 file, unknown type $type")

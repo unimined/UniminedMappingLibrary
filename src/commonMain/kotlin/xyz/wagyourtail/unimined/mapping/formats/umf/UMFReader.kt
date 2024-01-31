@@ -4,7 +4,6 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
-import xyz.wagyourtail.unimined.mapping.formats.checked
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
@@ -95,30 +94,31 @@ object UMFReader : FormatReader {
             }
             val last = visitStack.last()
             val next: BaseVisitor<*>? = when (entryType) {
+                EntryType.COMMENT -> {
+                    input.takeLine()
+                    continue
+                }
                 EntryType.PACKAGE -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         getNamespace(idx) to PackageName.read(name)
                     }
-                    checked<MappingVisitor, PackageVisitor>(last) {
-                        visitPackage(names)
-                    }
+                    last as MappingVisitor?
+                    last?.visitPackage(names)
                 }
                 EntryType.CLASS -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         getNamespace(idx) to InternalName.read(name)
                     }
-                    checked<MappingVisitor, ClassVisitor>(last) {
-                        visitClass(names)
-                    }
+                    last as MappingVisitor?
+                    last?.visitClass(names)
                 }
                 EntryType.METHOD -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         val nd = NameAndDescriptor.read(name).getParts()
                         getNamespace(idx) to (nd.first.value to nd.second?.getMethodDescriptor())
                     }
-                    checked<ClassVisitor, MethodVisitor>(last) {
-                        visitMethod(names)
-                    }
+                    last as ClassVisitor?
+                    last?.visitMethod(names)
                 }
                 EntryType.PARAMETER -> {
                     val index = fixValue(input.takeNext().second)?.toIntOrNull()
@@ -130,9 +130,8 @@ object UMFReader : FormatReader {
                     val names = remain.map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         getNamespace(idx) to name
                     }
-                    checked<MethodVisitor, ParameterVisitor>(last) {
-                        visitParameter(index, lvOrd, names)
-                    }
+                    last as MethodVisitor?
+                    last?.visitParameter(index, lvOrd, names)
                 }
                 EntryType.LOCAL_VARIABLE -> {
                     val lvOrd = fixValue(input.takeNext().second)!!.toInt()
@@ -140,9 +139,8 @@ object UMFReader : FormatReader {
                     val names = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         getNamespace(idx) to name
                     }
-                    checked<MethodVisitor, LocalVariableVisitor>(last) {
-                        visitLocalVariable(lvOrd, startOp, names)
-                    }
+                    last as MethodVisitor?
+                    last?.visitLocalVariable(lvOrd, startOp, names)
                 }
                 EntryType.EXCEPTION -> {
                     val type = fixValue(input.takeNext().second)!!.let {
@@ -155,18 +153,16 @@ object UMFReader : FormatReader {
                     val exception = InternalName.read(fixValue(input.takeNext().second)!!)
                     val baseNs = getNamespace(input.takeNext().second.toInt())
                     val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
-                    checked<MethodVisitor, ExceptionVisitor>(last) {
-                        visitException(type, exception, baseNs, namespaces)
-                    }
+                    last as MethodVisitor?
+                    last?.visitException(type, exception, baseNs, namespaces)
                 }
                 EntryType.FIELD -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         val nd = NameAndDescriptor.read(name).getParts()
                         getNamespace(idx) to (nd.first.value to nd.second?.getFieldDescriptor())
                     }
-                    checked<ClassVisitor, FieldVisitor>(last) {
-                        visitField(names)
-                    }
+                    last as ClassVisitor?
+                    last?.visitField(names)
                 }
                 EntryType.INNER_CLASS -> {
                     val type = fixValue(input.takeNext().second)!!.let {
@@ -186,9 +182,8 @@ object UMFReader : FormatReader {
                         }
                         getNamespace(idx) to (innerName to fqn)
                     }
-                    checked<ClassVisitor, InnerClassVisitor>(last) {
-                        visitInnerClass(type, names)
-                    }
+                    last as ClassVisitor?
+                    last?.visitInnerClass(type, names)
                 }
                 EntryType.JAVADOC -> {
                     val values = input.takeRemainingOnLine().map { fixValue(it.second) }.withIndex().filterNotNullValues().associate { (idx, name) ->
@@ -202,9 +197,8 @@ object UMFReader : FormatReader {
                             it.value.removePrefix("_").toIntOrNull()?.toString() ?: it.value
                         }
                     }
-                    checked<MemberVisitor<*>, CommentVisitor>(last) {
-                        visitComment(fixed)
-                    }
+                    last as MemberVisitor<*>?
+                    last?.visitComment(fixed)
                 }
                 EntryType.ANNOTATION -> {
                     val type = fixValue(input.takeNext().second)!!.let {
@@ -220,9 +214,8 @@ object UMFReader : FormatReader {
                     val annotation = Annotation.read("@$key$value")
                     val baseNs = getNamespace(input.takeNext().second.toInt())
                     val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
-                    checked<MemberVisitor<*>, AnnotationVisitor>(last) {
-                        visitAnnotation(type, baseNs, annotation, namespaces)
-                    }
+                    last as MemberVisitor<*>?
+                    last?.visitAnnotation(type, baseNs, annotation, namespaces)
                 }
                 EntryType.ACCESS -> {
                     val type = fixValue(input.takeNext().second)!!.let {
@@ -234,30 +227,26 @@ object UMFReader : FormatReader {
                     }
                     val value = AccessFlag.valueOf(fixValue(input.takeNext().second)!!.uppercase())
                     val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.toSet()
-                    checked<MemberVisitor<*>, AccessVisitor>(last) {
-                        visitAccess(type, value, namespaces)
-                    }
+                    last as MemberVisitor<*>?
+                    last?.visitAccess(type, value, namespaces)
                 }
                 EntryType.CONSTANT_GROUP -> {
                     val type = ConstantGroupNode.InlineType.valueOf(input.takeNext().second.uppercase())
                     val names = input.takeRemainingOnLine().mapNotNull { fixValue(it.second) }.map { Namespace(it) }.iterator()
-                    checked<MappingVisitor, ConstantGroupVisitor>(last) {
-                        visitConstantGroup(type, names.next(), names.asSequence().toSet())
-                    }
+                    last as MappingVisitor?
+                    last?.visitConstantGroup(type, names.next(), names.asSequence().toSet())
                 }
                 EntryType.CONSTANT -> {
                     val cls = InternalName.read(input.takeNext().second)
                     val fd = NameAndDescriptor.read(input.takeNext().second).getParts()
-                    checked<ConstantGroupVisitor, ConstantVisitor>(last) {
-                        visitConstant(cls, fd.first, fd.second?.getFieldDescriptor())
-                    }
+                    last as ConstantGroupVisitor?
+                    last?.visitConstant(cls, fd.first, fd.second?.getFieldDescriptor())
                 }
                 EntryType.CONSTANT_TARGET -> {
-                    checked<ConstantGroupVisitor, TargetVisitor>(last) {
-                        val target = FullyQualifiedName.read(input.takeNext().second)
-                        val paramIdx = fixValue(input.takeNext().second)?.toIntOrNull()
-                        visitTarget(target, paramIdx)
-                    }
+                    val target = FullyQualifiedName.read(input.takeNext().second)
+                    val paramIdx = fixValue(input.takeNext().second)?.toIntOrNull()
+                    last as ConstantGroupVisitor?
+                    last?.visitTarget(target, paramIdx)
                 }
                 EntryType.EXTENSION -> TODO()
             }
@@ -286,6 +275,7 @@ object UMFReader : FormatReader {
         CONSTANT('n'),
         CONSTANT_TARGET('t'),
         EXTENSION('e'),
+        COMMENT('#')
         ;
 
         companion object {

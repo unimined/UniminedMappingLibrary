@@ -4,6 +4,8 @@ import okio.BufferedSink
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.mcp.MCPExceptionReader
+import xyz.wagyourtail.unimined.mapping.formats.tsrg.TsrgV1Reader
+import xyz.wagyourtail.unimined.mapping.formats.tsrg.TsrgV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3ClassesReader
@@ -12,7 +14,13 @@ import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6ParamReader
+import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigAccessReader
+import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigConstructorReader
+import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigExceptionsReader
+import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigStaticMethodsReader
 import xyz.wagyourtail.unimined.mapping.formats.nests.NestReader
+import xyz.wagyourtail.unimined.mapping.formats.parchment.ParchmentReader
+import xyz.wagyourtail.unimined.mapping.formats.proguard.ProguardReader
 import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgWriter
@@ -28,7 +36,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object FormatRegistry {
 
     val builtinFormats = listOf(
-        FormatProvider(ZipReader, null),
+//        FormatProvider(ZipReader, null),
         FormatProvider(UMFReader, UMFWriter),
         FormatProvider(TinyV2Reader, TinyV2Writer),
         FormatProvider(NestReader, null),
@@ -40,10 +48,18 @@ object FormatRegistry {
         FormatProvider(MCPv3ClassesReader, null),
         FormatProvider(MCPv3MethodReader, null, listOf(MCPv3ClassesReader)),
         FormatProvider(MCPv3FieldReader, null, listOf(MCPv3ClassesReader)),
-        FormatProvider(MCPExceptionReader, null, listOf(RetroguardReader.name, MCPv3ClassesReader.name, SrgReader.name, "tsrg", "tsrg2")),
-        FormatProvider(MCPv6MethodReader, null, listOf(SrgReader.name, "tsrg", "tsrg2")),
-        FormatProvider(MCPv6FieldReader, null, listOf(SrgReader.name, "tsrg", "tsrg2")),
-        FormatProvider(MCPv6ParamReader, null, listOf(SrgReader.name, "tsrg", "tsrg2", MCPExceptionReader.name)),
+        FormatProvider(MCPExceptionReader, null, listOf(RetroguardReader, MCPv3ClassesReader, SrgReader, TsrgV1Reader, TsrgV2Reader)),
+        FormatProvider(MCPv6MethodReader, null, listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
+        FormatProvider(MCPv6FieldReader, null, listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
+        FormatProvider(MCPv6ParamReader, null, listOf(SrgReader, TsrgV1Reader, TsrgV2Reader, MCPExceptionReader, MCPConfigConstructorReader, MCPConfigStaticMethodsReader)),
+        FormatProvider(MCPConfigConstructorReader, null, listOf(TsrgV1Reader)),
+        FormatProvider(MCPConfigExceptionsReader, null, listOf(TsrgV1Reader)),
+        FormatProvider(MCPConfigAccessReader, null, listOf(TsrgV1Reader)),
+        FormatProvider(MCPConfigStaticMethodsReader, null, listOf(TsrgV1Reader)),
+        FormatProvider(TsrgV1Reader, null),
+        FormatProvider(TsrgV2Reader, null),
+        FormatProvider(ProguardReader, null),
+        FormatProvider(ParchmentReader, null)
     )
 
     private val _formats = mutableListOf<FormatProvider>()

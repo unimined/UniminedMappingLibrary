@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.visitor
 
+import okio.BufferedSink
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
@@ -20,7 +21,13 @@ interface BaseVisitor<T: BaseVisitor<T>> {
 
 interface NullVisitor : BaseVisitor<NullVisitor>
 
-interface ExtensionVisitor<T: ExtensionVisitor<T, V>, V> : BaseVisitor<T>
+interface ExtensionVisitor<T: ExtensionVisitor<T, V>, V> : BaseVisitor<T> {
+
+    fun ephemeral(): Boolean
+
+    fun write(sink: BufferedSink)
+
+}
 
 interface MappingVisitor : BaseVisitor<MappingVisitor> {
 
@@ -52,11 +59,13 @@ interface SignatureParentVisitor<T: SignatureParentVisitor<T>> : BaseVisitor<T> 
 
 }
 
-interface MemberVisitor<T: MemberVisitor<T>> : AccessParentVisitor<T>, AnnotationParentVisitor<T> {
+interface CommentParentVisitor<T: CommentParentVisitor<T>> : BaseVisitor<T> {
 
     fun visitComment(values: Map<Namespace, String>): CommentVisitor?
 
 }
+
+interface MemberVisitor<T: MemberVisitor<T>> : AccessParentVisitor<T>, AnnotationParentVisitor<T>, CommentParentVisitor<T>
 
 enum class AccessType {
     ADD,
@@ -74,7 +83,7 @@ enum class ExceptionType {
     REMOVE
 }
 
-interface PackageVisitor : AnnotationParentVisitor<PackageVisitor>
+interface PackageVisitor : AnnotationParentVisitor<PackageVisitor>, CommentParentVisitor<PackageVisitor>
 
 interface ClassVisitor : MemberVisitor<ClassVisitor>, SignatureParentVisitor<ClassVisitor> {
 

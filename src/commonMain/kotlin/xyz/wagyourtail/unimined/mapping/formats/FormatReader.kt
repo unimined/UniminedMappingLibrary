@@ -28,11 +28,3 @@ interface FormatReader {
     suspend fun read(envType: EnvType, input: CharReader, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) {}
 
 }
-
-inline fun <reified T, U> checked(value: Any?, action: T.() -> U?): U? {
-    if (value == null) return null
-    if (value !is T) {
-        throw IllegalArgumentException("Expected ${T::class.simpleName}, found ${value.let { it::class.simpleName}}")
-    }
-    return action(value)
-}

@@ -56,6 +56,7 @@ kotlin {
                 implementation("com.squareup.okio:okio:3.7.0")
                 implementation("com.sschr15.annotations:jb-annotations-kmp:24.1.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC2")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
             }
         }
         val commonTest by getting {

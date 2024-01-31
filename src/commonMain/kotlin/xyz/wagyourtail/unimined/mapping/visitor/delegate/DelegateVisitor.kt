@@ -86,8 +86,12 @@ open class Delegator(delegator: Delegator? = null) {
         return visitAccess(delegate, type, value, namespaces)
     }
 
-    open fun visitComment(delegate: MemberVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+    open fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
         return delegate.visitComment(values)
+    }
+
+    open fun visitPackageComment(delegate: PackageVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitComment(delegate, values)
     }
 
     open fun visitClassComment(delegate: ClassVisitor, values: Map<Namespace, String>): CommentVisitor? {
@@ -214,6 +218,10 @@ open class DelegateMappingVisitor(delegate: MappingVisitor, delegator: Delegator
 }
 
 open class DelegatePackageVisitor(delegate: PackageVisitor, delegator: Delegator) : DelegateBaseVisitor<PackageVisitor>(delegate, delegator), PackageVisitor by delegate {
+
+    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitPackageComment(delegate, values)
+    }
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)

@@ -6,16 +6,16 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
-import xyz.wagyourtail.unimined.mapping.visitor.AnnotationType
-import xyz.wagyourtail.unimined.mapping.visitor.AnnotationVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.PackageVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class PackageNode(parent: MappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
     private val _names: MutableMap<Namespace, PackageName?> = mutableMapOf()
     private val _annotations: MutableSet<AnnotationNode<PackageVisitor>> = mutableSetOf()
+    private val _comments: MutableMap<Namespace, String?> = mutableMapOf()
+
     val names: Map<Namespace, PackageName?> get() = _names
     val annotations: Set<AnnotationNode<PackageVisitor>> get() = _annotations
+    val comments: Map<Namespace, String?> get() = _comments
 
     fun getName(namespace: Namespace) = names[namespace]
 
@@ -44,7 +44,14 @@ class PackageNode(parent: MappingTree) : BaseNode<PackageVisitor, MappingVisitor
         val node = AnnotationNode(this, type, baseNs, annotation)
         node.addNamespaces(namespaces)
         _annotations.add(node)
+        root.mergeNs(namespaces + baseNs)
         return node
+    }
+
+    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+        root.mergeNs(values.keys)
+        _comments.putAll(values)
+        return null
     }
 
 }

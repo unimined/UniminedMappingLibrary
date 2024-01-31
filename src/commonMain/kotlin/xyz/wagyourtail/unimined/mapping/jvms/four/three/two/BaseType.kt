@@ -33,6 +33,11 @@ value class BaseType private constructor(val value: Char) {
         override fun unchecked(value: String) = BaseType(value.toCharArray()[0])
     }
 
+    fun getWidth() = when (value) {
+        'J', 'D' -> 2
+        else -> 1
+    }
+
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         visitor(this, true)
     }

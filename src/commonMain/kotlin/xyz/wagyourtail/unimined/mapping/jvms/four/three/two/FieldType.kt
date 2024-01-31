@@ -42,6 +42,12 @@ value class FieldType private constructor(val value: String) {
 
     fun getArrayType() = ArrayType.unchecked(value)
 
+    fun getWidth() = when {
+        isBaseType() -> getBaseType().getWidth()
+        isObjectType() -> 1
+        else -> 1
+    }
+
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {
             if (isBaseType()) {

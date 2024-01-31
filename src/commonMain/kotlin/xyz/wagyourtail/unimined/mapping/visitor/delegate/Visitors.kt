@@ -14,6 +14,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 fun MappingVisitor.delegator(delegator: Delegator) = DelegateMappingVisitor(this, delegator)
 
+fun MappingVisitor.nsFiltered(vararg ns: String) = nsFiltered(ns.map { Namespace(it) }.toSet())
+
 fun MappingVisitor.nsFiltered(ns: Set<Namespace>) = DelegateMappingVisitor(this, object : Delegator() {
 
     override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
@@ -104,7 +106,7 @@ fun MappingVisitor.nsFiltered(ns: Set<Namespace>) = DelegateMappingVisitor(this,
         return super.visitAccess(delegate, type, value, n)
     }
 
-    override fun visitComment(delegate: MemberVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
         val n = values.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitComment(delegate, n)
@@ -229,7 +231,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         return super.visitAccess(delegate, type, value, n)
     }
 
-    override fun visitComment(delegate: MemberVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
         val n = values.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitComment(delegate, n)

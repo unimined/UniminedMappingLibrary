@@ -13,7 +13,7 @@ import xyz.wagyourtail.unimined.mapping.propogator.PropogationInfoImpl
 import xyz.wagyourtail.unimined.mapping.propogator.propogate
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.util.mutliAssociate
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyNames
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
 import java.io.File
 import kotlin.time.measureTime
 
@@ -62,7 +62,7 @@ class Main: CliktCommand() {
             for ((from, to) in copyMissingMap) {
                 LOGGER.info { "Copying missing names from $from to ${to.joinToString(", ")}" }
                 val t = measureTime {
-                    mappings.accept(mappings.copyNames(Namespace(from), to.map { Namespace(it) }.toSet()))
+                    mappings.accept(mappings.copyTo(Namespace(from), to.map { Namespace(it) }.toSet(), mappings))
                 }
                 LOGGER.info { "Copied missing names in ${t.inWholeMilliseconds}ms" }
             }

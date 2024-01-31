@@ -51,7 +51,7 @@ open class NullDelegator : Delegator() {
         return null
     }
 
-    override fun visitComment(delegate: MemberVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
         return null
     }
 
