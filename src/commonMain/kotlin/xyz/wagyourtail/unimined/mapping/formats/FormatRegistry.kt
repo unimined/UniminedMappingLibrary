@@ -114,7 +114,13 @@ expect class FormatSupplier() {
 
 class FormatProvider(val reader: FormatReader, val writer: FormatWriter?, val mustBeAfter: List<String> = listOf()) {
 
-    constructor(reader: FormatReader, writer: FormatWriter?, mustBeAfter: List<FormatReader>): this(reader, writer, mustBeAfter.map { it.name })
+    companion object {
+
+        operator fun invoke(reader: FormatReader, writer: FormatWriter?, mustBeAfter: List<FormatReader>): FormatProvider {
+            return FormatProvider(reader, writer, mustBeAfter.map { it.name })
+        }
+
+    }
 
     val name: String
         get() = reader.name

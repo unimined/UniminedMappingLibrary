@@ -177,7 +177,15 @@ object UMFWriter : FormatWriter {
 
     }
 
-    class UMFPackageWriter(into: BufferedSink, parent: BaseUMFWriter<*>) : BaseUMFWriter<PackageVisitor>(into, parent, "\t"), PackageVisitor
+    class UMFPackageWriter(into: BufferedSink, parent: BaseUMFWriter<*>) : BaseUMFWriter<PackageVisitor>(into, parent, "\t"), PackageVisitor {
+        override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+            into.write(indent.encodeUtf8())
+            into.write("*\t".encodeUtf8())
+            into.writeNamespaced(values)
+            into.write("\n".encodeUtf8())
+            return UMFCommentWriter(into, this, indent + "\t")
+        }
+    }
 
     class UMFClassWriter(into: BufferedSink, parent: BaseUMFWriter<*>) : UMFMemberWriter<ClassVisitor>(into, parent, "\t"), ClassVisitor {
         lateinit var names: Map<Namespace, InternalName>
