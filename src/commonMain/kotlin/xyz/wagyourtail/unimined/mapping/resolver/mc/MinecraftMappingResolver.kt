@@ -84,12 +84,7 @@ abstract class MinecraftMappingResolver(name: String, createResolver: (String) -
             })
         } else {
             addDependency("$key-client", MappingEntry(mavenResolver.getDependency(Location.GLASS_BABRIC, MavenCoords("babric", "intermediary", mcVersion, "v2"))).apply {
-                provides("babric-intermediary" to false, "client" to false)
-                mapNamespace("intermediary", "babric-intermediary")
-                action()
-            })
-            addDependency("$key-server", MappingEntry(mavenResolver.getDependency(Location.GLASS_BABRIC, MavenCoords("babric", "intermediary", mcVersion, "v2"))).apply {
-                provides("babric-intermediary" to false, "server" to false)
+                provides("babric-intermediary" to false, "client" to false, "server" to false)
                 mapNamespace("intermediary", "babric-intermediary")
                 action()
             })
@@ -144,6 +139,7 @@ abstract class MinecraftMappingResolver(name: String, createResolver: (String) -
         } else {
             Location.MINECRAFT_FORGE
         }
+        if (envType == EnvType.JOINED && mcVersionCompare(mcVersion, "1.3") < 0) throw UnsupportedOperationException("MCP mappings are not supported in joined environments before 1.3")
         val mappings = "de.oceanlbas.mcp:mcp_${channel}:${version}@zip"
         addDependency(key, MappingEntry(mavenResolver.getDependency(location, mappings)).apply {
             subEntry { _, format ->
@@ -188,7 +184,14 @@ abstract class MinecraftMappingResolver(name: String, createResolver: (String) -
 
     @JvmOverloads
     fun feather(build: Int, key: String = "feather", action: MappingEntry.() -> Unit = {}) {
-        addDependency(key, MappingEntry(mavenResolver.getDependency(Location.FABRIC, MavenCoords("net.fabricmc", "feather", mcVersion + "+build.$build", "v2"))).apply {
+        val beforeJoined = mcVersionCompare(mcVersion, "1.2.5") <= 0
+        val vers = if (beforeJoined) {
+            if (envType == EnvType.JOINED) throw UnsupportedOperationException("Feather mappings are not supported in joined environments before 1.2.5")
+            "$mcVersion-${envType.name.lowercase()}+build.$build"
+        } else {
+            "$mcVersion+build.$build"
+        }
+        addDependency(key, MappingEntry(mavenResolver.getDependency(Location.FABRIC, MavenCoords("net.ornithemc", "feather", vers, "v2"))).apply {
             requires("calamus")
             provides("feather" to true)
             mapNamespace("intermediary" to "calamus", "named" to "feather")
@@ -256,7 +259,7 @@ abstract class MinecraftMappingResolver(name: String, createResolver: (String) -
     }
 
     @JvmOverloads
-    fun forgeBuiltinMCP(version: String, key: String = "mcp", action: MappingEntry.() -> Unit = {}) {
+    fun forgeBuiltinMCP(version: String, key: String = "forge-mcp", action: MappingEntry.() -> Unit = {}) {
         addDependency(key, MappingEntry(mavenResolver.getDependency(Location.MINECRAFT_FORGE, MavenCoords("de.oceanlabs.mcp", "mcp_config", version, "zip"))).apply {
             subEntry {_, format ->
                 when (format.reader) {
@@ -266,7 +269,8 @@ abstract class MinecraftMappingResolver(name: String, createResolver: (String) -
                     }
                     else -> {
                         requires("searge")
-                        provides("mcp" to true)
+                        mapNamespace("mcp" to "forge-mcp")
+                        provides("forge-mcp" to true)
                     }
                 }
             }
