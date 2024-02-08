@@ -7,10 +7,10 @@ interface TypeCompanion<T> {
     fun shouldRead(reader: CharReader): Boolean
 
     fun read(value: String) = try {
-        CharReader(value).let {
-            val readVal = read(it)
-            if (!it.exhausted()) {
-                throw IllegalArgumentException("Invalid type: \"$value\", not fully read")
+        CharReader(value).let { buf ->
+            val readVal = read(buf)
+            if (!buf.exhausted()) {
+                throw IllegalArgumentException("Invalid type: \"$value\", not fully read, remaining: \"${buf.takeRemaining().let { if (it.length > 100) it.substring(0, 100) + "..." else it }}\"")
             }
             readVal
         }

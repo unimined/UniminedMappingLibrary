@@ -27,7 +27,7 @@ value class FullyQualifiedName(val value: String) {
         override fun read(reader: CharReader) = try {
             FullyQualifiedName(buildString {
                 append(ObjectType.read(reader))
-                if (reader.exhausted() && NameAndDescriptor.shouldRead(reader.copy())) {
+                if (!reader.exhausted() && NameAndDescriptor.shouldRead(reader.copy())) {
                     append(NameAndDescriptor.read(reader))
                 }
             })
