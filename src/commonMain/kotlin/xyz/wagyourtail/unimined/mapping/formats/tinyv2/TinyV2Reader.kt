@@ -78,7 +78,7 @@ object TinyV2Reader : FormatReader {
                         // comment
                         val comment = input.takeLine().removePrefix("\t").translateEscapes()
                         last as CommentParentVisitor?
-                        last?.visitComment(namespaces.associateWith { comment })
+                        last?.visitComment(namespaces.drop(1).associateWith { comment })
                     }
                 }
                 "f" -> {
