@@ -21,6 +21,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
  */
 object UMFReader : FormatReader {
 
+    var uncheckedReading = false
+
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         return inputType.peek().readUtf8Line()?.lowercase()?.startsWith("umf") ?: false
     }
@@ -55,6 +57,7 @@ object UMFReader : FormatReader {
     }
 
     override suspend fun read(envType: EnvType, input: CharReader, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
+        val unchecked = uncheckedReading
         var token = input.takeNext()
         if (token.second.lowercase() != "umf") {
             throw IllegalArgumentException("Invalid UMF file, expected UMF header found ${token.second}")
@@ -105,21 +108,21 @@ object UMFReader : FormatReader {
                 }
                 EntryType.PACKAGE -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to PackageName.read(name)
+                        getNamespace(idx) to if (unchecked) PackageName.unchecked(name) else PackageName.read(name)
                     }
                     last as MappingVisitor?
                     last?.visitPackage(names)
                 }
                 EntryType.CLASS -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to InternalName.read(name)
+                        getNamespace(idx) to if (unchecked) InternalName.unchecked(name) else InternalName.read(name)
                     }
                     last as MappingVisitor?
                     last?.visitClass(names)
                 }
                 EntryType.METHOD -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                        val nd = NameAndDescriptor.read(name).getParts()
+                        val nd = (if (unchecked) NameAndDescriptor.unchecked(name) else NameAndDescriptor.read(name)).getParts()
                         getNamespace(idx) to (nd.first.value to nd.second?.getMethodDescriptor())
                     }
                     last as ClassVisitor?
@@ -155,7 +158,7 @@ object UMFReader : FormatReader {
                             else -> throw IllegalArgumentException("Invalid exception type $it")
                         }
                     }
-                    val exception = InternalName.read(fixValue(input.takeNext())!!)
+                    val exception = fixValue(input.takeNext())!!.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
                     val baseNs = getNamespace(input.takeNext().second.toInt())
                     val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
                     last as MethodVisitor?
@@ -163,7 +166,7 @@ object UMFReader : FormatReader {
                 }
                 EntryType.FIELD -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                        val nd = NameAndDescriptor.read(name).getParts()
+                        val nd = (if (unchecked) NameAndDescriptor.unchecked(name) else NameAndDescriptor.read(name)).getParts()
                         getNamespace(idx) to (nd.first.value to nd.second?.getFieldDescriptor())
                     }
                     last as ClassVisitor?
@@ -181,7 +184,7 @@ object UMFReader : FormatReader {
                     val names = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
                         val innerName = name.substringBefore(';')
                         val fqn = if (';' in name) {
-                            FullyQualifiedName.read(name.substringAfter(';'))
+                            if (unchecked) FullyQualifiedName.unchecked(name.substringAfter(';')) else FullyQualifiedName.read(name.substringAfter(';'))
                         } else {
                             null
                         }
@@ -216,7 +219,7 @@ object UMFReader : FormatReader {
                     }
                     val key = fixValue(input.takeNext())
                     val value = fixValue(input.takeNext()) ?: "()"
-                    val annotation = Annotation.read("@$key$value")
+                    val annotation = if (unchecked) Annotation.unchecked("@$key$value") else Annotation.read("@$key$value")
                     val baseNs = getNamespace(input.takeNext().second.toInt())
                     val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
                     last as MemberVisitor<*>?
@@ -242,13 +245,13 @@ object UMFReader : FormatReader {
                     last?.visitConstantGroup(type, names.next(), names.asSequence().toSet())
                 }
                 EntryType.CONSTANT -> {
-                    val cls = InternalName.read(input.takeNext().second)
-                    val fd = NameAndDescriptor.read(input.takeNext().second).getParts()
+                    val cls = input.takeNext().second.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
+                    val fd = input.takeNext().second.let { if (unchecked) NameAndDescriptor.unchecked(it) else NameAndDescriptor.read(it) }.getParts()
                     last as ConstantGroupVisitor?
                     last?.visitConstant(cls, fd.first, fd.second?.getFieldDescriptor())
                 }
                 EntryType.CONSTANT_TARGET -> {
-                    val target = FullyQualifiedName.read(input.takeNext().second)
+                    val target = input.takeNext().second.let { if (unchecked) FullyQualifiedName.unchecked(it) else FullyQualifiedName.read(it) }
                     val paramIdx = fixValue(input.takeNext())?.toIntOrNull()
                     last as ConstantGroupVisitor?
                     last?.visitTarget(target, paramIdx)
