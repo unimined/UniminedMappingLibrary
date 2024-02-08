@@ -47,7 +47,7 @@ object ProguardReader : FormatReader {
     }
 
     fun remapProguardMethodDesc(desc: String): String {
-        val params = desc.substring(0, desc.length-1).split(',')
+        val params = desc.substring(0, desc.length-1).split(",")
         return buildString {
             append('(')
             for (param in params) {
@@ -87,9 +87,9 @@ object ProguardReader : FormatReader {
                 cls = into.visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))
             } else {
                 val parts = line.split("->")
-                val src = parts[0].trim().split(' ')
+                val src = parts[0].trim().split(" ")
                 val dst = parts[1].trim()
-                val srcDesc = src[0].split(':')
+                val srcDesc = src[0].split(":")
                 if (srcDesc.size > 1 && srcDesc[0].toIntOrNull() != null) {
                     // method
                     srcDesc[0].toInt() // fromLine

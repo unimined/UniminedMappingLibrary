@@ -33,7 +33,7 @@ value class InternalName private constructor(val value: String) {
     }
 
     fun getParts(): Pair<PackageName, UnqualifiedName> {
-        val parts = value.split('/')
+        val parts = value.split("/")
         val pkg = parts.dropLast(1).joinToString("/").let { if (it.isEmpty()) it else "$it/" }
         return PackageName.unchecked(pkg) to UnqualifiedName.unchecked(parts.last())
     }

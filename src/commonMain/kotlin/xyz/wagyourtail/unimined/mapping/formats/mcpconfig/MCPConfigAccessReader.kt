@@ -24,7 +24,7 @@ object MCPConfigAccessReader : FormatReader{
         if (fileName.substringAfterLast('/') != "access.txt") return false
         // check matches
         // PUBLIC InternalName UnqualifiedName MethodDescriptor
-        val line = inputType.peek().readUtf8Line()?.split(' ')
+        val line = inputType.peek().readUtf8Line()?.split(" ")
         if (line == null || line.size != 4) return false
         if (line[0] != "PUBLIC") return false
         try {
@@ -47,7 +47,7 @@ object MCPConfigAccessReader : FormatReader{
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         into.visitHeader(srcNs.name)
         while (!input.exhausted()) {
-            val line = input.takeLine().split(' ').iterator()
+            val line = input.takeLine().split(" ").iterator()
             val access = AccessFlag.valueOf(line.next().uppercase())
             val srcCls = InternalName.read(line.next())
             val srcName = line.next()

@@ -18,11 +18,12 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
     private val _namespaces = mutableListOf<Namespace>()
     private val _packages = mutableSetOf<PackageNode>()
     private val _classes = mutableSetOf<ClassNode>()
-    private val constantGroups = mutableSetOf<ConstantGroupNode>()
+    private val _constantGroups = mutableSetOf<ConstantGroupNode>()
 
     val namespaces: List<Namespace> get() = _namespaces
     val packages: Set<PackageNode> get() = _packages
     val classes: Set<ClassNode> get() = _classes
+    val constantGroups: Set<ConstantGroupNode> get() = _constantGroups
 
     internal val byNamespace = mutableMapOf<Namespace, MutableMap<InternalName, ClassNode>>()
 
@@ -230,7 +231,7 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
     ): ConstantGroupVisitor? {
         val node = ConstantGroupNode(this, type, baseNs)
         node.addNamespaces(namespaces)
-        constantGroups.add(node)
+        _constantGroups.add(node)
         return node
     }
 

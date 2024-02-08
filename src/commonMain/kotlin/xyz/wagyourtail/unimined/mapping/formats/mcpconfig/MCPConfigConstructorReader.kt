@@ -18,7 +18,7 @@ object MCPConfigConstructorReader : FormatReader{
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "constructors.txt") return false
-        val line = inputType.peek().readUtf8Line()?.split(' ')
+        val line = inputType.peek().readUtf8Line()?.split(" ")
         if (line?.size != 3) return false
         // check matches \d+ internalName methodDescriptor
         if (line[0].toIntOrNull() == null) return false
@@ -41,7 +41,7 @@ object MCPConfigConstructorReader : FormatReader{
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         into.visitHeader(srcNs.name)
         while (!input.exhausted()) {
-            val line = input.takeLine().split(' ')
+            val line = input.takeLine().split(" ")
             val id = line[0].toInt()
             val srcCls = InternalName.read(line[1])
             val srcMethod = MethodDescriptor.read(line[2])

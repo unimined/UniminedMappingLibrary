@@ -59,7 +59,7 @@ object MCPConfigStaticMethodsReader : FormatReader {
             ): MethodVisitor? {
                 val name = names[srcNs] ?: return null
                 if (!name.first.matches(Regex("^func_\\d+_\\w*]$"))) return null
-                val mid = name.first.split('_')[1]
+                val mid = name.first.split("_")[1]
                 // find a descriptor that matches
                 val desc = names.mapNotNull { it.value.second }.firstOrNull()
                 if (desc == null) return null

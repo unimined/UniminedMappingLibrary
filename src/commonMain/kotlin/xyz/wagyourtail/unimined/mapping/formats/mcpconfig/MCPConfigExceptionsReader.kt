@@ -19,7 +19,7 @@ object MCPConfigExceptionsReader : FormatReader{
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "constructors.txt") return false
-        val line = inputType.peek().readUtf8Line()?.split(' ') ?: return false
+        val line = inputType.peek().readUtf8Line()?.split(" ") ?: return false
         // check matches InternalName/unqualifiedName methodDescriptor {InternalName}
         try {
             InternalName.read(line[0])
@@ -40,7 +40,7 @@ object MCPConfigExceptionsReader : FormatReader{
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         into.visitHeader(srcNs.name)
         while (!input.exhausted()) {
-            val line = input.takeLine().split(' ').iterator()
+            val line = input.takeLine().split(" ").iterator()
             val srcName = line.next()
             val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
             val srcMethod = srcName.substringAfterLast('/')

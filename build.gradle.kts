@@ -4,6 +4,7 @@ plugins {
     val kotlinVersion: String by System.getProperties()
     kotlin("multiplatform") version kotlinVersion
     `maven-publish`
+    kotlin("plugin.serialization") version kotlinVersion
 }
 
 version = if (project.hasProperty("version_snapshot")) project.properties["version"] as String + "-SNAPSHOT" else project.properties["version"] as String

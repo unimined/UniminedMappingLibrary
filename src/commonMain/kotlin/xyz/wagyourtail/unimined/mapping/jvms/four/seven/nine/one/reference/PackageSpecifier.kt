@@ -48,7 +48,7 @@ value class PackageSpecifier private constructor(val value: String) {
     }
 
     fun getParts(): List<String> {
-        return value.split('/')
+        return value.split("/")
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

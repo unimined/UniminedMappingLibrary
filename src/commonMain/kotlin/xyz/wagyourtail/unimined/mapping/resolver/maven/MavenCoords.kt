@@ -22,7 +22,7 @@ value class MavenCoords(val value: String) {
     })
 
     val parts: List<String>
-        get() = value.split(':')
+        get() = value.split(":")
 
     val group: String
         get() = parts[0]
