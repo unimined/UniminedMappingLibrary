@@ -38,15 +38,15 @@ class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: MappingTree, val eleme
             unresolved.clear()
             unresolved.addAll(resolved)
         }
-        this.resolved = resolved
         this.unresolved.clear()
         this.unresolved.addAll(resolved)
+        this.resolved = unresolved
         return resolved
     }
 
     fun addUnresolved(element: U) {
-        unresolved.add(element)
         resolved = null
+        unresolved.add(element)
     }
 
 }

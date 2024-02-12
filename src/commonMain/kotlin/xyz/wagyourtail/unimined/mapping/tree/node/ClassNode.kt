@@ -4,18 +4,16 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
-import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import kotlin.js.JsName
 
 class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
-    private val names: MutableMap<Namespace, InternalName?> = mutableMapOf()
+    private val _names: MutableMap<Namespace, InternalName?> = mutableMapOf()
+
+    val names: Map<Namespace, InternalName?> get() = _names
 
     val fields = LazyResolvables(parent) {
         FieldNode(this)
@@ -25,15 +23,15 @@ class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, ClassVisitor, Ma
     }
     val inners = mutableSetOf<InnerClassNode>()
 
-    fun getName(namespace: Namespace) = names[namespace]
+    fun getName(namespace: Namespace) = _names[namespace]
 
     fun setNames(names: Map<Namespace, InternalName?>) {
         root.mergeNs(names.keys)
         for (ns in names.keys) {
-            root.byNamespace[ns]?.remove(this.names[ns])
+            root.byNamespace[ns]?.remove(this._names[ns])
             root.byNamespace[ns]?.put(names[ns]!!, this)
         }
-        this.names.putAll(names)
+        this._names.putAll(names)
     }
 
     fun getFields(namespace: Namespace, name: String, desc: FieldDescriptor?): Set<FieldNode> {
@@ -91,7 +89,7 @@ class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, ClassVisitor, Ma
         return inner
     }
 
-    override fun acceptOuter(visitor: MappingVisitor, minimize: Boolean) = visitor.visitClass(names.filterNotNullValues())
+    override fun acceptOuter(visitor: MappingVisitor, minimize: Boolean) = visitor.visitClass(_names.filterNotNullValues())
 
     override fun acceptInner(visitor: ClassVisitor, minimize: Boolean) {
         super.acceptInner(visitor, minimize)
