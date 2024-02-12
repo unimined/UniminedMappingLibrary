@@ -32,7 +32,7 @@ abstract class AbstractFieldMethodNode<T: MemberVisitor<T>, V: SignatureParentVi
     }
 
     fun setDescriptors(descs: Map<Namespace, FieldOrMethodDescriptor>) {
-        root.mergeNs(names.keys)
+        root.mergeNs(descs.keys)
         this._descs.putAll(descs)
     }
 }
