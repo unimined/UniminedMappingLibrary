@@ -6,12 +6,20 @@ import xyz.wagyourtail.unimined.mapping.tree.node.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationElementName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.EnumConstant
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node.PackageNode
+import xyz.wagyourtail.unimined.mapping.util.maybeEscape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor {
@@ -115,6 +123,58 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
         }
     }
 
+    fun mapAnnotation(fromNs: Namespace, toNs: Namespace, annotation: Annotation): Annotation {
+        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
+            throw IllegalArgumentException("Invalid namespace")
+        }
+        if (fromNs == toNs) return annotation
+        return Annotation.unchecked(buildString {
+            annotation.accept(annotationRemapAcceptor(fromNs, toNs, annotation))
+        })
+    }
+
+    fun map(fromNs: Namespace, toNs: Namespace, internalName: InternalName): InternalName {
+        map(fromNs, toNs, FullyQualifiedName(ObjectType(internalName), null)).let {
+            return it.getParts().first.getInternalName()
+        }
+    }
+
+    fun map(fromNs: Namespace, toNs: Namespace, fullyQualifiedName: FullyQualifiedName): FullyQualifiedName {
+        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
+            throw IllegalArgumentException("Invalid namespace")
+        }
+        if (fromNs == toNs) return fullyQualifiedName
+        val parts = fullyQualifiedName.getParts()
+        val cls = getClass(fromNs, parts.first.getInternalName())
+        val mappedCls = cls?.getName(toNs) ?: parts.first.getInternalName()
+
+        if (parts.second != null) {
+            val mParts = parts.second!!.getParts()
+            val mappedName = if (mParts.second == null || mParts.second!!.isFieldDescriptor()) {
+                val fd = cls?.getFields(fromNs, mParts.first.value, mParts.second?.getFieldDescriptor())
+                if (fd != null) {
+                    fd.first().getName(toNs) ?: mParts.first.value
+                } else {
+                    mParts.first.value
+                }
+            } else {
+                val md = cls?.getMethods(fromNs, mParts.first.value, mParts.second?.getMethodDescriptor())
+                if (md != null) {
+                    md.first().getName(toNs) ?: mParts.first.value
+                } else {
+                    mParts.first.value
+                }
+            }
+            val mappedDesc = if (mParts.second == null) {
+                null
+            } else {
+                mapDescriptor(fromNs, toNs, mParts.second!!)
+            }
+            return FullyQualifiedName(ObjectType(mappedCls), NameAndDescriptor(UnqualifiedName.unchecked(mappedName), mappedDesc))
+        }
+        return FullyQualifiedName(ObjectType(mappedCls), null)
+    }
+
     // TODO: test
     fun StringBuilder.descRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
         return { obj, leaf ->
@@ -188,6 +248,71 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
         }
     }
 
+    fun StringBuilder.annotationRemapAcceptor(fromNs: Namespace, toNs: Namespace, annotation: Annotation): (Any, Boolean) -> Boolean {
+        val ann = annotation.getParts().first
+        val cls = getClass(fromNs, ann.getInternalName())
+        return { obj, leaf ->
+            when (obj) {
+                is Annotation -> {
+                    val mapped = mapAnnotation(fromNs, toNs, obj)
+                    append(mapped)
+                    false
+                }
+                is InternalName -> {
+                    val mapped = getClass(fromNs, obj)?.getName(toNs)
+                    if (mapped != null) {
+                        append(mapped)
+                    } else {
+                        append(obj)
+                    }
+                    false
+                }
+                is AnnotationElementName -> {
+                    if (cls != null) {
+                        val md = cls.getMethods(fromNs, obj.unescape(), null).map { it.getName(toNs) }.toSet()
+                        if (md.isNotEmpty()) {
+                            val mappedName = md.first()!!
+                            append(mappedName.maybeEscape())
+                        } else {
+                            append(obj)
+                        }
+                        false
+                    } else {
+                        append(obj)
+                        false
+                    }
+                }
+                is EnumConstant -> {
+                    val parts = obj.getParts()
+                    val first = parts.first
+                    val eCls = getClass(fromNs, first.getInternalName())
+                    val mapped = eCls?.getName(toNs)
+                    if (mapped != null) {
+                        append("L$mapped;")
+                    } else {
+                        append(first)
+                    }
+                    append(".")
+                    val second = parts.second
+                    val fd = eCls?.getFields(fromNs, second, null)?.map { it.getName(toNs) }?.toSet()
+                    if (!fd.isNullOrEmpty()) {
+                        val mappedName = fd.first()!!
+                        append(mappedName.maybeEscape())
+                    } else {
+                        append(second)
+                    }
+                    false
+                }
+                else -> {
+                    if (leaf) {
+                        append(obj.toString())
+                    }
+                    true
+                }
+            }
+        }
+    }
+
     override fun visitHeader(vararg namespaces: String) {
         mergeNs(namespaces.map { Namespace(it) }.toSet())
     }
@@ -235,25 +360,25 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
         return node
     }
 
-    fun accept(visitor: MappingVisitor, minimize: Boolean = false) {
-        acceptInner(visitor, minimize)
+    fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, minimize: Boolean = false) {
+        acceptInner(visitor, nsFilter, minimize)
     }
 
-    override fun acceptOuter(visitor: NullVisitor, minimize: Boolean): MappingVisitor? {
+    override fun acceptOuter(visitor: NullVisitor, nsFilter: List<Namespace>, minimize: Boolean): MappingVisitor? {
         return null
     }
 
-    override fun acceptInner(visitor: MappingVisitor, minimize: Boolean) {
+    override fun acceptInner(visitor: MappingVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
         visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
-        super.acceptInner(visitor, minimize)
+        super.acceptInner(visitor, nsFilter, minimize)
         for (pkg in packages) {
-            pkg.accept(visitor, minimize)
+            pkg.accept(visitor, nsFilter, minimize)
         }
         for (cls in classes) {
-            cls.accept(visitor, minimize)
+            cls.accept(visitor, nsFilter, minimize)
         }
         for (group in constantGroups) {
-            group.accept(visitor, minimize)
+            group.accept(visitor, nsFilter, minimize)
         }
     }
 }

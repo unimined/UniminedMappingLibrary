@@ -62,12 +62,12 @@ abstract class PropogationInfo<T: PropogationInfo<T>>(val namespace: Namespace) 
                 }
             }
             val firstTarget = targets.first()
-            for ((ns, names) in methodNames) {
-                if (names.size > 1) {
-                    LOGGER.warn { "Multiple names found for ${firstTarget.first} ${firstTarget.second} in $ns: $names" }
-                    val first = names.first()
-                    names.clear()
-                    names += first
+            for ((ns, mNames) in methodNames) {
+                if (mNames.size > 1) {
+                    LOGGER.warn { "Multiple names found for ${firstTarget.first} ${firstTarget.second} in $ns: $mNames" }
+                    val first = mNames.first()
+                    mNames.clear()
+                    mNames += first
                 }
             }
             for (target in targets) {

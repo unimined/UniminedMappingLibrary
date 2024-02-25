@@ -3,8 +3,6 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.visitor.BaseVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 
@@ -21,7 +19,7 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: Signa
 
     @Suppress("UNCHECKED_CAST")
     fun doMerge(target: T) {
-        acceptInner(target as U, false)
+        acceptInner(target as U, root.namespaces, false)
     }
 
     override fun merge(element: T): T? {

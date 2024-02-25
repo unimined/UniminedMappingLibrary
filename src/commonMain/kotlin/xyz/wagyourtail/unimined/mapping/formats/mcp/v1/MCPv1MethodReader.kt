@@ -18,8 +18,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.*
 object MCPv1MethodReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "methods.csv"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "methods.csv") return false
         // check that 4th line starts with "class"
         inputType.peek().use {
             it.readUtf8Line()
@@ -36,11 +35,11 @@ object MCPv1MethodReader : FormatReader {
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {
-        val l1 = input.takeLine()
+        input.takeLine()
         input.take()
-        val l2 = input.takeLine()
+        input.takeLine()
         input.take()
-        val l3 = input.takeLine()
+        input.takeLine()
         input.take()
         val l4 = input.takeLine()
         input.take()
@@ -56,10 +55,10 @@ object MCPv1MethodReader : FormatReader {
                 input.take()
                 continue
             }
-            val clientClsName = input.takeCol()
+            input.takeCol() // clientClsName
             val clientSrg = input.takeCol()
 
-            val serverClsName = input.takeCol()
+            input.takeCol() // serverClsName
             val serverSrg = input.takeCol()
 
             val methodName = input.takeCol()
@@ -101,12 +100,12 @@ object MCPv1MethodReader : FormatReader {
                     names: Map<Namespace, Pair<String, MethodDescriptor?>>
                 ): MethodVisitor? {
                     val ns = names[srcNs] ?: return super.visitMethod(delegate, names)
-                    val data = data[ns.first] ?: (ns.first to null)
-                    val names = names.toMutableMap()
-                    names[dstNs] = data.first to ns.second
-                    val visitor = default.visitMethod(delegate, names)
-                    if (data.second != null) {
-                        visitor?.visitComment(mapOf(dstNs to data.second!!))
+                    val mData = data[ns.first] ?: (ns.first to null)
+                    val nameMap = names.toMutableMap()
+                    nameMap[dstNs] = mData.first to ns.second
+                    val visitor = default.visitMethod(delegate, nameMap)
+                    if (mData.second != null) {
+                        visitor?.visitComment(mapOf(dstNs to mData.second!!))
                     }
                     return visitor
                 }

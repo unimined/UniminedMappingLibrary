@@ -27,6 +27,7 @@ abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: 
      */
     fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
         if (_signature == null) {
+            @Suppress("UNCHECKED_CAST")
             _signature = SignatureNode(this as BaseNode<V, *>)
         }
         _signature?.setNames(values)
@@ -45,13 +46,14 @@ abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: 
         return node
     }
 
-    override fun acceptInner(visitor: T, minimize: Boolean) {
+    override fun acceptInner(visitor: T, nsFilter: List<Namespace>, minimize: Boolean) {
         for (annotation in annotations) {
-            annotation.accept(visitor, minimize)
+            annotation.accept(visitor, nsFilter, minimize)
         }
-        signature?.accept(visitor as V, minimize)
-        comment?.accept(visitor, minimize)
-        super.acceptInner(visitor, minimize)
+        @Suppress("UNCHECKED_CAST")
+        signature?.accept(visitor as V, nsFilter, minimize)
+        comment?.accept(visitor, nsFilter, minimize)
+        super.acceptInner(visitor, nsFilter, minimize)
     }
 
 }

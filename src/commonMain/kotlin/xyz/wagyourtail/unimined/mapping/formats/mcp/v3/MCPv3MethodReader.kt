@@ -17,8 +17,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object MCPv3MethodReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "methods.csv"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "methods.csv") return false
         return inputType.peek().readUtf8Line()?.equals("\"searge\",\"name\",\"notch\",\"sig\",\"notchsig\",\"classname\",\"classnotch\",\"package\",\"side\"") ?: false
     }
 

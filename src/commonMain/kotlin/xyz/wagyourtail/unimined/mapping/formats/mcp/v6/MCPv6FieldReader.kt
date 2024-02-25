@@ -18,8 +18,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 object MCPv6FieldReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "fields.csv"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "fields.csv") return false
         return inputType.peek().readUtf8Line()?.startsWith("searge,name,side") ?: false
     }
 
@@ -77,12 +76,12 @@ object MCPv6FieldReader : FormatReader {
                     names: Map<Namespace, Pair<String, FieldDescriptor?>>
                 ): FieldVisitor? {
                     val ns = names[srcNs] ?: return super.visitField(delegate, names)
-                    val data = data[ns.first] ?: (ns.first to null)
-                    val names = names.toMutableMap()
-                    names[dstNs] = data.first to ns.second
-                    val visitor = default.visitField(delegate, names)
-                    if (data.second != null) {
-                        visitor?.visitComment(mapOf(dstNs to data.second!!))
+                    val fdata = data[ns.first] ?: (ns.first to null)
+                    val nameMap = names.toMutableMap()
+                    nameMap[dstNs] = fdata.first to ns.second
+                    val visitor = default.visitField(delegate, nameMap)
+                    if (fdata.second != null) {
+                        visitor?.visitComment(mapOf(dstNs to fdata.second!!))
                     }
                     return visitor
                 }

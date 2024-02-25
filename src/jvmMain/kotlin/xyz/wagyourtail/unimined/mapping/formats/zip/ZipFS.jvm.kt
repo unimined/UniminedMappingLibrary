@@ -6,8 +6,9 @@ import okio.Closeable
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.apache.commons.compress.utils.SeekableInMemoryByteChannel
 
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
-    val zipFile = ZipFile(SeekableInMemoryByteChannel(zip.readByteArray()))
+    private val zipFile = ZipFile(SeekableInMemoryByteChannel(zip.readByteArray()))
 
     actual suspend fun getFiles(): List<String> {
         val files = mutableListOf<String>()

@@ -13,6 +13,6 @@ class CommentNode<U: MemberVisitor<U>>(parent: MemberNode<U, *, *>) : BaseNode<C
         this._comments.putAll(comments)
     }
 
-    override fun acceptOuter(visitor: U, minimize: Boolean) = visitor.visitComment(comments)
+    override fun acceptOuter(visitor: U, nsFilter: List<Namespace>, minimize: Boolean) = visitor.visitComment(comments.filterKeys { it in nsFilter })
 
 }

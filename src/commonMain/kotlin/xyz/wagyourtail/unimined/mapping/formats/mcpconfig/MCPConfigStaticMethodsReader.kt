@@ -18,8 +18,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 object MCPConfigStaticMethodsReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "static_methods.txt"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "static_methods.txt") return false
         // single field_
         val line = inputType.peek().readUtf8Line() ?: return false
         return line.matches(Regex("^func_\\d+_\\w*]$"))

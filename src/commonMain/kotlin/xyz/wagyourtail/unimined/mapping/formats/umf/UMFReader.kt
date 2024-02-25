@@ -21,6 +21,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
  */
 object UMFReader : FormatReader {
 
+    @Suppress("MemberVisibilityCanBePrivate")
     var uncheckedReading = false
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
@@ -40,7 +41,7 @@ object UMFReader : FormatReader {
         return count
     }
 
-    fun fixValue(value: Pair<TokenType, String>): String? {
+    private fun fixValue(value: Pair<TokenType, String>): String? {
         if (value.first == TokenType.STRING) return value.second
         val literal = value.second
         if (!literal.startsWith('_')) {
@@ -72,7 +73,9 @@ object UMFReader : FormatReader {
         }
 
         val extensions = input.takeRemainingOnLine()
-        // TODO: check extensions
+        if (extensions.isNotEmpty()) {
+            TODO("Extensions are not fully supported yet")
+        }
 
         input.takeWhitespace()
         val namespaces = input.takeRemainingOnLine().map { nsMapping[it.second] ?: it.second }.toMutableList()
@@ -160,9 +163,9 @@ object UMFReader : FormatReader {
                     }
                     val exception = fixValue(input.takeNext())!!.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
                     val baseNs = getNamespace(input.takeNext().second.toInt())
-                    val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
+                    val excNs = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
                     last as MethodVisitor?
-                    last?.visitException(type, exception, baseNs, namespaces)
+                    last?.visitException(type, exception, baseNs, excNs)
                 }
                 EntryType.FIELD -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
@@ -221,9 +224,9 @@ object UMFReader : FormatReader {
                     val value = fixValue(input.takeNext()) ?: "()"
                     val annotation = if (unchecked) Annotation.unchecked("@$key$value") else Annotation.read("@$key$value")
                     val baseNs = getNamespace(input.takeNext().second.toInt())
-                    val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
+                    val annNs = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
                     last as MemberVisitor<*>?
-                    last?.visitAnnotation(type, baseNs, annotation, namespaces)
+                    last?.visitAnnotation(type, baseNs, annotation, annNs)
                 }
                 EntryType.ACCESS -> {
                     val type = fixValue(input.takeNext())!!.let {
@@ -234,9 +237,9 @@ object UMFReader : FormatReader {
                         }
                     }
                     val value = AccessFlag.valueOf(fixValue(input.takeNext())!!.uppercase())
-                    val namespaces = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
+                    val accNs = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
                     last as MemberVisitor<*>?
-                    last?.visitAccess(type, value, namespaces)
+                    last?.visitAccess(type, value, accNs)
                 }
                 EntryType.CONSTANT_GROUP -> {
                     val type = ConstantGroupNode.InlineType.valueOf(input.takeNext().second.uppercase())

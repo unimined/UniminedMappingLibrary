@@ -96,13 +96,13 @@ object ProguardReader : FormatReader {
                     srcDesc[1].toInt() // toLine
                     val srcRetVal = remapProguardParamDesc(srcDesc[2])
                     val srcName = src[1].substringBeforeLast("(")
-                    val srcDesc = MethodDescriptor.read(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
-                    cls?.visitMethod(mapOf(srcNs to (srcName to srcDesc), dstNs to (dst to null)))
+                    val mDesc = MethodDescriptor.read(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
+                    cls?.visitMethod(mapOf(srcNs to (srcName to mDesc), dstNs to (dst to null)))
                 } else {
                     // field
-                    val srcDesc = FieldDescriptor.read(src[0])
+                    val fDesc = FieldDescriptor.read(remapProguardParamDesc(src[0]))
                     val srcName = src[1]
-                    cls?.visitField(mapOf(srcNs to (srcName to srcDesc), dstNs to (dst to null)))
+                    cls?.visitField(mapOf(srcNs to (srcName to fDesc), dstNs to (dst to null)))
                 }
             }
         }

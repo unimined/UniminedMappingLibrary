@@ -16,9 +16,10 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.renest
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
 
-abstract class MinecraftMappingResolver(name: String, createResolver: (String) -> MavenResolver, propogator: (MappingTree.() -> Unit)?): MappingResolver(name, createResolver, propogator) {
+abstract class MinecraftMappingResolver(name: String, val createResolver: (String) -> MavenResolver, propogator: (MappingTree.() -> Unit)?): MappingResolver(name, propogator) {
 
     val mcVersion: String by FinalizeOnRead(MustSet())
+    val mavenResolver: MavenResolver by FinalizeOnRead(createResolver(mcVersion))
 
     protected val legacyFabricMappingsVersionFinalize = FinalizeOnRead(1)
     var legacyFabricMappingsVersion by legacyFabricMappingsVersionFinalize

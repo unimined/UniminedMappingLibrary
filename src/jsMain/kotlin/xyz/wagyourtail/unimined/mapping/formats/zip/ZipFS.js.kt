@@ -18,11 +18,12 @@ external class JSZipFile {
     fun async(type: String): Promise<String>
 }
 
-
+@Suppress("UNUSED_PARAMETER")
 private fun getFiles(jsZip: JSZip): Array<String> = js("""
     Object.keys(jsZip.files)
 """).unsafeCast<Array<String>>()
 
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
     private val bytes = zip.readByteArray().toTypedArray()
     private lateinit var jsZip: JSZip

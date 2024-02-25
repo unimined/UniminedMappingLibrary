@@ -21,6 +21,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 object UMFWriter : FormatWriter {
 
+    val EMPTY ="umf\t1\t0\n"
+
     fun String?.maybeEscape(): String {
         if (this == null) return "_"
         if (any { it.isWhitespace() } || startsWith("\"")) {

@@ -2,10 +2,6 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
-import xyz.wagyourtail.unimined.mapping.visitor.AccessVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.InnerClassVisitor
 
@@ -32,6 +28,6 @@ class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParent
         ANONYMOUS,
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean) = visitor.visitInnerClass(innerType, names.mapValues { (ns, name) -> name to targets[ns] })
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: List<Namespace>, minimize: Boolean) = visitor.visitInnerClass(innerType, names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to targets[ns] })
 
 }

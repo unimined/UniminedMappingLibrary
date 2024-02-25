@@ -82,3 +82,10 @@ fun String.escape(unicode: Boolean = false, spaces: Boolean = false): String {
         }
     }
 }
+
+fun String.maybeEscape(): String {
+    if (any { it.isWhitespace() } || startsWith("\"")) {
+        return "\"${escape(unicode = true)}\""
+    }
+    return this
+}

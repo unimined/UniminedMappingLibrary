@@ -4,7 +4,6 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
@@ -33,7 +32,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
             this._names.putAll(names)
         }
 
-        override fun acceptOuter(visitor: MethodVisitor, minimize: Boolean) = visitor.visitParameter(index, lvOrd, names)
+        override fun acceptOuter(visitor: MethodVisitor, nsFilter: List<Namespace>, minimize: Boolean) = visitor.visitParameter(index, lvOrd, names)
     }
 
     class LocalNode(parent: MethodNode, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, MethodVisitor, MethodVisitor>(parent), LocalVariableVisitor {
@@ -45,7 +44,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
             this._names.putAll(names)
         }
 
-        override fun acceptOuter(visitor: MethodVisitor, minimize: Boolean) = visitor.visitLocalVariable(lvOrd, startOp, names)
+        override fun acceptOuter(visitor: MethodVisitor, nsFilter: List<Namespace>, minimize: Boolean) = visitor.visitLocalVariable(lvOrd, startOp, names)
     }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
@@ -90,29 +89,29 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return node
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean): MethodVisitor? {
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: List<Namespace>, minimize: Boolean): MethodVisitor? {
         return visitor.visitMethod(if (minimize) {
-            val descNs = root.namespaces.firstOrNull { it in names }
+            val descNs = nsFilter.firstOrNull { it in names }
             if (descNs != null) {
-                names.mapValues { (ns, name) -> name to if (ns == descNs) getMethodDesc(ns) else null }
+                names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to if (ns == descNs) getMethodDesc(ns) else null }
             } else {
-                names.mapValues { (ns, name) -> name to null }
+                names.filterKeys { it in nsFilter }.mapValues { (_, name) -> name to null }
             }
         } else {
-            names.mapValues { (ns, name) -> name.let { name to descs[ns]?.getMethodDescriptor() } }
+            names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name.let { name to descs[ns]?.getMethodDescriptor() } }
         })
     }
 
-    override fun acceptInner(visitor: MethodVisitor, minimize: Boolean) {
-        super.acceptInner(visitor, minimize)
+    override fun acceptInner(visitor: MethodVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
+        super.acceptInner(visitor, nsFilter, minimize)
         for (exception in exceptions) {
-            exception.accept(visitor, minimize)
+            exception.accept(visitor, nsFilter, minimize)
         }
         for (param in params) {
-            param.accept(visitor, minimize)
+            param.accept(visitor, nsFilter, minimize)
         }
         for (local in locals) {
-            local.accept(visitor, minimize)
+            local.accept(visitor, nsFilter, minimize)
         }
     }
 }

@@ -17,8 +17,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object MCPv3FieldReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "fields.csv"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "fields.csv") return false
         return inputType.peek().readUtf8Line()?.equals("\"searge\",\"name\",\"notch\",\"sig\",\"notchsig\",\"classname\",\"classnotch\",\"package\",\"side\"") ?: false
     }
 
@@ -52,7 +51,7 @@ object MCPv3FieldReader : FormatReader {
             val name = input.takeCol().second
             val notch =input.takeCol().second
             input.takeCol() // sig
-            var notchSig = FieldDescriptor.read(input.takeCol().second)
+            FieldDescriptor.read(input.takeCol().second) // notchsig
             val className = input.takeCol().second
             var classNotch = input.takeCol().second
             val pkg = input.takeCol().second

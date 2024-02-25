@@ -102,7 +102,7 @@ object UnpickReader : FormatReader {
         }
 
         for ((group, consts) in constants) {
-            val targs = targetsByGroup[group] ?: continue
+            val targs = targetsByGroup[group]
             val type = if (consts.any { it.type == "flag" }) {
                 ConstantGroupNode.InlineType.BITFIELD
             } else {

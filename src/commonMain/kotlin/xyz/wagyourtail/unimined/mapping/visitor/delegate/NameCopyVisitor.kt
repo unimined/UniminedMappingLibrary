@@ -17,45 +17,45 @@ fun MappingVisitor.copyTo(from: Namespace, to: Set<Namespace>, context: MappingT
 private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val context: MappingTree, val onlyMissing: Boolean) : Delegator() {
 
     override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
-        val names = names.toMutableMap()
-        val name = names[from] ?: return super.visitClass(delegate, names)
-        for (namespace in (to - names.keys)) {
-            names[namespace] = name
+        val nameMap = names.toMutableMap()
+        val name = nameMap[from] ?: return super.visitClass(delegate, nameMap)
+        for (namespace in (to - nameMap.keys)) {
+            nameMap[namespace] = name
         }
-        return super.visitClass(delegate, names)
+        return super.visitClass(delegate, nameMap)
     }
 
     override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
-        val names = names.toMutableMap()
-        val name = names[from] ?: return super.visitPackage(delegate, names)
-        for (namespace in (to - names.keys)) {
-            names[namespace] = name
+        val nameMap = names.toMutableMap()
+        val name = nameMap[from] ?: return super.visitPackage(delegate, nameMap)
+        for (namespace in (to - nameMap.keys)) {
+            nameMap[namespace] = name
         }
-        return super.visitPackage(delegate, names)
+        return super.visitPackage(delegate, nameMap)
     }
 
     override fun visitField(
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, FieldDescriptor?>>
     ): FieldVisitor? {
-        val names = names.toMutableMap()
-        val name = names[from] ?: return super.visitField(delegate, names)
-        for (namespace in (to - names.keys)) {
-            names[namespace] = name.first to null
+        val nameMap = names.toMutableMap()
+        val name = nameMap[from] ?: return super.visitField(delegate, nameMap)
+        for (namespace in (to - nameMap.keys)) {
+            nameMap[namespace] = name.first to null
         }
-        return super.visitField(delegate, names)
+        return super.visitField(delegate, nameMap)
     }
 
     override fun visitMethod(
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, MethodDescriptor?>>
     ): MethodVisitor? {
-        val names = names.toMutableMap()
-        val name = names[from] ?: return super.visitMethod(delegate, names)
-        for (namespace in (to - names.keys)) {
-            names[namespace] = name.first to null
+        val nameMap = names.toMutableMap()
+        val name = nameMap[from] ?: return super.visitMethod(delegate, nameMap)
+        for (namespace in (to - nameMap.keys)) {
+            nameMap[namespace] = name.first to null
         }
-        return super.visitMethod(delegate, names)
+        return super.visitMethod(delegate, nameMap)
     }
 
     override fun visitParameter(
@@ -64,21 +64,21 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         lvOrd: Int?,
         names: Map<Namespace, String>
     ): ParameterVisitor? {
-        val names = names.toMutableMap()
-        val name = names[from] ?: return super.visitParameter(delegate, index, lvOrd, names)
-        for (namespace in (to - names.keys)) {
-            names[namespace] = name
+        val nameMap = names.toMutableMap()
+        val name = nameMap[from] ?: return super.visitParameter(delegate, index, lvOrd, nameMap)
+        for (namespace in (to - nameMap.keys)) {
+            nameMap[namespace] = name
         }
-        return super.visitParameter(delegate, index, lvOrd, names)
+        return super.visitParameter(delegate, index, lvOrd, nameMap)
     }
 
     override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
-        val values = values.toMutableMap()
-        val value = values[from] ?: return super.visitComment(delegate, values)
-        for (namespace in (to - values.keys)) {
-            values[namespace] = value
+        val valueMap = values.toMutableMap()
+        val value = valueMap[from] ?: return super.visitComment(delegate, valueMap)
+        for (namespace in (to - valueMap.keys)) {
+            valueMap[namespace] = value
         }
-        return super.visitComment(delegate, values)
+        return super.visitComment(delegate, valueMap)
     }
 
     override fun visitLocalVariable(
@@ -87,12 +87,12 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         startOp: Int?,
         names: Map<Namespace, String>
     ): LocalVariableVisitor? {
-        val names = names.toMutableMap()
-        val name = names[from] ?: return super.visitLocalVariable(delegate, lvOrd, startOp, names)
-        for (namespace in (to - names.keys)) {
-            names[namespace] = name
+        val nameMap = names.toMutableMap()
+        val name = nameMap[from] ?: return super.visitLocalVariable(delegate, lvOrd, startOp, nameMap)
+        for (namespace in (to - nameMap.keys)) {
+            nameMap[namespace] = name
         }
-        return super.visitLocalVariable(delegate, lvOrd, startOp, names)
+        return super.visitLocalVariable(delegate, lvOrd, startOp, nameMap)
     }
 
     override fun visitAccess(
@@ -117,30 +117,30 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
     }
 
     override fun visitClassSignature(delegate: ClassVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        val values = values.toMutableMap()
-        val value = values[from] ?: return super.visitSignature(delegate, values)
-        for (namespace in (to - values.keys)) {
-            values[namespace] = context.mapClassSignature(from, namespace, value)
+        val valueMap = values.toMutableMap()
+        val value = valueMap[from] ?: return super.visitSignature(delegate, valueMap)
+        for (namespace in (to - valueMap.keys)) {
+            valueMap[namespace] = context.mapClassSignature(from, namespace, value)
         }
-        return super.visitSignature(delegate, values)
+        return super.visitSignature(delegate, valueMap)
     }
 
     override fun visitMethodSignature(delegate: MethodVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        val values = values.toMutableMap()
-        val value = values[from] ?: return super.visitSignature(delegate, values)
-        for (namespace in (to - values.keys)) {
-            values[namespace] = context.mapMethodSignature(from, namespace, value)
+        val valueMap = values.toMutableMap()
+        val value = valueMap[from] ?: return super.visitSignature(delegate, valueMap)
+        for (namespace in (to - valueMap.keys)) {
+            valueMap[namespace] = context.mapMethodSignature(from, namespace, value)
         }
-        return super.visitSignature(delegate, values)
+        return super.visitSignature(delegate, valueMap)
     }
 
     override fun visitFieldSignature(delegate: FieldVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        val values = values.toMutableMap()
-        val value = values[from] ?: return super.visitSignature(delegate, values)
-        for (namespace in (to - values.keys)) {
-            values[namespace] = context.mapFieldSignature(from, namespace, value)
+        val valueMap = values.toMutableMap()
+        val value = valueMap[from] ?: return super.visitSignature(delegate, valueMap)
+        for (namespace in (to - valueMap.keys)) {
+            valueMap[namespace] = context.mapFieldSignature(from, namespace, value)
         }
-        return super.visitSignature(delegate, values)
+        return super.visitSignature(delegate, valueMap)
     }
 
     override fun visitException(

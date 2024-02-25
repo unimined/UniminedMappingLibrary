@@ -17,6 +17,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
+@Suppress("UNUSED_PARAMETER")
 object TinyV2Writer : FormatWriter {
     override fun write(envType: EnvType, into: BufferedSink): MappingVisitor {
         return TinyV2MappingWriter(into)
@@ -92,7 +93,7 @@ object TinyV2Writer : FormatWriter {
             return null
         }
 
-        override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
+        override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor {
             into.write("c\t".encodeUtf8())
             into.writeNamespaced(names.mapValues { it.value.toString() })
             into.write("\n".encodeUtf8())
@@ -159,7 +160,7 @@ object TinyV2Writer : FormatWriter {
             lvOrd: Int,
             startOp: Int?,
             names: Map<Namespace, String>
-        ): LocalVariableVisitor? {
+        ): LocalVariableVisitor {
             into.write(indent.encodeUtf8())
             into.write("v\t".encodeUtf8())
             into.write(lvOrd.toString().encodeUtf8())

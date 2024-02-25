@@ -32,6 +32,10 @@ interface FormatReader {
         read(envType, it, into, nsMapping)
     }
 
+    suspend fun read(envType: EnvType, fileStr: String, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) = CharReader(fileStr).use {
+        read(envType, it, context, into, nsMapping)
+    }
+
     suspend fun read(inputType: BufferedSource, nsMapping: Map<String, String> = mapOf()): MappingTree = MappingTree().also { read(EnvType.JOINED, inputType, it, it, nsMapping) }
 
     suspend fun read(envType: EnvType, inputType: BufferedSource, nsMapping: Map<String, String> = mapOf()): MappingTree = MappingTree().also { read(envType, inputType, it, it, nsMapping) }

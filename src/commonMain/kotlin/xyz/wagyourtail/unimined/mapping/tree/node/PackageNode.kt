@@ -2,7 +2,6 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
@@ -24,15 +23,15 @@ class PackageNode(parent: MappingTree) : BaseNode<PackageVisitor, MappingVisitor
         _names.putAll(names)
     }
 
-    override fun acceptOuter(visitor: MappingVisitor, minimize: Boolean): PackageVisitor? {
-        return visitor.visitPackage(names.filterNotNullValues())
+    override fun acceptOuter(visitor: MappingVisitor, nsFilter: List<Namespace>, minimize: Boolean): PackageVisitor? {
+        return visitor.visitPackage(names.filterNotNullValues().filterKeys { it in nsFilter })
     }
 
-    override fun acceptInner(visitor: PackageVisitor, minimize: Boolean) {
+    override fun acceptInner(visitor: PackageVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
         for (annotation in annotations) {
-            annotation.accept(visitor, minimize)
+            annotation.accept(visitor, nsFilter, minimize)
         }
-        super.acceptInner(visitor, minimize)
+        super.acceptInner(visitor, nsFilter, minimize)
     }
 
     override fun visitAnnotation(

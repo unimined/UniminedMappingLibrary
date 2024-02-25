@@ -16,8 +16,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 object MCPv6ParamReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "params.csv"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "params.csv") return false
         return inputType.peek().readUtf8Line()?.startsWith("param,name,side") ?: false
     }
 

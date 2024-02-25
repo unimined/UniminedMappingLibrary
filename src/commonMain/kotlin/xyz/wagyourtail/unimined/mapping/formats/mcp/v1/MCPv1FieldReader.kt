@@ -19,8 +19,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 object MCPv1FieldReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "fields.csv"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "fields.csv") return false
         // check that 4th line starts with "class"
         inputType.peek().use {
             it.readUtf8Line()
@@ -36,9 +35,9 @@ object MCPv1FieldReader : FormatReader {
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {
-        val l1 = input.takeLine()
+        input.takeLine()
         input.take()
-        val l2 = input.takeLine()
+        input.takeLine()
         input.take()
         val l3 = input.takeLine()
         input.take()
@@ -54,11 +53,11 @@ object MCPv1FieldReader : FormatReader {
                 input.take()
                 continue
             }
-            val clientClsName = input.takeCol()
+            input.takeCol() // clientClsName
             input.takeCol() // empty
             val clientSrg = input.takeCol()
 
-            val serverClsName = input.takeCol()
+            input.takeCol() // serverClsName
             input.takeCol() // empty
             val serverSrg = input.takeCol()
 
@@ -102,12 +101,12 @@ object MCPv1FieldReader : FormatReader {
                     names: Map<Namespace, Pair<String, FieldDescriptor?>>
                 ): FieldVisitor? {
                     val ns = names[srcNs] ?: return super.visitField(delegate, names)
-                    val data = data[ns.first] ?: (ns.first to null)
-                    val names = names.toMutableMap()
-                    names[dstNs] = data.first to ns.second
-                    val visitor = default.visitField(delegate, names)
-                    if (data.second != null) {
-                        visitor?.visitComment(mapOf(dstNs to data.second!!))
+                    val fData = data[ns.first] ?: (ns.first to null)
+                    val nameMap = names.toMutableMap()
+                    nameMap[dstNs] = fData.first to ns.second
+                    val visitor = default.visitField(delegate, nameMap)
+                    if (fData.second != null) {
+                        visitor?.visitComment(mapOf(dstNs to fData.second!!))
                     }
                     return visitor
                 }

@@ -10,7 +10,6 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
-import xyz.wagyourtail.unimined.mapping.resolver.maven.MavenResolver
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
@@ -19,7 +18,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
 
-open class MappingResolver(val name: String, val createResolver: (String) -> MavenResolver, val propogator: (MappingTree.() -> Unit)?) {
+open class MappingResolver(val name: String, val propogator: (MappingTree.() -> Unit)?) {
     companion object {
         private val LOGGER = KotlinLogging.logger {}
     }
@@ -31,7 +30,6 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
     private lateinit var resolved: MappingTree
 
     val unmappedNs = Namespace("official")
-    val mavenResolver by lazy { createResolver(name) }
 
     suspend fun finalize() {
         entries.finalize()
@@ -46,7 +44,7 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
         entries[key] = dependency
     }
 
-    open fun createForPostProcess(key: String) = MappingResolver("$name::$key", createResolver, propogator)
+    open fun createForPostProcess(key: String) = MappingResolver("$name::$key", propogator)
 
     @JvmOverloads
     fun postProcessDependency(key: String, intern: MappingResolver.() -> Unit, postProcess: MappingEntry.() -> Unit = {}) {
@@ -91,7 +89,7 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
         while (resolvedEntries.isNotEmpty()) {
             val toRemove = mutableSetOf<MappingEntry>()
             for (entry in resolvedEntries) {
-                if (entry.requires?.let { sortedNs.contains(it) } != false) {
+                if (entry.requires.let { sortedNs.contains(it) }) {
                     toRemove.add(entry)
                 }
             }
@@ -99,6 +97,8 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
                 //TODO: better logging, determine case
                 throw IllegalStateException("Circular dependency detected, or missing required ns")
             }
+
+            resolvedEntries.removeAll(toRemove)
             sorted.addAll(toRemove.sortedBy { FormatRegistry.formats.indexOf(it.provider) })
             sortedNs.addAll(toRemove.flatMap { it.provides.map { it.first } })
         }
@@ -120,7 +120,7 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
             for (entry in sorted) {
                 val toFill = entry.provides.map { it.first }.toSet() - filled
                 if (toFill.isNotEmpty()) {
-                    resolved.copyTo(entry.requires ?: unmappedNs, toFill, resolved)
+                    resolved.copyTo(entry.requires, toFill, resolved)
                     filled.addAll(toFill)
                 }
                 for (afterPropogate in entry.afterPropogate) {
@@ -158,6 +158,7 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
                         if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
                         val provider = ContentProvider.of(file, zip.getContents(file))
                         val entry = MappingEntry(provider)
+                        entry.combineWith(this)
                         entry.provider = format
                         this.subEntries.forEach { entry.it(provider, format) }
                         inner.add(entry)
@@ -173,7 +174,7 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
     }
 
     open inner class MappingConfig(val content: ContentProvider) {
-        var requires: Namespace? by FinalizeOnRead(null)
+        var requires: Namespace by FinalizeOnRead(unmappedNs)
         val provides = finalizableSetOf<Pair<Namespace, Boolean>>()
         val mapNs = finalizableMapOf<Namespace, Namespace>()
 
@@ -205,15 +206,17 @@ open class MappingResolver(val name: String, val createResolver: (String) -> Mav
         }
 
         fun combineWith(other: MappingConfig) {
-            if (requires == null) requires = other.requires
+            requires = other.requires
             provides.addAll(other.provides)
+            mapNs.putAll(other.mapNs)
+            skip = other.skip
             insertInto.addAll(other.insertInto)
             afterLoad.addAll(other.afterLoad)
             afterPropogate.addAll(other.afterPropogate)
         }
 
         open suspend fun finalize() {
-            requires?.name
+            requires.name
             provides.finalize()
             insertInto.finalize()
             afterLoad.finalize()

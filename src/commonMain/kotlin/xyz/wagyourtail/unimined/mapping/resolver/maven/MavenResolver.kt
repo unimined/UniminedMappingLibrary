@@ -15,17 +15,17 @@ fun mavenCompleter(baseUrl: String): (MavenCoords) -> String = { coords ->
 }
 
 interface Completer {
-    fun complete(baseUrl: String, coords: MavenCoords): String
+    suspend fun complete(baseUrl: String, coords: MavenCoords): String
 }
 
 object MavenCompleter : Completer {
-    override fun complete(baseUrl: String, coords: MavenCoords): String {
+    override suspend fun complete(baseUrl: String, coords: MavenCoords): String {
         return "${baseUrl}/${coords.group.replace('.', '/')}/${coords.artifact}/${coords.version}/${coords.fileName}"
     }
 }
 
 class IvyCompleter(val args: String, val completeFun: (String, MavenCoords) -> String) : Completer {
-    override fun complete(baseUrl: String, coords: MavenCoords): String {
+    override suspend fun complete(baseUrl: String, coords: MavenCoords): String {
         return completeFun(baseUrl, coords)
     }
 

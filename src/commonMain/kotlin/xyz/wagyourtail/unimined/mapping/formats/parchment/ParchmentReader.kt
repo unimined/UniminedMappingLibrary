@@ -16,8 +16,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object ParchmentReader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        val fileName = fileName.substringAfterLast('/') == "parchment.json"
-        if (!fileName) return false
+        if (fileName.substringAfterLast('/') != "parchment.json") return false
         return inputType.peek().readUtf8Line()?.startsWith("{") ?: false
     }
 
