@@ -24,7 +24,9 @@ class PackageNode(parent: MappingTree) : BaseNode<PackageVisitor, MappingVisitor
     }
 
     override fun acceptOuter(visitor: MappingVisitor, nsFilter: List<Namespace>, minimize: Boolean): PackageVisitor? {
-        return visitor.visitPackage(names.filterNotNullValues().filterKeys { it in nsFilter })
+        val names = names.filterNotNullValues().filterKeys { it in nsFilter }
+        if (names.isEmpty()) return null
+        return visitor.visitPackage(names)
     }
 
     override fun acceptInner(visitor: PackageVisitor, nsFilter: List<Namespace>, minimize: Boolean) {

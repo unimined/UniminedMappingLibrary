@@ -28,9 +28,10 @@ object ProguardReader : FormatReader {
 
     fun remapProguardParamDesc(desc: String): String {
         var i = 0
+        var desc = desc
         while (desc.endsWith("[]")) {
             i++
-            desc.substring(0, desc.length-2)
+            desc = desc.substring(0, desc.length-2)
         }
         return "[".repeat(i) + when (desc) {
             "byte" -> return "B"
@@ -42,12 +43,14 @@ object ProguardReader : FormatReader {
             "short" -> return "S"
             "boolean" -> return "Z"
             "void" -> return "V"
-            else -> "L${desc.replace('.', '/')};"
+            else -> "L${desc.replace(".", "/")};"
         }
     }
 
     fun remapProguardMethodDesc(desc: String): String {
-        val params = desc.substring(0, desc.length-1).split(",")
+        if (desc == "()") return desc
+        if (desc[0] != '(' || desc[desc.length-1] != ')') throw IllegalArgumentException("Invalid method descriptor")
+        val params = desc.substring(1, desc.length-1).split(",")
         return buildString {
             append('(')
             for (param in params) {
@@ -82,25 +85,23 @@ object ProguardReader : FormatReader {
             if (line.startsWith("#")) continue
             if (indent.isEmpty()) {
                 val parts = line.split("->")
-                val srcCls = InternalName.read(parts[0].trim())
-                val dstCls = InternalName.read(parts[1].trim().removeSuffix(":"))
+                val srcCls = InternalName.read(parts[0].trim().replace(".", "/"))
+                val dstCls = InternalName.read(parts[1].trim().removeSuffix(":").replace(".", "/"))
                 cls = into.visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))
             } else {
                 val parts = line.split("->")
                 val src = parts[0].trim().split(" ")
                 val dst = parts[1].trim()
                 val srcDesc = src[0].split(":")
-                if (srcDesc.size > 1 && srcDesc[0].toIntOrNull() != null) {
+                if (src[1].endsWith(")")) {
                     // method
-                    srcDesc[0].toInt() // fromLine
-                    srcDesc[1].toInt() // toLine
-                    val srcRetVal = remapProguardParamDesc(srcDesc[2])
+                    val srcRetVal = remapProguardParamDesc(srcDesc.last())
                     val srcName = src[1].substringBeforeLast("(")
                     val mDesc = MethodDescriptor.read(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
                     cls?.visitMethod(mapOf(srcNs to (srcName to mDesc), dstNs to (dst to null)))
                 } else {
                     // field
-                    val fDesc = FieldDescriptor.read(remapProguardParamDesc(src[0]))
+                    val fDesc = FieldDescriptor.read(remapProguardParamDesc(srcDesc.last()))
                     val srcName = src[1]
                     cls?.visitField(mapOf(srcNs to (srcName to fDesc), dstNs to (dst to null)))
                 }

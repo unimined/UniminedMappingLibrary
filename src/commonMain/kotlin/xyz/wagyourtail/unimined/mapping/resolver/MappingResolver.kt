@@ -77,6 +77,7 @@ open class MappingResolver(val name: String, val propogator: (MappingTree.() -> 
         finalize()
         val values = entries.values
         val resolved = MappingTree()
+        resolved.visitHeader(unmappedNs.name)
         val resolvedEntries = mutableSetOf<MappingEntry>()
 
         for (entry in values) {

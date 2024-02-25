@@ -43,6 +43,10 @@ class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>) : Base
         return FieldSignature.read(root.mapFieldSignature(fromNs, ns, names[fromNs]!!))
     }
 
-    override fun acceptOuter(visitor: T, nsFilter: List<Namespace>, minimize: Boolean): SignatureVisitor? = visitor.visitSignature(names.filterKeys { it in nsFilter })
+    override fun acceptOuter(visitor: T, nsFilter: List<Namespace>, minimize: Boolean): SignatureVisitor? {
+        val names = names.filterKeys { it in nsFilter }
+        if (names.isEmpty()) return null
+        return visitor.visitSignature(names)
+    }
 
 }

@@ -90,7 +90,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
     }
 
     override fun acceptOuter(visitor: ClassVisitor, nsFilter: List<Namespace>, minimize: Boolean): MethodVisitor? {
-        return visitor.visitMethod(if (minimize) {
+        val names = if (minimize) {
             val descNs = nsFilter.firstOrNull { it in names }
             if (descNs != null) {
                 names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to if (ns == descNs) getMethodDesc(ns) else null }
@@ -99,7 +99,9 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
             }
         } else {
             names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name.let { name to descs[ns]?.getMethodDescriptor() } }
-        })
+        }
+        if (names.isEmpty()) return null
+        return visitor.visitMethod(names)
     }
 
     override fun acceptInner(visitor: MethodVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
@@ -113,5 +115,56 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         for (local in locals) {
             local.accept(visitor, nsFilter, minimize)
         }
+    }
+
+    override fun merge(element: MethodNode): MethodNode? {
+        val merged = super.merge(element)
+        // override to merge disperate constructor methods
+        val name = names.values.first()
+        if (merged == null && (name == "<init>" || name == "<clinit>") && name == element.names.values.first()) {
+            // test desc
+            if (descs.isNotEmpty() && element.descs.isNotEmpty()) {
+                val descNs = descs.keys.first()
+                return if (hasDescriptor()) {
+                    if (element.hasDescriptor()) {
+                        if (getMethodDesc(descNs) == element.getMethodDesc(descNs)) {
+                            // merge
+                            element.setNames(names)
+                            doMerge(element)
+                            element
+                        } else {
+                            // dont merge
+                            null
+                        }
+                    } else {
+                        // merge but also create new unmerged one
+                        val new = create(parent as ClassNode)
+                        new.setNames(names)
+                        element.setNames(names)
+                        doMerge(element)
+                        doMerge(new)
+                        new
+                    }
+                } else {
+                    if (element.hasDescriptor()) {
+                        // merge, but also create a new one without descs
+                        val new = create(parent as ClassNode)
+                        new.setNames(element.names)
+                        new.setNames(names)
+                        new.setDescriptors(descs)
+                        element.setNames(names)
+                        doMerge(element)
+                        doMerge(new)
+                        new
+                    } else {
+                        // merge
+                        element.setNames(names)
+                        doMerge(element)
+                        element
+                    }
+                }
+            }
+        }
+        return merged
     }
 }

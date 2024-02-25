@@ -369,7 +369,7 @@ class MappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor 
     }
 
     override fun acceptInner(visitor: MappingVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
-        visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
+        visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
         super.acceptInner(visitor, nsFilter, minimize)
         for (pkg in packages) {
             pkg.accept(visitor, nsFilter, minimize)
