@@ -42,7 +42,7 @@ value class MethodDescriptor private constructor(val value: String) {
 
         operator fun invoke(returnValue: String, vararg params: String) = MethodDescriptor(ReturnDescriptor.read(returnValue), params.map { ParameterDescriptor.read(it) })
 
-        operator fun invoke(returnType: ReturnDescriptor, vararg params: List<ParameterDescriptor>) = MethodDescriptor(buildString {
+        operator fun invoke(returnType: ReturnDescriptor, params: List<ParameterDescriptor>) = MethodDescriptor(buildString {
             append('(')
             params.forEach { append(it) }
             append(')')

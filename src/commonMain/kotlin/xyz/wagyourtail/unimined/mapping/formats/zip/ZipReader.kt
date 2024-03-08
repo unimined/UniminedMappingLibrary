@@ -7,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
@@ -28,9 +29,19 @@ object ZipReader : FormatReader {
             val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
             for ((file, format) in files.entries.sortedBy { FormatRegistry.formats.indexOf(it.value) }) {
                 if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
-                format.reader.read(envType, zip.getContents(file), context, into, nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") })
+                format.read(envType, zip.getContents(file), context, into, nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") })
             }
         }
+    }
+
+    override suspend fun read(
+        envType: EnvType,
+        input: CharReader,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        nsMapping: Map<String, String>
+    ) {
+        throw UnsupportedOperationException("ZipReader does not support CharReader")
     }
 
 }

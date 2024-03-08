@@ -11,6 +11,8 @@ interface FormatWriter {
 
     fun write(into: BufferedSink): MappingVisitor = write(EnvType.JOINED, into)
 
-    fun write(envType: EnvType, into: BufferedSink): MappingVisitor
+    fun write(envType: EnvType, into: BufferedSink): MappingVisitor = write(envType) { into.writeUtf8(it) }
+
+    fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor
 
 }

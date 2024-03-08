@@ -47,6 +47,6 @@ interface FormatReader {
         read(envType, CharReader(inputType.readUtf8()), context, into, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) {}
+    suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf())
 
 }

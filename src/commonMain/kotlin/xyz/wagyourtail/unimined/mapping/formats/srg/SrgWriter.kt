@@ -17,11 +17,11 @@ import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 object SrgWriter : FormatWriter {
-    override fun write(envType: EnvType, into: BufferedSink): MappingVisitor {
-        return SrgMappingWriter(into)
+    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+        return SrgMappingWriter(append)
     }
 
-    open class BaseSrgWriter<T: BaseVisitor<T>>(val into: BufferedSink, val parent: BaseSrgWriter<*>?): BaseVisitor<T> {
+    open class BaseSrgWriter<T: BaseVisitor<T>>(val append: (String) -> Unit, val parent: BaseSrgWriter<*>?): BaseVisitor<T> {
 
         val root: SrgMappingWriter get() = (this as? SrgMappingWriter) ?: parent!!.root
 
@@ -38,15 +38,15 @@ object SrgWriter : FormatWriter {
             return mapOf(root.namespaces[0] to srcName, root.namespaces[1] to dstName!!)
         }
 
-        fun BufferedSink.writeEntry(prefix: String, names: Map<Namespace, String>) {
+        fun ((String) -> Unit).writeEntry(prefix: String, names: Map<Namespace, String>) {
             val fixed = names.fillNull()
             if (fixed != null) {
-                write(prefix.encodeUtf8())
-                write(" ".encodeUtf8())
-                write(fixed[root.namespaces[0]]!!.encodeUtf8())
-                write(" ".encodeUtf8())
-                write(fixed[root.namespaces[1]]!!.encodeUtf8())
-                write("\n".encodeUtf8())
+                this(prefix)
+                this(" ")
+                this(fixed[root.namespaces[0]]!!)
+                this(" ")
+                this(fixed[root.namespaces[1]]!!)
+                this("\n")
             }
         }
 
@@ -56,7 +56,7 @@ object SrgWriter : FormatWriter {
 
     }
 
-    class SrgMappingWriter(into: BufferedSink): BaseSrgWriter<MappingVisitor>(into, null), MappingVisitor {
+    class SrgMappingWriter(into: (String) -> Unit): BaseSrgWriter<MappingVisitor>(into, null), MappingVisitor {
         lateinit var namespaces: List<Namespace>
 
         override fun nextUnnamedNs(): Namespace {
@@ -71,15 +71,15 @@ object SrgWriter : FormatWriter {
         }
 
         override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
-            into.writeEntry("PK:", names.mapValues { it.value.value.substringBeforeLast('/').ifEmpty { "." } })
+            append.writeEntry("PK:", names.mapValues { it.value.value.substringBeforeLast('/').ifEmpty { "." } })
             return null
         }
 
         override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
-            into.writeEntry("CL:", names.mapValues { it.value.value })
+            append.writeEntry("CL:", names.mapValues { it.value.value })
             val fixedNames = names.mapValues { it.value.value }.fillNull()
             if (fixedNames == null) return null
-            return SrgClassWriter(into, this, fixedNames)
+            return SrgClassWriter(append, this, fixedNames)
         }
 
         override fun visitConstantGroup(
@@ -92,14 +92,14 @@ object SrgWriter : FormatWriter {
 
     }
 
-    class SrgClassWriter(into: BufferedSink, parent: BaseSrgWriter<*>?, val names: Map<Namespace, String>): BaseSrgWriter<ClassVisitor>(into, parent), ClassVisitor {
+    class SrgClassWriter(into: (String) -> Unit, parent: BaseSrgWriter<*>?, val names: Map<Namespace, String>): BaseSrgWriter<ClassVisitor>(into, parent), ClassVisitor {
         override fun visitMethod(namespaces: Map<Namespace, Pair<String, MethodDescriptor?>>): MethodVisitor? {
-            into.writeEntry("MD:", namespaces.mapValues { "${names[it.key]}/${it.value.first} ${it.value.second?.value ?: ""}" })
+            append.writeEntry("MD:", namespaces.mapValues { "${names[it.key]}/${it.value.first} ${it.value.second?.value ?: ""}" })
             return null
         }
 
         override fun visitField(namespaces: Map<Namespace, Pair<String, FieldDescriptor?>>): FieldVisitor? {
-            into.writeEntry("FD:", namespaces.mapValues { "${names[it.key]}/${it.value.first}" })
+            append.writeEntry("FD:", namespaces.mapValues { "${names[it.key]}/${it.value.first}" })
             return null
         }
 

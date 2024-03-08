@@ -34,11 +34,9 @@ object UMFWriter : FormatWriter {
         return this
     }
 
-    override fun write(envType: EnvType, into: BufferedSink): MappingVisitor {
-        into.write("umf\t1\t0\n".encodeUtf8()) //TODO: extensions
-        return UMFMappingWriter {
-            into.write(it.encodeUtf8())
-        }
+    override fun write(envType: EnvType, into: (String) -> Unit): MappingVisitor {
+        into("umf\t1\t0\n") //TODO: extensions
+        return UMFMappingWriter(into)
     }
 
     abstract class BaseUMFWriter<T: BaseVisitor<T>>(val into: (String) -> Unit, val indent: String = "") : BaseVisitor<T> {
