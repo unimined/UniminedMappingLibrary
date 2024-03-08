@@ -46,7 +46,7 @@ abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: 
         return node
     }
 
-    override fun acceptInner(visitor: T, nsFilter: List<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean) {
         for (annotation in annotations) {
             annotation.accept(visitor, nsFilter, minimize)
         }

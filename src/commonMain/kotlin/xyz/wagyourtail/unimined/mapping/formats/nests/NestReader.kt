@@ -13,7 +13,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
@@ -32,7 +32,7 @@ object NestReader : FormatReader {
     override suspend fun read(
         envType: EnvType,
         input: CharReader,
-        context: MappingTree?,
+        context: AbstractMappingTree?,
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {

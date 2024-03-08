@@ -6,11 +6,11 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object ParchmentReader : FormatReader {
@@ -23,7 +23,7 @@ object ParchmentReader : FormatReader {
     override suspend fun read(
         envType: EnvType,
         input: CharReader,
-        context: MappingTree?,
+        context: AbstractMappingTree?,
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {
@@ -60,7 +60,7 @@ object ParchmentReader : FormatReader {
             for (method in methods) {
                 val methodObj = method.jsonObject
                 val methodName = methodObj["name"]?.jsonPrimitive?.content ?: continue
-                val methodDesc = methodObj["desc"]?.jsonPrimitive?.content ?: continue
+                val methodDesc = methodObj["descriptor"]?.jsonPrimitive?.content ?: continue
                 val javadoc = methodObj["javadoc"]
                 val content = if (javadoc is JsonArray) {
                     javadoc.joinToString("\n") { it.jsonPrimitive.content }
@@ -89,6 +89,23 @@ object ParchmentReader : FormatReader {
                     }
                 }
 
+            }
+
+            val fields = clsObj["fields"]?.jsonArray ?: emptyList()
+            for (field in fields) {
+                val fieldObj = field.jsonObject
+                val fieldName = fieldObj["name"]?.jsonPrimitive?.content ?: continue
+                val fieldDesc = fieldObj["descriptor"]?.jsonPrimitive?.content ?: continue
+                val javadoc = fieldObj["javadoc"]
+                val content = if (javadoc is JsonArray) {
+                    javadoc.joinToString("\n") { it.jsonPrimitive.content }
+                } else {
+                    javadoc?.jsonPrimitive?.content
+                }
+                val fieldVisitor = clsVisitor.visitField(mapOf(srcNs to (fieldName to FieldDescriptor.read(fieldDesc))))
+                if (content != null) {
+                    fieldVisitor?.visitComment(mapOf(srcNs to content))
+                }
             }
         }
 

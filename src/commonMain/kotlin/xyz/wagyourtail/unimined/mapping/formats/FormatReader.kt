@@ -4,6 +4,7 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
@@ -27,12 +28,12 @@ interface FormatReader {
         read(envType, it, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, fileStr: String, into: MappingTree, nsMapping: Map<String, String> = mapOf()) = Buffer().use {
+    suspend fun read(envType: EnvType, fileStr: String, into: AbstractMappingTree, nsMapping: Map<String, String> = mapOf()) = Buffer().use {
         it.writeUtf8(fileStr)
         read(envType, it, into, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, fileStr: String, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) = CharReader(fileStr).use {
+    suspend fun read(envType: EnvType, fileStr: String, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) = CharReader(fileStr).use {
         read(envType, it, context, into, nsMapping)
     }
 
@@ -40,12 +41,12 @@ interface FormatReader {
 
     suspend fun read(envType: EnvType, inputType: BufferedSource, nsMapping: Map<String, String> = mapOf()): MappingTree = MappingTree().also { read(envType, inputType, it, it, nsMapping) }
 
-    suspend fun read(envType: EnvType, inputType: BufferedSource, into: MappingTree, nsMapping: Map<String, String> = mapOf()) = read(envType, inputType, into, into, nsMapping)
+    suspend fun read(envType: EnvType, inputType: BufferedSource, into: AbstractMappingTree, nsMapping: Map<String, String> = mapOf()) = read(envType, inputType, into, into, nsMapping)
 
-    suspend fun read(envType: EnvType, inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) {
+    suspend fun read(envType: EnvType, inputType: BufferedSource, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) {
         read(envType, CharReader(inputType.readUtf8()), context, into, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, input: CharReader, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) {}
+    suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) {}
 
 }

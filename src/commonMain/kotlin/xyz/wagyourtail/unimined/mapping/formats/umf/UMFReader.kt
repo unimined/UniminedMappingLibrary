@@ -10,7 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.*
@@ -57,8 +57,11 @@ object UMFReader : FormatReader {
         return literal
     }
 
-    override suspend fun read(envType: EnvType, input: CharReader, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
-        val unchecked = uncheckedReading
+    override suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
+        readNonBlocking(envType, input, context, into, nsMapping)
+    }
+
+    fun readNonBlocking(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
         var token = input.takeNext()
         if (token.second.lowercase() != "umf") {
             throw IllegalArgumentException("Invalid UMF file, expected UMF header found ${token.second}")
@@ -90,8 +93,14 @@ object UMFReader : FormatReader {
 
         val visitStack = mutableListOf<BaseVisitor<*>?>(into)
         val indentStack = mutableListOf(-1)
-
+        readWithStack(envType, input, context, into, nsMapping, visitStack, indentStack, ::getNamespace)
+    }
+    internal fun readWithStack(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>, visitStack: MutableList<BaseVisitor<*>?>, indentStack: MutableList<Int>, getNamespace: (Int) -> Namespace) {
+        val unchecked = uncheckedReading
+        var line = 2
+        var token: Pair<TokenType, String>
         while (!input.exhausted()) {
+            line++
             val indent = input.takeWhitespace().indentCount()
             token = input.takeNext()
             if (token.second.length != 1) {
@@ -135,7 +144,7 @@ object UMFReader : FormatReader {
                     val index = fixValue(input.takeNext())?.toIntOrNull()
                     val lvOrd = fixValue(input.takeNext())?.toIntOrNull()
                     if (index == null && lvOrd == null) {
-                        throw IllegalArgumentException("Invalid parameter entry, no index or lvOrd")
+                        throw IllegalArgumentException("Invalid parameter entry, no index or lvOrd on line $line")
                     }
                     val remain = input.takeRemainingOnLine()
                     val names = remain.map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
@@ -162,10 +171,9 @@ object UMFReader : FormatReader {
                         }
                     }
                     val exception = fixValue(input.takeNext())!!.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
-                    val baseNs = getNamespace(input.takeNext().second.toInt())
-                    val excNs = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
+                    val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()
                     last as MethodVisitor?
-                    last?.visitException(type, exception, baseNs, excNs)
+                    last?.visitException(type, exception, names.next(), names.asSequence().toSet())
                 }
                 EntryType.FIELD -> {
                     val names = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
@@ -223,10 +231,9 @@ object UMFReader : FormatReader {
                     val key = fixValue(input.takeNext())
                     val value = fixValue(input.takeNext()) ?: "()"
                     val annotation = if (unchecked) Annotation.unchecked("@$key$value") else Annotation.read("@$key$value")
-                    val baseNs = getNamespace(input.takeNext().second.toInt())
-                    val annNs = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
+                    val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()
                     last as MemberVisitor<*>?
-                    last?.visitAnnotation(type, baseNs, annotation, annNs)
+                    last?.visitAnnotation(type, names.next(), annotation, names.asSequence().toSet())
                 }
                 EntryType.ACCESS -> {
                     val type = fixValue(input.takeNext())!!.let {

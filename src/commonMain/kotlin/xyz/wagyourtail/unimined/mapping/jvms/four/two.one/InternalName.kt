@@ -30,6 +30,8 @@ value class InternalName private constructor(val value: String) {
         }
 
         override fun unchecked(value: String) = InternalName(value)
+
+        operator fun invoke(pkg: PackageName, name: UnqualifiedName) = InternalName("${pkg.value}${name.value}")
     }
 
     fun getParts(): Pair<PackageName, UnqualifiedName> {

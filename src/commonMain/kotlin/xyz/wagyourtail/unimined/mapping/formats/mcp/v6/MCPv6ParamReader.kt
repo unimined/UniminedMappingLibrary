@@ -6,9 +6,8 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
@@ -29,7 +28,7 @@ object MCPv6ParamReader : FormatReader {
     override suspend fun read(
         envType: EnvType,
         input: CharReader,
-        context: MappingTree?,
+        context: AbstractMappingTree?,
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {
@@ -39,6 +38,7 @@ object MCPv6ParamReader : FormatReader {
         }
 
         val data = mutableMapOf<String, String>()
+        val paramsByNumber = mutableMapOf<Int, MutableMap<String, String>>()
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
@@ -51,6 +51,11 @@ object MCPv6ParamReader : FormatReader {
 
             if (side == "2" || side.toInt() == envType.ordinal) {
                 data[searge] = name
+
+                if (searge.matches(Regex("p_\\d+_\\d+_"))) {
+                    val mid = searge.split('_')[1].toInt()
+                    paramsByNumber.getOrPut(mid) { mutableMapOf() }[searge] = name
+                }
             }
 
         }
@@ -71,7 +76,21 @@ object MCPv6ParamReader : FormatReader {
                     delegate: ClassVisitor,
                     names: Map<Namespace, Pair<String, MethodDescriptor?>>
                 ): MethodVisitor? {
-                    return default.visitMethod(delegate, names)
+                    return default.visitMethod(delegate, names)?.also { mv ->
+                        if (names[srcNs]?.first?.matches(Regex("func_\\d+_.+")) == true) {
+                            val mid = names[srcNs]?.first?.split('_')?.get(1)?.toInt()
+                            if (mid != null) {
+                                for ((searge, name) in paramsByNumber[mid] ?: emptyMap()) {
+                                    val lvOrd = searge.split('_')[2].toInt()
+                                    mv.visitParameter(
+                                        null,
+                                        lvOrd,
+                                        mapOf(srcNs to searge, dstNs to name)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 override fun visitParameter(

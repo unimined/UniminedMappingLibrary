@@ -15,7 +15,7 @@ class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisito
         setDescriptors(descs.mapValues { FieldOrMethodDescriptor.unchecked(it.value.toString()) })
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, nsFilter: List<Namespace>, minimize: Boolean): FieldVisitor? {
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): FieldVisitor? {
         val names = if (minimize) {
             val descNs = nsFilter.firstOrNull { it in names }
             if (descNs != null) {

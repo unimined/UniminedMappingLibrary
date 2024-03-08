@@ -13,7 +13,7 @@ class AccessNode<U: AccessParentVisitor<U>>(parent: BaseNode<U, *>, val accessTy
         _namespaces.addAll(namespaces)
     }
 
-    override fun acceptOuter(visitor: U, nsFilter: List<Namespace>, minimize: Boolean): AccessVisitor? {
+    override fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean): AccessVisitor? {
         val ns = nsFilter.filter { it in namespaces }.toSet()
         if (ns.isEmpty()) return null
         return visitor.visitAccess(accessType, accessFlag, ns)

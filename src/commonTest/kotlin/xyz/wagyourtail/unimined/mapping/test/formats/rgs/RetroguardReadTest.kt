@@ -42,7 +42,7 @@ class RetroguardReadTest {
         assertEquals("""
 umf	1	0
 source	target
-p		net/minecraft/src/
+k		net/minecraft/src/
 c	a	net/minecraft/src/Minecraft
 	f	a	field_1724
 	m	a;()V	method_1507

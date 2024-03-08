@@ -5,7 +5,7 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
@@ -19,7 +19,7 @@ object PackageSrgReader : FormatReader {
     override suspend fun read(
         envType: EnvType,
         input: CharReader,
-        context: MappingTree?,
+        context: AbstractMappingTree?,
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {

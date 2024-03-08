@@ -11,19 +11,25 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import kotlin.jvm.JvmInline
 
-fun MappingVisitor.delegator(delegator: Delegator) = DelegateMappingVisitor(this, delegator)
+fun MappingVisitor.nsFiltered(vararg ns: String) = nsFiltered(ns.map { Namespace(it) }.toSet())
+fun MappingVisitor.nsFiltered(ns: Set<Namespace>) = DelegateMappingVisitor(this, NsFilteredDelegate(ns))
 
-fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisitor(this, object : Delegator() {
+class NsFilteredDelegate(val ns: Set<Namespace>) : Delegator() {
+
+    override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+        super.visitHeader(delegate, *namespaces.filter { Namespace(it) in ns }.toTypedArray())
+    }
 
     override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
+        val n = names.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitPackage(delegate, n)
     }
 
     override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
+        val n = names.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitClass(delegate, n)
     }
@@ -32,7 +38,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, FieldDescriptor?>>
     ): FieldVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
+        val n = names.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitField(delegate, n)
     }
@@ -41,7 +47,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, MethodDescriptor?>>
     ): MethodVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
+        val n = names.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitMethod(delegate, n)
     }
@@ -51,7 +57,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         type: InnerClassNode.InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
     ): InnerClassVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
+        val n = names.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitInnerClass(delegate, type, n)
     }
@@ -62,7 +68,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         lvOrd: Int?,
         names: Map<Namespace, String>
     ): ParameterVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
+        val n = names.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitParameter(delegate, index, lvOrd, n)
     }
@@ -73,7 +79,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         startOp: Int?,
         names: Map<Namespace, String>
     ): LocalVariableVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
+        val n = names.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitLocalVariable(delegate, lvOrd, startOp, n)
     }
@@ -85,9 +91,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ExceptionVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitException(delegate, type, exception, nsMap[baseNs] ?: baseNs, n)
+        if (baseNs !in ns) return null
+        return super.visitException(delegate, type, exception, baseNs, namespaces.filter { it in ns }.toSet())
     }
 
     override fun visitAccess(
@@ -96,13 +101,13 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         value: AccessFlag,
         namespaces: Set<Namespace>
     ): AccessVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
+        val n = namespaces.filter { it in ns }.toSet()
         if (n.isEmpty()) return null
         return super.visitAccess(delegate, type, value, n)
     }
 
     override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
-        val n = values.mapKeys { nsMap[it.key] ?: it.key }
+        val n = values.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitComment(delegate, n)
     }
@@ -111,7 +116,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         delegate: SignatureParentVisitor<*>,
         values: Map<Namespace, String>
     ): SignatureVisitor? {
-        val n = values.mapKeys { nsMap[it.key] ?: it.key }
+        val n = values.filterKeys { it in ns }
         if (n.isEmpty()) return null
         return super.visitSignature(delegate, n)
     }
@@ -123,9 +128,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         annotation: Annotation,
         namespaces: Set<Namespace>
     ): AnnotationVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitAnnotation(delegate, type, nsMap[baseNs] ?: baseNs, annotation, n)
+        if (baseNs !in ns) return null
+        return super.visitAnnotation(delegate, type, baseNs, annotation, namespaces.filter { it in ns }.toSet())
     }
 
     override fun visitConstantGroup(
@@ -134,9 +138,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitConstantGroup(delegate, type, nsMap[baseNs] ?: baseNs, n)
+        if (baseNs !in ns) return null
+        return super.visitConstantGroup(delegate, type, baseNs, namespaces.filter { it in ns }.toSet())
     }
 
-})
+}

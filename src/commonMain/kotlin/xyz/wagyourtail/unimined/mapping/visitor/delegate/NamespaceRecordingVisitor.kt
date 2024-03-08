@@ -12,38 +12,46 @@ import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-fun MappingVisitor.delegator(delegator: Delegator) = DelegateMappingVisitor(this, delegator)
+fun MappingVisitor.recordNamespaces(recorder: (Set<Namespace>) -> Unit): MappingVisitor {
+    return DelegateMappingVisitor(this, NamespaceRecordingDelegate(recorder))
+}
+class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Delegator() {
 
-fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisitor(this, object : Delegator() {
+    override fun nextUnnamedNs(delegate: MappingVisitor): Namespace {
+        val ns = super.nextUnnamedNs(delegate)
+        recorder(setOf(ns))
+        return ns
+    }
+
+    override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+        recorder(namespaces.map { Namespace(it) }.toSet())
+        super.visitHeader(delegate, *namespaces)
+    }
 
     override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitPackage(delegate, n)
+        recorder(names.keys)
+        return super.visitPackage(delegate, names)
     }
 
     override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitClass(delegate, n)
+        recorder(names.keys)
+        return super.visitClass(delegate, names)
     }
 
     override fun visitField(
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, FieldDescriptor?>>
     ): FieldVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitField(delegate, n)
+        recorder(names.keys)
+        return super.visitField(delegate, names)
     }
 
     override fun visitMethod(
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, MethodDescriptor?>>
     ): MethodVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitMethod(delegate, n)
+        recorder(names.keys)
+        return super.visitMethod(delegate, names)
     }
 
     override fun visitInnerClass(
@@ -51,9 +59,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         type: InnerClassNode.InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
     ): InnerClassVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitInnerClass(delegate, type, n)
+        recorder(names.keys)
+        return super.visitInnerClass(delegate, type, names)
     }
 
     override fun visitParameter(
@@ -62,9 +69,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         lvOrd: Int?,
         names: Map<Namespace, String>
     ): ParameterVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitParameter(delegate, index, lvOrd, n)
+        recorder(names.keys)
+        return super.visitParameter(delegate, index, lvOrd, names)
     }
 
     override fun visitLocalVariable(
@@ -73,9 +79,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         startOp: Int?,
         names: Map<Namespace, String>
     ): LocalVariableVisitor? {
-        val n = names.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitLocalVariable(delegate, lvOrd, startOp, n)
+        recorder(names.keys)
+        return super.visitLocalVariable(delegate, lvOrd, startOp, names)
     }
 
     override fun visitException(
@@ -85,9 +90,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ExceptionVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitException(delegate, type, exception, nsMap[baseNs] ?: baseNs, n)
+        recorder(namespaces + baseNs)
+        return super.visitException(delegate, type, exception, baseNs, namespaces)
     }
 
     override fun visitAccess(
@@ -96,24 +100,21 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         value: AccessFlag,
         namespaces: Set<Namespace>
     ): AccessVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitAccess(delegate, type, value, n)
+        recorder(namespaces)
+        return super.visitAccess(delegate, type, value, namespaces)
     }
 
     override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
-        val n = values.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitComment(delegate, n)
+        recorder(values.keys)
+        return super.visitComment(delegate, values)
     }
 
     override fun visitSignature(
         delegate: SignatureParentVisitor<*>,
         values: Map<Namespace, String>
     ): SignatureVisitor? {
-        val n = values.mapKeys { nsMap[it.key] ?: it.key }
-        if (n.isEmpty()) return null
-        return super.visitSignature(delegate, n)
+        recorder(values.keys)
+        return super.visitSignature(delegate, values)
     }
 
     override fun visitAnnotation(
@@ -123,9 +124,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         annotation: Annotation,
         namespaces: Set<Namespace>
     ): AnnotationVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitAnnotation(delegate, type, nsMap[baseNs] ?: baseNs, annotation, n)
+        recorder(namespaces + baseNs)
+        return super.visitAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
     override fun visitConstantGroup(
@@ -134,9 +134,8 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitConstantGroup(delegate, type, nsMap[baseNs] ?: baseNs, n)
+        recorder(namespaces + baseNs)
+        return super.visitConstantGroup(delegate, type, baseNs, namespaces)
     }
 
-})
+}

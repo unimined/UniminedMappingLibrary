@@ -3,8 +3,10 @@ package xyz.wagyourtail.unimined.mapping.test.formats.umf
 import kotlinx.coroutines.test.runTest
 import okio.Buffer
 import okio.use
+import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
+import xyz.wagyourtail.unimined.mapping.tree.LazyMappingTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -90,7 +92,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output), true)
+            mappings.accept(UMFWriter.write(output), minimize = true)
             output.readUtf8()
         }
         val testOutput = """
@@ -103,5 +105,43 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
         """.trimIndent().replace(' ', '\t').trimEnd()
 
         assertEquals(testOutput, output.trimEnd())
+    }
+
+    @Test
+    fun testLazy() = runTest {
+        val inp = """
+umf	1	0
+intermediary	named	extra
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
+	*	"example comment"	0
+	f	field_1724	_
+	m	method_1507;()V	testMethod
+		p	_	0	_	this
+		v	1	_	_	lv1
+c	net/minecraft/class_310	_	net/minecraft/Minecraft
+        """.trimIndent().trimEnd()
+
+        val mappings = Buffer().use { input ->
+            input.writeUtf8(inp)
+            LazyMappingTree().also {
+                UMFReader.read(EnvType.JOINED, input, it)
+            }
+        }
+        val output = Buffer().use { output ->
+            mappings.accept(UMFWriter.write(output))
+            output.readUtf8()
+        }
+
+        val testOuput = """
+umf	1	0
+intermediary	named	extra
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Minecraft
+	*	"example comment"	0	_
+	f	field_1724	_	_
+	m	method_1507;()V	testMethod	_
+		p	_	0	_	this	_
+		v	1	_	_	lv1	_
+        """.trimIndent()
+        assertEquals(testOuput, output.trimEnd())
     }
 }

@@ -5,8 +5,9 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
@@ -17,13 +18,13 @@ object TsrgV2Reader : FormatReader {
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         if (!fileName.endsWith(".tsrg")) return false
-        return inputType.peek().readUtf8Line()?.startsWith("tsrg2\t") ?: false
+        return inputType.peek().readUtf8Line()?.startsWith("tsrg2 ") ?: false
     }
 
     override suspend fun read(
         envType: EnvType,
         input: CharReader,
-        context: MappingTree?,
+        context: AbstractMappingTree?,
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {
@@ -61,16 +62,20 @@ object TsrgV2Reader : FormatReader {
                 if (input.peek() == '(') {
                     // method
                     val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
-                    val names = mutableListOf<Pair<String, MethodDescriptor>>()
+                    val names = mutableListOf<Pair<String, MethodDescriptor?>>()
                     while (true) {
                         val name = input.takeNextLiteral(' ') ?: break
-                        names.add(name to MethodDescriptor.read(input.takeNextLiteral(' ')!!))
+                        names.add(name to null)
                     }
                     md = cls?.visitMethod(names.withIndex().associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to srcDesc)))
                 } else {
                     // field
-                    val dstName = input.takeNextLiteral(' ')!!
-                    cls?.visitField(mapOf(ns[0] to (srcName to null), ns[1] to (dstName to null)))
+                    val names = mutableListOf<Pair<String, FieldDescriptor?>>()
+                    while (true) {
+                        val name = input.takeNextLiteral(' ') ?: break
+                        names.add(name to null)
+                    }
+                    cls?.visitField(names.withIndex().associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to null)))
                     md = null
                 }
             } else if (whitespace.length == 2) {

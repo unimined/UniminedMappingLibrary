@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.util
 /**
  * unlike java, this will translate unicode escapes as well
  */
-fun String.translateEscapes(): String {
+fun String.translateEscapes(leinient: Boolean = false): String {
     if (this.isEmpty() || !this.contains("\\")) {
         return this
     }
@@ -41,7 +41,16 @@ fun String.translateEscapes(): String {
                     'r' -> append('\r')
                     's' -> append(' ')
                     't' -> append('\t')
-                    else -> throw IllegalArgumentException("Invalid escape: $n")
+                    else -> {
+                        if (leinient) {
+                            append("\\")
+                            append(n)
+                        } else {
+                            throw IllegalArgumentException(
+                                "Invalid escape: ${n.toString().escape(true)} in \"${this}\" at $i"
+                            )
+                        }
+                    }
                 }
             } else {
                 append(c)

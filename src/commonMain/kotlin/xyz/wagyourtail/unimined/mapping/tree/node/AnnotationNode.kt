@@ -15,7 +15,7 @@ class AnnotationNode<U: AnnotationParentVisitor<U>>(parent: BaseNode<U, *>, val 
         _namespaces.addAll(namespaces)
     }
 
-    override fun acceptOuter(visitor: U, nsFilter: List<Namespace>, minimize: Boolean): AnnotationVisitor? {
+    override fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean): AnnotationVisitor? {
         if (baseNs !in nsFilter) {
             val ns = nsFilter.filter { it in namespaces }.toSet()
             if (ns.isEmpty()) return null

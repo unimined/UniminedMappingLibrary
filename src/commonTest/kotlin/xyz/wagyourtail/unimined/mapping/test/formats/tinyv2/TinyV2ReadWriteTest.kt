@@ -3,8 +3,8 @@ package xyz.wagyourtail.unimined.mapping.test.formats.tinyv2
 import kotlinx.coroutines.test.runTest
 import okio.Buffer
 import okio.use
-import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Reader
-import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Writer
+import xyz.wagyourtail.unimined.mapping.formats.tiny.TinyV2Reader
+import xyz.wagyourtail.unimined.mapping.formats.tiny.TinyV2Writer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

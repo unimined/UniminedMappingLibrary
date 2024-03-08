@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.formats.tinyv2
+package xyz.wagyourtail.unimined.mapping.formats.tiny
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
@@ -7,7 +7,7 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.util.translateEscapes
 import xyz.wagyourtail.unimined.mapping.visitor.*
@@ -21,7 +21,7 @@ object TinyV2Reader : FormatReader {
         return inputType.peek().readUtf8Line()?.startsWith("tiny\t2\t0\t") ?: false
     }
 
-    override suspend fun read(envType: EnvType, input: CharReader, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
+    override suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
         val v = input.takeNextLiteral()
         if (v != "tiny") throw IllegalArgumentException("Invalid tinyv2 file")
         if (input.takeNextLiteral() != "2") throw IllegalArgumentException("Invalid tinyv2 file")

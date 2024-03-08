@@ -1,11 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
 /**
@@ -42,15 +38,16 @@ value class MethodDescriptor private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid method type", e)
             }
         }
-
-        fun create(returnValue: String, vararg params: String) = MethodDescriptor(buildString {
-            append('(')
-            params.forEach { append(ParameterDescriptor.read(it)) }
-            append(')')
-            append(ReturnDescriptor.read(returnValue))
-        })
-
         override fun unchecked(value: String) = MethodDescriptor(value)
+
+        operator fun invoke(returnValue: String, vararg params: String) = MethodDescriptor(ReturnDescriptor.read(returnValue), params.map { ParameterDescriptor.read(it) })
+
+        operator fun invoke(returnType: ReturnDescriptor, vararg params: List<ParameterDescriptor>) = MethodDescriptor(buildString {
+            append('(')
+            params.forEach { append(it) }
+            append(')')
+            append(returnType)
+        })
 
     }
 

@@ -58,7 +58,7 @@ object JVMS {
      */
     fun parseMethodDescriptor(value: String) = MethodDescriptor.read(value)
     fun createMethodDescriptor(returnType: String, vararg parameterTypes: String) =
-        MethodDescriptor.create(returnType, *parameterTypes)
+        MethodDescriptor(returnType, *parameterTypes)
 
     /**
      * 4.7.9.1

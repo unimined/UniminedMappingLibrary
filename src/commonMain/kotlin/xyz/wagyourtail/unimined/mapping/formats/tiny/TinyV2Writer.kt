@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.formats.tinyv2
+package xyz.wagyourtail.unimined.mapping.formats.tiny
 
 import okio.BufferedSink
 import okio.ByteString.Companion.encodeUtf8

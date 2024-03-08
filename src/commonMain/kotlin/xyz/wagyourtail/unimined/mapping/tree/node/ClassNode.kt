@@ -1,16 +1,16 @@
 package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
+class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val _names: MutableMap<Namespace, InternalName?> = mutableMapOf()
 
     val names: Map<Namespace, InternalName?> get() = _names
@@ -27,10 +27,6 @@ class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, ClassVisitor, Ma
 
     fun setNames(names: Map<Namespace, InternalName?>) {
         root.mergeNs(names.keys)
-        for (ns in names.keys) {
-            root.byNamespace[ns]?.remove(this._names[ns])
-            root.byNamespace[ns]?.put(names[ns]!!, this)
-        }
         this._names.putAll(names)
     }
 
@@ -89,13 +85,13 @@ class ClassNode(parent: MappingTree) : MemberNode<ClassVisitor, ClassVisitor, Ma
         return inner
     }
 
-    override fun acceptOuter(visitor: MappingVisitor, nsFilter: List<Namespace>, minimize: Boolean): ClassVisitor? {
+    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ClassVisitor? {
         val names = _names.filterNotNullValues().filterKeys { it in nsFilter }
         if (names.isEmpty()) return null
         return visitor.visitClass(names)
     }
 
-    override fun acceptInner(visitor: ClassVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
         super.acceptInner(visitor, nsFilter, minimize)
         for (inner in inners) {
             inner.accept(visitor, nsFilter, minimize)

@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.util
 
-class CharReader(val buffer: String, var pos: Int = 0) {
+class CharReader(buf: String, var pos: Int = 0) {
+
+    val buffer = buf.replace("\r\n", "\n")
 
     fun copy() = CharReader(buffer, pos)
 
@@ -24,7 +26,21 @@ class CharReader(val buffer: String, var pos: Int = 0) {
 
     fun takeRemainingCol() = takeRemainingOnLine { it == ',' || it == '\n' }
 
-    fun takeCol() = takeNext { it == ',' || it == '\n' }
+    fun takeCol(): Pair<TokenType, String> {
+        if (peek() == ',') {
+            take()
+        }
+        if (pos >= buffer.length) {
+            return TokenType.LITERAL to ""
+        }
+        val next = peek()
+        if (next == '"') {
+            return TokenType.STRING to takeString(true).let {
+                it.substring(1, it.length - 1).translateEscapes(true)
+            }
+        }
+        return TokenType.LITERAL to takeUntil { it == ',' || it == '\n' }
+    }
 
     inline fun takeUntil(predicate: (Char) -> Boolean): String {
         return buildString {
@@ -93,15 +109,20 @@ class CharReader(val buffer: String, var pos: Int = 0) {
         return list
     }
 
-    fun takeString() = buildString {
+    fun takeString(escapeDoubleQoute: Boolean = false) = buildString {
         expect('"')
         append('"')
         var escapes = 0
         while (pos < buffer.length) {
             val c = take()
             if (c == '"' && escapes == 0) {
-                append(c)
-                break
+                if (escapeDoubleQoute && peek() == '"') {
+                    append("\\")
+                    append(take())
+                } else {
+                    append(c)
+                    break
+                }
             }
             if (c == '\\') {
                 escapes++

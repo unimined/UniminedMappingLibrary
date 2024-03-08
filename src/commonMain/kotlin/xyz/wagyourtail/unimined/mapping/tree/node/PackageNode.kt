@@ -3,11 +3,11 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class PackageNode(parent: MappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
+class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
     private val _names: MutableMap<Namespace, PackageName?> = mutableMapOf()
     private val _annotations: MutableSet<AnnotationNode<PackageVisitor>> = mutableSetOf()
     private val _comments: MutableMap<Namespace, String?> = mutableMapOf()
@@ -23,13 +23,13 @@ class PackageNode(parent: MappingTree) : BaseNode<PackageVisitor, MappingVisitor
         _names.putAll(names)
     }
 
-    override fun acceptOuter(visitor: MappingVisitor, nsFilter: List<Namespace>, minimize: Boolean): PackageVisitor? {
+    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): PackageVisitor? {
         val names = names.filterNotNullValues().filterKeys { it in nsFilter }
         if (names.isEmpty()) return null
         return visitor.visitPackage(names)
     }
 
-    override fun acceptInner(visitor: PackageVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: PackageVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
         for (annotation in annotations) {
             annotation.accept(visitor, nsFilter, minimize)
         }

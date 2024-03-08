@@ -2,10 +2,10 @@ package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.ClassNode
 
-private fun MappingTree.fixNest(target: ClassNode, srcNs: Namespace, targetNs: Namespace): InternalName? {
+private fun AbstractMappingTree.fixNest(target: ClassNode, srcNs: Namespace, targetNs: Namespace): InternalName? {
     val srcName = target.getName(srcNs) ?: return target.getName(targetNs)
     if ('$' !in srcName.value) return target.getName(targetNs)
     val parent = InternalName.unchecked(srcName.value.substringBeforeLast('$'))
@@ -21,17 +21,17 @@ private fun MappingTree.fixNest(target: ClassNode, srcNs: Namespace, targetNs: N
 /**
  * fixes javac names when mappings are missing for class in a namespace.
  */
-fun MappingTree.renest(srcNs: Namespace, namespaces: Set<Namespace>) {
-    for (cls in classes) {
-        val srcName = cls.getName(srcNs) ?: continue
+fun AbstractMappingTree.renest(srcNs: Namespace, namespaces: Set<Namespace>) {
+    for (cls in classesIter()) {
+        val srcName = cls.first[srcNs] ?: continue
         if ('$' !in srcName.value) continue
         for (namespace in namespaces) {
-            fixNest(cls, srcNs, namespace)
+            fixNest(cls.second(), srcNs, namespace)
         }
     }
 
 }
 
-fun MappingTree.renest(srcNs: String, vararg namespaces: String) {
+fun AbstractMappingTree.renest(srcNs: String, vararg namespaces: String) {
     renest(Namespace(srcNs), namespaces.map { Namespace(it) }.toSet())
 }

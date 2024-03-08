@@ -12,7 +12,7 @@ abstract class AccessParentNode<T: AccessParentVisitor<T>, U: BaseVisitor<U>>(pa
     private val _access: MutableMap<AccessFlag, AccessNode<T>> = mutableMapOf()
     val access: Map<AccessFlag, AccessNode<T>> get() = _access
 
-    override fun acceptInner(visitor: T, nsFilter: List<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean) {
         for (access in access.values) {
             access.accept(visitor, nsFilter, minimize)
         }

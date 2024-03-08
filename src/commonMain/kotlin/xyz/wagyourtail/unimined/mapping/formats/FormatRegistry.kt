@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.formats
 import okio.BufferedSink
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.formats.csrg.CsrgReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.MCPExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.tsrg.TsrgV1Reader
 import xyz.wagyourtail.unimined.mapping.formats.tsrg.TsrgV2Reader
@@ -22,14 +23,14 @@ import xyz.wagyourtail.unimined.mapping.formats.nests.NestReader
 import xyz.wagyourtail.unimined.mapping.formats.parchment.ParchmentReader
 import xyz.wagyourtail.unimined.mapping.formats.proguard.ProguardReader
 import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
+import xyz.wagyourtail.unimined.mapping.formats.srg.PackageSrgReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgWriter
-import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Reader
-import xyz.wagyourtail.unimined.mapping.formats.tinyv2.TinyV2Writer
+import xyz.wagyourtail.unimined.mapping.formats.tiny.TinyV2Reader
+import xyz.wagyourtail.unimined.mapping.formats.tiny.TinyV2Writer
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.unpick.UnpickReader
-import xyz.wagyourtail.unimined.mapping.formats.zip.ZipReader
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
@@ -59,7 +60,9 @@ object FormatRegistry {
         FormatProvider(TsrgV1Reader, null),
         FormatProvider(TsrgV2Reader, null),
         FormatProvider(ProguardReader, null),
-        FormatProvider(ParchmentReader, null)
+        FormatProvider(ParchmentReader, null),
+        FormatProvider(PackageSrgReader, null),
+        FormatProvider(CsrgReader, null, listOf(PackageSrgReader)),
     )
 
     private val _formats = mutableListOf<FormatProvider>()

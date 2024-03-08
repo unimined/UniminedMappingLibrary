@@ -32,7 +32,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
             this._names.putAll(names)
         }
 
-        override fun acceptOuter(visitor: MethodVisitor, nsFilter: List<Namespace>, minimize: Boolean) = visitor.visitParameter(index, lvOrd, names)
+        override fun acceptOuter(visitor: MethodVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) = visitor.visitParameter(index, lvOrd, names)
     }
 
     class LocalNode(parent: MethodNode, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, MethodVisitor, MethodVisitor>(parent), LocalVariableVisitor {
@@ -44,7 +44,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
             this._names.putAll(names)
         }
 
-        override fun acceptOuter(visitor: MethodVisitor, nsFilter: List<Namespace>, minimize: Boolean) = visitor.visitLocalVariable(lvOrd, startOp, names)
+        override fun acceptOuter(visitor: MethodVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) = visitor.visitLocalVariable(lvOrd, startOp, names)
     }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
@@ -89,7 +89,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return node
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, nsFilter: List<Namespace>, minimize: Boolean): MethodVisitor? {
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): MethodVisitor? {
         val names = if (minimize) {
             val descNs = nsFilter.firstOrNull { it in names }
             if (descNs != null) {
@@ -104,7 +104,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return visitor.visitMethod(names)
     }
 
-    override fun acceptInner(visitor: MethodVisitor, nsFilter: List<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
         super.acceptInner(visitor, nsFilter, minimize)
         for (exception in exceptions) {
             exception.accept(visitor, nsFilter, minimize)

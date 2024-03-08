@@ -6,7 +6,7 @@ import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
@@ -23,7 +23,7 @@ object ZipReader : FormatReader {
         }
     }
 
-    override suspend fun read(envType: EnvType, inputType: BufferedSource, context: MappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
+    override suspend fun read(envType: EnvType, inputType: BufferedSource, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
         ZipFS(inputType).use { zip ->
             val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
             for ((file, format) in files.entries.sortedBy { FormatRegistry.formats.indexOf(it.value) }) {
