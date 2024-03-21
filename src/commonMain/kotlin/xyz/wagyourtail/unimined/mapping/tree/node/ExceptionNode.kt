@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor

@@ -9,8 +9,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 open class Delegator(delegator: Delegator? = null) {
@@ -157,10 +157,11 @@ open class Delegator(delegator: Delegator? = null) {
     open fun visitConstantGroup(
         delegate: MappingVisitor,
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
-        return delegate.visitConstantGroup(type, baseNs, namespaces)?.let { DelegateConstantGroupVisitor(it, delegator) }
+        return delegate.visitConstantGroup(type, name, baseNs, namespaces)?.let { DelegateConstantGroupVisitor(it, delegator) }
     }
 
     open fun visitConstant(
@@ -210,10 +211,11 @@ open class DelegateMappingVisitor(delegate: MappingVisitor, delegator: Delegator
 
     override fun visitConstantGroup(
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
-        return delegator.visitConstantGroup(delegate, type, baseNs, namespaces)
+        return delegator.visitConstantGroup(delegate, type, name, baseNs, namespaces)
     }
 }
 

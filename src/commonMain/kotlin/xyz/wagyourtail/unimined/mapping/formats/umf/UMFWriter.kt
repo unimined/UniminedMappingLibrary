@@ -1,7 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.formats.umf
 
-import okio.BufferedSink
-import okio.ByteString.Companion.encodeUtf8
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
@@ -13,9 +11,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -168,10 +165,11 @@ object UMFWriter : FormatWriter {
 
         override fun visitConstantGroup(
             type: ConstantGroupNode.InlineType,
+            name: String?,
             baseNs: Namespace,
             namespaces: Set<Namespace>
         ): ConstantGroupVisitor? {
-            into("u\t${type.name.lowercase()}\t${baseNs.name.maybeEscape()}")
+            into("u\t${type.name.lowercase()}\t${name.maybeEscape()}\t${baseNs.name.maybeEscape()}")
             for (ns in namespaces) {
                 if (ns in namespaces) {
                     into("\t${ns.name.maybeEscape()}")

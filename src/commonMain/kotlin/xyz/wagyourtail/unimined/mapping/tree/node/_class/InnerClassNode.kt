@@ -1,7 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.tree.node
+package xyz.wagyourtail.unimined.mapping.tree.node._class
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.tree.node.AccessParentNode
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.InnerClassVisitor
 

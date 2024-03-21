@@ -1,7 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.formats.srg
 
-import okio.BufferedSink
-import okio.ByteString.Companion.encodeUtf8
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
@@ -12,8 +10,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 object SrgWriter : FormatWriter {
@@ -84,6 +82,7 @@ object SrgWriter : FormatWriter {
 
         override fun visitConstantGroup(
             type: ConstantGroupNode.InlineType,
+            name: String?,
             baseNs: Namespace,
             namespaces: Set<Namespace>
         ): ConstantGroupVisitor? {

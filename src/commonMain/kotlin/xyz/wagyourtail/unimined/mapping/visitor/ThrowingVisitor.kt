@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.visitor
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 
 open class ThrowingVisitor : MappingVisitor {
     override fun nextUnnamedNs(): Namespace {
@@ -24,6 +24,7 @@ open class ThrowingVisitor : MappingVisitor {
 
     override fun visitConstantGroup(
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {

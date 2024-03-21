@@ -1,12 +1,11 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.tree.node.ClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node.PackageNode
+import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -39,7 +38,9 @@ class MappingTree : AbstractMappingTree() {
         it.names.filterNotNullValues() to { it }
     }.iterator()
 
-    override fun constantGroupsIter(): Iterator<ConstantGroupNode> = _constantGroups.iterator()
+    override fun constantGroupsIter(): Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>> = _constantGroups.iterator().asSequence().map {
+        Triple(it.name, it.type, listOf(it.baseNs, *it.namespaces.toTypedArray())) to { it }
+    }.iterator()
 
     override fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
         return object : AbstractList<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
@@ -117,10 +118,11 @@ class MappingTree : AbstractMappingTree() {
 
     override fun visitConstantGroup(
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
-        val node = ConstantGroupNode(this, type, baseNs)
+        val node = ConstantGroupNode(this, type, name, baseNs)
         node.addNamespaces(namespaces)
         _constantGroups.add(node)
         return node

@@ -12,7 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
@@ -109,7 +109,7 @@ object UnpickReader : FormatReader {
                 ConstantGroupNode.InlineType.PLAIN
             }
 
-            val cg = into.visitConstantGroup(type, ns, setOf())
+            val cg = into.visitConstantGroup(type, group, ns, setOf())
             if (cg != null) {
                 for (const in consts) {
                     cg.visitConstant(const.intlName, const.fieldName, null)

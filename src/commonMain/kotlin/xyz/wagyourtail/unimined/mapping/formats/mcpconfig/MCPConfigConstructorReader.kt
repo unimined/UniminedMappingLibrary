@@ -41,6 +41,10 @@ object MCPConfigConstructorReader : FormatReader{
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         into.visitHeader(srcNs.name)
         while (!input.exhausted()) {
+            if (input.peek() == '\n') {
+                input.take()
+                continue
+            }
             val line = input.takeLine().split(" ")
             val id = line[0].toInt()
             val srcCls = InternalName.read(line[1])

@@ -1,7 +1,8 @@
-package xyz.wagyourtail.unimined.mapping.tree.node
+package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.tree.node.*
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: BaseVisitor<U>>(parent: BaseNode<U, *>) : AccessParentNode<T, U>(parent), MemberVisitor<T> {

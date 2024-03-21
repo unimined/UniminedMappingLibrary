@@ -40,6 +40,10 @@ object MCPConfigExceptionsReader : FormatReader{
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         into.visitHeader(srcNs.name)
         while (!input.exhausted()) {
+            if (input.peek() == '\n') {
+                input.take()
+                continue
+            }
             val line = input.takeLine().split(" ").iterator()
             val srcName = line.next()
             val srcCls = InternalName.read(srcName.substringBeforeLast('/'))

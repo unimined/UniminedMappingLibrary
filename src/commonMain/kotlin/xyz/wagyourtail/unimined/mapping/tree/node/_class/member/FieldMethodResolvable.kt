@@ -1,12 +1,15 @@
-package xyz.wagyourtail.unimined.mapping.tree.node
+package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
+import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvableEntry
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 
-abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: SignatureParentVisitor<V>, U: MemberVisitor<U>>(parent: ClassNode, val create: (ClassNode) -> T) : AbstractFieldMethodNode<U, V>(parent), LazyResolvableEntry<T, U> {
+abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: SignatureParentVisitor<V>, U: MemberVisitor<U>>(parent: ClassNode, val create: (ClassNode) -> T) : AbstractFieldMethodNode<U, V>(parent),
+    LazyResolvableEntry<T, U> {
 
     fun MappingTree.getDescriptor(namespace: Namespace): FieldOrMethodDescriptor? {
         if (descs.isEmpty()) return null

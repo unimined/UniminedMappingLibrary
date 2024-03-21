@@ -8,8 +8,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 fun MappingVisitor.delegator(delegator: Delegator) = DelegateMappingVisitor(this, delegator)
@@ -131,12 +131,13 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
     override fun visitConstantGroup(
         delegate: MappingVisitor,
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
         val n = namespaces.map { nsMap[it] ?: it }.toSet()
         if (n.isEmpty()) return null
-        return super.visitConstantGroup(delegate, type, nsMap[baseNs] ?: baseNs, n)
+        return super.visitConstantGroup(delegate, type, name, nsMap[baseNs] ?: baseNs, n)
     }
 
 })

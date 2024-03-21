@@ -23,17 +23,19 @@ value class ArrayType private constructor(val value: String) {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid array type")
             }
-            return ArrayType("[${ComponentType.read(reader)}")
+            return ArrayType(buildString {
+                append("[")
+                while (reader.peek() == '[') {
+                    append(reader.take())
+                }
+                append(ComponentType.read(reader).value)
+            })
         }
 
         override fun unchecked(value: String) = ArrayType(value)
     }
 
-    fun getParts(): ComponentType {
-        return ComponentType.unchecked(value.substring(1))
-    }
-
-    fun getDimensionsAndComponent(): Pair<Int, ComponentType> {
+    fun getParts(): Pair<Int, ComponentType> {
         val component = value.trimStart('[')
         val dimensions = value.length - component.length
         return Pair(dimensions, ComponentType.unchecked(component))
@@ -41,8 +43,9 @@ value class ArrayType private constructor(val value: String) {
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {
-            visitor("[", true)
-            getParts().accept(visitor)
+            val parts = getParts()
+            visitor("[".repeat(parts.first), true)
+            parts.second.accept(visitor)
         }
     }
 

@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.visitor.delegate
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 
 private fun AbstractMappingTree.fixNest(target: ClassNode, srcNs: Namespace, targetNs: Namespace): InternalName? {
     val srcName = target.getName(srcNs) ?: return target.getName(targetNs)

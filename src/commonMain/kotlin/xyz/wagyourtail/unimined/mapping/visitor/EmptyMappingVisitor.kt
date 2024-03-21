@@ -9,8 +9,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 
 open class EmptyBaseVisitor<T: BaseVisitor<T>> : BaseVisitor<T> {
 
@@ -38,6 +38,7 @@ open class EmptyMappingVisitor : EmptyBaseVisitor<MappingVisitor>(), MappingVisi
 
     override fun visitConstantGroup(
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {

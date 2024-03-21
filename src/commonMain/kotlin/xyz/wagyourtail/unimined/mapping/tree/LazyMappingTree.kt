@@ -6,9 +6,9 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node.ClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.PackageNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -63,15 +63,16 @@ class LazyMappingTree : AbstractMappingTree() {
         }
     }
 
-    override fun constantGroupsIter(): Iterator<ConstantGroupNode> {
+    override fun constantGroupsIter(): Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>> {
         val backing = _constantGroups.iterator()
-        return object : Iterator<ConstantGroupNode> {
+        return object : Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>> {
             override fun hasNext(): Boolean {
                 return backing.hasNext()
             }
 
-            override fun next(): ConstantGroupNode {
-                return backing.next().resolve()
+            override fun next(): Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode> {
+                val node = backing.next()
+                return Triple(node.name, node.type, listOf(node.baseNs) + node.namespaces) to node::resolve
             }
 
         }
@@ -110,7 +111,7 @@ class LazyMappingTree : AbstractMappingTree() {
 
             override fun get(index: Int): Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
                 val node = _constantGroups[index]
-                return Triple(Triple(null as String?, node.type, listOf(node.baseNs) + node.namespaces), node::resolve, node::accept)
+                return Triple(Triple(node.name, node.type, listOf(node.baseNs) + node.namespaces), node::resolve, node::accept)
             }
 
         }
@@ -127,9 +128,8 @@ class LazyMappingTree : AbstractMappingTree() {
             }
         }
         val node = LazyPackageNode(this)
-        node.visitPackage(names)
         _packages.add(node)
-        return node.resolve()
+        return node.visitPackage(names)
     }
 
     override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
@@ -156,13 +156,13 @@ class LazyMappingTree : AbstractMappingTree() {
 
     override fun visitConstantGroup(
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
-        val node = LazyConstantGroupNode(this, type, baseNs, namespaces)
-        node.visitConstantGroup(type, baseNs, namespaces)
+        val node = LazyConstantGroupNode(this, type, name, baseNs, namespaces)
         _constantGroups.add(node)
-        return node.visitConstantGroup(type, baseNs, namespaces)
+        return node.visitConstantGroup(type, name, baseNs, namespaces)
     }
 
     override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
@@ -272,7 +272,7 @@ class LazyMappingTree : AbstractMappingTree() {
         }
     }
 
-    class LazyConstantGroupNode(val tree: LazyMappingTree, val type: ConstantGroupNode.InlineType, val baseNs: Namespace, val namespaces: Set<Namespace>) {
+    class LazyConstantGroupNode(val tree: LazyMappingTree, val type: ConstantGroupNode.InlineType, val name: String?, val baseNs: Namespace, val namespaces: Set<Namespace>) {
         var value: String = ""
 
         fun append(value: String) {
@@ -281,6 +281,7 @@ class LazyMappingTree : AbstractMappingTree() {
 
         fun visitConstantGroup(
             type: ConstantGroupNode.InlineType,
+            name: String?,
             baseNs: Namespace,
             namespaces: Set<Namespace>
         ): ConstantGroupVisitor {
@@ -288,11 +289,12 @@ class LazyMappingTree : AbstractMappingTree() {
         }
 
         fun resolve(): ConstantGroupNode {
-            return ConstantGroupNode(tree, type, baseNs).also { node ->
+            return ConstantGroupNode(tree, type, name, baseNs).also { node ->
                 node.addNamespaces(namespaces)
                 accept(object: ThrowingVisitor() {
                     override fun visitConstantGroup(
                         type: ConstantGroupNode.InlineType,
+                        name: String?,
                         baseNs: Namespace,
                         namespaces: Set<Namespace>
                     ): ConstantGroupVisitor {
@@ -303,7 +305,7 @@ class LazyMappingTree : AbstractMappingTree() {
         }
 
         fun accept(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
-            val cgn = visitor.visitConstantGroup(type, baseNs, namespaces.filter { it in nsFilter }.toSet())
+            val cgn = visitor.visitConstantGroup(type, name, baseNs, namespaces.filter { it in nsFilter }.toSet())
             if (cgn != null) {
                 UMFReader.readWithStack(
                     EnvType.JOINED,

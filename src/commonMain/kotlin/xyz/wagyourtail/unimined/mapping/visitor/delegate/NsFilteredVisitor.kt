@@ -8,10 +8,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import kotlin.jvm.JvmInline
 
 fun MappingVisitor.nsFiltered(vararg ns: String) = nsFiltered(ns.map { Namespace(it) }.toSet())
 fun MappingVisitor.nsFiltered(ns: Set<Namespace>) = DelegateMappingVisitor(this, NsFilteredDelegate(ns))
@@ -135,11 +134,12 @@ class NsFilteredDelegate(val ns: Set<Namespace>) : Delegator() {
     override fun visitConstantGroup(
         delegate: MappingVisitor,
         type: ConstantGroupNode.InlineType,
+        name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
         if (baseNs !in ns) return null
-        return super.visitConstantGroup(delegate, type, baseNs, namespaces.filter { it in ns }.toSet())
+        return super.visitConstantGroup(delegate, type, name, baseNs, namespaces.filter { it in ns }.toSet())
     }
 
 }

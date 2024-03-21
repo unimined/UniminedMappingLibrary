@@ -11,8 +11,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -250,9 +250,10 @@ object UMFReader : FormatReader {
                 }
                 EntryType.CONSTANT_GROUP -> {
                     val type = ConstantGroupNode.InlineType.valueOf(input.takeNext().second.uppercase())
+                    val name = fixValue(input.takeNext())
                     val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()
                     last as MappingVisitor?
-                    last?.visitConstantGroup(type, names.next(), names.asSequence().toSet())
+                    last?.visitConstantGroup(type, name, names.next(), names.asSequence().toSet())
                 }
                 EntryType.CONSTANT -> {
                     val cls = input.takeNext().second.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }

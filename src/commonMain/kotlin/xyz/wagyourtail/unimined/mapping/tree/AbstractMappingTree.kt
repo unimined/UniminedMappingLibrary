@@ -16,9 +16,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.tree.node.ClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.PackageNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
 import xyz.wagyourtail.unimined.mapping.util.maybeEscape
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.NullVisitor
@@ -327,7 +327,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
 
     abstract fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassNode>>
     abstract fun packagesIter(): Iterator<Pair<Map<Namespace, PackageName>, () -> PackageNode>>
-    abstract fun constantGroupsIter(): Iterator<ConstantGroupNode>
+    abstract fun constantGroupsIter(): Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>>
 
     abstract fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
 
@@ -357,7 +357,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
             cls.second().accept(visitor, nsFilter, minimize)
         }
         for (group in constantGroupsIter()) {
-            group.accept(visitor, nsFilter, minimize)
+            group.second().accept(visitor, nsFilter, minimize)
         }
     }
 }

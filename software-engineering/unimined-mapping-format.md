@@ -299,13 +299,15 @@ package-private is represented as `package`
 constant uninlining targets constants used when setting the value of methods/fields.
 this is a top-level component to declare a constant group and then subcomponents to declare the values and targets.
 ```
-u <t> <ns1> <ns2> <ns3> ...
+u <t> <name> <ns1> <ns2> <ns3> ...
     n <cls> <fd>
     t <td> <p>
 ```
 
 where `<t>` is the type of constant group.
 currently accepted values are `bitfield` for bitfields (where multiple constants get bitwise OR'd together), and `plain` if only a single constant's value should be used.
+
+`<name>` is the name of the constant group, it is not required to be unique, or present, if not present, it should be `_` like usual.
 
 the `n` subelement is one of the fields to use for the constant's value, with it's internal class name and field name in `<ns1>` names.
 field name can have `;` followed by a field descriptor.

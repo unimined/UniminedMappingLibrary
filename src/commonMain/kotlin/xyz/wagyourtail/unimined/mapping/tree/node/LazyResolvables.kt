@@ -1,7 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.BaseVisitor
 
 class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: AbstractMappingTree, val elementCreator: () -> U) where U: LazyResolvableEntry<U, T>, U: BaseNode<T, *> {

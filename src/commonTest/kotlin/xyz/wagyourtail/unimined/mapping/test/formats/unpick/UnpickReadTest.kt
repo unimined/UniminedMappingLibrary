@@ -50,19 +50,19 @@ class UnpickReadTest {
         assertEquals("""
 umf	1	0
 source
-u	plain	source
+u	plain	bee_flags	source
 	n	net/minecraft/entity/passive/BeeEntity	NEAR_TARGET_FLAG
 	n	net/minecraft/entity/passive/BeeEntity	HAS_STUNG_FLAG
 	n	net/minecraft/entity/passive/BeeEntity	HAS_NECTAR_FLAG
 	t	Lnet/minecraft/entity/passive/BeeEntity;getBeeFlag;(I)Z	0
 	t	Lnet/minecraft/entity/passive/BeeEntity;setBeeFlag;(IZ)V	0
-u	bitfield	source
+u	bitfield	armor_stand_flags	source
 	n	net/minecraft/entity/decoration/ArmorStandEntity	SMALL_FLAG
 	n	net/minecraft/entity/decoration/ArmorStandEntity	SHOW_ARMS_FLAG
 	n	net/minecraft/entity/decoration/ArmorStandEntity	HIDE_BASE_PLATE_FLAG
 	n	net/minecraft/entity/decoration/ArmorStandEntity	MARKER_FLAG
 	t	Lnet/minecraft/entity/decoration/ArmorStandEntity;setBitField;(BIZ)B	1
-u	plain	source
+u	plain	llama_variants	source
 	n	net/fabricmc/yarn/constants/LlamaVariants	CREAMY
 	n	net/fabricmc/yarn/constants/LlamaVariants	WHITE
 	n	net/fabricmc/yarn/constants/LlamaVariants	BROWN

@@ -10,8 +10,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.node.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 
 interface BaseVisitor<T: BaseVisitor<T>> {
 
@@ -39,7 +39,7 @@ interface MappingVisitor : BaseVisitor<MappingVisitor> {
 
     fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor?
 
-    fun visitConstantGroup(type: ConstantGroupNode.InlineType, baseNs: Namespace, namespaces: Set<Namespace>): ConstantGroupVisitor?
+    fun visitConstantGroup(type: ConstantGroupNode.InlineType, name: String?, baseNs: Namespace, namespaces: Set<Namespace>): ConstantGroupVisitor?
 
 }
 
