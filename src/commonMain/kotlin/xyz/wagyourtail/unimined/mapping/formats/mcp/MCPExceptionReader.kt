@@ -70,7 +70,7 @@ object MCPExceptionReader : FormatReader {
                 val methodName = input.takeUntil { it == '(' }
                 cls to methodName
             }
-            val methodDesc = MethodDescriptor.read(input.takeUntil { it in split })
+            val methodDesc = MethodDescriptor.read(input.takeUntil { it in split || it == ' ' })
             var i = input.take() // =
             val exceptions = mutableListOf<InternalName>()
             val params = mutableListOf<String>()
