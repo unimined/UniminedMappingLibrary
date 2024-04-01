@@ -27,9 +27,12 @@ object MCPExceptionReader : FormatReader {
 
     val split = setOf('\n', '-', '|', '=')
 
+    val sep = setOf(' ', ',')
+
     /**
      * Exception:
-     *     [InternalName] . [UnqualifiedName] [MethodDescriptor] = [Exceptions] [| [Params]]
+     *   [InternalName] . [UnqualifiedName] [MethodDescriptor] = [Exceptions] [| [Params]]
+     *   [InternalName] / [UnqualifiedName]   [MethodDescriptor]   {[Exceptions]}
      */
 
     override suspend fun read(
@@ -52,49 +55,63 @@ object MCPExceptionReader : FormatReader {
                 input.takeLine()
                 continue
             }
-            val clsName = input.takeUntil { it == '.' || it == '\n' }
+            val clsName = input.takeUntil { it == '.' || it == ' ' || it == '\n' }
             if (input.peek() == '\n') {
                 continue
             }
-
-            val cls = InternalName.read(clsName)
-            input.take() // .
-            val methodName = input.takeUntil { it == '(' }
+            val (cls, methodName) = if (input.peek() == ' ') {
+                val cls = InternalName.read(clsName.substringBeforeLast("/"))
+                val methodName = clsName.substringAfterLast("/")
+                input.take() // space
+                cls to methodName
+            } else {
+                input.take() // .
+                val cls = InternalName.read(clsName)
+                val methodName = input.takeUntil { it == '(' }
+                cls to methodName
+            }
             val methodDesc = MethodDescriptor.read(input.takeUntil { it in split })
             var i = input.take() // =
             val exceptions = mutableListOf<InternalName>()
             val params = mutableListOf<String>()
             var access: String? = null
             do {
-                if (i == '=') {
-                    do {
-                        if (input.peek() == ',') input.take()
-                        val exc = input.takeUntil { it == ',' || it in split }
-                        if (exc.isNotEmpty()) {
-                            exceptions.add(InternalName.read(exc.replace('.', '/')))
-                        }
-                    } while (input.peek() == ',')
-                    i = input.take()
-                } else if (i == '|') {
-                    do {
-                        if (input.peek() == ',') input.take()
-                        val param = input.takeUntil { it == ',' || it in split }
-                        if (param.isNotEmpty()) {
-                            params.add(param)
-                        }
-                    } while (input.peek() == ',')
-                    i = input.take()
-                } else if (i == '-') {
-                    val flag = input.takeUntil { it in split }
-                    if (flag != "Access") {
-                        throw IllegalStateException("Expected Access, got $flag")
+                when (i) {
+                    '=', ' ' -> {
+                        do {
+                            if (input.peek() in sep) input.take()
+                            val exc = input.takeUntil { it in sep || it in split }
+                            if (exc.isNotEmpty()) {
+                                exceptions.add(InternalName.read(exc.replace('.', '/')))
+                            }
+                        } while (input.peek() in sep)
+                        i = input.take()
                     }
-                    if (input.peek() != '=') {
-                        throw IllegalStateException("Expected =")
+                    '|' -> {
+                        do {
+                            if (input.peek() == ',') input.take()
+                            val param = input.takeUntil { it == ',' || it in split }
+                            if (param.isNotEmpty()) {
+                                params.add(param)
+                            }
+                        } while (input.peek() == ',')
+                        i = input.take()
                     }
-                    input.take()
-                    access = input.takeUntil { it in split }
-                    i = input.take()
+                    '-' -> {
+                        val flag = input.takeUntil { it in split }
+                        if (flag != "Access") {
+                            throw IllegalStateException("Expected Access, got $flag")
+                        }
+                        if (input.peek() != '=') {
+                            throw IllegalStateException("Expected =")
+                        }
+                        input.take()
+                        access = input.takeUntil { it in split }
+                        i = input.take()
+                    }
+                    else -> {
+                        throw IllegalStateException("Unexpected Character $i in $clsName.$methodName$methodDesc")
+                    }
                 }
             } while (i != '\n' && !input.exhausted())
             data[cls to (methodName to methodDesc)] = Triple(exceptions, params, access)
