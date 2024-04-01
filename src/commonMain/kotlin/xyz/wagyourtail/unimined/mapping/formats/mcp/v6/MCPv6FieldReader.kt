@@ -52,7 +52,7 @@ object MCPv6FieldReader : FormatReader {
             val side = input.takeCol().second
             val comment = input.takeCol().second
 
-            if (side == "2" || side.toInt() == envType.ordinal) {
+            if (side == "2" || side.toInt() == envType.ordinal || envType == EnvType.JOINED) {
                 data[searge] = name to comment
             }
 

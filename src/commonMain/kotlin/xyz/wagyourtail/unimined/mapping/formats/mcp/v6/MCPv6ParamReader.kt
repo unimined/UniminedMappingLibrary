@@ -49,7 +49,7 @@ object MCPv6ParamReader : FormatReader {
             val name = input.takeCol().second
             val side = input.takeCol().second
 
-            if (side == "2" || side.toInt() == envType.ordinal) {
+            if (side == "2" || side.toInt() == envType.ordinal || envType == EnvType.JOINED) {
                 data[searge] = name
 
                 if (searge.matches(Regex("p_\\d+_\\d+_"))) {

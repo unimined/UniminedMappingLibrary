@@ -10,10 +10,14 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.MappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
+import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
@@ -121,11 +125,28 @@ open class MappingResolver(val name: String, val propogator: (MappingTree.() -> 
             for (entry in sorted) {
                 val toFill = entry.provides.map { it.first }.toSet() - filled
                 if (toFill.isNotEmpty()) {
-                    resolved.copyTo(entry.requires, toFill, resolved)
+                    resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
                     filled.addAll(toFill)
                 }
                 for (afterPropogate in entry.afterPropogate) {
                     afterPropogate(resolved)
+                }
+            }
+        } else {
+            // at least copy the class names
+            val filled = mutableSetOf<Namespace>()
+            for (entry in sorted) {
+                val toFill = entry.provides.map { it.first }.toSet() - filled
+                if (toFill.isNotEmpty()) {
+                    resolved.accept(resolved.copyTo(entry.requires, toFill, resolved).delegator(object : NullDelegator() {
+                        override fun visitClass(
+                            delegate: MappingVisitor,
+                            names: Map<Namespace, InternalName>
+                        ): ClassVisitor? {
+                            return default.visitClass(delegate, names)
+                        }
+                    }))
+                    filled.addAll(toFill)
                 }
             }
         }
