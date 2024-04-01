@@ -22,6 +22,7 @@ object UMFWriter : FormatWriter {
 
     fun String?.maybeEscape(): String {
         if (this == null) return "_"
+        if (this.isEmpty()) return "\"\"" // this shouldn't happen, it isn't legal, except maybe comments
         if (any { it.isWhitespace() } || startsWith("\"")) {
             return "\"${escape(unicode = true)}\""
         }

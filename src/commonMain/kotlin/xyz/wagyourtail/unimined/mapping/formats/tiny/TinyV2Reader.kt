@@ -141,7 +141,6 @@ object TinyV2Reader : FormatReader {
                     val nameIter = names.iterator()
                     val nsIter = namespaces.iterator()
                     val nameMap = mutableMapOf<Namespace, String>()
-                    nameMap[nsIter.next()] = nameIter.next()
                     while (nameIter.hasNext()) {
                         val ns = nsIter.next()
                         val name = nameIter.next()
