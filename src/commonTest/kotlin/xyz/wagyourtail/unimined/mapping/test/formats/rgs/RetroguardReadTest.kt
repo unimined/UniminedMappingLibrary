@@ -5,7 +5,7 @@ import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -21,7 +21,7 @@ class RetroguardReadTest {
                 .method_map b/a (I)V method_1204
             """.trimIndent()
 
-        suspend fun readRetroguard(map: Map<String, String> = mapOf()): MappingTree {
+        suspend fun readRetroguard(map: Map<String, String> = mapOf()): MemoryMappingTree {
             return Buffer().use {
                 it.writeUtf8(inp)
                 RetroguardReader.read(it, map)

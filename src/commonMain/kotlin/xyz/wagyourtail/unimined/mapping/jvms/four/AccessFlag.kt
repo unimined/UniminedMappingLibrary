@@ -57,3 +57,31 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
     }
 
 }
+
+operator fun Int.plus(flag: AccessFlag): Int {
+    // some are mutually exclusive so we must respect that
+
+    // public/protected/private
+    var mutex = AccessFlag.PUBLIC.access or AccessFlag.PROTECTED.access or AccessFlag.PRIVATE.access
+    if (flag.access and mutex != 0) {
+        return this and mutex.inv() or flag.access
+    }
+
+    // volatile/transient
+    mutex = AccessFlag.VOLATILE.access or AccessFlag.TRANSIENT.access
+    if (flag.access and mutex != 0) {
+        return this and mutex.inv() or flag.access
+    }
+
+    // native/abstract
+    mutex = AccessFlag.NATIVE.access or AccessFlag.ABSTRACT.access
+    if (flag.access and mutex != 0) {
+        return this and mutex.inv() or flag.access
+    }
+
+    return this or flag.access
+}
+
+operator fun Int.minus(flag: AccessFlag): Int {
+    return this and flag.access.inv()
+}

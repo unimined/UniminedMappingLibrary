@@ -9,7 +9,7 @@ import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.rgs.RetroguardReadTest
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -93,7 +93,7 @@ c	b	net/minecraft/src/World	_
     """.trimIndent()
 
 
-    suspend fun readMCPClasses(): MappingTree {
+    suspend fun readMCPClasses(): MemoryMappingTree {
         return Buffer().use {
             it.writeUtf8(mcpClasses)
             MCPv3ClassesReader.read(EnvType.CLIENT, it)

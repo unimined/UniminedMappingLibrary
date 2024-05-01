@@ -95,6 +95,7 @@ object UMFReader : FormatReader {
         val indentStack = mutableListOf(-1)
         readWithStack(envType, input, context, into, nsMapping, visitStack, indentStack, ::getNamespace)
     }
+
     internal fun readWithStack(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>, visitStack: MutableList<BaseVisitor<*>?>, indentStack: MutableList<Int>, getNamespace: (Int) -> Namespace) {
         val unchecked = uncheckedReading
         var line = 2
@@ -267,6 +268,13 @@ object UMFReader : FormatReader {
                     last as ConstantGroupVisitor?
                     last?.visitTarget(target, paramIdx)
                 }
+                EntryType.SIGNATURE -> {
+                    val values = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        getNamespace(idx) to name
+                    }
+                    last as SignatureParentVisitor<*>?
+                    last?.visitSignature(values)
+                }
                 EntryType.EXTENSION -> TODO()
             }
             if (next != null) {
@@ -282,6 +290,7 @@ object UMFReader : FormatReader {
         PACKAGE('k'),
         CLASS('c'),
         METHOD('m'),
+        SIGNATURE('g'),
         PARAMETER('p'),
         LOCAL_VARIABLE('v'),
         EXCEPTION('x'),
@@ -294,7 +303,7 @@ object UMFReader : FormatReader {
         CONSTANT('n'),
         CONSTANT_TARGET('t'),
         EXTENSION('e'),
-        COMMENT('#')
+        COMMENT('#'),
         ;
 
         companion object {

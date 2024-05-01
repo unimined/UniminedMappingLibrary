@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.formats
 
-import okio.BufferedSink
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.csrg.CsrgReader
@@ -32,8 +31,6 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.unpick.UnpickReader
 import xyz.wagyourtail.unimined.mapping.formats.unsupported.UnsupportedWriter
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object FormatRegistry {
 

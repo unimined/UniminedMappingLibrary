@@ -9,7 +9,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class MappingTree : AbstractMappingTree() {
+class MemoryMappingTree : AbstractMappingTree() {
     private val _namespaces = mutableListOf<Namespace>()
     private val _packages = mutableListOf<PackageNode>()
     private val _classes = mutableListOf<ClassNode>()

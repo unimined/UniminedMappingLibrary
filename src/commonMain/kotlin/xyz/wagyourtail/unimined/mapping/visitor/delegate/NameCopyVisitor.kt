@@ -7,14 +7,14 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-fun MappingVisitor.copyTo(from: Namespace, to: Set<Namespace>, context: MappingTree, onlyMissing: Boolean = true): MappingVisitor {
+fun MappingVisitor.copyTo(from: Namespace, to: Set<Namespace>, context: MemoryMappingTree, onlyMissing: Boolean = true): MappingVisitor {
     return DelegateMappingVisitor(this, NameCopyDelegate(from, to, context, onlyMissing))
 }
 
-private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val context: MappingTree, val onlyMissing: Boolean) : Delegator() {
+private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val context: MemoryMappingTree, val onlyMissing: Boolean) : Delegator() {
 
     override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
         val nameMap = names.toMutableMap()

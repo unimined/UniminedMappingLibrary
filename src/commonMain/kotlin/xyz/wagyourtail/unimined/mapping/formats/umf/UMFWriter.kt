@@ -105,7 +105,7 @@ object UMFWriter : FormatWriter {
 
     open class UMFMemberWriter<T: MemberVisitor<T>>(into: (String) -> Unit, indent: String = "", namespaces: List<Namespace>) : UMFAccessParentWriter<T>(into, indent, namespaces), MemberVisitor<T> {
         override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-            into("${indent}*\t")
+            into("${indent}${UMFReader.EntryType.COMMENT.key}\t")
             into.writeNamespaced(values.mapValues {
                 val num = it.value.toIntOrNull()
                 if (num != null) {
@@ -129,7 +129,7 @@ object UMFWriter : FormatWriter {
         }
 
         fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
-            into("${indent}g\t")
+            into("${indent}${UMFReader.EntryType.SIGNATURE.key}\t")
             into.writeNamespaced(values)
             into("\n")
             return UMFSignatureWriter(into, indent + "\t", namespaces)
@@ -151,14 +151,14 @@ object UMFWriter : FormatWriter {
         }
 
         override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
-            into("k\t")
+            into("${UMFReader.EntryType.PACKAGE.key}\t")
             into.writeNamespaced(names.mapValues { it.value.value })
             into("\n")
             return UMFPackageWriter(into, namespaces)
         }
 
         override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
-            into("c\t")
+            into("${UMFReader.EntryType.CLASS.key}\t")
             into.writeNamespaced(names.mapValues { it.value.value })
             into("\n")
             return UMFClassWriter(into, namespaces)
@@ -170,7 +170,7 @@ object UMFWriter : FormatWriter {
             baseNs: Namespace,
             namespaces: Set<Namespace>
         ): ConstantGroupVisitor? {
-            into("u\t${type.name.lowercase()}\t${name.maybeEscape()}\t${baseNs.name.maybeEscape()}")
+            into("${UMFReader.EntryType.CONSTANT_GROUP.key}\t${type.name.lowercase()}\t${name.maybeEscape()}\t${baseNs.name.maybeEscape()}")
             for (ns in namespaces) {
                 if (ns in namespaces) {
                     into("\t${ns.name.maybeEscape()}")
@@ -185,7 +185,7 @@ object UMFWriter : FormatWriter {
     class UMFPackageWriter(into: (String) -> Unit, override val namespaces: List<Namespace>) : BaseUMFWriter<PackageVisitor>(into, "\t"), PackageVisitor {
         override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
             into(indent)
-            into("*\t")
+            into("${UMFReader.EntryType.COMMENT.key}}\t")
             into.writeNamespaced(values)
             into("\n")
             return UMFCommentWriter(into, indent + "\t", namespaces)
@@ -197,7 +197,7 @@ object UMFWriter : FormatWriter {
 
         override fun visitMethod(namespaces: Map<Namespace, Pair<String, MethodDescriptor?>>): MethodVisitor? {
             into(indent)
-            into("m\t")
+            into("${UMFReader.EntryType.METHOD.key}\t")
             into.writeNamespaced(namespaces.mapValues { v -> v.value.second?.let { "${v.value.first};${v.value.second!!.value}" } ?: v.value.first })
             into("\n")
             return UMFMethodWriter(into, indent + "\t", this.namespaces)
@@ -205,7 +205,7 @@ object UMFWriter : FormatWriter {
 
         override fun visitField(namespaces: Map<Namespace, Pair<String, FieldDescriptor?>>): FieldVisitor? {
             into(indent)
-            into("f\t")
+            into("${UMFReader.EntryType.FIELD.key}\t")
             into.writeNamespaced(namespaces.mapValues { v -> v.value.second?.let { "${v.value.first};${v.value.second!!.value}" } ?: v.value.first })
             into("\n")
             return UMFFieldWriter(into, indent + "\t", this.namespaces)
@@ -221,7 +221,7 @@ object UMFWriter : FormatWriter {
                 InnerClassNode.InnerType.ANONYMOUS -> "a"
             }
             into(indent)
-            into("i\t$typeStr\t")
+            into("${UMFReader.EntryType.INNER_CLASS.key}\t$typeStr\t")
             into.writeNamespaced(names.mapValues { v -> v.value.second?.let { "${v.value.first};${v.value.second!!.value}" } ?: v.value.first })
             into("\n")
             return UMFInnerClassWriter(into, indent + "\t", namespaces)
@@ -258,7 +258,7 @@ object UMFWriter : FormatWriter {
 
         override fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor? {
             into(indent)
-            into("t\t")
+            into("${UMFReader.EntryType.CONSTANT_TARGET.key}\t")
             into(target.value.maybeEscape())
             into("\t")
             into(paramIdx?.toString().maybeEscape())
@@ -271,7 +271,7 @@ object UMFWriter : FormatWriter {
     class UMFMethodWriter(into: (String) -> Unit, indent: String = "", namespaces: List<Namespace>) : UMFMemberWriter<MethodVisitor>(into, indent, namespaces), MethodVisitor {
         override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
             into(indent)
-            into("p\t")
+            into("${UMFReader.EntryType.PARAMETER.key}\t")
             into(index?.toString().maybeEscape())
             into("\t")
             into(lvOrd?.toString().maybeEscape())
@@ -283,7 +283,7 @@ object UMFWriter : FormatWriter {
 
         override fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
             into(indent)
-            into("v\t")
+            into("${UMFReader.EntryType.LOCAL_VARIABLE.key}\t")
             into(lvOrd.toString().maybeEscape())
             into("\t")
             into(startOp?.toString().maybeEscape())
@@ -300,7 +300,7 @@ object UMFWriter : FormatWriter {
             namespaces: Set<Namespace>
         ): ExceptionVisitor? {
             into(indent)
-            into("x\t")
+            into("${UMFReader.EntryType.EXCEPTION.key}\t")
             when (type) {
                 ExceptionType.ADD -> into("+\t")
                 ExceptionType.REMOVE -> into("-\t")

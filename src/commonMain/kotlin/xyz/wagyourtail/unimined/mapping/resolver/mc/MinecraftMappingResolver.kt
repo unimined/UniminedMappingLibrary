@@ -10,13 +10,13 @@ import xyz.wagyourtail.unimined.mapping.resolver.MappingResolver
 import xyz.wagyourtail.unimined.mapping.resolver.maven.Location
 import xyz.wagyourtail.unimined.mapping.resolver.maven.MavenCoords
 import xyz.wagyourtail.unimined.mapping.resolver.maven.MavenResolver
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.MustSet
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.renest
+import xyz.wagyourtail.unimined.mapping.visitor.fixes.renest
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
 
-abstract class MinecraftMappingResolver(name: String, val createResolver: (String) -> MavenResolver, propogator: (MappingTree.() -> Unit)?): MappingResolver(name, propogator) {
+abstract class MinecraftMappingResolver(name: String, val createResolver: (String) -> MavenResolver, propogator: (MemoryMappingTree.() -> Unit)?): MappingResolver(name, propogator) {
 
     val mcVersion: String by FinalizeOnRead(MustSet())
     val mavenResolver: MavenResolver by FinalizeOnRead(createResolver(mcVersion))

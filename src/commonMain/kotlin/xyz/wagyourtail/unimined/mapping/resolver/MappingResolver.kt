@@ -11,7 +11,7 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
@@ -22,7 +22,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
 
-open class MappingResolver(val name: String, val propogator: (MappingTree.() -> Unit)?) {
+open class MappingResolver(val name: String, val propogator: (MemoryMappingTree.() -> Unit)?) {
     companion object {
         private val LOGGER = KotlinLogging.logger {}
     }
@@ -31,7 +31,7 @@ open class MappingResolver(val name: String, val propogator: (MappingTree.() -> 
     private val entries = finalizableMapOf<String, MappingEntry>()
 
     private lateinit var namespaces: Set<Pair<Namespace, Boolean>>
-    private lateinit var resolved: MappingTree
+    private lateinit var resolved: MemoryMappingTree
 
     val unmappedNs = Namespace("official")
 
@@ -76,11 +76,11 @@ open class MappingResolver(val name: String, val propogator: (MappingTree.() -> 
         }).also(postProcess))
     }
 
-    suspend fun resolve(): MappingTree {
+    suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
         finalize()
         val values = entries.values
-        val resolved = MappingTree()
+        val resolved = MemoryMappingTree()
         resolved.visitHeader(unmappedNs.name)
         val resolvedEntries = mutableSetOf<MappingEntry>()
 
@@ -203,8 +203,8 @@ open class MappingResolver(val name: String, val propogator: (MappingTree.() -> 
         var skip by FinalizeOnRead(false)
 
         val insertInto = finalizableSetOf<(MappingVisitor) -> MappingVisitor>()
-        val afterLoad = finalizableSetOf<(MappingTree) -> Unit>()
-        val afterPropogate = finalizableSetOf<(MappingTree) -> Unit>()
+        val afterLoad = finalizableSetOf<(MemoryMappingTree) -> Unit>()
+        val afterPropogate = finalizableSetOf<(MemoryMappingTree) -> Unit>()
 
         var provider by FinalizeOnRead(LazyMutable {
             val format = FormatRegistry.autodetectFormat(envType, content.fileName(), content.content())

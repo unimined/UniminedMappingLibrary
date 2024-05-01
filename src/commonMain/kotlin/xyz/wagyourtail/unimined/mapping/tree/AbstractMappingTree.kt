@@ -158,24 +158,16 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
             val pkg = mapPackage(fromNs, toNs, objParts.first)
             return FullyQualifiedName(ObjectType(InternalName(pkg, objParts.second)), parts.second)
         }
-        val mappedCls = cls?.getName(toNs) ?: parts.first.getInternalName()
+        val mappedCls = cls.getName(toNs) ?: parts.first.getInternalName()
 
         if (parts.second != null) {
             val mParts = parts.second!!.getParts()
             val mappedName = if (mParts.second == null || mParts.second!!.isFieldDescriptor()) {
-                val fd = cls?.getFields(fromNs, mParts.first.value, mParts.second?.getFieldDescriptor())
-                if (fd != null) {
-                    fd.first().getName(toNs) ?: mParts.first.value
-                } else {
-                    mParts.first.value
-                }
+                val fd = cls.getFields(fromNs, mParts.first.value, mParts.second?.getFieldDescriptor())
+                fd.first().getName(toNs) ?: mParts.first.value
             } else {
-                val md = cls?.getMethods(fromNs, mParts.first.value, mParts.second?.getMethodDescriptor())
-                if (md != null) {
-                    md.first().getName(toNs) ?: mParts.first.value
-                } else {
-                    mParts.first.value
-                }
+                val md = cls.getMethods(fromNs, mParts.first.value, mParts.second?.getMethodDescriptor())
+                md.first().getName(toNs) ?: mParts.first.value
             }
             val mappedDesc = if (mParts.second == null) {
                 null
@@ -188,7 +180,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     // TODO: test
-    fun StringBuilder.descRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
+    private fun StringBuilder.descRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
         return { obj, leaf ->
             when (obj) {
                 is InternalName -> {
@@ -211,7 +203,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     //TODO: test
-    fun StringBuilder.signatureRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
+    private fun StringBuilder.signatureRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
         return { obj, leaf ->
             when (obj) {
                 is InternalName -> {
@@ -260,7 +252,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         }
     }
 
-    fun StringBuilder.annotationRemapAcceptor(fromNs: Namespace, toNs: Namespace, annotation: Annotation): (Any, Boolean) -> Boolean {
+    private fun StringBuilder.annotationRemapAcceptor(fromNs: Namespace, toNs: Namespace, annotation: Annotation): (Any, Boolean) -> Boolean {
         val ann = annotation.getParts().first
         val cls = getClass(fromNs, ann.getInternalName())
         return { obj, leaf ->
@@ -325,9 +317,17 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         }
     }
 
-    abstract fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassNode>>
-    abstract fun packagesIter(): Iterator<Pair<Map<Namespace, PackageName>, () -> PackageNode>>
-    abstract fun constantGroupsIter(): Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>>
+    open fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassNode>> {
+        return classList().asSequence().map { (names, cls, _) -> names to cls }.iterator()
+    }
+
+    open fun packagesIter(): Iterator<Pair<Map<Namespace, PackageName>, () -> PackageNode>> {
+        return packageList().asSequence().map { (names, pkg, _) -> names to pkg }.iterator()
+    }
+
+    open fun constantGroupsIter(): Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>> {
+        return constantGroupList().asSequence().map { (names, group, _) -> names to group }.iterator()
+    }
 
     abstract fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
 

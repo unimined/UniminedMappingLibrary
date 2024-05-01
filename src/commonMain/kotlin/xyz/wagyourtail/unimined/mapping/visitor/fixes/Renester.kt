@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.visitor.delegate
+package xyz.wagyourtail.unimined.mapping.visitor.fixes
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -14,7 +14,7 @@ private fun AbstractMappingTree.fixNest(target: ClassNode, srcNs: Namespace, tar
     val dstName = target.getName(targetNs) ?: srcName
     val clsName = if ('$' !in dstName.value) dstName.value.substringAfterLast('/') else dstName.value.substringAfterLast('$')
     val newName = InternalName.unchecked(parentDstName.value + '$' + clsName)
-    target.setNames(mapOf(targetNs to newName))
+    visitClass(mapOf(srcNs to srcName, targetNs to newName))
     return newName
 }
 

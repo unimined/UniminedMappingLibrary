@@ -1,16 +1,13 @@
-package xyz.wagyourtail.unimined.mapping.propogator
+package xyz.wagyourtail.unimined.mapping.visitor.fixes.propogator
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
-fun MappingTree.propogate(info: PropogationInfo<*>, targets: Set<Namespace>) {
-    info.propogate(this, targets)
-}
-
-abstract class PropogationInfo<T: PropogationInfo<T>>(val namespace: Namespace) {
+abstract class Propogator<T: Propogator<T>>(val namespace: Namespace, val tree: AbstractMappingTree) {
     private val LOGGER = KotlinLogging.logger {  }
 
     abstract val classes: Map<InternalName, ClassInfo<T>>
@@ -38,7 +35,7 @@ abstract class PropogationInfo<T: PropogationInfo<T>>(val namespace: Namespace) 
         methods
     }
 
-    fun propogate(tree: MappingTree, targetNs: Set<Namespace>) {
+    fun propogate(targetNs: Set<Namespace>, visitor: MappingVisitor = tree) {
         val names = mutableMapOf<Pair<InternalName, Pair<String, MethodDescriptor?>>, MutableMap<Namespace, MutableSet<String>>>()
         val propogationListRemaining = propogationList.toMutableMap()
         while (propogationListRemaining.isNotEmpty()) {
@@ -77,16 +74,19 @@ abstract class PropogationInfo<T: PropogationInfo<T>>(val namespace: Namespace) 
         }
 
         for ((method, nsNames) in names) {
-            val clazz = tree.getClass(namespace, method.first) ?: continue
-            clazz.visitMethod(mapOf(namespace to (method.second.first to method.second.second)) + nsNames.mapValues { it.value.first() to null })
+            visitor.visitClass(mapOf(namespace to method.first))?.visitMethod(mapOf(namespace to (method.second.first to method.second.second)) + nsNames.mapValues { it.value.first() to null })
         }
     }
 
-    abstract class ClassInfo<T: PropogationInfo<T>>(val info: T, val name: InternalName) {
+    abstract class ClassInfo<T: Propogator<T>>(val info: T, val name: InternalName) {
         protected abstract val parent: InternalName?
         protected abstract val interfaces: List<InternalName>
 
         protected abstract val methods: List<Pair<String, MethodDescriptor?>>
+
+        protected val classNode by lazy {
+            info.tree.getClass(info.namespace, name)
+        }
 
         private fun traverseParents(): Sequence<ClassInfo<T>> {
             var current: ClassInfo<T>? = this

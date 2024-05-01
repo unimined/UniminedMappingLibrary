@@ -9,9 +9,9 @@ import okio.buffer
 import okio.sink
 import okio.source
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
-import xyz.wagyourtail.unimined.mapping.propogator.PropogationInfoImpl
-import xyz.wagyourtail.unimined.mapping.propogator.propogate
-import xyz.wagyourtail.unimined.mapping.tree.MappingTree
+import xyz.wagyourtail.unimined.mapping.propogator.PropogatorImpl
+import xyz.wagyourtail.unimined.mapping.visitor.fixes.propogator.propogate
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.mutliAssociate
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
 import java.io.File
@@ -33,7 +33,7 @@ class Main: CliktCommand() {
 
     override fun run() = runBlocking {
         val totalTime = measureTime {
-            val mappings = MappingTree()
+            val mappings = MemoryMappingTree()
             val nsMapMap = nsMap.mutliAssociate { it.first to (it.second to it.third) }
             for ((idx, input) in mappingFiles.withIndex()) {
                 LOGGER.info { "Loading ${input.name}..." }
@@ -52,7 +52,7 @@ class Main: CliktCommand() {
                 LOGGER.info { "Propogating..." }
                 val t = measureTime {
                     mappings.propogate(
-                        PropogationInfoImpl(Namespace(propogationNs!!), prop, cp),
+                        PropogatorImpl(Namespace(propogationNs!!), prop, cp),
                         mappings.namespaces.toSet() - Namespace(propogationNs!!)
                     )
                 }
