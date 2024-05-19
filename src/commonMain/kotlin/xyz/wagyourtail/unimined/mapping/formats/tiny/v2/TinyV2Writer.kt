@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.formats.tiny
+package xyz.wagyourtail.unimined.mapping.formats.tiny.v2
 
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace

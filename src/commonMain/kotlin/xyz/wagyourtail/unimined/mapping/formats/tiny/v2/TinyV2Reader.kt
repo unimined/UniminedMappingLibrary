@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.formats.tiny
+package xyz.wagyourtail.unimined.mapping.formats.tiny.v2
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
@@ -9,7 +9,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.util.translateEscapes
 import xyz.wagyourtail.unimined.mapping.visitor.*
 

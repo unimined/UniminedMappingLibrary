@@ -25,8 +25,9 @@ import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.PackageSrgReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgWriter
-import xyz.wagyourtail.unimined.mapping.formats.tiny.TinyV2Reader
-import xyz.wagyourtail.unimined.mapping.formats.tiny.TinyV2Writer
+import xyz.wagyourtail.unimined.mapping.formats.tiny.v1.TinyV1Reader
+import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
+import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Writer
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.unpick.UnpickReader
@@ -38,6 +39,7 @@ object FormatRegistry {
 //        FormatProvider(ZipReader, null),
         FormatProvider(UMFReader, UMFWriter),
         FormatProvider(TinyV2Reader, TinyV2Writer),
+        FormatProvider(TinyV1Reader),
         FormatProvider(NestReader),
         FormatProvider(UnpickReader),
         FormatProvider(SrgReader, SrgWriter),
