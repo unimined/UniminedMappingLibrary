@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import java.net.URI
 
 plugins {
     val kotlinVersion: String by System.getProperties()
@@ -94,6 +95,23 @@ kotlin {
         val jsTest by getting {
             dependencies {
                 implementation(kotlin("test-js"))
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "WagYourMaven"
+            url = if (project.hasProperty("version_snapshot")) {
+                URI.create("https://maven.wagyourtail.xyz/snapshots/")
+            } else {
+                URI.create("https://maven.wagyourtail.xyz/releases/")
+            }
+            credentials {
+                username = project.findProperty("mvn.user") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("mvn.key") as String? ?: System.getenv("TOKEN")
             }
         }
     }

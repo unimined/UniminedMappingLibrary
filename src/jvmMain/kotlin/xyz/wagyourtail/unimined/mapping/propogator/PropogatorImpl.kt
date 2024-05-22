@@ -6,6 +6,8 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.four.minus
+import xyz.wagyourtail.unimined.mapping.jvms.four.plus
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
@@ -25,7 +27,7 @@ class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: 
         required.parallelStream().forEach { path ->
             val f = ZipFile(path)
             f.entries.asSequence().asStream().parallel().forEach {
-                if (!it.isDirectory && it.name.endsWith(".class")) {
+                if (!it.isDirectory && !it.name.startsWith("META-INF/versions") && it.name.endsWith(".class")) {
                     val className = InternalName.read(it.name.removeSuffix(".class"))
                     classes[className] = ClassInfoImpl(className, f.getInputStream(it))
                 }
@@ -69,9 +71,9 @@ class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: 
                 for (node in mNode.access.values) {
                     if (node.namespaces.contains(namespace)) {
                         if (node.accessType == AccessType.ADD) {
-                            access = method.access or node.accessFlag.access
+                            access = method.access + node.accessFlag
                         } else if (node.accessType == AccessType.REMOVE) {
-                            access = method.access and node.accessFlag.access.inv()
+                            access = method.access - node.accessFlag
                         }
                     }
                 }
