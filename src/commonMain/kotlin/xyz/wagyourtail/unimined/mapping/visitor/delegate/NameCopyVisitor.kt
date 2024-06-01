@@ -8,6 +8,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 fun MappingVisitor.copyTo(from: Namespace, to: Set<Namespace>, context: MemoryMappingTree, onlyMissing: Boolean = true): MappingVisitor {
@@ -152,6 +153,16 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
     ): ExceptionVisitor? {
         if (from in namespaces || baseNs == from) return super.visitException(delegate, type, exception, baseNs, namespaces + to)
         return super.visitException(delegate, type, exception, baseNs, namespaces)
+    }
+
+    override fun visitConstantGroup(
+        delegate: MappingVisitor,
+        type: ConstantGroupNode.InlineType,
+        name: String?,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): ConstantGroupVisitor? {
+        return null
     }
 
 }
