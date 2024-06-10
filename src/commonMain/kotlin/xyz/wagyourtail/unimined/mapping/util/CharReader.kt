@@ -92,6 +92,22 @@ class CharReader(buf: String, var pos: Int = 0) {
         }
     }
 
+    fun takeNextLiteral(sep: (Char) -> Boolean): String? {
+        if (exhausted()) return null
+        if (peek() == '\n') {
+            return null
+        }
+        return buildString {
+            while (!exhausted()) {
+                val b = peek()
+                if (b == '\n') break
+                val c = take()
+                if (sep(c!!)) break
+                append(c)
+            }
+        }
+    }
+
     fun takeNonNewlineWhitespace(): String {
         return takeUntil { !it.isWhitespace() || it == '\n' }
     }

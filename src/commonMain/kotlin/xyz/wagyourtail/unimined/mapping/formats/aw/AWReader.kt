@@ -31,9 +31,9 @@ object AWReader : FormatReader {
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {
-        val aw = input.takeNextLiteral()
-        val version = input.takeNextLiteral()
-        val namespace = input.takeNextLiteral()!!
+        val aw = input.takeNextLiteral { it.isWhitespace() }
+        val version = input.takeNextLiteral { it.isWhitespace() }
+        val namespace = input.takeNextLiteral { it.isWhitespace() }!!
 
         if (aw != "accessWidener") {
             throw IllegalArgumentException("Invalid access widener file")
@@ -60,8 +60,8 @@ object AWReader : FormatReader {
                 continue
             }
 
-            val target = input.takeNextLiteral()!!
-            val access = input.takeNextLiteral()!!
+            val target = input.takeNextLiteral { it.isWhitespace() }!!
+            val access = input.takeNextLiteral { it.isWhitespace() }!!
 
             if (!access.startsWith("transitive-")) {
                 if (!allowNonTransitive) {
@@ -105,7 +105,7 @@ object AWReader : FormatReader {
 
             when (target) {
                 "class" -> {
-                    val cls = InternalName.read(input.takeNextLiteral()!!)
+                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
                     val visitor = into.visitClass(mapOf(ns to cls))
                     for ((flag, conditions) in addAccess) {
                         visitor?.visitAccess(AccessType.ADD, flag, conditions, setOf(ns))
@@ -115,9 +115,9 @@ object AWReader : FormatReader {
                     }
                 }
                 "method" -> {
-                    val cls = InternalName.read(input.takeNextLiteral()!!)
-                    val method = input.takeNextLiteral()!!
-                    val desc = MethodDescriptor.read(input.takeNextLiteral()!!)
+                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    val method = input.takeNextLiteral { it.isWhitespace() }!!
+                    val desc = MethodDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
                     val visitor = into.visitClass(mapOf(ns to cls))?.visitMethod(mapOf(ns to (method to desc)))
                     for ((flag, conditions) in addAccess) {
                         visitor?.visitAccess(AccessType.ADD, flag, conditions, setOf(ns))
@@ -127,9 +127,9 @@ object AWReader : FormatReader {
                     }
                 }
                 "field" -> {
-                    val cls = InternalName.read(input.takeNextLiteral()!!)
-                    val field = input.takeNextLiteral()!!
-                    val desc = FieldDescriptor.read(input.takeNextLiteral()!!)
+                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    val field = input.takeNextLiteral { it.isWhitespace() }!!
+                    val desc = FieldDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
                     val visitor = into.visitClass(mapOf(ns to cls))?.visitField(mapOf(ns to (field to desc)))
                     for ((flag, conditions) in addAccess) {
                         visitor?.visitAccess(AccessType.ADD, flag, conditions, setOf(ns))
