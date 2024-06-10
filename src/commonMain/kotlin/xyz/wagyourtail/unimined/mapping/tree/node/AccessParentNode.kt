@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.visitor.AccessParentVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
@@ -19,8 +20,13 @@ abstract class AccessParentNode<T: AccessParentVisitor<T>, U: BaseVisitor<U>>(pa
         super.acceptInner(visitor, nsFilter, minimize)
     }
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        val node = AccessNode(this, type, value)
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        val node = AccessNode(this, type, value, condition)
         node.addNamespaces(namespaces)
         _access[value] = node
         return node

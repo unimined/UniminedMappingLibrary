@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.visitor.delegate
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -98,17 +99,18 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
         delegate: AccessParentVisitor<*>,
         type: AccessType,
         value: AccessFlag,
+        conditions: AccessConditions,
         namespaces: Set<Namespace>
     ): AccessVisitor? {
         val n = namespaces.filter { if (inverted) it !in ns else it in ns }.toSet()
         if (n.isEmpty()) return null
-        return super.visitAccess(delegate, type, value, n)
+        return super.visitAccess(delegate, type, value, conditions, n)
     }
 
-    override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitJavadoc(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
         val n = values.filterKeys { if (inverted) it !in ns else it in ns }
         if (n.isEmpty()) return null
-        return super.visitComment(delegate, n)
+        return super.visitJavadoc(delegate, n)
     }
 
     override fun visitSignature(

@@ -4,6 +4,7 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -138,7 +139,7 @@ object MCPExceptionReader : FormatReader {
                     md.visitParameter(i, null, mapOf(srcNs to param[i]))
                 }
                 if (access != null) {
-                    md.visitAccess(AccessType.ADD, AccessFlag.valueOf(access), setOf(srcNs))
+                    md.visitAccess(AccessType.ADD, AccessFlag.valueOf(access), AccessConditions.ALL, setOf(srcNs))
                 }
             }
 

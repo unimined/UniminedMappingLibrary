@@ -76,7 +76,7 @@ kotlin {
                 implementation("org.slf4j:slf4j-simple:2.0.10")
 
                 // apache compress
-                implementation("org.apache.commons:commons-compress:1.25.0")
+                implementation("org.apache.commons:commons-compress:1.26.1")
                 implementation("org.ow2.asm:asm:9.6")
                 implementation("org.ow2.asm:asm-tree:9.6")
             }

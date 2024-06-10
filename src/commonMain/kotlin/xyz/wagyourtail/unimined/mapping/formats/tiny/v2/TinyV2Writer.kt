@@ -5,6 +5,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -42,7 +43,7 @@ object TinyV2Writer : FormatWriter {
     }
 
     open class TinyV2MemberWriter<T: MemberVisitor<T>>(into: (String) -> Unit, parent: BaseTinyV2Writer<*>?, indent: String = ""): BaseTinyV2Writer<T>(into, parent, indent), MemberVisitor<T> {
-        override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+        override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
             // only 1 comment is allowed, so we will concat them all with \n\n after uniquifying them
             if (values.isEmpty()) return null
             into(indent)
@@ -56,7 +57,12 @@ object TinyV2Writer : FormatWriter {
             return null
         }
 
-        override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
+        override fun visitAccess(
+            type: AccessType,
+            value: AccessFlag,
+            condition: AccessConditions,
+            namespaces: Set<Namespace>
+        ): AccessVisitor? {
             return null
         }
 

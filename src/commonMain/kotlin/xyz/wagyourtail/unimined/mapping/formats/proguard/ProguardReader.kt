@@ -26,7 +26,7 @@ object ProguardReader : FormatReader {
         return super.getSide(fileName, inputType)
     }
 
-    fun remapProguardParamDesc(desc: String): String {
+    private fun remapProguardParamDesc(desc: String): String {
         var i = 0
         var desc = desc
         while (desc.endsWith("[]")) {
@@ -47,7 +47,7 @@ object ProguardReader : FormatReader {
         }
     }
 
-    fun remapProguardMethodDesc(desc: String): String {
+    private fun remapProguardMethodDesc(desc: String): String {
         if (desc == "()") return desc
         if (desc[0] != '(' || desc[desc.length-1] != ')') throw IllegalArgumentException("Invalid method descriptor")
         val params = desc.substring(1, desc.length-1).split(",")

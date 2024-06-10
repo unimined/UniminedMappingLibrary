@@ -6,6 +6,8 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.minus
 import xyz.wagyourtail.unimined.mapping.jvms.four.plus
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -64,16 +66,19 @@ class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: 
         override val interfaces = self.interfaces.map { InternalName.read(it) }
 
         override val methods: List<Pair<String, MethodDescriptor?>> = self.methods.filter { method ->
+            val originalAccess = AccessFlag.of(ElementType.METHOD, method.access)
             var access = method.access
 
             // modify access according to mapping's access rules for this class
             classNode?.getMethods(namespace, method.name, MethodDescriptor.read(method.desc))?.forEach { mNode ->
                 for (node in mNode.access.values) {
-                    if (node.namespaces.contains(namespace)) {
-                        if (node.accessType == AccessType.ADD) {
-                            access = method.access + node.accessFlag
-                        } else if (node.accessType == AccessType.REMOVE) {
-                            access = method.access - node.accessFlag
+                    if (node.conditions.check(originalAccess)) {
+                        if (node.namespaces.contains(namespace)) {
+                            if (node.accessType == AccessType.ADD) {
+                                access = method.access + node.accessFlag
+                            } else if (node.accessType == AccessType.REMOVE) {
+                                access = method.access - node.accessFlag
+                            }
                         }
                     }
                 }

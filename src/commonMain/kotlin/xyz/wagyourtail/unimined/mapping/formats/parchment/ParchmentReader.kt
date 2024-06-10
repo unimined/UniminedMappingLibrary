@@ -45,7 +45,7 @@ object ParchmentReader : FormatReader {
                 javadoc?.jsonPrimitive?.content
             }
             if (content != null) {
-                into.visitPackage(mapOf(srcNs to PackageName.read("$pkgName/")))?.visitComment(mapOf(srcNs to content))
+                into.visitPackage(mapOf(srcNs to PackageName.read("$pkgName/")))?.visitJavadoc(mapOf(srcNs to content))
             }
         }
 
@@ -69,7 +69,7 @@ object ParchmentReader : FormatReader {
                 }
                 val methodVisitor = clsVisitor.visitMethod(mapOf(srcNs to (methodName to MethodDescriptor.read(methodDesc))))
                 if (content != null) {
-                    methodVisitor?.visitComment(mapOf(srcNs to content))
+                    methodVisitor?.visitJavadoc(mapOf(srcNs to content))
                 }
 
                 val params = methodObj["parameters"]?.jsonArray ?: emptyList()
@@ -85,7 +85,7 @@ object ParchmentReader : FormatReader {
                     }
                     val paramVisitor = methodVisitor?.visitParameter(null, paramLvOrd, mapOf(srcNs to paramName))
                     if (paramContent != null) {
-                        paramVisitor?.visitComment(mapOf(srcNs to paramContent))
+                        paramVisitor?.visitJavadoc(mapOf(srcNs to paramContent))
                     }
                 }
 
@@ -104,7 +104,7 @@ object ParchmentReader : FormatReader {
                 }
                 val fieldVisitor = clsVisitor.visitField(mapOf(srcNs to (fieldName to FieldDescriptor.read(fieldDesc))))
                 if (content != null) {
-                    fieldVisitor?.visitComment(mapOf(srcNs to content))
+                    fieldVisitor?.visitJavadoc(mapOf(srcNs to content))
                 }
             }
         }

@@ -8,6 +8,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
@@ -45,7 +46,7 @@ interface MappingVisitor : BaseVisitor<MappingVisitor> {
 
 interface AccessParentVisitor<T: AccessParentVisitor<T>> : BaseVisitor<T> {
 
-    fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor?
+    fun visitAccess(type: AccessType, value: AccessFlag, condition: AccessConditions, namespaces: Set<Namespace>): AccessVisitor?
 
 }
 
@@ -61,7 +62,7 @@ interface SignatureParentVisitor<T: SignatureParentVisitor<T>> : BaseVisitor<T> 
 
 interface CommentParentVisitor<T: CommentParentVisitor<T>> : BaseVisitor<T> {
 
-    fun visitComment(values: Map<Namespace, String>): CommentVisitor?
+    fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor?
 
 }
 

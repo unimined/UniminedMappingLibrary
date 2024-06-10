@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.visitor.delegate
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -59,8 +60,13 @@ open class MultiMappingVisitor(visitors: List<MappingVisitor>): MultiBaseVisitor
 
 open class MultiAccessParentVisitor<T: AccessParentVisitor<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), AccessParentVisitor<T> {
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        val visitors = visitors.mapNotNull { it.visitAccess(type, value, namespaces) }
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        val visitors = visitors.mapNotNull { it.visitAccess(type, value, condition, namespaces) }
         if (visitors.isEmpty()) return null
         return MultiAccessVisitor(visitors)
     }
@@ -94,8 +100,8 @@ open class MultiSignatureParentVisitor<T: SignatureParentVisitor<T>>(visitors: L
 
 open class MultiCommentParentVisitor<T: CommentParentVisitor<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), CommentParentVisitor<T> {
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-        val visitors = visitors.mapNotNull { it.visitComment(values) }
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        val visitors = visitors.mapNotNull { it.visitJavadoc(values) }
         if (visitors.isEmpty()) return null
         return MultiCommentVisitor(visitors)
     }

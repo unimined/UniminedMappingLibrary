@@ -7,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
@@ -218,7 +219,7 @@ object UMFReader : FormatReader {
                         }
                     }
                     last as MemberVisitor<*>?
-                    last?.visitComment(fixed)
+                    last?.visitJavadoc(fixed)
                 }
                 EntryType.ANNOTATION -> {
                     val type = fixValue(input.takeNext())!!.let {
@@ -245,9 +246,10 @@ object UMFReader : FormatReader {
                         }
                     }
                     val value = AccessFlag.valueOf(fixValue(input.takeNext())!!.uppercase())
+                    val conditions = if (unchecked) AccessConditions.unchecked(input.takeNext().second) else AccessConditions.read(input.takeNext().second)
                     val accNs = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.toSet()
                     last as MemberVisitor<*>?
-                    last?.visitAccess(type, value, accNs)
+                    last?.visitAccess(type, value, conditions, accNs)
                 }
                 EntryType.CONSTANT_GROUP -> {
                     val type = ConstantGroupNode.InlineType.valueOf(input.takeNext().second.uppercase())

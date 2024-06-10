@@ -14,7 +14,7 @@ abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: 
     val comment: CommentNode<T>? get() = _comment
     val annotations: Set<AnnotationNode<T>> get() = _annotations
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
         if (_comment == null) {
             _comment = CommentNode(this)
         }

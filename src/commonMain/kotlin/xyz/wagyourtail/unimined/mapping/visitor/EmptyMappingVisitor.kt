@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.visitor
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -53,7 +54,12 @@ open class EmptyMappingVisitor : EmptyBaseVisitor<MappingVisitor>(), MappingVisi
 
 open class EmptyAccessParentVisitor<T: AccessParentVisitor<T>> : EmptyBaseVisitor<T>(), AccessParentVisitor<T> {
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
         return EmptyAccessVisitor()
     }
 
@@ -77,7 +83,7 @@ open class EmptySignatureParentVisitor<T: SignatureParentVisitor<T>> :  EmptyBas
 
 open class EmptyCommentParentVisitor<T: CommentParentVisitor<T>> : EmptyBaseVisitor<T>(), CommentParentVisitor<T> {
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
         return EmptyCommentVisitor()
     }
 

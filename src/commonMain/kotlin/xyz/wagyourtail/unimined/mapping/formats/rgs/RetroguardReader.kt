@@ -20,8 +20,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
  */
 object RetroguardReader : FormatReader {
 
+    private const val PKG = "net/minecraft/src/"
     val keys = setOf(".op", ".at", ".cl", ".me", ".fi")
-    val pkg = "net/minecraft/src/"
 
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         val ext = fileName.endsWith(".rgs")
@@ -50,7 +50,7 @@ object RetroguardReader : FormatReader {
         into.visitHeader(srcNs.name, dstNs.name)
 
         // hardcoded package mapping
-        into.visitPackage(mapOf(srcNs to PackageName.read(""), dstNs to PackageName.read(pkg)))
+        into.visitPackage(mapOf(srcNs to PackageName.read(""), dstNs to PackageName.read(PKG)))
 
         while (!input.exhausted()) {
             input.takeWhitespace()
@@ -60,7 +60,7 @@ object RetroguardReader : FormatReader {
                 ".class_map" -> {
                     val srcName = InternalName.read(input.takeNextLiteral(sep = ' ')!!)
                     val dst = input.takeNextLiteral(sep = ' ')!!
-                    val dstName = InternalName.read(if (dst.contains('/')) dst else "$pkg$dst")
+                    val dstName = InternalName.read(if (dst.contains('/')) dst else "$PKG$dst")
                     into.visitClass(mapOf(srcNs to srcName, dstNs to dstName))
                 }
                 ".field_map" -> {

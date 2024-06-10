@@ -34,21 +34,21 @@ umf	1	0
 source
 c	aba
 	i	i	aba;Laez;
-		a	+	static	source
+		a	+	static	*	source
 c	abj
 	i	i	abj;Lxy;
 c	abn
 	i	a	1;Lkx;a;(Ljava/lang/Iterable;)Ljava/util/List;
-		a	+	static	source
+		a	+	static	*	source
 c	abt
 	i	i	abt;Lnc;
-		a	+	static	source
+		a	+	static	*	source
 c	ac
 	i	i	ac;Lrp;
-		a	+	static	source
+		a	+	static	*	source
 c	acc
 	i	a	3;Lpx;<clinit>;()V
-		a	+	static	source
+		a	+	static	*	source
 """.trim(), output.trimEnd())
     }
     

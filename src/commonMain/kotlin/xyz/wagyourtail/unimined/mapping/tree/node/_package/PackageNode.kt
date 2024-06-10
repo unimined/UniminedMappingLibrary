@@ -51,7 +51,7 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         return node
     }
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
         root.mergeNs(values.keys)
         _comments.putAll(values)
         return null

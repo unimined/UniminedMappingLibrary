@@ -7,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -68,7 +69,7 @@ object NestReader : FormatReader {
 
             for (acc in AccessFlag.of(ElementType.INNER_CLASS, access)) {
                 if (acc.elements.contains(ElementType.CLASS)) continue
-                i.visitAccess(AccessType.ADD, acc, setOf(ns))
+                i.visitAccess(AccessType.ADD, acc, AccessConditions.ALL, setOf(ns))
             }
         }
 

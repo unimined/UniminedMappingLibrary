@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.visitor.delegate
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -58,60 +59,60 @@ open class Delegator(delegator: Delegator? = null) {
         return delegate.visitException(type, exception,baseNs, namespaces)
     }
 
-    open fun visitAccess(delegate: AccessParentVisitor<*>, type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegate.visitAccess(type, value, namespaces)
+    open fun visitAccess(delegate: AccessParentVisitor<*>, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return delegate.visitAccess(type, value, conditions, namespaces)
     }
 
-    open fun visitFieldAccess(delegate: FieldVisitor, type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return visitAccess(delegate, type, value, namespaces)
+    open fun visitFieldAccess(delegate: FieldVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitMethodAccess(delegate: MethodVisitor, type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return visitAccess(delegate, type, value, namespaces)
+    open fun visitMethodAccess(delegate: MethodVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitClassAccess(delegate: ClassVisitor, type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return visitAccess(delegate, type, value, namespaces)
+    open fun visitClassAccess(delegate: ClassVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitParameterAccess(delegate: ParameterVisitor, type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return visitAccess(delegate, type, value, namespaces)
+    open fun visitParameterAccess(delegate: ParameterVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitLocalVariableAccess(delegate: LocalVariableVisitor, type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return visitAccess(delegate, type, value, namespaces)
+    open fun visitLocalVariableAccess(delegate: LocalVariableVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitInnerClassAccess(delegate: InnerClassVisitor, type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return visitAccess(delegate, type, value, namespaces)
+    open fun visitInnerClassAccess(delegate: InnerClassVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
-        return delegate.visitComment(values)
+    open fun visitJavadoc(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+        return delegate.visitJavadoc(values)
     }
 
-    open fun visitPackageComment(delegate: PackageVisitor, values: Map<Namespace, String>): CommentVisitor? {
-        return visitComment(delegate, values)
+    open fun visitPackageJavadoc(delegate: PackageVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitJavadoc(delegate, values)
     }
 
-    open fun visitClassComment(delegate: ClassVisitor, values: Map<Namespace, String>): CommentVisitor? {
-        return visitComment(delegate, values)
+    open fun visitClassJavadoc(delegate: ClassVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitJavadoc(delegate, values)
     }
 
-    open fun visitMethodComment(delegate: MethodVisitor, values: Map<Namespace, String>): CommentVisitor? {
-        return visitComment(delegate, values)
+    open fun visitMethodJavadoc(delegate: MethodVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitJavadoc(delegate, values)
     }
 
-    open fun visitFieldComment(delegate: FieldVisitor, values: Map<Namespace, String>): CommentVisitor? {
-        return visitComment(delegate, values)
+    open fun visitFieldJavadoc(delegate: FieldVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitJavadoc(delegate, values)
     }
 
-    open fun visitParameterComment(delegate: ParameterVisitor, values: Map<Namespace, String>): CommentVisitor? {
-        return visitComment(delegate, values)
+    open fun visitParameterJavadoc(delegate: ParameterVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitJavadoc(delegate, values)
     }
 
-    open fun visitLocalVariableComment(delegate: LocalVariableVisitor, values: Map<Namespace, String>): CommentVisitor? {
-        return visitComment(delegate, values)
+    open fun visitLocalVariableJavadoc(delegate: LocalVariableVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitJavadoc(delegate, values)
     }
 
     open fun visitSignature(delegate: SignatureParentVisitor<*>, values: Map<Namespace, String>): SignatureVisitor? {
@@ -221,8 +222,8 @@ open class DelegateMappingVisitor(delegate: MappingVisitor, delegator: Delegator
 
 open class DelegatePackageVisitor(delegate: PackageVisitor, delegator: Delegator) : DelegateBaseVisitor<PackageVisitor>(delegate, delegator), PackageVisitor by delegate {
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-        return delegator.visitPackageComment(delegate, values)
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitPackageJavadoc(delegate, values)
     }
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
@@ -247,16 +248,21 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
         return delegator.visitInnerClass(delegate, type, names)
     }
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-        return delegator.visitClassComment(delegate, values)
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitClassJavadoc(delegate, values)
     }
 
     override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
         return delegator.visitClassSignature(delegate, values)
     }
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegator.visitClassAccess(delegate, type, value, namespaces)
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        return delegator.visitClassAccess(delegate, type, value, condition, namespaces)
     }
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
@@ -280,8 +286,13 @@ open class DelegateMethodVisitor(delegate: MethodVisitor, delegator: Delegator) 
         return super.visitExtension(key, *values)
     }
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegator.visitMethodAccess(delegate, type, value, namespaces)
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        return delegator.visitMethodAccess(delegate, type, value, condition, namespaces)
     }
 
     override fun visitAnnotation(
@@ -314,16 +325,21 @@ open class DelegateMethodVisitor(delegate: MethodVisitor, delegator: Delegator) 
         return delegator.visitException(delegate, type, exception, baseNs, namespaces)
     }
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-        return delegator.visitMethodComment(delegate, values)
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitMethodJavadoc(delegate, values)
     }
 
 }
 
 open class DelegateFieldVisitor(delegate: FieldVisitor, delegator: Delegator) : DelegateBaseVisitor<FieldVisitor>(delegate, delegator), FieldVisitor {
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegator.visitFieldAccess(delegate, type, value, namespaces)
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        return delegator.visitFieldAccess(delegate, type, value, condition, namespaces)
     }
 
     override fun visitAnnotation(
@@ -339,20 +355,25 @@ open class DelegateFieldVisitor(delegate: FieldVisitor, delegator: Delegator) : 
         return delegator.visitFieldSignature(delegate, values)
     }
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-        return delegator.visitFieldComment(delegate, values)
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitFieldJavadoc(delegate, values)
     }
 
 }
 
 open class DelegateParameterVisitor(delegate: ParameterVisitor, delegator: Delegator) : DelegateBaseVisitor<ParameterVisitor>(delegate, delegator), ParameterVisitor {
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-        return delegator.visitParameterComment(delegate, values)
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitParameterJavadoc(delegate, values)
     }
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegator.visitParameterAccess(delegate, type, value, namespaces)
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        return delegator.visitParameterAccess(delegate, type, value, condition, namespaces)
     }
 
     override fun visitAnnotation(
@@ -368,8 +389,13 @@ open class DelegateParameterVisitor(delegate: ParameterVisitor, delegator: Deleg
 
 open class DelegateLocalVariableVisitor(delegate: LocalVariableVisitor, delegator: Delegator) : DelegateBaseVisitor<LocalVariableVisitor>(delegate, delegator), LocalVariableVisitor {
 
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegator.visitLocalVariableAccess(delegate, type, value, namespaces)
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        return delegator.visitLocalVariableAccess(delegate, type, value, condition, namespaces)
     }
 
     override fun visitAnnotation(
@@ -381,8 +407,8 @@ open class DelegateLocalVariableVisitor(delegate: LocalVariableVisitor, delegato
         return delegator.visitLocalVariableAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-        return delegator.visitLocalVariableComment(delegate, values)
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitLocalVariableJavadoc(delegate, values)
     }
 
 }
@@ -403,8 +429,13 @@ open class DelegateConstantGroupVisitor(delegate: ConstantGroupVisitor, delegato
 }
 
 open class DelegateInnerClassVisitor(delegate: InnerClassVisitor, delegator: Delegator) : DelegateBaseVisitor<InnerClassVisitor>(delegate, delegator), InnerClassVisitor {
-    override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegator.visitInnerClassAccess(delegate, type, value, namespaces)
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        return delegator.visitInnerClassAccess(delegate, type, value, condition, namespaces)
     }
 
 }

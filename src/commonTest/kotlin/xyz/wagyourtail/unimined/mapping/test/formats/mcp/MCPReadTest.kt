@@ -40,7 +40,7 @@ class MCPReadTest {
             """
 umf	1	0
 source	searge	mcp
-k		net/minecraft/src/	_
+k	""	net/minecraft/src/	_
 c	a	net/minecraft/src/Minecraft	_
 	f	a	field_1724	_
 	m	a;()V	method_1507	minecraftMethod

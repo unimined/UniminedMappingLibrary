@@ -105,13 +105,13 @@ object MCPv1MethodReader : FormatReader {
                     nameMap[dstNs] = mData.first to ns.second
                     val visitor = default.visitMethod(delegate, nameMap)
                     if (mData.second != null) {
-                        visitor?.visitComment(mapOf(dstNs to mData.second!!))
+                        visitor?.visitJavadoc(mapOf(dstNs to mData.second!!))
                     }
                     return visitor
                 }
 
-                override fun visitMethodComment(delegate: MethodVisitor, values: Map<Namespace, String>): CommentVisitor? {
-                    return default.visitComment(delegate, values)
+                override fun visitMethodJavadoc(delegate: MethodVisitor, values: Map<Namespace, String>): CommentVisitor? {
+                    return default.visitJavadoc(delegate, values)
                 }
 
             })

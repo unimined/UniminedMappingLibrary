@@ -5,6 +5,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -22,7 +23,7 @@ object UMFWriter : FormatWriter {
 
     fun String?.maybeEscape(): String {
         if (this == null) return "_"
-        if (this.isEmpty()) return "\"\"" // this shouldn't happen, it isn't legal, except maybe comments
+        if (this.isEmpty()) return "\"\""
         if (any { it.isWhitespace() } || startsWith("\"")) {
             return "\"${escape(unicode = true)}\""
         }
@@ -89,13 +90,19 @@ object UMFWriter : FormatWriter {
 
     open class UMFAccessParentWriter<T: AccessParentVisitor<T>>(into: (String) -> Unit, indent: String = "", override val namespaces: List<Namespace>) : BaseUMFWriter<T>(into, indent), AccessParentVisitor<T> {
 
-        override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
+        override fun visitAccess(
+            type: AccessType,
+            value: AccessFlag,
+            condition: AccessConditions,
+            namespaces: Set<Namespace>
+        ): AccessVisitor? {
             into("${indent}a\t")
             when (type) {
                 AccessType.ADD -> into("+\t")
                 AccessType.REMOVE -> into("-\t")
             }
             into("${value.name.lowercase()}\t")
+            into("$condition\t")
             into(namespaces.joinToString("\t") { it.name.maybeEscape() })
             into("\n")
             return UMFAccessWriter(into, indent + "\t", this.namespaces)
@@ -104,8 +111,8 @@ object UMFWriter : FormatWriter {
     }
 
     open class UMFMemberWriter<T: MemberVisitor<T>>(into: (String) -> Unit, indent: String = "", namespaces: List<Namespace>) : UMFAccessParentWriter<T>(into, indent, namespaces), MemberVisitor<T> {
-        override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
-            into("${indent}${UMFReader.EntryType.COMMENT.key}\t")
+        override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+            into("${indent}${UMFReader.EntryType.JAVADOC.key}\t")
             into.writeNamespaced(values.mapValues {
                 val num = it.value.toIntOrNull()
                 if (num != null) {
@@ -183,9 +190,9 @@ object UMFWriter : FormatWriter {
     }
 
     class UMFPackageWriter(into: (String) -> Unit, override val namespaces: List<Namespace>) : BaseUMFWriter<PackageVisitor>(into, "\t"), PackageVisitor {
-        override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+        override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
             into(indent)
-            into("${UMFReader.EntryType.COMMENT.key}}\t")
+            into("${UMFReader.EntryType.JAVADOC.key}}\t")
             into.writeNamespaced(values)
             into("\n")
             return UMFCommentWriter(into, indent + "\t", namespaces)

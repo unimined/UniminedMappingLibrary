@@ -4,6 +4,7 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -58,7 +59,12 @@ object MCPConfigAccessReader : FormatReader{
             if (line.hasNext()) {
                 throw IllegalStateException("expected 4 elements on line, found more")
             }
-            into.visitClass(mapOf(srcNs to srcCls))?.visitMethod(mapOf(srcNs to (srcName to srcDesc)))?.visitAccess(AccessType.ADD, access, setOf(srcNs))
+            into.visitClass(mapOf(srcNs to srcCls))?.visitMethod(mapOf(srcNs to (srcName to srcDesc)))?.visitAccess(
+                AccessType.ADD,
+                access,
+                AccessConditions.ALL,
+                setOf(srcNs)
+            )
         }
     }
 

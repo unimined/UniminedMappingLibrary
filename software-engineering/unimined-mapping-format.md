@@ -271,11 +271,11 @@ legal annotation values are:
 * an annotation literal (see the [annotation serialization format](./annotation-serialization-format.md)), keep the `@` at the beginning)
 * a comma separated list of one of the above with {} around it (for example `{1, 2, 3}`)
 
-## access
+## Access
 
 access transformers / access mappings can occur under classes/methods/fields and will be defined as
 ```
-a <action> <access> <ns1 name> <ns2 name> <ns3 name> ...
+a <action> <access> <condition> <ns1 name> <ns2 name> <ns3 name> ...
 ```
 
 where `<ns1 name>`, `<ns2 name>`, `<ns3 name>`, etc are the namespace names to operate on.
@@ -284,9 +284,15 @@ if none of the namespaces in the file are just numbers, indexes can be used inst
 `<action>` is either `+` or `-` and `<access>` is the access modifier(s) to add or remove.
 the access modifiers are the lowercase string names.
 
+`<condition>` can be `*` for accepting any,
+or `-<access>` if an access is required to *not* be present, or `+<access>` if an access is required to be present.
+This condition is not affected by other access changes within the mappings.
+Conditions can be combined by simply appending them together, for example `+protected-final` to match being protected and not being final.
+
 for example, to make a method public in `named`, you would do
+
 ```
-a + public named
+a + public * named
 ```
 
 in the case of public/private/protected/package-private the access doesn't need to be removed for the previous one.

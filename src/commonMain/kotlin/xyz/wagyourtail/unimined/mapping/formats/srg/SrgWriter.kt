@@ -5,6 +5,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -109,7 +110,7 @@ object SrgWriter : FormatWriter {
             return null
         }
 
-        override fun visitComment(values: Map<Namespace, String>): CommentVisitor? {
+        override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
             return null
         }
 
@@ -117,7 +118,12 @@ object SrgWriter : FormatWriter {
             return null
         }
 
-        override fun visitAccess(type: AccessType, value: AccessFlag, namespaces: Set<Namespace>): AccessVisitor? {
+        override fun visitAccess(
+            type: AccessType,
+            value: AccessFlag,
+            condition: AccessConditions,
+            namespaces: Set<Namespace>
+        ): AccessVisitor? {
             return null
         }
 

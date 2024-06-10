@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -73,13 +74,13 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         return super.visitParameter(delegate, index, lvOrd, nameMap)
     }
 
-    override fun visitComment(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitJavadoc(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
         val valueMap = values.toMutableMap()
-        val value = valueMap[from] ?: return super.visitComment(delegate, valueMap)
+        val value = valueMap[from] ?: return super.visitJavadoc(delegate, valueMap)
         for (namespace in (to - valueMap.keys)) {
             valueMap[namespace] = value
         }
-        return super.visitComment(delegate, valueMap)
+        return super.visitJavadoc(delegate, valueMap)
     }
 
     override fun visitLocalVariable(
@@ -100,10 +101,11 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         delegate: AccessParentVisitor<*>,
         type: AccessType,
         value: AccessFlag,
+        conditions: AccessConditions,
         namespaces: Set<Namespace>
     ): AccessVisitor? {
-        if (from in namespaces) return super.visitAccess(delegate, type, value, namespaces + to)
-        return super.visitAccess(delegate, type, value, namespaces)
+        if (from in namespaces) return super.visitAccess(delegate, type, value, conditions, namespaces + to)
+        return super.visitAccess(delegate, type, value, conditions, namespaces)
     }
 
     override fun visitAnnotation(
