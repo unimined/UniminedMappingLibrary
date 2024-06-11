@@ -65,6 +65,7 @@ object AWReader : FormatReader {
 
             if (!access.startsWith("transitive-")) {
                 if (!allowNonTransitive) {
+                    input.takeRemainingOnLine()
                     continue
                 }
             }
