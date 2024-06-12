@@ -163,7 +163,7 @@ open class MultiClassVisitor(visitors: List<ClassVisitor>) : MultiMemberVisitor<
 
     override fun visitWildcard(
         type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor?>
+        descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         val visitors = visitors.mapNotNull { it.visitWildcard(type, descs) }
         if (visitors.isEmpty()) return null

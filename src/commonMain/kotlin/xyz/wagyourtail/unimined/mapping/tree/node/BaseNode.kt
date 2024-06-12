@@ -15,7 +15,10 @@ abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNo
     }
 
     fun accept(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        acceptOuter(visitor, nsFilter, minimize)?.let { acceptInner(it, nsFilter, minimize) }
+        acceptOuter(visitor, nsFilter, minimize)?.let {
+            acceptInner(it, nsFilter, minimize)
+            visitEnd()
+        }
     }
 
     abstract fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean): T?
@@ -25,5 +28,7 @@ abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNo
             extension.accept(visitor, nsFilter, minimize)
         }
     }
+
+    override fun visitEnd() {}
 
 }

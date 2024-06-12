@@ -128,7 +128,7 @@ open class EmptyClassVisitor : EmptyMemberVisitor<ClassVisitor>(), SignaturePare
 
     override fun visitWildcard(
         type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor?>
+        descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         return EmptyWildcardVisitor()
     }

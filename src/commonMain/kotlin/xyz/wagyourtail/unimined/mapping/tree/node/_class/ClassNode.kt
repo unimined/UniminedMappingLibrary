@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.tree.node._class
 
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -10,12 +11,14 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvables
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val _names: MutableMap<Namespace, InternalName?> = mutableMapOf()
+    private val _wildcards: MutableList<WildcardNode> = mutableListOf()
 
     val names: Map<Namespace, InternalName?> get() = _names
 
@@ -25,6 +28,8 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
     val methods = LazyResolvables(parent) {
         MethodNode(this)
     }
+    val wildcards: List<WildcardNode> = _wildcards
+
     val inners = mutableSetOf<InnerClassNode>()
 
     fun getName(namespace: Namespace) = _names[namespace]
@@ -87,6 +92,15 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         inner.setTargets(names.mapNotNullValues { it.value.second })
         inners.add(inner)
         return inner
+    }
+
+    override fun visitWildcard(
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor>
+    ): WildcardVisitor? {
+        val wildcard = WildcardNode(this, type, descs)
+        _wildcards.add(wildcard)
+        return wildcard
     }
 
     override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ClassVisitor? {

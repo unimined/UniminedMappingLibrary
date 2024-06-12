@@ -75,31 +75,40 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, val descs: Map<Nam
         _exceptions.add(node)
         return node
     }
-    override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean): WildcardVisitor? {
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): WildcardVisitor? {
+        if (descs.isEmpty()) return visitor.visitWildcard(type, emptyMap())
         val desc = if (minimize) {
-            val descNs = root.namespaces.firstOrNull { it in this.descs }
+            val descNs = nsFilter.firstOrNull { it in this.descs }
             if (descNs != null) {
-                val ns = root.namespaces.first()
+                val ns = nsFilter.first()
                 mapOf(ns to root.mapDescriptor(descNs, ns, this.descs[descNs]!!))
             } else {
-                emptyMap()
+                val fromNs = descs.keys.first()
+                val ns = nsFilter.first()
+                mapOf(ns to root.mapDescriptor(fromNs, ns, descs[fromNs]!!))
             }
         } else {
-            this.descs
+            if (descs.keys.none { it in nsFilter }) {
+                val fromNs = descs.keys.first()
+                val ns = nsFilter.first()
+                mapOf(ns to root.mapDescriptor(fromNs, ns, descs[fromNs]!!))
+            } else {
+                descs.filter { it.key in nsFilter }
+            }
         }
         return visitor.visitWildcard(type, desc)
     }
 
-    override fun acceptInner(visitor: WildcardVisitor, minimize: Boolean) {
-        super.acceptInner(visitor, minimize)
+    override fun acceptInner(visitor: WildcardVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
+        super.acceptInner(visitor, nsFilter, minimize)
         for (exception in exceptions) {
-            exception.accept(visitor, minimize)
+            exception.accept(visitor, nsFilter, minimize)
         }
         for (param in params) {
-            param.accept(visitor, minimize)
+            param.accept(visitor, nsFilter, minimize)
         }
         for (local in locals) {
-            local.accept(visitor, minimize)
+            local.accept(visitor, nsFilter, minimize)
         }
     }
 

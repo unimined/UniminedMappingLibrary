@@ -104,7 +104,7 @@ interface ClassVisitor : MemberVisitor<ClassVisitor>, SignatureParentVisitor<Cla
 
     fun visitInnerClass(type: InnerClassNode.InnerType, names: Map<Namespace, Pair<String, FullyQualifiedName?>>): InnerClassVisitor?
 
-    fun visitWildcard(type: WildcardNode.WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor?>): WildcardVisitor?
+    fun visitWildcard(type: WildcardNode.WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>): WildcardVisitor?
 }
 
 interface InvokableVisitor<T: InvokableVisitor<T>> : MemberVisitor<T>, SignatureParentVisitor<T> {

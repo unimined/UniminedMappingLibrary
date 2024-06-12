@@ -69,7 +69,7 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitWildcard(delegate: ClassVisitor, type: WildcardNode.WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor?>): WildcardVisitor? {
+    open fun visitWildcard(delegate: ClassVisitor, type: WildcardNode.WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>): WildcardVisitor? {
         return delegate.visitWildcard(type, descs)?.let { DelegateWildcardVisitor(it, delegator) }
     }
 
@@ -381,7 +381,7 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
 
     override fun visitWildcard(
         type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor?>
+        descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         return delegator.visitWildcard(delegate, type, descs)
     }

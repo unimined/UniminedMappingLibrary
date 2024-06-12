@@ -4,6 +4,7 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
@@ -14,6 +15,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -191,7 +193,17 @@ object UMFReader : FormatReader {
                 }
                 EntryType.WILDCARD -> {
                     last as ClassVisitor?
-                    val type =
+                    val type = fixValue(input.takeNext())!!.let {
+                        when (it) {
+                            "f" -> WildcardNode.WildcardType.FIELD
+                            "m" -> WildcardNode.WildcardType.METHOD
+                            else -> throw IllegalArgumentException("Invalid wildcard type $it")
+                        }
+                    }
+                    val descs = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
+                        getNamespace(idx) to if (unchecked) FieldOrMethodDescriptor.unchecked(name) else FieldOrMethodDescriptor.read(name)
+                    }
+                    last?.visitWildcard(type, descs)
                 }
                 EntryType.INNER_CLASS -> {
                     val type = fixValue(input.takeNext())!!.let {
