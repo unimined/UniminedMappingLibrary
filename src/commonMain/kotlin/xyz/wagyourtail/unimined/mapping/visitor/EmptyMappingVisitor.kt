@@ -19,6 +19,8 @@ open class EmptyBaseVisitor<T: BaseVisitor<T>> : BaseVisitor<T> {
         throw NotImplementedError()
     }
 
+    override fun visitEnd() {}
+
 }
 
 open class EmptyMappingVisitor : EmptyBaseVisitor<MappingVisitor>(), MappingVisitor {
@@ -95,12 +97,20 @@ open class EmptyMemberVisitor<T: MemberVisitor<T>> : EmptyBaseVisitor<T>(), Acce
         return super.visitExtension(key, *values)
     }
 
+    override fun visitEnd() {
+        super.visitEnd()
+    }
+
 }
 
 open class EmptyPackageVisitor : EmptyBaseVisitor<PackageVisitor>(), AnnotationParentVisitor<PackageVisitor> by EmptyAnnotationParentVisitor(), CommentParentVisitor<PackageVisitor> by EmptyCommentParentVisitor(), PackageVisitor {
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
+    }
+
+    override fun visitEnd() {
+        super.visitEnd()
     }
 
 }
@@ -125,6 +135,10 @@ open class EmptyClassVisitor : EmptyMemberVisitor<ClassVisitor>(), SignaturePare
         return super.visitExtension(key, *values)
     }
 
+    override fun visitEnd() {
+        super.visitEnd()
+    }
+
 }
 
 open class EmptyMethodVisitor : EmptyMemberVisitor<MethodVisitor>(), SignatureParentVisitor<MethodVisitor> by EmptySignatureParentVisitor(), AnnotationParentVisitor<MethodVisitor> by EmptyAnnotationParentVisitor(), MethodVisitor {
@@ -147,6 +161,10 @@ open class EmptyMethodVisitor : EmptyMemberVisitor<MethodVisitor>(), SignaturePa
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
+    }
+
+    override fun visitEnd() {
+        super.visitEnd()
     }
 
 }

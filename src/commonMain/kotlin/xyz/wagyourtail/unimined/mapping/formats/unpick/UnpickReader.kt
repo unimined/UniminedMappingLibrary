@@ -16,6 +16,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * FabricMC's unpick format to represent constant groups.
@@ -92,32 +93,39 @@ object UnpickReader : FormatReader {
             }
         }
         val ns = Namespace(nsMapping["source"] ?: "source")
-        into.visitHeader(ns.name)
 
-        val targetsByGroup = defaultedMapOf<String, MutableList<UnpickTarget>> { mutableListOf() }
-        for (target in targets) {
-            for (param in target.params) {
-                targetsByGroup.getValue(param.group).add(target)
-            }
-        }
+        into.use {
+            visitHeader(ns.name)
 
-        for ((group, consts) in constants) {
-            val targs = targetsByGroup[group]
-            val type = if (consts.any { it.type == "flag" }) {
-                ConstantGroupNode.InlineType.BITFIELD
-            } else {
-                ConstantGroupNode.InlineType.PLAIN
-            }
-
-            val cg = into.visitConstantGroup(type, group, ns, setOf())
-            if (cg != null) {
-                for (const in consts) {
-                    cg.visitConstant(const.intlName, const.fieldName, null)
+            val targetsByGroup = defaultedMapOf<String, MutableList<UnpickTarget>> { mutableListOf() }
+            for (target in targets) {
+                for (param in target.params) {
+                    targetsByGroup.getValue(param.group).add(target)
                 }
-                for (target in targs) {
-                    for (param in target.params) {
-                        if (param.group != group) continue
-                        cg.visitTarget(FullyQualifiedName(ObjectType(target.intlName), NameAndDescriptor(target.targetName, FieldOrMethodDescriptor(target.targetDesc))), param.index)
+            }
+
+            for ((group, consts) in constants) {
+                val targs = targetsByGroup[group]
+                val type = if (consts.any { it.type == "flag" }) {
+                    ConstantGroupNode.InlineType.BITFIELD
+                } else {
+                    ConstantGroupNode.InlineType.PLAIN
+                }
+
+                visitConstantGroup(type, group, ns, setOf())?.use {
+                    for (const in consts) {
+                        visitConstant(const.intlName, const.fieldName, null)?.visitEnd()
+                    }
+                    for (target in targs) {
+                        for (param in target.params) {
+                            if (param.group != group) continue
+                            visitTarget(
+                                FullyQualifiedName(
+                                    ObjectType(target.intlName),
+                                    NameAndDescriptor(target.targetName, FieldOrMethodDescriptor(target.targetDesc))
+                                ), param.index
+                            )?.visitEnd()
+                        }
                     }
                 }
             }

@@ -8,11 +8,12 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * this reads the classes.csv from mcp 3.0-5.6
  */
-object MCPv3ClassesReader : FormatReader {
+object MCPv3ClassesReader: FormatReader {
     override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "classes.csv") return false
         return inputType.peek().readUtf8Line()?.startsWith("\"name\",\"notch\"") ?: false
@@ -33,23 +34,27 @@ object MCPv3ClassesReader : FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        into.visitHeader(srcNs.name, dstNs.name)
+        into.use {
+            visitHeader(srcNs.name, dstNs.name)
 
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            val dstName = input.takeCol()
-            val srcName = input.takeCol()
-            input.takeCol() // supername
-            val pkg = input.takeCol()
-            val side = input.takeCol()
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
+                }
+                val dstName = input.takeCol()
+                val srcName = input.takeCol()
+                input.takeCol() // supername
+                val pkg = input.takeCol()
+                val side = input.takeCol()
 
-            if (side.second == "2" || side.second.toInt() == envType.ordinal) {
-                val dstCls = InternalName.read(if (pkg.second.isNotEmpty()) pkg.second + "/" + dstName.second else dstName.second)
-                val srcCls = InternalName.read(if (dstName.second == srcName.second && pkg.second.isNotEmpty()) "${pkg.second}/${srcName.second}" else srcName.second)
-                into.visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))
+                if (side.second == "2" || side.second.toInt() == envType.ordinal) {
+                    val dstCls =
+                        InternalName.read(if (pkg.second.isNotEmpty()) pkg.second + "/" + dstName.second else dstName.second)
+                    val srcCls =
+                        InternalName.read(if (dstName.second == srcName.second && pkg.second.isNotEmpty()) "${pkg.second}/${srcName.second}" else srcName.second)
+                    visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))?.visitEnd()
+                }
             }
         }
     }

@@ -71,4 +71,40 @@ value class AccessConditions private constructor(val value: String) {
         return true
     }
 
+    fun isSubsetOf(other: AccessConditions): Boolean {
+        val parts = getParts().toSet()
+        val otherParts = other.getParts().toSet()
+        return parts.all { it in otherParts }
+    }
+
+    fun isSupersetOf(other: AccessConditions): Boolean {
+        val parts = getParts().toSet()
+        val otherParts = other.getParts().toSet()
+        return otherParts.all { it in parts }
+    }
+
+    fun isSubsetOrSupersetOf(other: AccessConditions): Boolean {
+        return isSubsetOf(other) || isSupersetOf(other)
+    }
+
+    operator fun plus(other: AccessConditions): AccessConditions {
+        val parts = getParts().toSet()
+        val otherParts = other.getParts().toSet()
+        return AccessConditions(parts.union(otherParts).joinToString(""))
+    }
+
+    infix fun intersect(other: AccessConditions): AccessConditions {
+        val parts = getParts().toSet()
+        val otherParts = other.getParts().toSet()
+        return AccessConditions(parts.intersect(otherParts).joinToString(""))
+    }
+
+    operator fun minus(other: AccessConditions): AccessConditions {
+        val parts = getParts().toSet()
+        val otherParts = other.getParts().toSet()
+        return AccessConditions(parts.minus(otherParts).joinToString(""))
+    }
+
+
+
 }

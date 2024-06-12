@@ -43,118 +43,134 @@ object TinyV2Reader : FormatReader {
             metadataKeys.add(input.takeLine())
         }
         val escaped = metadataKeys.contains("escaped-names")
-        into.visitHeader(*namespaces.map { it.name }.toTypedArray())
-        val stack = mutableListOf<BaseVisitor<*>?>(into)
-        outer@while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            var col = input.takeNextLiteral() ?: continue
-            var indent = 0
-            while (col.isEmpty()) {
-                indent++
-                col = input.takeNextLiteral() ?: continue@outer
-            }
-            if (indent > stack.size - 1) {
-                throw IllegalArgumentException("Invalid tinyv2 file, found double indent")
-            }
-            while (indent < stack.size - 1) {
-                stack.removeLast()
-            }
-            val type = col
-            val last = stack.last()
-            val next: BaseVisitor<*>? = when (type) {
-                "c" -> {
-                    if (indent == 0) {
-                        // class
+
+        into.use {
+
+            visitHeader(*namespaces.map { it.name }.toTypedArray())
+            val stack = mutableListOf<BaseVisitor<*>?>(into)
+            outer@ while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
+                }
+                var col = input.takeNextLiteral() ?: continue
+                var indent = 0
+                while (col.isEmpty()) {
+                    indent++
+                    col = input.takeNextLiteral() ?: continue@outer
+                }
+                if (indent > stack.size - 1) {
+                    throw IllegalArgumentException("Invalid tinyv2 file, found double indent")
+                }
+                while (indent < stack.size - 1) {
+                    stack.removeLast()?.visitEnd()
+                }
+                val type = col
+                val last = stack.last()
+                val next: BaseVisitor<*>? = when (type) {
+                    "c" -> {
+                        if (indent == 0) {
+                            // class
+                            val names = mutableListOf<String>()
+                            while (true) {
+                                names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
+                                    ?: break)
+                            }
+                            val nameIter = names.iterator()
+                            val nsIter = namespaces.iterator()
+                            val nameMap = mutableMapOf<Namespace, InternalName>()
+                            nameMap[nsIter.next()] = InternalName.read(nameIter.next())
+                            while (nameIter.hasNext()) {
+                                val ns = nsIter.next()
+                                val name = nameIter.next()
+                                if (name.isNotEmpty()) {
+                                    nameMap[ns] = InternalName.read(name)
+                                }
+                            }
+                            last as MappingVisitor?
+                            last?.visitClass(nameMap)
+                        } else {
+                            // comment
+                            val comment = input.takeLine().removePrefix("\t").translateEscapes()
+                            last as CommentParentVisitor?
+                            last?.visitJavadoc(namespaces.drop(1).associateWith { comment })
+                        }
+                    }
+
+                    "f" -> {
+                        // field
+                        val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
                         val names = mutableListOf<String>()
                         while (true) {
-                            names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break)
+                            names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
+                                ?: break)
                         }
                         val nameIter = names.iterator()
                         val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, InternalName>()
-                        nameMap[nsIter.next()] = InternalName.read(nameIter.next())
+                        val nameMap = mutableMapOf<Namespace, Pair<String, FieldDescriptor?>>()
+                        nameMap[nsIter.next()] = nameIter.next() to FieldDescriptor.read(desc)
                         while (nameIter.hasNext()) {
                             val ns = nsIter.next()
                             val name = nameIter.next()
                             if (name.isNotEmpty()) {
-                                nameMap[ns] = InternalName.read(name)
+                                nameMap[ns] = name to null
                             }
                         }
-                        last as MappingVisitor?
-                        last?.visitClass(nameMap)
-                    } else {
-                        // comment
-                        val comment = input.takeLine().removePrefix("\t").translateEscapes()
-                        last as CommentParentVisitor?
-                        last?.visitJavadoc(namespaces.drop(1).associateWith { comment })
+                        last as ClassVisitor?
+                        last?.visitField(nameMap)
                     }
-                }
-                "f" -> {
-                    // field
-                    val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
-                    val names = mutableListOf<String>()
-                    while (true) {
-                        names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break)
-                    }
-                    val nameIter = names.iterator()
-                    val nsIter = namespaces.iterator()
-                    val nameMap = mutableMapOf<Namespace, Pair<String, FieldDescriptor?>>()
-                    nameMap[nsIter.next()] = nameIter.next() to FieldDescriptor.read(desc)
-                    while (nameIter.hasNext()) {
-                        val ns = nsIter.next()
-                        val name = nameIter.next()
-                        if (name.isNotEmpty()) {
-                            nameMap[ns] = name to null
+
+                    "m" -> {
+                        // method
+                        val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
+                        val names = mutableListOf<String>()
+                        while (true) {
+                            names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
+                                ?: break)
                         }
-                    }
-                    last as ClassVisitor?
-                    last?.visitField(nameMap)
-                }
-                "m" -> {
-                    // method
-                    val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
-                    val names = mutableListOf<String>()
-                    while (true) {
-                        names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break)
-                    }
-                    val nameIter = names.iterator()
-                    val nsIter = namespaces.iterator()
-                    val nameMap = mutableMapOf<Namespace, Pair<String, MethodDescriptor?>>()
-                    nameMap[nsIter.next()] = nameIter.next() to MethodDescriptor.read(desc)
-                    while (nameIter.hasNext()) {
-                        nameMap[nsIter.next()] = nameIter.next() to null
-                    }
-                    last as ClassVisitor?
-                    last?.visitMethod(nameMap)
-                }
-                "p" -> {
-                    // parameter
-                    val lvOrd = input.takeNextLiteral()?.toIntOrNull()
-                    val names = mutableListOf<String>()
-                    while (true) {
-                        names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it } ?: break)
-                    }
-                    val nameIter = names.iterator()
-                    val nsIter = namespaces.iterator()
-                    val nameMap = mutableMapOf<Namespace, String>()
-                    while (nameIter.hasNext()) {
-                        val ns = nsIter.next()
-                        val name = nameIter.next()
-                        if (name.isNotEmpty()) {
-                            nameMap[ns] = name
+                        val nameIter = names.iterator()
+                        val nsIter = namespaces.iterator()
+                        val nameMap = mutableMapOf<Namespace, Pair<String, MethodDescriptor?>>()
+                        nameMap[nsIter.next()] = nameIter.next() to MethodDescriptor.read(desc)
+                        while (nameIter.hasNext()) {
+                            nameMap[nsIter.next()] = nameIter.next() to null
                         }
+                        last as ClassVisitor?
+                        last?.visitMethod(nameMap)
                     }
-                    last as MethodVisitor?
-                    last?.visitParameter(null, lvOrd, nameMap)
+
+                    "p" -> {
+                        // parameter
+                        val lvOrd = input.takeNextLiteral()?.toIntOrNull()
+                        val names = mutableListOf<String>()
+                        while (true) {
+                            names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
+                                ?: break)
+                        }
+                        val nameIter = names.iterator()
+                        val nsIter = namespaces.iterator()
+                        val nameMap = mutableMapOf<Namespace, String>()
+                        while (nameIter.hasNext()) {
+                            val ns = nsIter.next()
+                            val name = nameIter.next()
+                            if (name.isNotEmpty()) {
+                                nameMap[ns] = name
+                            }
+                        }
+                        last as MethodVisitor?
+                        last?.visitParameter(null, lvOrd, nameMap)
+                    }
+
+                    else -> {
+                        throw IllegalArgumentException("Invalid tinyv2 file, unknown type $type")
+                    }
                 }
-                else -> {
-                    throw IllegalArgumentException("Invalid tinyv2 file, unknown type $type")
-                }
+                stack.add(next)
             }
-            stack.add(next)
+
+            while (stack.size > 1) {
+                stack.removeLast()?.visitEnd()
+            }
         }
     }
 

@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object AWReader : FormatReader {
 
@@ -42,115 +43,145 @@ object AWReader : FormatReader {
             throw IllegalArgumentException("Unknown version $version")
         }
 
-        val remain = input.takeRemainingOnLine()
-        if (remain.firstOrNull()?.second?.startsWith("#") == false) {
-            throw IllegalArgumentException("Expected newline or comment, found ${remain.firstOrNull()?.second}")
+        val remain = input.takeLine().trimStart()
+        if (remain.isNotEmpty() && remain.first() != '#') {
+            throw IllegalArgumentException("Expected newline or comment, found $remain")
         }
 
-        into.visitHeader(namespace)
-        val ns = Namespace(namespace)
+        into.use {
+            into.visitHeader(nsMapping[namespace] ?: namespace)
+            val ns = Namespace(nsMapping[namespace] ?: namespace)
 
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            if (input.peek() == '#') {
-                input.takeLine()
-                continue
-            }
-
-            val target = input.takeNextLiteral { it.isWhitespace() }!!
-            val access = input.takeNextLiteral { it.isWhitespace() }!!
-
-            if (!access.startsWith("transitive-")) {
-                if (!allowNonTransitive) {
-                    input.takeRemainingOnLine()
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
                     continue
                 }
-            }
+                if (input.peek() == '#') {
+                    input.takeLine()
+                    continue
+                }
+                if (input.peek()?.isWhitespace() == true) {
+                    throw IllegalStateException("Unexpected whitespace")
+                }
 
-            val addAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
-            val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
-            when (access) {
-                "accessible" -> {
-                    when (target) {
-                        "class" -> addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                        "method" -> {
-                            addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                            addAccess.add(AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}"))
-                        }
-                        "field" -> addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                    }
-                }
-                "mutable" -> {
-                    if (target != "field") {
-                        throw IllegalArgumentException("mutable is only valid for fields")
-                    }
-                    removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                }
-                "extendable" -> {
-                    when (target) {
-                        "class" -> {
-                            addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                            removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                        }
-                        "method" -> {
-                            addAccess.add(AccessFlag.PROTECTED to AccessConditions.unchecked("-${AccessFlag.PUBLIC}"))
-                            removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                        }
-                        "field" -> throw IllegalArgumentException("extendable is not valid for fields")
-                    }
-                }
-            }
+                val target = input.takeNextLiteral { it.isWhitespace() }!!
+                val access = input.takeNextLiteral { it.isWhitespace() }!!
 
-            when (target) {
-                "class" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    val visitor = into.visitClass(mapOf(ns to cls))
-                    for ((flag, conditions) in addAccess) {
-                        visitor?.visitAccess(AccessType.ADD, flag, conditions, setOf(ns))
-                    }
-                    for ((flag, conditions) in removeAccess) {
-                        visitor?.visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))
+                if (!access.startsWith("transitive-")) {
+                    if (!allowNonTransitive) {
+                        input.takeLine()
+                        continue
                     }
                 }
-                "method" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    val method = input.takeNextLiteral { it.isWhitespace() }!!
-                    val desc = MethodDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    val visitor = into.visitClass(mapOf(ns to cls))?.visitMethod(mapOf(ns to (method to desc)))
-                    for ((flag, conditions) in addAccess) {
-                        visitor?.visitAccess(AccessType.ADD, flag, conditions, setOf(ns))
-                    }
-                    for ((flag, conditions) in removeAccess) {
-                        visitor?.visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))
-                    }
-                }
-                "field" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    val field = input.takeNextLiteral { it.isWhitespace() }!!
-                    val desc = FieldDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    val visitor = into.visitClass(mapOf(ns to cls))?.visitField(mapOf(ns to (field to desc)))
-                    for ((flag, conditions) in addAccess) {
-                        visitor?.visitAccess(AccessType.ADD, flag, conditions, setOf(ns))
-                    }
-                    for ((flag, conditions) in removeAccess) {
-                        visitor?.visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))
-                    }
-                }
-                else -> {
-                    throw IllegalArgumentException("Unknown target $target")
-                }
-            }
 
-            val lineComment = input.takeRemainingOnLine()
-            if (lineComment.firstOrNull()?.second?.startsWith("#") == false) {
-                throw IllegalArgumentException("Expected newline or comment, found ${lineComment.firstOrNull()?.second}")
+                val addAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
+                val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
+                when (access) {
+                    "accessible" -> {
+                        when (target) {
+                            "class" -> addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                            "method" -> {
+                                addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                                addAccess.add(AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}"))
+                            }
+
+                            "field" -> addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                        }
+                    }
+
+                    "mutable" -> {
+                        if (target != "field") {
+                            throw IllegalArgumentException("mutable is only valid for fields")
+                        }
+                        removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
+                    }
+
+                    "extendable" -> {
+                        when (target) {
+                            "class" -> {
+                                addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                                removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
+                            }
+
+                            "method" -> {
+                                addAccess.add(AccessFlag.PROTECTED to AccessConditions.unchecked("-${AccessFlag.PUBLIC}"))
+                                removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
+                            }
+
+                            "field" -> throw IllegalArgumentException("extendable is not valid for fields")
+                        }
+                    }
+                }
+
+                when (target) {
+                    "class" -> {
+                        val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                        into.visitClass(mapOf(ns to cls))?.use {
+                            for ((flag, conditions) in addAccess) {
+                                visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
+                            }
+                            for ((flag, conditions) in removeAccess) {
+                                visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
+                            }
+                        }
+                    }
+
+                    "method" -> {
+                        val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                        val method = input.takeNextLiteral { it.isWhitespace() }!!
+                        val desc = MethodDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                        into.visitClass(mapOf(ns to cls))?.use {
+                            var removeClsFinal = false
+                            visitMethod(mapOf(ns to (method to desc)))?.use {
+                                for ((flag, conditions) in addAccess) {
+                                    visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
+                                }
+                                for ((flag, conditions) in removeAccess) {
+                                    visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
+                                    if (flag == AccessFlag.FINAL) {
+                                        removeClsFinal = true
+                                    }
+                                }
+                            }
+                            if (removeClsFinal) {
+                                visitAccess(
+                                    AccessType.REMOVE,
+                                    AccessFlag.FINAL,
+                                    AccessConditions.ALL,
+                                    setOf(ns)
+                                )?.visitEnd()
+                            }
+                        }
+                    }
+
+                    "field" -> {
+                        val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                        val field = input.takeNextLiteral { it.isWhitespace() }!!
+                        val desc = FieldDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                        into.visitClass(mapOf(ns to cls))?.use {
+                            visitField(mapOf(ns to (field to desc)))?.use {
+                                for ((flag, conditions) in addAccess) {
+                                    visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
+                                }
+                                for ((flag, conditions) in removeAccess) {
+                                    visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        throw IllegalArgumentException("Unknown target $target")
+                    }
+                }
+
+                val lineComment = input.takeLine().trimStart()
+                if (lineComment.isNotEmpty() && lineComment.first() != '#') {
+                    throw IllegalArgumentException("Expected newline or comment, found $lineComment")
+                }
             }
         }
-
-
     }
 
 }

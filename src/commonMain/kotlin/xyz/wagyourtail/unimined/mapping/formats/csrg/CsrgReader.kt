@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object CsrgReader : FormatReader {
 
@@ -61,36 +62,46 @@ object CsrgReader : FormatReader {
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
-        into.visitHeader(srcNs.name, dstNs.name)
 
-        while (!input.exhausted()) {
-            input.takeWhitespace()
-            if (input.peek() == '#') {
-                input.takeLine()
-                continue
-            }
-            val parts = input.takeRemainingOnLine()
-            when (parts.size) {
-                CLASS_MAPPING -> {
-                    val src = InternalName.read(parts[0].second)
-                    val dst = context.mapPackage(srcNs, dstNs, InternalName.read(parts[1].second))
-                    into.visitClass(mapOf(srcNs to src, dstNs to dst))
+        into.use {
+            visitHeader(srcNs.name, dstNs.name)
+
+            while (!input.exhausted()) {
+                input.takeWhitespace()
+                if (input.peek() == '#') {
+                    input.takeLine()
+                    continue
                 }
-                FIELD_MAPPING -> {
-                    val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0].second))
-                    val srcName = parts[1].second
-                    val dstName = parts[2].second
-                    into.visitClass(mapOf(dstNs to dstCls))?.visitField(mapOf(srcNs to (srcName to null), dstNs to (dstName to null)))
-                }
-                METHOD_MAPPING -> {
-                    val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0].second))
-                    val srcName = parts[1].second
-                    val dstDesc = context.mapDescPackages(srcNs, dstNs, MethodDescriptor.read(parts[2].second))
-                    val dstName = parts[3].second
-                    into.visitClass(mapOf(dstNs to dstCls))?.visitMethod(mapOf(srcNs to (srcName to null), dstNs to (dstName to dstDesc)))
-                }
-                else -> {
-                    throw IllegalArgumentException("Invalid line: ${parts.joinToString(" ") { it.second }}")
+                val parts = input.takeRemainingOnLine()
+                when (parts.size) {
+                    CLASS_MAPPING -> {
+                        val src = InternalName.read(parts[0].second)
+                        val dst = context.mapPackage(srcNs, dstNs, InternalName.read(parts[1].second))
+                        visitClass(mapOf(srcNs to src, dstNs to dst))?.visitEnd()
+                    }
+
+                    FIELD_MAPPING -> {
+                        val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0].second))
+                        val srcName = parts[1].second
+                        val dstName = parts[2].second
+                        visitClass(mapOf(dstNs to dstCls))?.use {
+                            visitField(mapOf(srcNs to (srcName to null), dstNs to (dstName to null)))?.visitEnd()
+                        }
+                    }
+
+                    METHOD_MAPPING -> {
+                        val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0].second))
+                        val srcName = parts[1].second
+                        val dstDesc = context.mapDescPackages(srcNs, dstNs, MethodDescriptor.read(parts[2].second))
+                        val dstName = parts[3].second
+                        into.visitClass(mapOf(dstNs to dstCls))?.use {
+                            visitMethod(mapOf(srcNs to (srcName to null), dstNs to (dstName to dstDesc)))?.visitEnd()
+                        }
+                    }
+
+                    else -> {
+                        throw IllegalArgumentException("Invalid line: ${parts.joinToString(" ") { it.second }}")
+                    }
                 }
             }
         }

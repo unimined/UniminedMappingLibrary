@@ -21,6 +21,10 @@ open class MultiBaseVisitor<T: BaseVisitor<T>>(val visitors: List<T>) : BaseVisi
         TODO()
     }
 
+    override fun visitEnd() {
+        visitors.forEach { it.visitEnd() }
+    }
+
 }
 
 open class MultiMappingVisitor(visitors: List<MappingVisitor>): MultiBaseVisitor<MappingVisitor>(visitors), MappingVisitor {
@@ -114,12 +118,20 @@ open class MultiMemberVisitor<T: MemberVisitor<T>>(visitors: List<T>): MultiBase
         return super.visitExtension(key, *values)
     }
 
+    override fun visitEnd() {
+        super.visitEnd()
+    }
+
 }
 
 open class MultiPackageVisitor(visitors: List<PackageVisitor>): MultiBaseVisitor<PackageVisitor>(visitors), PackageVisitor, AnnotationParentVisitor<PackageVisitor> by MultiAnnotationParentVisitor(visitors), CommentParentVisitor<PackageVisitor> by MultiCommentParentVisitor(visitors) {
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
+    }
+
+    override fun visitEnd() {
+        super.visitEnd()
     }
 
 }

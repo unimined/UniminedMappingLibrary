@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * this reads the methods.csv from mcp 3.0-5.6
@@ -38,50 +39,55 @@ object MCPv3FieldReader : FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        into.visitHeader(notchNs.name, seargeNs.name, mcpNs.name)
+        into.use {
+            visitHeader(notchNs.name, seargeNs.name, mcpNs.name)
 
-        var lastClass: Pair<InternalName, ClassVisitor?>? = null
+            var lastClass: Pair<InternalName, ClassVisitor?>? = null
 
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            val searge = input.takeCol().second
-            val name = input.takeCol().second
-            val notch =input.takeCol().second
-            input.takeCol() // sig
-            FieldDescriptor.read(input.takeCol().second) // notchsig
-            val className = input.takeCol().second
-            var classNotch = input.takeCol().second
-            val pkg = input.takeCol().second
-            val side = input.takeCol().second
-
-            if (side == "2" || side.toInt() == envType.ordinal) {
-                if (className == classNotch) {
-                    classNotch = "$pkg/$classNotch"
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
                 }
+                val searge = input.takeCol().second
+                val name = input.takeCol().second
+                val notch = input.takeCol().second
+                input.takeCol() // sig
+                FieldDescriptor.read(input.takeCol().second) // notchsig
+                val className = input.takeCol().second
+                var classNotch = input.takeCol().second
+                val pkg = input.takeCol().second
+                val side = input.takeCol().second
 
-                val cls = InternalName.read(classNotch)
-                if (lastClass?.first != cls) {
-                    lastClass = cls to into.visitClass(mapOf(notchNs to cls))
+                if (side == "2" || side.toInt() == envType.ordinal) {
+                    if (className == classNotch) {
+                        classNotch = "$pkg/$classNotch"
+                    }
+
+                    val cls = InternalName.read(classNotch)
+                    if (lastClass?.first != cls) {
+                        lastClass?.second?.visitEnd()
+                        lastClass = cls to visitClass(mapOf(notchNs to cls))
+                    }
+
+                    // ignoring notch field descriptor due to
+                    // "field_1003_b","mc","b","LMinecraft;","LMinecraft;","LoadingScreenRenderer","io","net/minecraft/src","0"
+                    // being annoying to fix the notch descriptor
+
+                    // ignoring searge field descriptor for basically the same reason, they have NO package remapping
+
+                    lastClass.second?.visitField(
+                        mapOf(
+                            notchNs to (notch to null),
+                            seargeNs to (searge to null),
+                            mcpNs to (name to null)
+                        ),
+                    )
+
                 }
-
-                // ignoring notch field descriptor due to
-                // "field_1003_b","mc","b","LMinecraft;","LMinecraft;","LoadingScreenRenderer","io","net/minecraft/src","0"
-                // being annoying to fix the notch descriptor
-
-                // ignoring searge field descriptor for basically the same reason, they have NO package remapping
-
-                lastClass.second?.visitField(
-                    mapOf(
-                        notchNs to (notch to null),
-                        seargeNs to (searge to null),
-                        mcpNs to (name to null)
-                    ),
-                )
-
             }
+
+            lastClass?.second?.visitEnd()
         }
 
     }

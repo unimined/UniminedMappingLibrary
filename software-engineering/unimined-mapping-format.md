@@ -286,7 +286,7 @@ the access modifiers are the lowercase string names.
 
 `<condition>` can be `*` for accepting any,
 or `-<access>` if an access is required to *not* be present, or `+<access>` if an access is required to be present.
-This condition is not affected by other access changes within the mappings.
+This condition is affected by previous access changes within the mappings.
 Conditions can be combined by simply appending them together, for example `+protected-final` to match being protected and not being final.
 
 for example, to make a method public in `named`, you would do

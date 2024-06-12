@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * MCP's SRG format.
@@ -39,51 +40,72 @@ object SrgReader : FormatReader {
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
-        into.visitHeader(srcNs.name, dstNs.name)
 
-        while (!input.exhausted()) {
-            input.takeWhitespace()
-            val key = input.takeNextLiteral(sep = ' ') ?: continue
-            when (key) {
-                "PK:" -> {
-                    val src = input.takeNextLiteral(sep = ' ')!!
-                    val dst = input.takeNextLiteral(sep = ' ')!!
-                    val srcFix = PackageName.read(if (src == ".") "" else "${src}/")
-                    val dstFix = PackageName.read(if (dst == ".") "" else "${dst}/")
-                    into.visitPackage(mapOf(srcNs to srcFix, dstNs to dstFix))
+        into.use {
+            visitHeader(srcNs.name, dstNs.name)
+
+            while (!input.exhausted()) {
+                input.takeWhitespace()
+                val key = input.takeNextLiteral(sep = ' ') ?: continue
+                when (key) {
+                    "PK:" -> {
+                        val src = input.takeNextLiteral(sep = ' ')!!
+                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val srcFix = PackageName.read(if (src == ".") "" else "${src}/")
+                        val dstFix = PackageName.read(if (dst == ".") "" else "${dst}/")
+                        visitPackage(mapOf(srcNs to srcFix, dstNs to dstFix))?.visitEnd()
+                    }
+
+                    "CL:" -> {
+                        val src = input.takeNextLiteral(sep = ' ')!!
+                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        visitClass(mapOf(srcNs to InternalName.read(src), dstNs to InternalName.read(dst)))?.visitEnd()
+                    }
+
+                    "FD:" -> {
+                        val src = input.takeNextLiteral(sep = ' ')!!
+                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val srcClass = src.substringBeforeLast('/')
+                        val dstClass = dst.substringBeforeLast('/')
+                        val srcField = src.substringAfterLast('/')
+                        val dstField = dst.substringAfterLast('/')
+                        into.visitClass(
+                            mapOf(
+                                srcNs to InternalName.read(srcClass),
+                                dstNs to InternalName.read(dstClass)
+                            )
+                        )?.use {
+                            visitField(
+                                mapOf(srcNs to (srcField to null), dstNs to (dstField to null))
+                            )
+                        }
+                    }
+
+                    "MD:" -> {
+                        val src = input.takeNextLiteral(sep = ' ')!!
+                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
+                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val dstDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
+                        val srcClass = src.substringBeforeLast('/')
+                        val dstClass = dst.substringBeforeLast('/')
+                        val srcMethod = src.substringAfterLast('/')
+                        val dstMethod = dst.substringAfterLast('/')
+                        into.visitClass(
+                            mapOf(
+                                srcNs to InternalName.read(srcClass),
+                                dstNs to InternalName.read(dstClass)
+                            )
+                        )?.use {
+                            visitMethod(
+                                mapOf(srcNs to (srcMethod to srcDesc), dstNs to (dstMethod to dstDesc))
+                            )
+                        }
+                    }
+
+                    else -> throw IllegalArgumentException("Unknown key $key")
                 }
-                "CL:" -> {
-                    val src = input.takeNextLiteral(sep = ' ')!!
-                    val dst = input.takeNextLiteral(sep = ' ')!!
-                    into.visitClass(mapOf(srcNs to InternalName.read(src), dstNs to InternalName.read(dst)))
-                }
-                "FD:" -> {
-                    val src = input.takeNextLiteral(sep = ' ')!!
-                    val dst = input.takeNextLiteral(sep = ' ')!!
-                    val srcClass = src.substringBeforeLast('/')
-                    val dstClass = dst.substringBeforeLast('/')
-                    val srcField = src.substringAfterLast('/')
-                    val dstField = dst.substringAfterLast('/')
-                    into.visitClass(mapOf(srcNs to InternalName.read(srcClass), dstNs to InternalName.read(dstClass)))?.visitField(
-                        mapOf(srcNs to (srcField to null), dstNs to (dstField to null))
-                    )
-                }
-                "MD:" -> {
-                    val src = input.takeNextLiteral(sep = ' ')!!
-                    val srcDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
-                    val dst = input.takeNextLiteral(sep = ' ')!!
-                    val dstDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
-                    val srcClass = src.substringBeforeLast('/')
-                    val dstClass = dst.substringBeforeLast('/')
-                    val srcMethod = src.substringAfterLast('/')
-                    val dstMethod = dst.substringAfterLast('/')
-                    into.visitClass(mapOf(srcNs to InternalName.read(srcClass), dstNs to InternalName.read(dstClass)))?.visitMethod(
-                        mapOf(srcNs to (srcMethod to srcDesc), dstNs to (dstMethod to dstDesc))
-                    )
-                }
-                else -> throw IllegalArgumentException("Unknown key ${key}")
+
             }
-
         }
 
     }

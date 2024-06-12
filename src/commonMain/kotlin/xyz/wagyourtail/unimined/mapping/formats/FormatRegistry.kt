@@ -11,9 +11,7 @@ import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3ClassesReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3MethodReader
-import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6FieldReader
-import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6MethodReader
-import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.MCPv6ParamReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.v6.*
 import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigAccessReader
 import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigConstructorReader
 import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigExceptionsReader
@@ -50,9 +48,9 @@ object FormatRegistry {
         FormatProvider(MCPv3MethodReader, mustBeAfter = listOf(MCPv3ClassesReader)),
         FormatProvider(MCPv3FieldReader, mustBeAfter = listOf(MCPv3ClassesReader)),
         FormatProvider(MCPExceptionReader, mustBeAfter = listOf(RetroguardReader, MCPv3ClassesReader, SrgReader, TsrgV1Reader, TsrgV2Reader)),
-        FormatProvider(MCPv6MethodReader, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
-        FormatProvider(MCPv6FieldReader, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
-        FormatProvider(MCPv6ParamReader, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader, MCPExceptionReader, MCPConfigConstructorReader, MCPConfigStaticMethodsReader)),
+        FormatProvider(MCPv6MethodReader, MCPv6MethodWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
+        FormatProvider(MCPv6FieldReader, MCPv6FieldWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
+        FormatProvider(MCPv6ParamReader, MCPv6ParamWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader, MCPExceptionReader, MCPConfigConstructorReader, MCPConfigStaticMethodsReader)),
         FormatProvider(MCPConfigConstructorReader, mustBeAfter = listOf(TsrgV1Reader)),
         FormatProvider(MCPConfigExceptionsReader, mustBeAfter = listOf(TsrgV1Reader)),
         FormatProvider(MCPConfigAccessReader, mustBeAfter = listOf(TsrgV1Reader)),

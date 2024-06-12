@@ -19,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * Ornithe's mapping format for adding inner class information to classes.
@@ -38,41 +39,50 @@ object NestReader : FormatReader {
         nsMapping: Map<String, String>
     ) {
         val ns = Namespace(nsMapping["source"] ?: "source")
-        into.visitHeader(ns.name)
 
-        while (!input.exhausted()) {
-            input.takeWhitespace()
-            val line = input.takeNextLiteral() ?: continue
-            val className = InternalName.read(line)
-            val outerClassName = InternalName.read(input.takeNextLiteral()!!)
-            val outerMethodName = input.takeNextLiteral()!!.let { if (it.isBlank()) null else UnqualifiedName.read(it) }
-            val outerMethodDesc = input.takeNextLiteral()!!.let { if (it.isBlank()) null else MethodDescriptor.read(it) }
-            val innerName = UnqualifiedName.read(input.takeNextLiteral()!!)
-            val access = input.takeNextLiteral()!!.toInt()
+        into.use {
+            visitHeader(ns.name)
+
+            while (!input.exhausted()) {
+                input.takeWhitespace()
+                val line = input.takeNextLiteral() ?: continue
+                val className = InternalName.read(line)
+                val outerClassName = InternalName.read(input.takeNextLiteral()!!)
+                val outerMethodName =
+                    input.takeNextLiteral()!!.let { if (it.isBlank()) null else UnqualifiedName.read(it) }
+                val outerMethodDesc =
+                    input.takeNextLiteral()!!.let { if (it.isBlank()) null else MethodDescriptor.read(it) }
+                val innerName = UnqualifiedName.read(input.takeNextLiteral()!!)
+                val access = input.takeNextLiteral()!!.toInt()
 
 
-            val type = if (innerName.value.toIntOrNull() != null) {
+                val type = if (innerName.value.toIntOrNull() != null) {
                     InnerClassNode.InnerType.ANONYMOUS
                 } else if (outerMethodName == null) {
                     InnerClassNode.InnerType.INNER
                 } else {
                     InnerClassNode.InnerType.LOCAL
                 }
-            val c = into.visitClass(mapOf(ns to className)) ?: continue
+                visitClass(mapOf(ns to className))?.use {
 
-            val fqn = FullyQualifiedName(ObjectType(outerClassName), if (outerMethodName == null) null else NameAndDescriptor(outerMethodName, FieldOrMethodDescriptor(outerMethodDesc!!)))
+                    val fqn = FullyQualifiedName(
+                        ObjectType(outerClassName),
+                        if (outerMethodName == null) null else NameAndDescriptor(
+                            outerMethodName,
+                            FieldOrMethodDescriptor(outerMethodDesc!!)
+                        )
+                    )
 
-            val i = c.visitInnerClass(
-                type,
-                mapOf(ns to (innerName.value to fqn))
-            ) ?: continue
-
-            for (acc in AccessFlag.of(ElementType.INNER_CLASS, access)) {
-                if (acc.elements.contains(ElementType.CLASS)) continue
-                i.visitAccess(AccessType.ADD, acc, AccessConditions.ALL, setOf(ns))
+                    visitInnerClass(type, mapOf(ns to (innerName.value to fqn)))?.use {
+                        for (acc in AccessFlag.of(ElementType.INNER_CLASS, access)) {
+                            if (acc.elements.contains(ElementType.CLASS)) continue
+                            visitAccess(AccessType.ADD, acc, AccessConditions.ALL, setOf(ns))?.visitEnd()
+                        }
+                    }
+                }
             }
-        }
 
+        }
     }
 
 }

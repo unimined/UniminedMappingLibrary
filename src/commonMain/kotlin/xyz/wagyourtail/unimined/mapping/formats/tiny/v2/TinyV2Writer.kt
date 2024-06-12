@@ -40,6 +40,8 @@ object TinyV2Writer : FormatWriter {
             return null
         }
 
+        override fun visitEnd() {}
+
     }
 
     open class TinyV2MemberWriter<T: MemberVisitor<T>>(into: (String) -> Unit, parent: BaseTinyV2Writer<*>?, indent: String = ""): BaseTinyV2Writer<T>(into, parent, indent), MemberVisitor<T> {

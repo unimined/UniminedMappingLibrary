@@ -71,7 +71,7 @@ class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: 
 
             // modify access according to mapping's access rules for this class
             classNode?.getMethods(namespace, method.name, MethodDescriptor.read(method.desc))?.forEach { mNode ->
-                for (node in mNode.access.values) {
+                for (node in mNode.access) {
                     if (node.conditions.check(originalAccess)) {
                         if (node.namespaces.contains(namespace)) {
                             if (node.accessType == AccessType.ADD) {

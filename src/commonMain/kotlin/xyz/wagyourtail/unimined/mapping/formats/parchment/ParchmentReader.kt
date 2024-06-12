@@ -12,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object ParchmentReader : FormatReader {
 
@@ -29,82 +30,89 @@ object ParchmentReader : FormatReader {
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")
 
-        into.visitHeader(srcNs.name)
+        into.use {
+            visitHeader(srcNs.name)
 
-        val json = Json.parseToJsonElement(input.takeRemaining()).jsonObject
+            val json = Json.parseToJsonElement(input.takeRemaining()).jsonObject
 
-        val packages = json["packages"]?.jsonArray ?: emptyList()
+            val packages = json["packages"]?.jsonArray ?: emptyList()
 
-        for (pkg in packages) {
-            val pkgObj = pkg.jsonObject
-            val pkgName = pkgObj["name"]?.jsonPrimitive?.content ?: continue
-            val javadoc = pkgObj["javadoc"]
-            val content = if (javadoc is JsonArray) {
-                javadoc.joinToString("\n") { it.jsonPrimitive.content }
-            } else {
-                javadoc?.jsonPrimitive?.content
-            }
-            if (content != null) {
-                into.visitPackage(mapOf(srcNs to PackageName.read("$pkgName/")))?.visitJavadoc(mapOf(srcNs to content))
-            }
-        }
-
-        val classes = json["classes"]?.jsonArray ?: emptyList()
-
-        for (cls in classes) {
-            val clsObj = cls.jsonObject
-            val clsName = clsObj["name"]?.jsonPrimitive?.content ?: continue
-            val clsVisitor = into.visitClass(mapOf(srcNs to InternalName.read(clsName))) ?: continue
-
-            val methods = clsObj["methods"]?.jsonArray ?: emptyList()
-            for (method in methods) {
-                val methodObj = method.jsonObject
-                val methodName = methodObj["name"]?.jsonPrimitive?.content ?: continue
-                val methodDesc = methodObj["descriptor"]?.jsonPrimitive?.content ?: continue
-                val javadoc = methodObj["javadoc"]
+            for (pkg in packages) {
+                val pkgObj = pkg.jsonObject
+                val pkgName = pkgObj["name"]?.jsonPrimitive?.content ?: continue
+                val javadoc = pkgObj["javadoc"]
                 val content = if (javadoc is JsonArray) {
                     javadoc.joinToString("\n") { it.jsonPrimitive.content }
                 } else {
                     javadoc?.jsonPrimitive?.content
                 }
-                val methodVisitor = clsVisitor.visitMethod(mapOf(srcNs to (methodName to MethodDescriptor.read(methodDesc))))
                 if (content != null) {
-                    methodVisitor?.visitJavadoc(mapOf(srcNs to content))
-                }
-
-                val params = methodObj["parameters"]?.jsonArray ?: emptyList()
-                for (param in params) {
-                    val paramObj = param.jsonObject
-                    val paramLvOrd = paramObj["index"]?.jsonPrimitive?.int ?: continue
-                    val paramName = paramObj["name"]?.jsonPrimitive?.content ?: continue
-                    val paramJavadoc = paramObj["javadoc"]
-                    val paramContent = if (paramJavadoc is JsonArray) {
-                        paramJavadoc.joinToString("\n") { it.jsonPrimitive.content }
-                    } else {
-                        paramJavadoc?.jsonPrimitive?.content
-                    }
-                    val paramVisitor = methodVisitor?.visitParameter(null, paramLvOrd, mapOf(srcNs to paramName))
-                    if (paramContent != null) {
-                        paramVisitor?.visitJavadoc(mapOf(srcNs to paramContent))
+                    visitPackage(mapOf(srcNs to PackageName.read("$pkgName/")))?.use {
+                        visitJavadoc(mapOf(srcNs to content))?.visitEnd()
                     }
                 }
-
             }
 
-            val fields = clsObj["fields"]?.jsonArray ?: emptyList()
-            for (field in fields) {
-                val fieldObj = field.jsonObject
-                val fieldName = fieldObj["name"]?.jsonPrimitive?.content ?: continue
-                val fieldDesc = fieldObj["descriptor"]?.jsonPrimitive?.content ?: continue
-                val javadoc = fieldObj["javadoc"]
-                val content = if (javadoc is JsonArray) {
-                    javadoc.joinToString("\n") { it.jsonPrimitive.content }
-                } else {
-                    javadoc?.jsonPrimitive?.content
-                }
-                val fieldVisitor = clsVisitor.visitField(mapOf(srcNs to (fieldName to FieldDescriptor.read(fieldDesc))))
-                if (content != null) {
-                    fieldVisitor?.visitJavadoc(mapOf(srcNs to content))
+            val classes = json["classes"]?.jsonArray ?: emptyList()
+
+            for (cls in classes) {
+                val clsObj = cls.jsonObject
+                val clsName = clsObj["name"]?.jsonPrimitive?.content ?: continue
+                into.visitClass(mapOf(srcNs to InternalName.read(clsName)))?.use {
+                    val methods = clsObj["methods"]?.jsonArray ?: emptyList()
+                    for (method in methods) {
+                        val methodObj = method.jsonObject
+                        val methodName = methodObj["name"]?.jsonPrimitive?.content ?: continue
+                        val methodDesc = methodObj["descriptor"]?.jsonPrimitive?.content ?: continue
+                        val javadoc = methodObj["javadoc"]
+                        val content = if (javadoc is JsonArray) {
+                            javadoc.joinToString("\n") { it.jsonPrimitive.content }
+                        } else {
+                            javadoc?.jsonPrimitive?.content
+                        }
+                        visitMethod(mapOf(srcNs to (methodName to MethodDescriptor.read(methodDesc))))?.use {
+                            if (content != null) {
+                                visitJavadoc(mapOf(srcNs to content))?.visitEnd()
+                            }
+
+                            val params = methodObj["parameters"]?.jsonArray ?: emptyList()
+                            for (param in params) {
+                                val paramObj = param.jsonObject
+                                val paramLvOrd = paramObj["index"]?.jsonPrimitive?.int ?: continue
+                                val paramName = paramObj["name"]?.jsonPrimitive?.content ?: continue
+                                val paramJavadoc = paramObj["javadoc"]
+                                val paramContent = if (paramJavadoc is JsonArray) {
+                                    paramJavadoc.joinToString("\n") { it.jsonPrimitive.content }
+                                } else {
+                                    paramJavadoc?.jsonPrimitive?.content
+                                }
+                                visitParameter(null, paramLvOrd, mapOf(srcNs to paramName))?.use {
+                                    if (paramContent != null) {
+                                        visitJavadoc(mapOf(srcNs to paramContent))?.visitEnd()
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+
+                    val fields = clsObj["fields"]?.jsonArray ?: emptyList()
+                    for (field in fields) {
+                        val fieldObj = field.jsonObject
+                        val fieldName = fieldObj["name"]?.jsonPrimitive?.content ?: continue
+                        val fieldDesc = fieldObj["descriptor"]?.jsonPrimitive?.content ?: continue
+                        val javadoc = fieldObj["javadoc"]
+                        val content = if (javadoc is JsonArray) {
+                            javadoc.joinToString("\n") { it.jsonPrimitive.content }
+                        } else {
+                            javadoc?.jsonPrimitive?.content
+                        }
+                        visitField(mapOf(srcNs to (fieldName to FieldDescriptor.read(fieldDesc))))?.use {
+                            if (content != null) {
+                                visitJavadoc(mapOf(srcNs to content))?.visitEnd()
+                            }
+                        }
+                    }
                 }
             }
         }

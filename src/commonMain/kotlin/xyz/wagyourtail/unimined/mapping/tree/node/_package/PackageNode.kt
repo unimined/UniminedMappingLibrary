@@ -25,17 +25,15 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         _names.putAll(names)
     }
 
-    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): PackageVisitor? {
-        val names = names.filterNotNullValues().filterKeys { it in nsFilter }
-        if (names.isEmpty()) return null
-        return visitor.visitPackage(names)
+    override fun acceptOuter(visitor: MappingVisitor, minimize: Boolean): PackageVisitor? {
+        return visitor.visitPackage(names.filterNotNullValues())
     }
 
-    override fun acceptInner(visitor: PackageVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: PackageVisitor, minimize: Boolean) {
         for (annotation in annotations) {
-            annotation.accept(visitor, nsFilter, minimize)
+            annotation.accept(visitor, minimize)
         }
-        super.acceptInner(visitor, nsFilter, minimize)
+        super.acceptInner(visitor, minimize)
     }
 
     override fun visitAnnotation(

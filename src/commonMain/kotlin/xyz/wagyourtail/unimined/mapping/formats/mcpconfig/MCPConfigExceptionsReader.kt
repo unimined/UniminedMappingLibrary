@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * reads the constructor file
@@ -38,21 +39,26 @@ object MCPConfigExceptionsReader : FormatReader{
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
-        into.visitHeader(srcNs.name)
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            val line = input.takeLine().split(" ").iterator()
-            val srcName = line.next()
-            val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
-            val srcMethod = srcName.substringAfterLast('/')
-            val srcDesc = MethodDescriptor.read(line.next())
-            val exceptions = line.asSequence().map { InternalName.read(it) }.toList()
-            into.visitClass(mapOf(srcNs to srcCls))?.visitMethod(mapOf(srcNs to (srcMethod to srcDesc)))?.let {
-                for (exception in exceptions) {
-                    it.visitException(ExceptionType.ADD, exception, srcNs, setOf(srcNs))
+
+        into.use {
+            visitHeader(srcNs.name)
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
+                }
+                val line = input.takeLine().split(" ").iterator()
+                val srcName = line.next()
+                val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
+                val srcMethod = srcName.substringAfterLast('/')
+                val srcDesc = MethodDescriptor.read(line.next())
+                val exceptions = line.asSequence().map { InternalName.read(it) }.toList()
+                visitClass(mapOf(srcNs to srcCls))?.use {
+                    visitMethod(mapOf(srcNs to (srcMethod to srcDesc)))?.use {
+                        for (exception in exceptions) {
+                            visitException(ExceptionType.ADD, exception, srcNs, setOf(srcNs))?.visitEnd()
+                        }
+                    }
                 }
             }
         }

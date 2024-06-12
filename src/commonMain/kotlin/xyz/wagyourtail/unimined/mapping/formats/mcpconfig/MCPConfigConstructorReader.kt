@@ -9,6 +9,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * reads the constructor file
@@ -39,25 +40,29 @@ object MCPConfigConstructorReader : FormatReader{
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
-        into.visitHeader(srcNs.name)
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            val line = input.takeLine().split(" ")
-            val id = line[0].toInt()
-            val srcCls = InternalName.read(line[1])
-            val srcMethod = MethodDescriptor.read(line[2])
-            if (line.size > 3) {
-                throw IllegalStateException("expected 3 elements on line, found more")
-            }
-            into.visitClass(mapOf(srcNs to srcCls))?.visitMethod(mapOf(srcNs to ("<init>" to srcMethod)))?.let {
-                var lvtIdx = 1
-                val parts = srcMethod.getParts().second
-                for (idx in parts.indices) {
-                    it.visitParameter(idx, lvtIdx, mapOf(srcNs to "p_i${id}_${idx + 1}"))
-                    lvtIdx += parts[idx].value.getWidth()
+        into.use {
+            visitHeader(srcNs.name)
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
+                }
+                val line = input.takeLine().split(" ")
+                val id = line[0].toInt()
+                val srcCls = InternalName.read(line[1])
+                val srcMethod = MethodDescriptor.read(line[2])
+                if (line.size > 3) {
+                    throw IllegalStateException("expected 3 elements on line, found more")
+                }
+                visitClass(mapOf(srcNs to srcCls))?.use {
+                    visitMethod(mapOf(srcNs to ("<init>" to srcMethod)))?.use {
+                        var lvtIdx = 1
+                        val parts = srcMethod.getParts().second
+                        for (idx in parts.indices) {
+                            visitParameter(idx, lvtIdx, mapOf(srcNs to "p_i${id}_${idx + 1}"))?.visitEnd()
+                            lvtIdx += parts[idx].value.getWidth()
+                        }
+                    }
                 }
             }
         }

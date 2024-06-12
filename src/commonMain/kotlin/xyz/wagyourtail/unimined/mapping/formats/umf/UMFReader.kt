@@ -83,22 +83,26 @@ object UMFReader : FormatReader {
 
         input.takeWhitespace()
         val namespaces = input.takeRemainingOnLine().map { nsMapping[it.second] ?: it.second }.toMutableList()
-        into.visitHeader(*namespaces.toTypedArray())
 
-        fun getNamespace(i: Int): Namespace {
-            while (i !in namespaces.indices) {
-                namespaces.add(into.nextUnnamedNs().name)
+        into.use {
+            visitHeader(*namespaces.toTypedArray())
+
+            fun getNamespace(i: Int): Namespace {
+                while (i !in namespaces.indices) {
+                    namespaces.add(into.nextUnnamedNs().name)
+                }
+                return Namespace(namespaces[i])
             }
-            return Namespace(namespaces[i])
-        }
 
-        val visitStack = mutableListOf<BaseVisitor<*>?>(into)
-        val indentStack = mutableListOf(-1)
-        readWithStack(envType, input, context, into, nsMapping, visitStack, indentStack, ::getNamespace)
+            val visitStack = mutableListOf<BaseVisitor<*>?>(into)
+            val indentStack = mutableListOf(-1)
+            readWithStack(envType, input, context, into, nsMapping, visitStack, indentStack, ::getNamespace)
+        }
     }
 
     internal fun readWithStack(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>, visitStack: MutableList<BaseVisitor<*>?>, indentStack: MutableList<Int>, getNamespace: (Int) -> Namespace) {
         val unchecked = uncheckedReading
+        val initialSize = visitStack.size
         var line = 2
         var token: Pair<TokenType, String>
         while (!input.exhausted()) {
@@ -111,7 +115,7 @@ object UMFReader : FormatReader {
             }
             val entryType = EntryType.byKey[token.second.first()] ?: throw IllegalArgumentException("Invalid entry type ${token.second}")
             while (indent <= indentStack.last()) {
-                visitStack.removeLast()
+                visitStack.removeLast()?.visitEnd()
                 indentStack.removeLast()
             }
             val last = visitStack.last()
@@ -285,6 +289,10 @@ object UMFReader : FormatReader {
             } else {
                 visitStack.add(null)
             }
+        }
+        while (visitStack.size > initialSize) {
+            visitStack.removeLast()?.visitEnd()
+            indentStack.removeLast()
         }
     }
 

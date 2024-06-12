@@ -11,6 +11,7 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object ProguardReader : FormatReader {
 
@@ -26,9 +27,9 @@ object ProguardReader : FormatReader {
         return super.getSide(fileName, inputType)
     }
 
-    private fun remapProguardParamDesc(desc: String): String {
+    private fun remapProguardParamDesc(fancyDesc: String): String {
         var i = 0
-        var desc = desc
+        var desc = fancyDesc
         while (desc.endsWith("[]")) {
             i++
             desc = desc.substring(0, desc.length-2)
@@ -71,41 +72,47 @@ object ProguardReader : FormatReader {
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.visitHeader(srcNs.name, dstNs.name)
+        into.use {
+            visitHeader(srcNs.name, dstNs.name)
 
-        var cls: ClassVisitor? = null
+            var cls: ClassVisitor? = null
 
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            val indent = input.takeWhitespace()
-            val line = input.takeLine()
-            if (line.startsWith("#")) continue
-            if (indent.isEmpty()) {
-                val parts = line.split("->")
-                val srcCls = InternalName.read(parts[0].trim().replace(".", "/"))
-                val dstCls = InternalName.read(parts[1].trim().removeSuffix(":").replace(".", "/"))
-                cls = into.visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))
-            } else {
-                val parts = line.split("->")
-                val src = parts[0].trim().split(" ")
-                val dst = parts[1].trim()
-                val srcDesc = src[0].split(":")
-                if (src[1].endsWith(")")) {
-                    // method
-                    val srcRetVal = remapProguardParamDesc(srcDesc.last())
-                    val srcName = src[1].substringBeforeLast("(")
-                    val mDesc = MethodDescriptor.read(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
-                    cls?.visitMethod(mapOf(srcNs to (srcName to mDesc), dstNs to (dst to null)))
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
+                }
+                val indent = input.takeWhitespace()
+                val line = input.takeLine()
+                if (line.startsWith("#")) continue
+                if (indent.isEmpty()) {
+                    val parts = line.split("->")
+                    val srcCls = InternalName.read(parts[0].trim().replace(".", "/"))
+                    val dstCls = InternalName.read(parts[1].trim().removeSuffix(":").replace(".", "/"))
+                    cls?.visitEnd()
+                    cls = visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))
                 } else {
-                    // field
-                    val fDesc = FieldDescriptor.read(remapProguardParamDesc(srcDesc.last()))
-                    val srcName = src[1]
-                    cls?.visitField(mapOf(srcNs to (srcName to fDesc), dstNs to (dst to null)))
+                    val parts = line.split("->")
+                    val src = parts[0].trim().split(" ")
+                    val dst = parts[1].trim()
+                    val srcDesc = src[0].split(":")
+                    if (src[1].endsWith(")")) {
+                        // method
+                        val srcRetVal = remapProguardParamDesc(srcDesc.last())
+                        val srcName = src[1].substringBeforeLast("(")
+                        val mDesc =
+                            MethodDescriptor.read(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
+                        cls?.visitMethod(mapOf(srcNs to (srcName to mDesc), dstNs to (dst to null)))?.visitEnd()
+                    } else {
+                        // field
+                        val fDesc = FieldDescriptor.read(remapProguardParamDesc(srcDesc.last()))
+                        val srcName = src[1]
+                        cls?.visitField(mapOf(srcNs to (srcName to fDesc), dstNs to (dst to null)))?.visitEnd()
+                    }
                 }
             }
+
+            cls?.visitEnd()
         }
 
     }

@@ -86,10 +86,13 @@ object MCPv1MethodReader : FormatReader {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
-        into.visitHeader(srcNs.name, dstNs.name)
-
         context?.accept(
             into.delegator(object : NullDelegator() {
+
+                override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+                    val ns = setOf(*namespaces, srcNs.name, dstNs.name)
+                    super.visitHeader(delegate, *ns.toTypedArray())
+                }
 
                 override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
                     return default.visitClass(delegate, names)
@@ -105,7 +108,7 @@ object MCPv1MethodReader : FormatReader {
                     nameMap[dstNs] = mData.first to ns.second
                     val visitor = default.visitMethod(delegate, nameMap)
                     if (mData.second != null) {
-                        visitor?.visitJavadoc(mapOf(dstNs to mData.second!!))
+                        visitor?.visitJavadoc(mapOf(dstNs to mData.second!!))?.visitEnd()
                     }
                     return visitor
                 }
@@ -116,6 +119,8 @@ object MCPv1MethodReader : FormatReader {
 
             })
         )
+
+        into.visitEnd()
 
     }
 

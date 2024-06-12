@@ -63,10 +63,13 @@ object MCPv6ParamReader : FormatReader {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
-        into.visitHeader(srcNs.name, dstNs.name)
-
         context?.accept(
             into.delegator(object : NullDelegator() {
+
+                override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+                    val ns = setOf(*namespaces, srcNs.name, dstNs.name)
+                    super.visitHeader(delegate, *ns.toTypedArray())
+                }
 
                 override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
                     return default.visitClass(delegate, names)
@@ -86,7 +89,7 @@ object MCPv6ParamReader : FormatReader {
                                         null,
                                         lvOrd,
                                         mapOf(srcNs to searge, dstNs to name)
-                                    )
+                                    )?.visitEnd()
                                 }
                             }
                         }

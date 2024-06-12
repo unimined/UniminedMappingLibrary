@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 abstract class Propogator<T: Propogator<T>>(val namespace: Namespace, val tree: AbstractMappingTree) {
     private val LOGGER = KotlinLogging.logger {  }
@@ -74,7 +75,9 @@ abstract class Propogator<T: Propogator<T>>(val namespace: Namespace, val tree: 
         }
 
         for ((method, nsNames) in names) {
-            visitor.visitClass(mapOf(namespace to method.first))?.visitMethod(mapOf(namespace to (method.second.first to method.second.second)) + nsNames.mapValues { it.value.first() to null })
+            visitor.visitClass(mapOf(namespace to method.first))?.use {
+                visitMethod(mapOf(namespace to (method.second.first to method.second.second)) + nsNames.mapValues { it.value.first() to null })?.visitEnd()
+            }
         }
     }
 

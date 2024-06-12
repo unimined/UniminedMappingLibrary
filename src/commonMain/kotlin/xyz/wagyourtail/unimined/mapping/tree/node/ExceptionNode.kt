@@ -16,16 +16,8 @@ class ExceptionNode(parent: MethodNode, val type: ExceptionType, val exception: 
         _namespaces.addAll(namespaces)
     }
 
-    override fun acceptOuter(visitor: MethodVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ExceptionVisitor? {
-        if (baseNs !in nsFilter) {
-            val ns = nsFilter.filter { it in namespaces }.toSet()
-            if (ns.isEmpty()) return null
-            val first = ns.first()
-            val mapped = root.map(baseNs, first, exception)
-            return visitor.visitException(type, mapped, first, ns - first)
-        } else {
-            return visitor.visitException(type, exception, baseNs, nsFilter.filter { it in namespaces }.toSet() - baseNs)
-        }
+    override fun acceptOuter(visitor: MethodVisitor, minimize: Boolean): ExceptionVisitor? {
+        return visitor.visitException(type, exception, baseNs, namespaces)
     }
 
 }

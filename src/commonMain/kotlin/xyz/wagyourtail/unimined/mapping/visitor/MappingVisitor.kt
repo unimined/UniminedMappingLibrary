@@ -18,6 +18,13 @@ interface BaseVisitor<T: BaseVisitor<T>> {
 
     fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>?
 
+    fun visitEnd()
+
+}
+
+inline fun <T: BaseVisitor<T>> T.use(visitor: T.() -> Unit) {
+    visitor(this)
+    visitEnd()
 }
 
 interface NullVisitor : BaseVisitor<NullVisitor>

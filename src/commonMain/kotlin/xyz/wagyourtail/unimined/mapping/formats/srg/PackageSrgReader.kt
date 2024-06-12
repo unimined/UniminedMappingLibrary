@@ -8,6 +8,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object PackageSrgReader : FormatReader {
 
@@ -27,13 +28,20 @@ object PackageSrgReader : FormatReader {
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.visitHeader(srcNs.name, dstNs.name)
+        into.use {
+            visitHeader(srcNs.name, dstNs.name)
 
-        while (!input.exhausted()) {
-            input.takeWhitespace()
-            val src = input.takeNextLiteral(sep = ' ') ?: continue
-            val dst = input.takeNextLiteral(sep = ' ') ?: continue
-            into.visitPackage(mapOf(srcNs to PackageName.read(if (src == "./") "" else src), dstNs to PackageName.read(if (dst == "./") "" else dst)))
+            while (!input.exhausted()) {
+                input.takeWhitespace()
+                val src = input.takeNextLiteral(sep = ' ') ?: continue
+                val dst = input.takeNextLiteral(sep = ' ') ?: continue
+                visitPackage(
+                    mapOf(
+                        srcNs to PackageName.read(if (src == "./") "" else src),
+                        dstNs to PackageName.read(if (dst == "./") "" else dst)
+                    )
+                )?.visitEnd()
+            }
         }
 
     }

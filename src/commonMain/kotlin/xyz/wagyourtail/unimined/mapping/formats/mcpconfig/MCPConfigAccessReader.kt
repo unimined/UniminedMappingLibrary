@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * reads the constructor file
@@ -45,28 +46,33 @@ object MCPConfigAccessReader : FormatReader{
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
-        into.visitHeader(srcNs.name)
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
+        into.use {
+            visitHeader(srcNs.name)
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
+                }
+                val line = input.takeLine().split(" ").iterator()
+                val access = AccessFlag.valueOf(line.next().uppercase())
+                val srcCls = InternalName.read(line.next())
+                val srcName = line.next()
+                val srcDesc = MethodDescriptor.read(line.next())
+                if (line.hasNext()) {
+                    throw IllegalStateException("expected 4 elements on line, found more")
+                }
+                visitClass(mapOf(srcNs to srcCls))?.use {
+                    visitMethod(mapOf(srcNs to (srcName to srcDesc)))?.use {
+                        visitAccess(
+                            AccessType.ADD,
+                            access,
+                            AccessConditions.ALL,
+                            setOf(srcNs)
+                        )?.visitEnd()
+                    }
+                }
             }
-            val line = input.takeLine().split(" ").iterator()
-            val access = AccessFlag.valueOf(line.next().uppercase())
-            val srcCls = InternalName.read(line.next())
-            val srcName = line.next()
-            val srcDesc = MethodDescriptor.read(line.next())
-            if (line.hasNext()) {
-                throw IllegalStateException("expected 4 elements on line, found more")
-            }
-            into.visitClass(mapOf(srcNs to srcCls))?.visitMethod(mapOf(srcNs to (srcName to srcDesc)))?.visitAccess(
-                AccessType.ADD,
-                access,
-                AccessConditions.ALL,
-                setOf(srcNs)
-            )
         }
     }
-
-
 }
+

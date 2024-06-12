@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
  * This reader is for MCP's bastardization of the RetroGuard obfuscation config.
@@ -47,43 +48,52 @@ object RetroguardReader : FormatReader {
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.visitHeader(srcNs.name, dstNs.name)
+        into.use {
+            visitHeader(srcNs.name, dstNs.name)
 
-        // hardcoded package mapping
-        into.visitPackage(mapOf(srcNs to PackageName.read(""), dstNs to PackageName.read(PKG)))
+            // hardcoded package mapping
+            visitPackage(mapOf(srcNs to PackageName.read(""), dstNs to PackageName.read(PKG)))
 
-        while (!input.exhausted()) {
-            input.takeWhitespace()
-            val key = input.takeNextLiteral(sep = ' ') ?: continue
+            while (!input.exhausted()) {
+                input.takeWhitespace()
+                val key = input.takeNextLiteral(sep = ' ') ?: continue
 
-            when (key) {
-                ".class_map" -> {
-                    val srcName = InternalName.read(input.takeNextLiteral(sep = ' ')!!)
-                    val dst = input.takeNextLiteral(sep = ' ')!!
-                    val dstName = InternalName.read(if (dst.contains('/')) dst else "$PKG$dst")
-                    into.visitClass(mapOf(srcNs to srcName, dstNs to dstName))
+                when (key) {
+                    ".class_map" -> {
+                        val srcName = InternalName.read(input.takeNextLiteral(sep = ' ')!!)
+                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val dstName = InternalName.read(if (dst.contains('/')) dst else "$PKG$dst")
+                        visitClass(mapOf(srcNs to srcName, dstNs to dstName))?.visitEnd()
+                    }
+
+                    ".field_map" -> {
+                        val srcName = input.takeNextLiteral(sep = ' ')!!
+                        val dstFd = input.takeNextLiteral(sep = ' ')!!
+                        val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
+                        val srcFd = srcName.substringAfterLast('/')
+                        into.visitClass(mapOf(srcNs to srcCls))?.use {
+                            visitField(
+                                mapOf(srcNs to (srcFd to null), dstNs to (dstFd to null))
+                            )?.visitEnd()
+                        }
+                    }
+
+                    ".method_map" -> {
+                        val srcName = input.takeNextLiteral(sep = ' ')!!
+                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
+                        val dstMd = input.takeNextLiteral(sep = ' ')!!
+                        val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
+                        val srcMd = srcName.substringAfterLast('/')
+
+                        into.visitClass(mapOf(srcNs to srcCls))?.use {
+                            visitMethod(
+                                mapOf(srcNs to (srcMd to srcDesc), dstNs to (dstMd to null))
+                            )?.visitEnd()
+                        }
+                    }
+
+                    else -> {} // ignore all others
                 }
-                ".field_map" -> {
-                    val srcName = input.takeNextLiteral(sep = ' ')!!
-                    val dstFd = input.takeNextLiteral(sep = ' ')!!
-                    val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
-                    val srcFd = srcName.substringAfterLast('/')
-                    into.visitClass(mapOf(srcNs to srcCls))?.visitField(
-                        mapOf(srcNs to (srcFd to null), dstNs to (dstFd to null))
-                    )
-                }
-                ".method_map" -> {
-                    val srcName = input.takeNextLiteral(sep = ' ')!!
-                    val srcDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
-                    val dstMd = input.takeNextLiteral(sep = ' ')!!
-                    val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
-                    val srcMd = srcName.substringAfterLast('/')
-
-                    into.visitClass(mapOf(srcNs to srcCls))?.visitMethod(
-                        mapOf(srcNs to (srcMd to srcDesc), dstNs to (dstMd to null))
-                    )
-                }
-                else -> {} // ignore all others
             }
         }
 

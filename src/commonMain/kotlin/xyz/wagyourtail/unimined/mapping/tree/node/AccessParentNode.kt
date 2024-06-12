@@ -10,14 +10,14 @@ import xyz.wagyourtail.unimined.mapping.visitor.BaseVisitor
 
 abstract class AccessParentNode<T: AccessParentVisitor<T>, U: BaseVisitor<U>>(parent: BaseNode<U, *>?) : BaseNode<T, U>(parent), AccessParentVisitor<T> {
 
-    private val _access: MutableMap<AccessFlag, AccessNode<T>> = mutableMapOf()
-    val access: Map<AccessFlag, AccessNode<T>> get() = _access
+    private val _access: MutableList<AccessNode<T>> = mutableListOf()
+    val access: List<AccessNode<T>> get() = _access
 
-    override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        for (access in access.values) {
-            access.accept(visitor, nsFilter, minimize)
+    override fun acceptInner(visitor: T, minimize: Boolean) {
+        for (access in access) {
+            access.accept(visitor, minimize)
         }
-        super.acceptInner(visitor, nsFilter, minimize)
+        super.acceptInner(visitor, minimize)
     }
 
     override fun visitAccess(
@@ -28,7 +28,7 @@ abstract class AccessParentNode<T: AccessParentVisitor<T>, U: BaseVisitor<U>>(pa
     ): AccessVisitor? {
         val node = AccessNode(this, type, value, condition)
         node.addNamespaces(namespaces)
-        _access[value] = node
+        _access.add(node)
         return node
     }
 

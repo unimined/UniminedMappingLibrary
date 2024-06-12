@@ -78,12 +78,12 @@ class LazyMappingTree : AbstractMappingTree() {
         }
     }
 
-    override fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
-        return object : AbstractList<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
+    override fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor) -> Unit>> {
+        return object : AbstractList<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor) -> Unit>>() {
             override val size: Int
                 get() = _classes.size
 
-            override fun get(index: Int): Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
+            override fun get(index: Int): Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor) -> Unit> {
                 val node = _classes[index]
                 return Triple(node.names, node::resolve, node::accept)
             }
@@ -91,12 +91,12 @@ class LazyMappingTree : AbstractMappingTree() {
         }
     }
 
-    override fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
-        return object : AbstractList<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
+    override fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor) -> Unit>> {
+        return object : AbstractList<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor) -> Unit>>() {
             override val size: Int
                 get() = _packages.size
 
-            override fun get(index: Int): Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
+            override fun get(index: Int): Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor) -> Unit> {
                 val node = _packages[index]
                 return Triple(node.names, node::resolve, node::accept)
             }
@@ -104,12 +104,12 @@ class LazyMappingTree : AbstractMappingTree() {
         }
     }
 
-    override fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
-        return object : AbstractList<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
+    override fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor) -> Unit>> {
+        return object : AbstractList<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor) -> Unit>>() {
             override val size: Int
                 get() = _constantGroups.size
 
-            override fun get(index: Int): Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
+            override fun get(index: Int): Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor) -> Unit> {
                 val node = _constantGroups[index]
                 return Triple(Triple(node.name, node.type, listOf(node.baseNs) + node.namespaces), node::resolve, node::accept)
             }
@@ -165,23 +165,22 @@ class LazyMappingTree : AbstractMappingTree() {
         return node.visitConstantGroup(type, name, baseNs, namespaces)
     }
 
-    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: MappingVisitor, minimize: Boolean) {
         if (minimize) {
-            super.acceptInner(visitor, nsFilter, minimize)
+            super.acceptInner(visitor, minimize)
         } else {
             visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
             for (ext in extensions) {
-                ext.value.accept(visitor, nsFilter, minimize)
+                ext.value.accept(visitor, minimize)
             }
-            val nsFilterSet = nsFilter.toSet()
             for (node in _packages) {
-                node.accept(visitor, nsFilterSet)
+                node.accept(visitor)
             }
             for (node in _classes) {
-                node.accept(visitor, nsFilterSet)
+                node.accept(visitor)
             }
             for (node in _constantGroups) {
-                node.accept(visitor, nsFilterSet)
+                node.accept(visitor)
             }
         }
     }
@@ -208,11 +207,11 @@ class LazyMappingTree : AbstractMappingTree() {
                     override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
                         return node
                     }
-                }, tree.namespaces.toSet())
+                })
             }
         }
 
-        fun accept(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
+        fun accept(visitor: MappingVisitor) {
             val cls = visitor.visitClass(this.names)
             if (cls != null) {
                 UMFReader.readWithStack(
@@ -226,6 +225,7 @@ class LazyMappingTree : AbstractMappingTree() {
                     tree.namespaces::get
                 )
             }
+            cls?.visitEnd()
         }
     }
 
@@ -251,11 +251,11 @@ class LazyMappingTree : AbstractMappingTree() {
                     override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor {
                         return node
                     }
-                }, tree.namespaces.toSet())
+                })
             }
         }
 
-        fun accept(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
+        fun accept(visitor: MappingVisitor) {
             val pkg = visitor.visitPackage(this.names)
             if (pkg != null) {
                 UMFReader.readWithStack(
@@ -269,6 +269,7 @@ class LazyMappingTree : AbstractMappingTree() {
                     tree.namespaces::get
                 )
             }
+            pkg?.visitEnd()
         }
     }
 
@@ -300,12 +301,12 @@ class LazyMappingTree : AbstractMappingTree() {
                     ): ConstantGroupVisitor {
                         return node
                     }
-                }, tree.namespaces.toSet())
+                })
             }
         }
 
-        fun accept(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
-            val cgn = visitor.visitConstantGroup(type, name, baseNs, namespaces.filter { it in nsFilter }.toSet())
+        fun accept(visitor: MappingVisitor) {
+            val cgn = visitor.visitConstantGroup(type, name, baseNs, namespaces.toSet())
             if (cgn != null) {
                 UMFReader.readWithStack(
                     EnvType.JOINED,
@@ -318,6 +319,7 @@ class LazyMappingTree : AbstractMappingTree() {
                     tree.namespaces::get
                 )
             }
+            cgn?.visitEnd()
         }
     }
 }

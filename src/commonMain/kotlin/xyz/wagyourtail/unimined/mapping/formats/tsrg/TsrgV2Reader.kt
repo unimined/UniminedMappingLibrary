@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object TsrgV2Reader : FormatReader {
 
@@ -36,64 +37,82 @@ object TsrgV2Reader : FormatReader {
             val nsName = input.takeNextLiteral(' ') ?: break
             ns.add(Namespace(nsMapping[nsName] ?: nsName))
         }
-        into.visitHeader(*ns.map { it.name }.toTypedArray())
 
-        var cls: ClassVisitor? = null
-        var md : MethodVisitor? = null
+        into.use {
+            into.visitHeader(*ns.map { it.name }.toTypedArray())
 
-        while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                continue
-            }
-            val whitespace = input.takeWhitespace()
-            if (whitespace.isEmpty()) {
-                // cls
-                val names = mutableListOf<InternalName>()
-                while (true) {
-                    val name = input.takeNextLiteral(' ') ?: break
-                    names.add(InternalName.read(name))
+            var cls: ClassVisitor? = null
+            var md: MethodVisitor? = null
+
+            while (!input.exhausted()) {
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
                 }
-                cls = into.visitClass(names.withIndex().associate { ns[it.index] to it.value })
-            } else if (whitespace.length == 1) {
-                // method
-                val srcName = input.takeNextLiteral(' ')!!
-                input.takeWhitespace()
-                if (input.peek() == '(') {
-                    // method
-                    val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
-                    val names = mutableListOf<Pair<String, MethodDescriptor?>>()
+                val whitespace = input.takeWhitespace()
+                if (whitespace.isEmpty()) {
+                    // cls
+                    val names = mutableListOf<InternalName>()
                     while (true) {
                         val name = input.takeNextLiteral(' ') ?: break
-                        names.add(name to null)
+                        names.add(InternalName.read(name))
                     }
-                    md = cls?.visitMethod(names.withIndex().associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to srcDesc)))
-                } else {
-                    // field
-                    val names = mutableListOf<Pair<String, FieldDescriptor?>>()
-                    while (true) {
-                        val name = input.takeNextLiteral(' ') ?: break
-                        names.add(name to null)
-                    }
-                    cls?.visitField(names.withIndex().associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to null)))
+                    md?.visitEnd()
                     md = null
-                }
-            } else if (whitespace.length == 2) {
-                // param
-                val index = input.takeNextLiteral(' ')!!
-                if (index.toIntOrNull() != null) {
-                    val names = mutableListOf<String>()
-                    while (true) {
-                        val name = input.takeNextLiteral(' ') ?: break
-                        names.add(name)
+                    cls?.visitEnd()
+                    cls = into.visitClass(names.withIndex().associate { ns[it.index] to it.value })
+                } else if (whitespace.length == 1) {
+                    // method
+                    val srcName = input.takeNextLiteral(' ')!!
+                    input.takeWhitespace()
+                    if (input.peek() == '(') {
+                        // method
+                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
+                        val names = mutableListOf<Pair<String, MethodDescriptor?>>()
+                        while (true) {
+                            val name = input.takeNextLiteral(' ') ?: break
+                            names.add(name to null)
+                        }
+                        md?.visitEnd()
+                        md = cls?.visitMethod(
+                            names.withIndex()
+                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to srcDesc)))
+                    } else {
+                        // field
+                        val names = mutableListOf<Pair<String, FieldDescriptor?>>()
+                        while (true) {
+                            val name = input.takeNextLiteral(' ') ?: break
+                            names.add(name to null)
+                        }
+                        cls?.visitField(
+                            names.withIndex()
+                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to null)))
+                            ?.visitEnd()
+                        md = null
                     }
-                    md?.visitParameter(index.toInt(), null, ns.withIndex().associate { it.value to names[it.index] })
+                } else if (whitespace.length == 2) {
+                    // param
+                    val index = input.takeNextLiteral(' ')!!
+                    if (index.toIntOrNull() != null) {
+                        val names = mutableListOf<String>()
+                        while (true) {
+                            val name = input.takeNextLiteral(' ') ?: break
+                            names.add(name)
+                        }
+                        md?.visitParameter(
+                            index.toInt(),
+                            null,
+                            ns.withIndex().associate { it.value to names[it.index] })?.visitEnd()
+                    } else {
+                        input.takeLine()
+                    }
                 } else {
-                    input.takeLine()
+                    throw IllegalArgumentException("invalid line, unexpected whitespace: \"${whitespace.escape()}\"")
                 }
-            } else {
-                throw IllegalArgumentException("invalid line, unexpected whitespace: \"${whitespace.escape()}\"")
             }
+
+            md?.visitEnd()
+            cls?.visitEnd()
         }
 
 

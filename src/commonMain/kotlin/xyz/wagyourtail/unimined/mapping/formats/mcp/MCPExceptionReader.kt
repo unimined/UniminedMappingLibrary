@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object MCPExceptionReader : FormatReader {
 
@@ -120,29 +121,35 @@ object MCPExceptionReader : FormatReader {
 
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
 
-        into.visitHeader(srcNs.name)
+        into.use {
+            visitHeader(srcNs.name)
 
-        for ((e, excParam) in data) {
-            val cls = e.first
-            val method = e.second
-            val exc = excParam.first
-            val param = excParam.second
-            val access = excParam.third
+            for ((e, excParam) in data) {
+                val cls = e.first
+                val method = e.second
+                val exc = excParam.first
+                val param = excParam.second
+                val access = excParam.third
 
-            val md = into.visitClass(mapOf(srcNs to cls))?.visitMethod(mapOf(srcNs to (method.first to method.second)))
-
-            if (md != null) {
-                for (ex in exc) {
-                    md.visitException(ExceptionType.ADD, ex, srcNs, setOf())
-                }
-                for (i in param.indices) {
-                    md.visitParameter(i, null, mapOf(srcNs to param[i]))
-                }
-                if (access != null) {
-                    md.visitAccess(AccessType.ADD, AccessFlag.valueOf(access), AccessConditions.ALL, setOf(srcNs))
+                visitClass(mapOf(srcNs to cls))?.use {
+                    visitMethod(mapOf(srcNs to (method.first to method.second)))?.use {
+                        for (ex in exc) {
+                            visitException(ExceptionType.ADD, ex, srcNs, setOf())?.visitEnd()
+                        }
+                        for (i in param.indices) {
+                            visitParameter(i, null, mapOf(srcNs to param[i]))?.visitEnd()
+                        }
+                        if (access != null) {
+                            visitAccess(
+                                AccessType.ADD,
+                                AccessFlag.valueOf(access),
+                                AccessConditions.ALL,
+                                setOf(srcNs)
+                            )?.visitEnd()
+                        }
+                    }
                 }
             }
-
         }
 
     }

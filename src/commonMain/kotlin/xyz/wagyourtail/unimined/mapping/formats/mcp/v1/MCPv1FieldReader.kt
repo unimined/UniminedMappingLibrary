@@ -86,15 +86,17 @@ object MCPv1FieldReader : FormatReader {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
-        into.visitHeader(srcNs.name, dstNs.name)
-
         context?.accept(
             into.delegator(object : NullDelegator() {
+
+                override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+                    val ns = setOf(*namespaces, srcNs.name, dstNs.name)
+                    super.visitHeader(delegate, *ns.toTypedArray())
+                }
 
                 override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
                     return default.visitClass(delegate, names)
                 }
-
 
                 override fun visitField(
                     delegate: ClassVisitor,
@@ -106,7 +108,7 @@ object MCPv1FieldReader : FormatReader {
                     nameMap[dstNs] = fData.first to ns.second
                     val visitor = default.visitField(delegate, nameMap)
                     if (fData.second != null) {
-                        visitor?.visitJavadoc(mapOf(dstNs to fData.second!!))
+                        visitor?.visitJavadoc(mapOf(dstNs to fData.second!!))?.visitEnd()
                     }
                     return visitor
                 }

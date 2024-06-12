@@ -59,13 +59,19 @@ fun String.translateEscapes(leinient: Boolean = false): String {
     }
 }
 
-fun String.escape(unicode: Boolean = false, spaces: Boolean = false): String {
+fun String.escape(unicode: Boolean = false, spaces: Boolean = false, doubleQuote: Boolean = false): String {
     if (this.isEmpty()) return this
     return buildString {
         var i = 0
         while (i < this@escape.length) {
             when (val c = this@escape[i++]) {
-                '"' -> append("\\\"")
+                '"' -> {
+                    if (doubleQuote) {
+                        append("\"\"")
+                    } else {
+                        append("\\\"")
+                    }
+                }
                 '\'' -> append("\\'")
                 '\\' -> append("\\\\")
                 '\b' -> append("\\b")

@@ -329,35 +329,35 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         return constantGroupList().asSequence().map { (names, group, _) -> names to group }.iterator()
     }
 
-    abstract fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
+    abstract fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor) -> Unit>>
 
-    abstract fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
+    abstract fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor) -> Unit>>
 
-    abstract fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
+    abstract fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor) -> Unit>>
 
     override fun visitHeader(vararg namespaces: String) {
         mergeNs(namespaces.map { Namespace(it) }.toSet())
     }
 
-    fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, minimize: Boolean = false) {
-        acceptInner(visitor, nsFilter, minimize)
+    fun accept(visitor: MappingVisitor, minimize: Boolean = false) {
+        acceptInner(visitor, minimize)
     }
 
-    override fun acceptOuter(visitor: NullVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): MappingVisitor? {
+    override fun acceptOuter(visitor: NullVisitor, minimize: Boolean): MappingVisitor? {
         return null
     }
 
-    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
-        super.acceptInner(visitor, nsFilter, minimize)
+    override fun acceptInner(visitor: MappingVisitor, minimize: Boolean) {
+        visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
+        super.acceptInner(visitor, minimize)
         for (pkg in packagesIter()) {
-            pkg.second().accept(visitor, nsFilter, minimize)
+            pkg.second().accept(visitor, minimize)
         }
         for (cls in classesIter()) {
-            cls.second().accept(visitor, nsFilter, minimize)
+            cls.second().accept(visitor, minimize)
         }
         for (group in constantGroupsIter()) {
-            group.second().accept(visitor, nsFilter, minimize)
+            group.second().accept(visitor, minimize)
         }
     }
 }
