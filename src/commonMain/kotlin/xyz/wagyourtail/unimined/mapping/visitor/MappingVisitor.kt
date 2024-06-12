@@ -8,11 +8,14 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 
 interface BaseVisitor<T: BaseVisitor<T>> {
 
@@ -101,9 +104,10 @@ interface ClassVisitor : MemberVisitor<ClassVisitor>, SignatureParentVisitor<Cla
 
     fun visitInnerClass(type: InnerClassNode.InnerType, names: Map<Namespace, Pair<String, FullyQualifiedName?>>): InnerClassVisitor?
 
+    fun visitWildcard(type: WildcardNode.WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor?>): WildcardVisitor?
 }
 
-interface MethodVisitor : MemberVisitor<MethodVisitor>, SignatureParentVisitor<MethodVisitor> {
+interface InvokableVisitor<T: InvokableVisitor<T>> : MemberVisitor<T>, SignatureParentVisitor<T> {
 
     fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor?
 
@@ -113,7 +117,11 @@ interface MethodVisitor : MemberVisitor<MethodVisitor>, SignatureParentVisitor<M
 
 }
 
+interface MethodVisitor : InvokableVisitor<MethodVisitor>
+
 interface FieldVisitor : MemberVisitor<FieldVisitor>, SignatureParentVisitor<FieldVisitor>
+
+interface WildcardVisitor : InvokableVisitor<WildcardVisitor>
 
 interface ParameterVisitor : MemberVisitor<ParameterVisitor>
 

@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -11,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 fun MappingVisitor.recordNamespaces(recorder: (Set<Namespace>) -> Unit): MappingVisitor {
@@ -55,6 +57,15 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
         return super.visitMethod(delegate, names)
     }
 
+    override fun visitWildcard(
+        delegate: ClassVisitor,
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor?>
+    ): WildcardVisitor? {
+        recorder(descs.keys)
+        return super.visitWildcard(delegate, type, descs)
+    }
+
     override fun visitInnerClass(
         delegate: ClassVisitor,
         type: InnerClassNode.InnerType,
@@ -65,7 +76,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
     }
 
     override fun visitParameter(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         index: Int?,
         lvOrd: Int?,
         names: Map<Namespace, String>
@@ -75,7 +86,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
     }
 
     override fun visitLocalVariable(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         lvOrd: Int,
         startOp: Int?,
         names: Map<Namespace, String>
@@ -85,7 +96,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
     }
 
     override fun visitException(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         type: ExceptionType,
         exception: InternalName,
         baseNs: Namespace,

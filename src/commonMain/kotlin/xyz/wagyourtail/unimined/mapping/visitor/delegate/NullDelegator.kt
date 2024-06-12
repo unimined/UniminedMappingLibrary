@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -12,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 open class NullDelegator : Delegator() {
@@ -32,19 +34,27 @@ open class NullDelegator : Delegator() {
         return null
     }
 
+    override fun visitWildcard(
+        delegate: ClassVisitor,
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor?>
+    ): WildcardVisitor? {
+        return null
+    }
+
     override fun visitInnerClass(delegate: ClassVisitor, type: InnerClassNode.InnerType, names: Map<Namespace, Pair<String, FullyQualifiedName?>>): InnerClassVisitor? {
         return null
     }
 
-    override fun visitParameter(delegate: MethodVisitor, index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+    override fun visitParameter(delegate: InvokableVisitor<*>, index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
         return null
     }
 
-    override fun visitLocalVariable(delegate: MethodVisitor, lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+    override fun visitLocalVariable(delegate: InvokableVisitor<*>, lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
         return null
     }
 
-    override fun visitException(delegate: MethodVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): ExceptionVisitor? {
+    override fun visitException(delegate: InvokableVisitor<*>, type: ExceptionType, exception: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): ExceptionVisitor? {
         return null
     }
 

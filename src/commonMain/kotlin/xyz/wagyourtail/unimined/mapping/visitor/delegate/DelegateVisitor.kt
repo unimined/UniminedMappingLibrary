@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -12,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 open class Delegator(delegator: Delegator? = null) {
@@ -67,6 +69,14 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
+    open fun visitWildcard(delegate: ClassVisitor, type: WildcardNode.WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor?>): WildcardVisitor? {
+        return delegate.visitWildcard(type, descs)?.let { DelegateWildcardVisitor(it, delegator) }
+    }
+
+    open fun visitWildcardEnd(delegate: WildcardVisitor) {
+        visitEnd(delegate)
+    }
+
     open fun visitInnerClass(delegate: ClassVisitor, type: InnerClassNode.InnerType, names: Map<Namespace, Pair<String, FullyQualifiedName?>>): InnerClassVisitor? {
         return delegate.visitInnerClass(type, names)?.let { DelegateInnerClassVisitor(it, delegator) }
     }
@@ -75,32 +85,56 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitParameter(delegate: MethodVisitor,  index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
-        return delegate.visitParameter(index, lvOrd, names)
+    open fun visitParameter(delegate: InvokableVisitor<*>,  index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+        return delegate.visitParameter(index, lvOrd, names)?.let { DelegateParameterVisitor(it, delegator) }
     }
 
     open fun visitParameterEnd(delegate: ParameterVisitor) {
         visitEnd(delegate)
     }
 
-    open fun visitLocalVariable(delegate: MethodVisitor, lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
-        return delegate.visitLocalVariable(lvOrd, startOp, names)
+    open fun visitMethodParameter(delegate: MethodVisitor, index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+        return visitParameter(delegate, index, lvOrd, names)
+    }
+
+    open fun visitWildcardParameter(delegate: WildcardVisitor, index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+        return visitParameter(delegate, index, lvOrd, names)
+    }
+
+    open fun visitLocalVariable(delegate: InvokableVisitor<*>, lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+        return delegate.visitLocalVariable(lvOrd, startOp, names)?.let { DelegateLocalVariableVisitor(it, delegator) }
     }
 
     open fun visitLocalVariableEnd(delegate: LocalVariableVisitor) {
         visitEnd(delegate)
     }
 
-    open fun visitException(delegate: MethodVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): ExceptionVisitor? {
-        return delegate.visitException(type, exception,baseNs, namespaces)
+    open fun visitMethodLocalVariable(delegate: MethodVisitor, lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+        return visitLocalVariable(delegate, lvOrd, startOp, names)
+    }
+
+    open fun visitWildcardLocalVariable(delegate: WildcardVisitor, lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+        return visitLocalVariable(delegate, lvOrd, startOp, names)
+    }
+
+    open fun visitException(delegate: InvokableVisitor<*>, type: ExceptionType, exception: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): ExceptionVisitor? {
+        return delegate.visitException(type, exception,baseNs, namespaces)?.let { DelegateExceptionVisitor(it, delegator) }
     }
 
     open fun visitExceptionEnd(delegate: ExceptionVisitor) {
         visitEnd(delegate)
     }
 
+    open fun visitMethodException(delegate: MethodVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): ExceptionVisitor? {
+        return visitException(delegate, type, exception, baseNs, namespaces)
+    }
+
+    open fun visitWildcardException(delegate: WildcardVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): ExceptionVisitor? {
+        return visitException(delegate, type, exception,baseNs, namespaces)
+    }
+
     open fun visitAccess(delegate: AccessParentVisitor<*>, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
-        return delegate.visitAccess(type, value, conditions, namespaces)
+        return delegate.visitAccess(type, value, conditions, namespaces)?.let { DelegateAccessVisitor(it, delegator) }
     }
 
     open fun visitAccessEnd(delegate: AccessVisitor) {
@@ -111,52 +145,32 @@ open class Delegator(delegator: Delegator? = null) {
         return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitFieldAccessEnd(delegate: AccessVisitor) {
-        visitAccessEnd(delegate)
-    }
-
     open fun visitMethodAccess(delegate: MethodVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
         return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitMethodAccessEnd(delegate: AccessVisitor) {
-        visitAccessEnd(delegate)
+    open fun visitWildcardAccess(delegate: WildcardVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
+        return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
     open fun visitClassAccess(delegate: ClassVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
         return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitClassAccessEnd(delegate: AccessVisitor) {
-        visitAccessEnd(delegate)
-    }
-
     open fun visitParameterAccess(delegate: ParameterVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
         return visitAccess(delegate, type, value, conditions, namespaces)
-    }
-
-    open fun visitParameterAccessEnd(delegate: AccessVisitor) {
-        visitAccessEnd(delegate)
     }
 
     open fun visitLocalVariableAccess(delegate: LocalVariableVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
         return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitLocalVariableAccessEnd(delegate: AccessVisitor) {
-        visitAccessEnd(delegate)
-    }
-
     open fun visitInnerClassAccess(delegate: InnerClassVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions, namespaces: Set<Namespace>): AccessVisitor? {
         return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitInnerClassAccessEnd(delegate: AccessVisitor) {
-        visitAccessEnd(delegate)
-    }
-
     open fun visitJavadoc(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
-        return delegate.visitJavadoc(values)
+        return delegate.visitJavadoc(values)?.let { DelegateCommentVisitor(it, delegator) }
     }
 
     open fun visitJavadocEnd(delegate: CommentVisitor) {
@@ -167,52 +181,33 @@ open class Delegator(delegator: Delegator? = null) {
         return visitJavadoc(delegate, values)
     }
 
-    open fun visitPackageJavadocEnd(delegate: CommentVisitor) {
-        visitJavadocEnd(delegate)
-    }
 
     open fun visitClassJavadoc(delegate: ClassVisitor, values: Map<Namespace, String>): CommentVisitor? {
         return visitJavadoc(delegate, values)
-    }
-
-    open fun visitClassJavadocEnd(delegate: CommentVisitor) {
-        visitJavadocEnd(delegate)
     }
 
     open fun visitMethodJavadoc(delegate: MethodVisitor, values: Map<Namespace, String>): CommentVisitor? {
         return visitJavadoc(delegate, values)
     }
 
-    open fun visitMethodJavadocEnd(delegate: CommentVisitor) {
-        visitJavadocEnd(delegate)
+    open fun visitWildcardJavadoc(delegate: WildcardVisitor, values: Map<Namespace, String>): CommentVisitor? {
+        return visitJavadoc(delegate, values)
     }
 
     open fun visitFieldJavadoc(delegate: FieldVisitor, values: Map<Namespace, String>): CommentVisitor? {
         return visitJavadoc(delegate, values)
     }
 
-    open fun visitFieldJavadocEnd(delegate: CommentVisitor) {
-        visitJavadocEnd(delegate)
-    }
-
     open fun visitParameterJavadoc(delegate: ParameterVisitor, values: Map<Namespace, String>): CommentVisitor? {
         return visitJavadoc(delegate, values)
-    }
-
-    open fun visitParameterJavadocEnd(delegate: CommentVisitor) {
-        visitJavadocEnd(delegate)
     }
 
     open fun visitLocalVariableJavadoc(delegate: LocalVariableVisitor, values: Map<Namespace, String>): CommentVisitor? {
         return visitJavadoc(delegate, values)
     }
 
-    open fun visitLocalVariableJavadocEnd(delegate: CommentVisitor) {
-        visitJavadocEnd(delegate)
-    }
-
     open fun visitSignature(delegate: SignatureParentVisitor<*>, values: Map<Namespace, String>): SignatureVisitor? {
-        return delegate.visitSignature(values)
+        return delegate.visitSignature(values)?.let { DelegateSignatureVisitor(it, delegator) }
     }
 
     open fun visitSignatureEnd(delegate: SignatureVisitor) {
@@ -223,28 +218,20 @@ open class Delegator(delegator: Delegator? = null) {
         return visitSignature(delegate, values)
     }
 
-    open fun visitClassSignatureEnd(delegate: SignatureVisitor) {
-        visitSignatureEnd(delegate)
-    }
-
     open fun visitMethodSignature(delegate: MethodVisitor, values: Map<Namespace, String>): SignatureVisitor? {
         return visitSignature(delegate, values)
     }
 
-    open fun visitMethodSignatureEnd(delegate: SignatureVisitor) {
-        visitSignatureEnd(delegate)
+    open fun visitWildcardSignature(delegate: WildcardVisitor, values: Map<Namespace, String>): SignatureVisitor? {
+        return visitSignature(delegate, values)
     }
 
     open fun visitFieldSignature(delegate: FieldVisitor, values: Map<Namespace, String>): SignatureVisitor? {
         return visitSignature(delegate, values)
     }
 
-    open fun visitFieldSignatureEnd(delegate: SignatureVisitor) {
-        visitSignatureEnd(delegate)
-    }
-
     open fun visitAnnotation(delegate: AnnotationParentVisitor<*>, type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor? {
-        return delegate.visitAnnotation(type, baseNs, annotation, namespaces)
+        return delegate.visitAnnotation(type, baseNs, annotation, namespaces)?.let { DelegateAnnotationVisitor(it, delegator) }
     }
 
     open fun visitAnnotationEnd(delegate: AnnotationVisitor) {
@@ -255,40 +242,24 @@ open class Delegator(delegator: Delegator? = null) {
         return visitAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    open fun visitClassAnnotationEnd(delegate: AnnotationVisitor) {
-        visitAnnotationEnd(delegate)
-    }
-
     open fun visitMethodAnnotation(delegate: MethodVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    open fun visitMethodAnnotationEnd(delegate: AnnotationVisitor) {
-        visitAnnotationEnd(delegate)
+    open fun visitWildcardAnnotation(delegate: WildcardVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor? {
+        return visitAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
     open fun visitFieldAnnotation(delegate: FieldVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    open fun visitFieldAnnotationEnd(delegate: AnnotationVisitor) {
-        visitAnnotationEnd(delegate)
-    }
-
     open fun visitParameterAnnotation(delegate: ParameterVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    open fun visitParameterAnnotationEnd(delegate: AnnotationVisitor) {
-        visitAnnotationEnd(delegate)
-    }
-
     open fun visitLocalVariableAnnotation(delegate: LocalVariableVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation, namespaces)
-    }
-
-    open fun visitLocalVariableAnnotationEnd(delegate: AnnotationVisitor) {
-        visitAnnotationEnd(delegate)
     }
 
     open fun visitConstantGroup(
@@ -311,7 +282,7 @@ open class Delegator(delegator: Delegator? = null) {
         fieldName: UnqualifiedName,
         fieldDesc: FieldDescriptor?
     ): ConstantVisitor? {
-        return delegate.visitConstant(fieldClass, fieldName, fieldDesc)
+        return delegate.visitConstant(fieldClass, fieldName, fieldDesc)?.let { DelegateConstantVisitor(it, delegator) }
     }
 
     open fun visitConstantEnd(delegate: ConstantVisitor) {
@@ -319,7 +290,7 @@ open class Delegator(delegator: Delegator? = null) {
     }
 
     open fun visitTarget(delegate: ConstantGroupVisitor, target: FullyQualifiedName, paramIdx: Int?): TargetVisitor? {
-        return delegate.visitTarget(target, paramIdx)
+        return delegate.visitTarget(target, paramIdx)?.let { DelegateTargetVisitor(it, delegator) }
     }
 
     open fun visitTargetEnd(delegate: TargetVisitor) {
@@ -408,6 +379,13 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
         return delegator.visitInnerClass(delegate, type, names)
     }
 
+    override fun visitWildcard(
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor?>
+    ): WildcardVisitor? {
+        return delegator.visitWildcard(delegate, type, descs)
+    }
+
     override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
         return delegator.visitClassJavadoc(delegate, values)
     }
@@ -473,11 +451,11 @@ open class DelegateMethodVisitor(delegate: MethodVisitor, delegator: Delegator) 
     }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
-        return delegator.visitParameter(delegate, index, lvOrd, names)
+        return delegator.visitMethodParameter(delegate, index, lvOrd, names)
     }
 
     override fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
-        return delegator.visitLocalVariable(delegate, lvOrd, startOp, names)
+        return delegator.visitMethodLocalVariable(delegate, lvOrd, startOp, names)
     }
 
     override fun visitException(
@@ -486,7 +464,7 @@ open class DelegateMethodVisitor(delegate: MethodVisitor, delegator: Delegator) 
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): ExceptionVisitor? {
-        return delegator.visitException(delegate, type, exception, baseNs, namespaces)
+        return delegator.visitMethodException(delegate, type, exception, baseNs, namespaces)
     }
 
     override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
@@ -529,6 +507,56 @@ open class DelegateFieldVisitor(delegate: FieldVisitor, delegator: Delegator) : 
 
     override fun visitEnd() {
         delegator.visitFieldEnd(delegate)
+    }
+
+}
+
+open class DelegateWildcardVisitor(delegate: WildcardVisitor, delegator: Delegator) : DelegateBaseVisitor<WildcardVisitor>(delegate, delegator), WildcardVisitor {
+    override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+        return delegator.visitWildcardParameter(delegate, index, lvOrd, names)
+    }
+
+    override fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+        return delegator.visitWildcardLocalVariable(delegate, lvOrd, startOp, names)
+    }
+
+    override fun visitException(
+        type: ExceptionType,
+        exception: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): ExceptionVisitor? {
+        return delegator.visitWildcardException(delegate, type, exception, baseNs, namespaces)
+    }
+
+    override fun visitAccess(
+        type: AccessType,
+        value: AccessFlag,
+        condition: AccessConditions,
+        namespaces: Set<Namespace>
+    ): AccessVisitor? {
+        return delegator.visitWildcardAccess(delegate, type, value, condition, namespaces)
+    }
+
+    override fun visitAnnotation(
+        type: AnnotationType,
+        baseNs: Namespace,
+        annotation: Annotation,
+        namespaces: Set<Namespace>
+    ): AnnotationVisitor? {
+        return delegator.visitWildcardAnnotation(delegate, type, baseNs, annotation, namespaces)
+    }
+
+    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
+        return delegator.visitWildcardJavadoc(delegate, values)
+    }
+
+    override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
+        return delegator.visitWildcardSignature(delegate, values)
+    }
+
+    override fun visitEnd() {
+        delegator.visitWildcardEnd(delegate)
     }
 
 }
@@ -593,6 +621,36 @@ open class DelegateLocalVariableVisitor(delegate: LocalVariableVisitor, delegato
 
 }
 
+open class DelegateExceptionVisitor(delegate: ExceptionVisitor, delegator: Delegator) : DelegateBaseVisitor<ExceptionVisitor>(delegate, delegator), ExceptionVisitor {
+    override fun visitEnd() {
+        delegator.visitExceptionEnd(delegate)
+    }
+}
+
+open class DelegateAccessVisitor(delegate: AccessVisitor, delegator: Delegator) : DelegateBaseVisitor<AccessVisitor>(delegate, delegator), AccessVisitor {
+    override fun visitEnd() {
+        delegator.visitAccessEnd(delegate)
+    }
+}
+
+open class DelegateCommentVisitor(delegate: CommentVisitor, delegator: Delegator) : DelegateBaseVisitor<CommentVisitor>(delegate, delegator), CommentVisitor {
+    override fun visitEnd() {
+        delegator.visitJavadocEnd(delegate)
+    }
+}
+
+open class DelegateSignatureVisitor(delegate: SignatureVisitor, delegator: Delegator) : DelegateBaseVisitor<SignatureVisitor>(delegate, delegator), SignatureVisitor {
+    override fun visitEnd() {
+        delegator.visitSignatureEnd(delegate)
+    }
+}
+
+open class DelegateAnnotationVisitor(delegate: AnnotationVisitor, delegator: Delegator) : DelegateBaseVisitor<AnnotationVisitor>(delegate, delegator), AnnotationVisitor {
+    override fun visitEnd() {
+        delegator.visitAnnotationEnd(delegate)
+    }
+}
+
 open class DelegateConstantGroupVisitor(delegate: ConstantGroupVisitor, delegator: Delegator) : DelegateBaseVisitor<ConstantGroupVisitor>(delegate, delegator), ConstantGroupVisitor {
     override fun visitConstant(
         fieldClass: InternalName,
@@ -612,6 +670,18 @@ open class DelegateConstantGroupVisitor(delegate: ConstantGroupVisitor, delegato
 
 }
 
+open class DelegateConstantVisitor(delegate: ConstantVisitor, delegator: Delegator) : DelegateBaseVisitor<ConstantVisitor>(delegate, delegator), ConstantVisitor {
+    override fun visitEnd() {
+        delegator.visitConstantEnd(delegate)
+    }
+}
+
+open class DelegateTargetVisitor(delegate: TargetVisitor, delegator: Delegator) : DelegateBaseVisitor<TargetVisitor>(delegate, delegator), TargetVisitor {
+    override fun visitEnd() {
+        delegator.visitTargetEnd(delegate)
+    }
+}
+
 open class DelegateInnerClassVisitor(delegate: InnerClassVisitor, delegator: Delegator) : DelegateBaseVisitor<InnerClassVisitor>(delegate, delegator), InnerClassVisitor {
     override fun visitAccess(
         type: AccessType,
@@ -627,4 +697,3 @@ open class DelegateInnerClassVisitor(delegate: InnerClassVisitor, delegator: Del
     }
 
 }
-

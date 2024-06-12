@@ -189,6 +189,10 @@ object UMFReader : FormatReader {
                     last as ClassVisitor?
                     last?.visitField(names)
                 }
+                EntryType.WILDCARD -> {
+                    last as ClassVisitor?
+                    val type =
+                }
                 EntryType.INNER_CLASS -> {
                     val type = fixValue(input.takeNext())!!.let {
                         when (it) {
@@ -305,6 +309,7 @@ object UMFReader : FormatReader {
         LOCAL_VARIABLE('v'),
         EXCEPTION('x'),
         FIELD('f'),
+        WILDCARD('w'),
         INNER_CLASS('i'),
         JAVADOC('*'),
         ANNOTATION('@'),

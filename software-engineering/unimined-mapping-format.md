@@ -12,6 +12,7 @@ created over the years.
     * [class mappings](#classes)
     * [method mappings](#methods)
     * [field mappings](#fields)
+    * [wildcard mappings](#wildcard)
     * [parameter mappings](#parameters)
     * [local variable mappings](#variables)
     * [inner class / nest member mappings](#inner-class)
@@ -147,6 +148,23 @@ f a;Ljava/lang/String; namedName
 ```
 
 behavior if multiple fields have the same name and no descriptors is undefined.
+
+### wildcard
+
+wildcard mappings are mappings of a type that effect all others of a specified type on their level,
+their effect is whatever's contained within their child components, which essentially gets applied to all other components.
+
+wildcard mappings will be defined as
+```
+w <t> <ns1> <ns2> <ns3> ...
+```
+where `<t>` is the type of the wildcard, currently accepted values are only `m` and `f`.
+the namespace values are descriptors
+
+descriptor wildcards should be expressable either by a normal mapping (with null descriptor)
+or a wildcard mapping with all namespaces set to `_`.
+
+only one of the namespaces is required, ns1 is preferred.
 
 ### Inner Class
 

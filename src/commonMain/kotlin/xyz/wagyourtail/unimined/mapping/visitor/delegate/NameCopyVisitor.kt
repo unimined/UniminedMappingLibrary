@@ -61,7 +61,7 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
     }
 
     override fun visitParameter(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         index: Int?,
         lvOrd: Int?,
         names: Map<Namespace, String>
@@ -84,7 +84,7 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
     }
 
     override fun visitLocalVariable(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         lvOrd: Int,
         startOp: Int?,
         names: Map<Namespace, String>
@@ -147,7 +147,7 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
     }
 
     override fun visitException(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         type: ExceptionType,
         exception: InternalName,
         baseNs: Namespace,

@@ -4,18 +4,20 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.node.ExceptionNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
-    private val _params: MutableList<ParameterNode> = mutableListOf()
-    private val _locals: MutableList<LocalNode> = mutableListOf()
-    private val _exceptions: MutableList<ExceptionNode> = mutableListOf()
+    private val _params: MutableList<ParameterNode<MethodVisitor>> = mutableListOf()
+    private val _locals: MutableList<LocalNode<MethodVisitor>> = mutableListOf()
+    private val _exceptions: MutableList<ExceptionNode<MethodVisitor>> = mutableListOf()
 
-    val params: List<ParameterNode> get() = _params
-    val locals: List<LocalNode> get() = _locals
-    val exceptions: List<ExceptionNode> get() = _exceptions
+    val params: List<ParameterNode<MethodVisitor>> get() = _params
+    val locals: List<LocalNode<MethodVisitor>> get() = _locals
+    val exceptions: List<ExceptionNode<MethodVisitor>> get() = _exceptions
 
 
     fun getMethodDesc(namespace: Namespace) = getDescriptor(namespace)?.getMethodDescriptor()
@@ -23,30 +25,6 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
     fun setMethodDescs(descs: Map<Namespace, MethodDescriptor>) {
         root.mergeNs(descs.keys)
         setDescriptors(descs.mapValues { FieldOrMethodDescriptor.unchecked(it.value.toString()) })
-    }
-
-    class ParameterNode(parent: MethodNode, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, MethodVisitor, MethodVisitor>(parent), ParameterVisitor {
-        private val _names: MutableMap<Namespace, String> = mutableMapOf()
-        val names: Map<Namespace, String> get() = _names
-
-        fun setNames(names: Map<Namespace, String>) {
-            root.mergeNs(names.keys)
-            this._names.putAll(names)
-        }
-
-        override fun acceptOuter(visitor: MethodVisitor, minimize: Boolean) = visitor.visitParameter(index, lvOrd, names)
-    }
-
-    class LocalNode(parent: MethodNode, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, MethodVisitor, MethodVisitor>(parent), LocalVariableVisitor {
-        private val _names: MutableMap<Namespace, String> = mutableMapOf()
-        val names: Map<Namespace, String> get() = _names
-
-        fun setNames(names: Map<Namespace, String>) {
-            root.mergeNs(names.keys)
-            this._names.putAll(names)
-        }
-
-        override fun acceptOuter(visitor: MethodVisitor, minimize: Boolean) = visitor.visitLocalVariable(lvOrd, startOp, names)
     }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {

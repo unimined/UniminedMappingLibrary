@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.visitor
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -12,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 
 open class EmptyBaseVisitor<T: BaseVisitor<T>> : BaseVisitor<T> {
 
@@ -124,6 +126,13 @@ open class EmptyClassVisitor : EmptyMemberVisitor<ClassVisitor>(), SignaturePare
         return EmptyFieldVisitor()
     }
 
+    override fun visitWildcard(
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor?>
+    ): WildcardVisitor? {
+        return EmptyWildcardVisitor()
+    }
+
     override fun visitInnerClass(
         type: InnerClassNode.InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
@@ -170,6 +179,26 @@ open class EmptyMethodVisitor : EmptyMemberVisitor<MethodVisitor>(), SignaturePa
 }
 
 open class EmptyFieldVisitor : EmptyMemberVisitor<FieldVisitor>(), SignatureParentVisitor<FieldVisitor> by EmptySignatureParentVisitor(), FieldVisitor {
+
+}
+
+open class EmptyWildcardVisitor : EmptyMemberVisitor<WildcardVisitor>(), SignatureParentVisitor<WildcardVisitor> by EmptySignatureParentVisitor(), WildcardVisitor {
+    override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+        return EmptyParameterVisitor()
+    }
+
+    override fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+        return EmptyLocalVariableVisitor()
+    }
+
+    override fun visitException(
+        type: ExceptionType,
+        exception: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): ExceptionVisitor? {
+        return EmptyExceptionVisitor()
+    }
 
 }
 

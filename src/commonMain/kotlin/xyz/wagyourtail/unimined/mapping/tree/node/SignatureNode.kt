@@ -4,6 +4,9 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.ClassSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureVisitor
 

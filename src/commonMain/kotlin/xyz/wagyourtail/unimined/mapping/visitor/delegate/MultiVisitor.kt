@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -11,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -159,6 +161,15 @@ open class MultiClassVisitor(visitors: List<ClassVisitor>) : MultiMemberVisitor<
         return MultiInnerClassVisitor(visitors)
     }
 
+    override fun visitWildcard(
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor?>
+    ): WildcardVisitor? {
+        val visitors = visitors.mapNotNull { it.visitWildcard(type, descs) }
+        if (visitors.isEmpty()) return null
+        return MultiWildcardVisitor(visitors)
+    }
+
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
     }
@@ -195,6 +206,32 @@ open class MultiFieldVisitor(visitors: List<FieldVisitor>): MultiMemberVisitor<F
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
+    }
+
+}
+
+open class MultiWildcardVisitor(visitors: List<WildcardVisitor>): MultiMemberVisitor<WildcardVisitor>(visitors), WildcardVisitor, SignatureParentVisitor<WildcardVisitor> by MultiSignatureParentVisitor(visitors) {
+    override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+        val visitors = visitors.mapNotNull { it.visitParameter(index, lvOrd, names) }
+        if (visitors.isEmpty()) return null
+        return MultiParameterVisitor(visitors)
+    }
+
+    override fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+        val visitors = visitors.mapNotNull { it.visitLocalVariable(lvOrd, startOp, names) }
+        if (visitors.isEmpty()) return null
+        return MultiLocalVariableVisitor(visitors)
+    }
+
+    override fun visitException(
+        type: ExceptionType,
+        exception: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): ExceptionVisitor? {
+        val visitors = visitors.mapNotNull { it.visitException(type, exception, baseNs, namespaces) }
+        if (visitors.isEmpty()) return null
+        return MultiExceptionVisitor(visitors)
     }
 
 }

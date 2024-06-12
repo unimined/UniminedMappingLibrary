@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -11,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 fun MappingVisitor.delegator(delegator: Delegator) = DelegateMappingVisitor(this, delegator)
@@ -47,6 +49,15 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         return super.visitMethod(delegate, n)
     }
 
+    override fun visitWildcard(
+        delegate: ClassVisitor,
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor?>
+    ): WildcardVisitor? {
+        val n = descs.mapKeys { nsMap[it.key] ?: it.key }
+        return super.visitWildcard(delegate, type, n)
+    }
+
     override fun visitInnerClass(
         delegate: ClassVisitor,
         type: InnerClassNode.InnerType,
@@ -58,7 +69,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
     }
 
     override fun visitParameter(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         index: Int?,
         lvOrd: Int?,
         names: Map<Namespace, String>
@@ -69,7 +80,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
     }
 
     override fun visitLocalVariable(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         lvOrd: Int,
         startOp: Int?,
         names: Map<Namespace, String>
@@ -80,7 +91,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
     }
 
     override fun visitException(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         type: ExceptionType,
         exception: InternalName,
         baseNs: Namespace,

@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -11,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 fun MappingVisitor.nsFiltered(vararg ns: String, inverted: Boolean = false) = nsFiltered(ns.map { Namespace(it) }.toSet(), inverted)
@@ -62,8 +64,18 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
         return super.visitInnerClass(delegate, type, n)
     }
 
+    override fun visitWildcard(
+        delegate: ClassVisitor,
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor?>
+    ): WildcardVisitor? {
+        val n = descs.filterKeys { if (inverted) it !in ns else it in ns }
+        if (descs.isNotEmpty() && n.isEmpty()) return null
+        return super.visitWildcard(delegate, type, n)
+    }
+
     override fun visitParameter(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         index: Int?,
         lvOrd: Int?,
         names: Map<Namespace, String>
@@ -74,7 +86,7 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
     }
 
     override fun visitLocalVariable(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         lvOrd: Int,
         startOp: Int?,
         names: Map<Namespace, String>
@@ -85,7 +97,7 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
     }
 
     override fun visitException(
-        delegate: MethodVisitor,
+        delegate: InvokableVisitor<*>,
         type: ExceptionType,
         exception: InternalName,
         baseNs: Namespace,
