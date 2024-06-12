@@ -4,7 +4,6 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
-import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader.allowNonTransitive
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
@@ -60,6 +59,12 @@ object AWReader: FormatReader {
                 val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
 
                 val (cls, member) = target.getParts()
+
+                if (access.startsWith("transitive-")) {
+                    if (!allowNonTransitive) {
+                        continue
+                    }
+                }
 
                 when (access) {
                     "accessible", "transitive-accessible" -> {

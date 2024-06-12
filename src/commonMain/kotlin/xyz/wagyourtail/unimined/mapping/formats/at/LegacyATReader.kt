@@ -4,11 +4,13 @@ import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.ATData
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.applyAccess
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.parseAccess
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
@@ -24,6 +26,8 @@ object LegacyATReader : FormatReader {
         return (cfg && name.endsWith("_at"))
     }
 
+
+
     override suspend fun read(
         envType: EnvType,
         input: CharReader,
@@ -36,49 +40,70 @@ object LegacyATReader : FormatReader {
 
         into.use {
             visitHeader(ns.name)
+            val data = readData(input)
 
-            while (!input.exhausted()) {
-                if (input.peek() == '\n') {
-                    input.take()
-                    continue
-                }
-                if (input.peek() == '#') {
-                    input.takeLine()
-                    continue
-                }
-                if (input.peek()?.isWhitespace() == true) {
-                    throw IllegalStateException("Unexpected whitespace")
-                }
-
-                val access = input.takeNextLiteral { it.isWhitespace() }!!.parseAccess()
-
-                val targetClass = InternalName.read(input.takeUntil { it.isWhitespace() || it == '.' })
-                val memberName = if (input.peek() == '.') input.takeUntil { it.isWhitespace() || it == '(' } else null
-                val memberDesc =
-                    if (input.peek() == '(' && memberName != null) input.takeNextLiteral { it.isWhitespace() } else null
-
-                val remaining = input.takeLine().trimStart()
-                if (remaining.isNotEmpty() && remaining.first() != '#') {
-                    throw IllegalArgumentException("Expected newline or comment, found $remaining")
-                }
-
-                visitClass(mapOf(ns to targetClass))?.use {
-                    if (memberName == null) {
-                        applyAccess(access, setOf(ns))
-                    } else if (memberDesc == null) {
-                        visitField(mapOf(ns to (memberName to null)))?.use {
-                            applyAccess(access, setOf(ns))
+            for (at in data) {
+                visitClass(mapOf(ns to at.targetClass))?.use {
+                    if (at.isWildcard()) {
+                        if (at.isMethod()) {
+                            visitWildcard(WildcardNode.WildcardType.METHOD, emptyMap())?.use {
+                                applyAccess(at.access, setOf(ns))
+                            }
+                        } else {
+                            visitWildcard(WildcardNode.WildcardType.FIELD, emptyMap())?.use {
+                                applyAccess(at.access, setOf(ns))
+                            }
                         }
                     } else {
-                        visitMethod(mapOf(ns to (memberName to MethodDescriptor.read(memberDesc))))?.use {
-                            applyAccess(access, setOf(ns))
-                            visitEnd()
+                        if (at.isMethod()) {
+                            visitMethod(mapOf(ns to (at.memberName!! to at.fixedDesc())))?.use {
+                                applyAccess(at.access, setOf(ns))
+                                visitEnd()
+                            }
+                        } else {
+                            visitField(mapOf(ns to (at.memberName!! to null)))?.use {
+                                applyAccess(at.access, setOf(ns))
+                            }
                         }
+
                     }
                 }
             }
         }
 
+    }
+
+    fun readData(input: CharReader): List<ATData> {
+        val data = mutableListOf<ATData>()
+        while (!input.exhausted()) {
+            if (input.peek() == '\n') {
+                input.take()
+                continue
+            }
+            if (input.peek() == '#') {
+                input.takeLine()
+                continue
+            }
+            if (input.peek()?.isWhitespace() == true) {
+                throw IllegalStateException("Unexpected whitespace")
+            }
+
+            val access = input.takeNextLiteral { it.isWhitespace() }!!.parseAccess()
+
+            val targetClass = InternalName.read(input.takeUntil { it.isWhitespace() || it == '.' })
+            val memberName = if (input.peek() != '.') null else input.takeUntil { it.isWhitespace() || it == '(' }.ifEmpty {
+                throw IllegalArgumentException("Expected member name")
+            }
+            val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifEmpty { null }
+
+            val remaining = input.takeLine().trimStart()
+            if (remaining.isNotEmpty() && remaining.first() != '#') {
+                throw IllegalArgumentException("Expected newline or comment, found $remaining")
+            }
+
+            data.add(ATData(access, targetClass, memberName, memberDesc))
+        }
+        return data
     }
 
 }
