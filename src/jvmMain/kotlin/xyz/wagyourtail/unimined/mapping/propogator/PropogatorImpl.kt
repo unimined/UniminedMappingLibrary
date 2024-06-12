@@ -66,13 +66,12 @@ class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: 
         override val interfaces = self.interfaces.map { InternalName.read(it) }
 
         override val methods: List<Pair<String, MethodDescriptor?>> = self.methods.filter { method ->
-            val originalAccess = AccessFlag.of(ElementType.METHOD, method.access)
             var access = method.access
 
             // modify access according to mapping's access rules for this class
             classNode?.getMethods(namespace, method.name, MethodDescriptor.read(method.desc))?.forEach { mNode ->
                 for (node in mNode.access) {
-                    if (node.conditions.check(originalAccess)) {
+                    if (node.conditions.check(AccessFlag.of(ElementType.METHOD, access))) {
                         if (node.namespaces.contains(namespace)) {
                             if (node.accessType == AccessType.ADD) {
                                 access = method.access + node.accessFlag
