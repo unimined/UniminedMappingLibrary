@@ -22,7 +22,7 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: Signa
 
     @Suppress("UNCHECKED_CAST")
     fun doMerge(target: T) {
-        acceptInner(target as U, false)
+        acceptInner(target as U, root.namespaces, false)
     }
 
     override fun merge(element: T): T? {

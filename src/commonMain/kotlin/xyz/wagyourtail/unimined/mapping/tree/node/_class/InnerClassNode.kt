@@ -29,6 +29,6 @@ class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParent
         ANONYMOUS,
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean) = visitor.visitInnerClass(innerType, names.mapValues { (ns, name) -> name to targets[ns] })
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) = visitor.visitInnerClass(innerType, names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to targets[ns] })
 
 }

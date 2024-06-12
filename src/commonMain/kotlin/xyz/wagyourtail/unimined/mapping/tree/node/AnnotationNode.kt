@@ -15,7 +15,15 @@ class AnnotationNode<U: AnnotationParentVisitor<U>>(parent: BaseNode<U, *>, val 
         _namespaces.addAll(namespaces)
     }
 
-    override fun acceptOuter(visitor: U, minimize: Boolean): AnnotationVisitor? {
-        return visitor.visitAnnotation(type, baseNs, annotation, namespaces.toSet())
+    override fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean): AnnotationVisitor? {
+        if (baseNs !in nsFilter) {
+            val ns = nsFilter.filter { it in namespaces }.toSet()
+            if (ns.isEmpty()) return null
+            val first = ns.first()
+            val ann = root.mapAnnotation(baseNs, first, annotation)
+            return visitor.visitAnnotation(type, ns.first(), ann, ns - first)
+        } else {
+            return visitor.visitAnnotation(type, baseNs, annotation, nsFilter.filter { it in namespaces }.toSet() - baseNs)
+        }
     }
 }

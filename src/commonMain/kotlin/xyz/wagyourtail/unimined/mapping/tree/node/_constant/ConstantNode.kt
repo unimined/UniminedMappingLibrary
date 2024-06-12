@@ -17,7 +17,21 @@ class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constCl
 
     fun asFullyQualifiedName() = FullyQualifiedName(ObjectType(constClass), NameAndDescriptor(constName, fieldDesc?.let { FieldOrMethodDescriptor(it) }))
 
-    override fun acceptOuter(visitor: ConstantGroupVisitor, minimize: Boolean): ConstantVisitor? {
+    override fun acceptOuter(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ConstantVisitor? {
+        if (baseNs !in nsFilter) {
+            val ns = nsFilter.filter { it in (parent as ConstantGroupNode).namespaces }.toSet()
+            if (ns.isEmpty()) return null
+            val first = ns.first()
+            val mapped = root.map(baseNs, first,
+                FullyQualifiedName(
+                    ObjectType(constClass),
+                    NameAndDescriptor(constName, fieldDesc?.let { FieldOrMethodDescriptor(it) })
+                )
+            )
+            val (constClass, constName) = mapped.getParts()
+            val (fieldName, fieldDesc) = constName!!.getParts()
+            return visitor.visitConstant(constClass.getInternalName(), fieldName, fieldDesc?.getFieldDescriptor())
+        }
         return visitor.visitConstant(constClass, constName, fieldDesc)
     }
 }

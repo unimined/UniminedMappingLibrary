@@ -14,7 +14,9 @@ class CommentNode<U: MemberVisitor<U>>(parent: MemberNode<U, *, *>) : BaseNode<C
         this._comments.putAll(comments)
     }
 
-    override fun acceptOuter(visitor: U, minimize: Boolean): CommentVisitor? {
+    override fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean): CommentVisitor? {
+        val comments = comments.filterKeys { it in nsFilter }
+        if (comments.isEmpty()) return null
         return visitor.visitJavadoc(comments)
     }
 

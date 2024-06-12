@@ -47,14 +47,14 @@ abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: 
         return node
     }
 
-    override fun acceptInner(visitor: T, minimize: Boolean) {
+    override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean) {
         for (annotation in annotations) {
-            annotation.accept(visitor, minimize)
+            annotation.accept(visitor, nsFilter, minimize)
         }
         @Suppress("UNCHECKED_CAST")
-        signature?.accept(visitor as V, minimize)
-        comment?.accept(visitor, minimize)
-        super.acceptInner(visitor, minimize)
+        signature?.accept(visitor as V, nsFilter, minimize)
+        comment?.accept(visitor, nsFilter, minimize)
+        super.acceptInner(visitor, nsFilter, minimize)
     }
 
 }

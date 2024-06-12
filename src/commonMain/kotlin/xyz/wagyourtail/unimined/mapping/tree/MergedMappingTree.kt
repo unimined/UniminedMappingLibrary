@@ -26,12 +26,12 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
         val cNode = ClassNode(this)
         nodes.forEach {
             cNode.setNames(it.names)
-            it.acceptInner(cNode, false)
+            it.acceptInner(cNode, namespaces, false)
         }
         return cNode
     }
 
-    override fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor) -> Unit>> {
+    override fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
         val classes = mutableListOf<MergedClassNodeHolder>()
         val byNamespace = defaultedMapOf<Namespace, MutableMap<InternalName, MergedClassNodeHolder>> {
             mutableMapOf()
@@ -51,21 +51,24 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
                 }
             }
         }
-        return object : AbstractList<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor) -> Unit>>() {
+        return object : AbstractList<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
             override val size: Int get() = classes.size
 
-            override fun get(index: Int): Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor) -> Unit> {
+            override fun get(index: Int): Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
                 val cls = classes[index]
-                return Triple(cls.names, cls::toClassNode) { visitor ->
+                return Triple(cls.names, cls::toClassNode) { visitor, nsFilter ->
                     cls.acceptors.forEach {
-                        it(visitor)
+                        it(
+                            visitor,
+                            nsFilter
+                        )
                     }
                 }
             }
         }
     }
 
-    override fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor) -> Unit>> {
+    override fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
         val packages = mutableListOf<MergedPackageNodeHolder>()
         val byNamespace = defaultedMapOf<Namespace, MutableMap<PackageName, MergedPackageNodeHolder>> {
             mutableMapOf()
@@ -85,22 +88,25 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
                 }
             }
         }
-        return object : AbstractList<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor) -> Unit>>() {
+        return object : AbstractList<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
             override val size: Int get() = packages.size
 
-            override fun get(index: Int): Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor) -> Unit> {
+            override fun get(index: Int): Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
                 val pkg = packages[index]
-                return Triple(pkg.names, pkg::toPackageNode) { visitor ->
+                return Triple(pkg.names, pkg::toPackageNode) { visitor, nsFilter ->
                     pkg.acceptors.forEach {
-                        it(visitor)
+                        it(
+                            visitor,
+                            nsFilter
+                        )
                     }
                 }
             }
         }
     }
 
-    override fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor) -> Unit>> {
-        val groups = mutableListOf<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor) -> Unit>>()
+    override fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
+        val groups = mutableListOf<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>>()
         for (tree in trees) {
             groups.addAll(tree.constantGroupList())
         }
@@ -130,7 +136,7 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
         return MultiConstantGroupVisitor(visitors)
     }
 
-    inner class MergedClassNodeHolder(val names: MutableMap<Namespace, InternalName>, val nodes: MutableList<() -> ClassNode>, val acceptors: MutableList<(MappingVisitor) -> Unit>) {
+    inner class MergedClassNodeHolder(val names: MutableMap<Namespace, InternalName>, val nodes: MutableList<() -> ClassNode>, val acceptors: MutableList<(MappingVisitor, Collection<Namespace>) -> Unit>) {
 
         fun toClassNode(): ClassNode {
             val cNode = ClassNode(this@MergedMappingTree)
@@ -145,7 +151,7 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
             }
 
             for (i in acceptors) {
-                i(visitor)
+                i(visitor, names.keys)
             }
 
             return cNode
@@ -153,7 +159,7 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
 
     }
 
-    inner class MergedPackageNodeHolder(val names: MutableMap<Namespace, PackageName>, val nodes: MutableList<() -> PackageNode>, val acceptors: MutableList<(MappingVisitor) -> Unit>) {
+    inner class MergedPackageNodeHolder(val names: MutableMap<Namespace, PackageName>, val nodes: MutableList<() -> PackageNode>, val acceptors: MutableList<(MappingVisitor, Collection<Namespace>) -> Unit>) {
 
         fun toPackageNode(): PackageNode {
             val pNode = PackageNode(this@MergedMappingTree)
@@ -168,7 +174,7 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
             }
 
             for (i in acceptors) {
-                i(visitor)
+                i(visitor, names.keys)
             }
 
             return pNode

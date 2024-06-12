@@ -16,17 +16,18 @@ class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisito
         setDescriptors(descs.mapValues { FieldOrMethodDescriptor.unchecked(it.value.toString()) })
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean): FieldVisitor? {
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): FieldVisitor? {
         val names = if (minimize) {
-            val descNs = root.namespaces.firstOrNull { it in names }
+            val descNs = nsFilter.firstOrNull { it in names }
             if (descNs != null) {
-                names.mapValues { (ns, name) -> name to if (ns == descNs) getFieldDesc(ns) else null }
+                names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to if (ns == descNs) getFieldDesc(ns) else null }
             } else {
-                names.mapValues { (_, name) -> name to null }
+                names.filterKeys { it in nsFilter }.mapValues { (_, name) -> name to null }
             }
         } else {
-            names.mapValues { (ns, name) -> name.let { name to descs[ns]?.getFieldDescriptor() } }
+            names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name.let { name to descs[ns]?.getFieldDescriptor() } }
         }
+        if (names.isEmpty()) return null
         return visitor.visitField(names)
     }
 

@@ -69,31 +69,31 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return node
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, minimize: Boolean): MethodVisitor? {
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): MethodVisitor? {
         val names = if (minimize) {
-            val descNs = root.namespaces.firstOrNull { it in names }
+            val descNs = nsFilter.firstOrNull { it in names }
             if (descNs != null) {
-                names.mapValues { (ns, name) -> name to if (ns == descNs) getMethodDesc(ns) else null }
+                names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to if (ns == descNs) getMethodDesc(ns) else null }
             } else {
-                names.mapValues { (_, name) -> name to null }
+                names.filterKeys { it in nsFilter }.mapValues { (_, name) -> name to null }
             }
         } else {
-            names.mapValues { (ns, name) -> name.let { name to descs[ns]?.getMethodDescriptor() } }
+            names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name.let { name to descs[ns]?.getMethodDescriptor() } }
         }
         if (names.isEmpty()) return null
         return visitor.visitMethod(names)
     }
 
-    override fun acceptInner(visitor: MethodVisitor, minimize: Boolean) {
-        super.acceptInner(visitor, minimize)
+    override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
+        super.acceptInner(visitor, nsFilter, minimize)
         for (exception in exceptions) {
-            exception.accept(visitor, minimize)
+            exception.accept(visitor, nsFilter, minimize)
         }
         for (param in params) {
-            param.accept(visitor, minimize)
+            param.accept(visitor, nsFilter, minimize)
         }
         for (local in locals) {
-            local.accept(visitor, minimize)
+            local.accept(visitor, nsFilter, minimize)
         }
     }
 

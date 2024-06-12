@@ -14,20 +14,16 @@ abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNo
         TODO()
     }
 
-    fun accept(visitor: U, minimize: Boolean) {
-        val outer = acceptOuter(visitor, minimize)
-        if (outer != null) acceptInner(outer, minimize)
-        outer?.visitEnd()
+    fun accept(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean) {
+        acceptOuter(visitor, nsFilter, minimize)?.let { acceptInner(it, nsFilter, minimize) }
     }
 
-    abstract fun acceptOuter(visitor: U, minimize: Boolean): T?
+    abstract fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean): T?
 
-    open fun acceptInner(visitor: T, minimize: Boolean) {
+    open fun acceptInner(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean) {
         for (extension in extensions.values) {
-            extension.accept(visitor, minimize)
+            extension.accept(visitor, nsFilter, minimize)
         }
     }
-
-    override fun visitEnd() {}
 
 }
