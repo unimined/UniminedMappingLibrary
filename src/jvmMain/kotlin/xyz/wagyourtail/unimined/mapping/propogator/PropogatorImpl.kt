@@ -83,7 +83,7 @@ class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: 
                 }
             }
 
-            access and (Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE) == 0
+            access and (Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL) == 0
         }.map { it.name to MethodDescriptor.read(it.desc) }
 
     }
