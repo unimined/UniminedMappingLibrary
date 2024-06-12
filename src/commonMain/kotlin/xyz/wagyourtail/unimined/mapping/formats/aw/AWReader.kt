@@ -60,7 +60,7 @@ object AWReader: FormatReader {
 
                 val (cls, member) = target.getParts()
 
-                if (access.startsWith("transitive-")) {
+                if (!access.startsWith("transitive-")) {
                     if (!allowNonTransitive) {
                         continue
                     }
