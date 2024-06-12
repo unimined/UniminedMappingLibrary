@@ -8,10 +8,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ParameterVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 
@@ -73,7 +70,7 @@ object MCPConfigStaticMethodsReader : FormatReader {
             }
 
             override fun visitParameter(
-                delegate: MethodVisitor,
+                delegate: InvokableVisitor<*>,
                 index: Int?,
                 lvOrd: Int?,
                 names: Map<Namespace, String>

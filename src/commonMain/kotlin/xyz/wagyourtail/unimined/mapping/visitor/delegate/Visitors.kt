@@ -52,7 +52,7 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
     override fun visitWildcard(
         delegate: ClassVisitor,
         type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor?>
+        descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         val n = descs.mapKeys { nsMap[it.key] ?: it.key }
         return super.visitWildcard(delegate, type, n)

@@ -97,7 +97,7 @@ object MCPv6ParamReader : FormatReader {
                 }
 
                 override fun visitParameter(
-                    delegate: MethodVisitor,
+                    delegate: InvokableVisitor<*>,
                     index: Int?,
                     lvOrd: Int?,
                     names: Map<Namespace, String>

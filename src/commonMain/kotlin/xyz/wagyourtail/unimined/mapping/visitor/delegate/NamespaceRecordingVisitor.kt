@@ -60,7 +60,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
     override fun visitWildcard(
         delegate: ClassVisitor,
         type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor?>
+        descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         recorder(descs.keys)
         return super.visitWildcard(delegate, type, descs)

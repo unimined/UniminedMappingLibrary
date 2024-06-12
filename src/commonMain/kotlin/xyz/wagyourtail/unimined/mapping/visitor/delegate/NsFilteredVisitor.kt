@@ -67,7 +67,7 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
     override fun visitWildcard(
         delegate: ClassVisitor,
         type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor?>
+        descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         val n = descs.filterKeys { if (inverted) it !in ns else it in ns }
         if (descs.isNotEmpty() && n.isEmpty()) return null

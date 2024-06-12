@@ -37,7 +37,7 @@ open class NullDelegator : Delegator() {
     override fun visitWildcard(
         delegate: ClassVisitor,
         type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor?>
+        descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         return null
     }
