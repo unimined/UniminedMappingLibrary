@@ -31,7 +31,7 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         MethodNode(this)
     }
 
-    val inners = mutableSetOf<InnerClassNode>()
+    val inners = mutableMapOf<InnerClassNode.InnerType, InnerClassNode>()
 
     fun getName(namespace: Namespace) = _names[namespace]
 
@@ -88,17 +88,13 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
     ): InnerClassVisitor? {
         // find existing
-        for (inner in inners) {
-            if (inner.names.keys.intersect(names.keys).isNotEmpty()) {
-                inner.setNames(names.mapValues { it.value.first })
-                inner.setTargets(names.mapNotNullValues { it.value.second })
-                return inner
-            }
+        val inner = if (type in inners) {
+            inners.getValue(type)
+        } else {
+            InnerClassNode(this, type).also { inners[type] = it }
         }
-        val inner = InnerClassNode(this, type)
         inner.setNames(names.mapValues { it.value.first })
         inner.setTargets(names.mapNotNullValues { it.value.second })
-        inners.add(inner)
         return inner
     }
 
@@ -111,7 +107,7 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
 
     override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
         super.acceptInner(visitor, nsFilter, minimize)
-        for (inner in inners) {
+        for (inner in inners.values) {
             inner.accept(visitor, nsFilter, minimize)
         }
         for (wildcard in wildcards.resolve()) {
