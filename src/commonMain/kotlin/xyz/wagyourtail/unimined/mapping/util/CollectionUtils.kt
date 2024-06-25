@@ -2,6 +2,22 @@ package xyz.wagyourtail.unimined.mapping.util
 
 import kotlin.jvm.JvmName
 
+class ListCompare<T: Comparable<T>>(val list: List<T>): Comparable<ListCompare<T>> {
+
+    constructor(vararg elements: T): this(elements.toList())
+
+    override operator fun compareTo(other: ListCompare<T>): Int {
+        val size = list.size
+        if (size != other.list.size) return size - other.list.size
+        for (i in 0 until size) {
+            val cmp = list[i].compareTo(other.list[i])
+            if (cmp != 0) return cmp
+        }
+        return 0
+    }
+
+}
+
 inline fun <E, K, V> Iterable<E>.associateNonNull(apply: (E) -> Pair<K, V>?): Map<K, V> {
     val mut = mutableMapOf<K, V>()
     for (e in this) {

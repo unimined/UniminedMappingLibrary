@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.BaseVisitor
 
-class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: AbstractMappingTree, val elementCreator: () -> U) where U: LazyResolvableEntry<U, T>, U: BaseNode<T, *> {
+class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: AbstractMappingTree, val elementCreator: (U) -> U) where U: LazyResolvableEntry<U, T>, U: BaseNode<T, *> {
     private val unresolved = mutableListOf<U>()
     private var resolved: List<U>? = null
 
@@ -26,7 +26,7 @@ class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: AbstractMappingTree, v
                     }
                 }
                 if (resolvedElement == null) {
-                    resolvedElement = element.merge(elementCreator())
+                    resolvedElement = element.merge(elementCreator(element))
                     if (resolvedElement != null) {
                         resolved.add(resolvedElement)
                     } else {

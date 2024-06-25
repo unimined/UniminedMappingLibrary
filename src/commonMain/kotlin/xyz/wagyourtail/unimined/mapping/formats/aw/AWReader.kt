@@ -197,11 +197,6 @@ object AWReader: FormatReader {
                 }
             }
 
-            val lineComment = input.takeLine().trimStart()
-            if (lineComment.isNotEmpty() && lineComment.first() != '#') {
-                throw IllegalArgumentException("Expected newline or comment, found $lineComment")
-            }
-
             when (target) {
                 "class" -> {
                     val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
@@ -241,6 +236,11 @@ object AWReader: FormatReader {
                 else -> {
                     throw IllegalArgumentException("Unknown target $target")
                 }
+            }
+
+            val lineComment = input.takeLine().trimStart()
+            if (lineComment.isNotEmpty() && lineComment.first() != '#') {
+                throw IllegalArgumentException("Expected newline or comment, found $lineComment")
             }
         }
         return AWMappings(Namespace(namespace), targets)

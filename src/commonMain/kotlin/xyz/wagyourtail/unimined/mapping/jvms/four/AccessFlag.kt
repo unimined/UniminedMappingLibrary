@@ -53,6 +53,12 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
     }
 
     companion object {
+        val visibility = setOf(PUBLIC, PRIVATE, PROTECTED)
+        val visibilityMask = visibility.map { it.access }.reduce { acc, i -> acc or i }
+
+        val content = setOf(NATIVE, ABSTRACT)
+        val contentMask = content.map { it.access }.reduce { acc, i -> acc or i }
+
         fun of(type: ElementType, access: Int) = entries.filter { it.elements.contains(type) && it.access and access != 0 }.toSet()
     }
 
@@ -62,21 +68,13 @@ operator fun Int.plus(flag: AccessFlag): Int {
     // some are mutually exclusive so we must respect that
 
     // public/protected/private
-    var mutex = AccessFlag.PUBLIC.access or AccessFlag.PROTECTED.access or AccessFlag.PRIVATE.access
-    if (flag.access and mutex != 0) {
-        return this and mutex.inv() or flag.access
-    }
-
-    // volatile/transient
-    mutex = AccessFlag.VOLATILE.access or AccessFlag.TRANSIENT.access
-    if (flag.access and mutex != 0) {
-        return this and mutex.inv() or flag.access
+    if (flag.access and AccessFlag.visibilityMask != 0) {
+        return this and AccessFlag.visibilityMask.inv() or flag.access
     }
 
     // native/abstract
-    mutex = AccessFlag.NATIVE.access or AccessFlag.ABSTRACT.access
-    if (flag.access and mutex != 0) {
-        return this and mutex.inv() or flag.access
+    if (flag.access and AccessFlag.contentMask != 0) {
+        return this and AccessFlag.contentMask.inv() or flag.access
     }
 
     return this or flag.access

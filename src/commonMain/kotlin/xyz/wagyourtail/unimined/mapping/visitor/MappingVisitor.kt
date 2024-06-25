@@ -14,8 +14,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
+import xyz.wagyourtail.unimined.mapping.util.Scoped
 
 interface BaseVisitor<T: BaseVisitor<T>> {
 
@@ -25,7 +25,7 @@ interface BaseVisitor<T: BaseVisitor<T>> {
 
 }
 
-inline fun <T: BaseVisitor<T>> T.use(visitor: T.() -> Unit) {
+inline fun <T: BaseVisitor<T>> T.use(visitor: (@Scoped T).() -> Unit) {
     visitor(this)
     visitEnd()
 }

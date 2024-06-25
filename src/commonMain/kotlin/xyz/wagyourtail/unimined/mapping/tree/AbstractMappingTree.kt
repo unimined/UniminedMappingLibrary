@@ -341,6 +341,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
 
     fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, minimize: Boolean = false) {
         acceptInner(visitor, nsFilter, minimize)
+        visitor.visitEnd()
     }
 
     override fun acceptOuter(visitor: NullVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): MappingVisitor? {

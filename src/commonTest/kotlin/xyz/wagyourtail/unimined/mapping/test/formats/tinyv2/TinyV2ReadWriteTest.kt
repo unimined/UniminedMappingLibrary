@@ -10,7 +10,8 @@ import kotlin.test.assertEquals
 
 class TinyV2ReadWriteTest {
 
-    val mappings = """
+    companion object {
+        val mappings = """
         tiny	2	0	intermediary	named
         c	net/minecraft/class_3720	net/minecraft/block/entity/BlastFurnaceBlockEntity
         	c	this is a comment block
@@ -109,7 +110,8 @@ class TinyV2ReadWriteTest {
         	m	(I)V	method_17511	setCurrentPage
         		p	1		currentPage
         c	net/minecraft/class_3716	net/minecraft/block/SmokerBlock
-    """.trimIndent()
+        """.trimIndent()
+    }
 
     @Test
     fun testTinyV2ReadWrite() = runTest {

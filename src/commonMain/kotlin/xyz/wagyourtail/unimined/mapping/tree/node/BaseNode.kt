@@ -4,6 +4,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.BaseVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ExtensionVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNode<U, *>?) : BaseVisitor<T> {
     val extensions: MutableMap<String, ExtensionNode<*, T, *>> = mutableMapOf()
@@ -15,9 +16,8 @@ abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNo
     }
 
     fun accept(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        acceptOuter(visitor, nsFilter, minimize)?.let {
-            acceptInner(it, nsFilter, minimize)
-            visitEnd()
+        acceptOuter(visitor, nsFilter, minimize)?.use {
+            acceptInner(this, nsFilter, minimize)
         }
     }
 

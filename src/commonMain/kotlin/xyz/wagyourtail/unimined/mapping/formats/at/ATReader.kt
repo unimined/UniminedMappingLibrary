@@ -27,49 +27,39 @@ object ATReader : FormatReader {
         return (cfg && name.endsWith("_at") || name.startsWith("accesstransformer"))
     }
 
-    fun String.parseAccess(): Pair<List<AccessFlag>, List<AccessFlag>> {
-        val add = mutableListOf<AccessFlag>()
-        val remove = mutableListOf<AccessFlag>()
-        CharReader("+$this").use {
-            while (!it.exhausted()) {
-                val addRemove = it.take()
-                val str = it.takeUntil { it in "+-" }
-                val access = if (str == "f") {
-                    AccessFlag.FINAL
-                } else {
-                    AccessFlag.valueOf(str.uppercase())
-                }
-                when (addRemove) {
-                    '+' -> {
-                        add.add(access)
-                    }
-                    '-' -> {
-                        remove.add(access)
-                    }
-                    else -> {
-                        throw IllegalArgumentException("Invalid access transformer, expected + or -, found $addRemove")
-                    }
-                }
-            }
+    fun String.parseAccess(): Pair<AccessFlag, TriState> {
+        if (!this.contains(Regex("[+-]"))) {
+            return AccessFlag.valueOf(this.uppercase()) to TriState.LEAVE
         }
-        return add to remove
+        val access = this.substring(0, this.length - 2).let { AccessFlag.valueOf(it.uppercase()) }
+        if (access !in AccessFlag.visibility) {
+            throw IllegalArgumentException("Unexpected access flag $access")
+        }
+        val final = when (this.substring(this.length - 2).lowercase()) {
+            "+f" -> TriState.ADD
+            "-f" -> TriState.REMOVE
+            else -> throw IllegalArgumentException("Unexpected character ${this.last()}")
+        }
+        return access to final
     }
 
-    fun <T: AccessParentVisitor<T>> AccessParentVisitor<T>.applyAccess(access: Pair<List<AccessFlag>, List<AccessFlag>>, ns: Set<Namespace>) {
-        for (flag in access.first) {
-            this.visitAccess(AccessType.ADD, flag, AccessConditions.ALL, ns)?.visitEnd()
-        }
-        for (flag in access.second) {
-            this.visitAccess(AccessType.REMOVE, flag, AccessConditions.ALL, ns)?.visitEnd()
+    fun <T: AccessParentVisitor<T>> AccessParentVisitor<T>.applyAccess(access: AccessFlag, final: TriState, ns: Set<Namespace>) {
+        this.visitAccess(AccessType.ADD, access, AccessConditions.ALL, ns)?.visitEnd()
+        when (final) {
+            TriState.ADD -> this.visitAccess(AccessType.ADD, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
+            TriState.REMOVE -> this.visitAccess(AccessType.REMOVE, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
+            TriState.LEAVE -> {}
         }
     }
 
     data class ATData(
-        val access: Pair<List<AccessFlag>, List<AccessFlag>>,
+        val access: AccessFlag,
+        val final: TriState,
         val targetClass: InternalName,
         val memberName: String?,
         val memberDesc: String?
     ) {
+        fun isClass() = memberName == null && memberDesc == null
         fun isMethod() = memberName != null && memberDesc != null
         fun isField() = memberName != null && memberDesc == null
         fun isWildcard() = memberName == "*"
@@ -86,6 +76,12 @@ object ATReader : FormatReader {
 
     }
 
+    enum class TriState {
+        ADD,
+        REMOVE,
+        LEAVE
+    }
+
     override suspend fun read(
         envType: EnvType,
         input: CharReader,
@@ -93,42 +89,9 @@ object ATReader : FormatReader {
         into: MappingVisitor,
         nsMapping: Map<String, String>
     ) {
-
         val ns = Namespace(nsMapping["source"] ?: "source")
-
-        into.use {
-            visitHeader(ns.name)
-            val data = readData(input)
-
-            for (at in data) {
-                visitClass(mapOf(ns to at.targetClass))?.use {
-                    if (at.isWildcard()) {
-                        if (at.isMethod()) {
-                            visitWildcard(WildcardNode.WildcardType.METHOD, emptyMap())?.use {
-                                applyAccess(at.access, setOf(ns))
-                            }
-                        } else {
-                            visitWildcard(WildcardNode.WildcardType.FIELD, emptyMap())?.use {
-                                applyAccess(at.access, setOf(ns))
-                            }
-                        }
-                    } else {
-                        if (at.isMethod()) {
-                            visitMethod(mapOf(ns to (at.memberName!! to at.fixedDesc())))?.use {
-                                applyAccess(at.access, setOf(ns))
-                                visitEnd()
-                            }
-                        } else {
-                            visitField(mapOf(ns to (at.memberName!! to null)))?.use {
-                                applyAccess(at.access, setOf(ns))
-                            }
-                        }
-
-                    }
-                }
-            }
-        }
-
+        val data = readData(input)
+        applyData(data, into, ns)
     }
 
     fun readData(input: CharReader): List<ATData> {
@@ -158,9 +121,47 @@ object ATReader : FormatReader {
                 throw IllegalArgumentException("Expected newline or comment, found $remaining")
             }
 
-            data.add(ATData(access, targetClass, memberName, memberDesc))
+            data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
         }
         return data
+    }
+
+    fun applyData(data: List<ATData>, into: MappingVisitor, ns: Namespace) {
+        val nsSet = setOf(ns)
+        into.use {
+            visitHeader(ns.name)
+            for (at in data) {
+                visitClass(mapOf(ns to at.targetClass))?.use {
+                    if (at.isClass()) {
+                        applyAccess(at.access, at.final, nsSet)
+                    } else {
+                        if (at.isWildcard()) {
+                            if (at.isMethod()) {
+                                visitWildcard(WildcardNode.WildcardType.METHOD, emptyMap())?.use {
+                                    applyAccess(at.access, at.final, nsSet)
+                                }
+                            } else {
+                                visitWildcard(WildcardNode.WildcardType.FIELD, emptyMap())?.use {
+                                    applyAccess(at.access, at.final, nsSet)
+                                }
+                            }
+                        } else {
+                            if (at.isMethod()) {
+                                visitMethod(mapOf(ns to (at.memberName!! to at.fixedDesc())))?.use {
+                                    applyAccess(at.access, at.final, nsSet)
+                                    visitEnd()
+                                }
+                            } else {
+                                visitField(mapOf(ns to (at.memberName!! to null)))?.use {
+                                    applyAccess(at.access, at.final, nsSet)
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

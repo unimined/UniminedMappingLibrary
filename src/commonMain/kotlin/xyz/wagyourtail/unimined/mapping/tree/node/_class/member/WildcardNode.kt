@@ -3,17 +3,20 @@ package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvableEntry
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class WildcardNode(parent: ClassNode, val type: WildcardType, val descs: Map<Namespace, FieldOrMethodDescriptor>) : MemberNode<WildcardVisitor, WildcardVisitor, ClassVisitor>(parent), WildcardVisitor {
+class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>) : MemberNode<WildcardVisitor, WildcardVisitor, ClassVisitor>(parent), WildcardVisitor, LazyResolvableEntry<WildcardNode, WildcardVisitor> {
+    private val _descs = descs.toMutableMap()
     private val _params: MutableList<ParameterNode<WildcardVisitor>> = mutableListOf()
     private val _locals: MutableList<LocalNode<WildcardVisitor>> = mutableListOf()
     private val _exceptions: MutableList<ExceptionNode<WildcardVisitor>> = mutableListOf()
 
+    val descs: Map<Namespace, FieldOrMethodDescriptor> get() = _descs
     val params: List<ParameterNode<WildcardVisitor>> get() = _params
     val locals: List<LocalNode<WildcardVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<WildcardVisitor>> get() = _exceptions
@@ -25,6 +28,11 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, val descs: Map<Nam
         }
         val fromNs = descs.keys.first()
         return root.mapDescriptor(fromNs, namespace, descs[fromNs]!!)
+    }
+
+    fun setDescriptors(descs: Map<Namespace, FieldOrMethodDescriptor>) {
+        root.mergeNs(descs.keys)
+        this._descs.putAll(descs)
     }
 
     fun getMethodDescriptor(namespace: Namespace) = getDescriptor(namespace)?.getMethodDescriptor()
@@ -118,5 +126,25 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, val descs: Map<Nam
         ;
     }
 
+    fun doMerge(target: WildcardNode) {
+        acceptInner(target, root.namespaces, false)
+    }
+
+    override fun merge(element: WildcardNode): WildcardNode? {
+        if (element.type != type) return null
+        if (element.descs.isEmpty() && descs.isEmpty()) {
+            doMerge(element)
+            return element
+        }
+        if (element.descs.isNotEmpty() && descs.isNotEmpty()) {
+            val descKey = descs.keys.first()
+            if (element.getDescriptor(descKey) == getDescriptor(descKey)) {
+                element.setDescriptors(descs)
+                doMerge(element)
+                return element
+            }
+        }
+        return null
+    }
 
 }

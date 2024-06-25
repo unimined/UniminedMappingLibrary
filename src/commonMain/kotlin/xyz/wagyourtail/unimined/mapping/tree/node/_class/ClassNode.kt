@@ -18,17 +18,18 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val _names: MutableMap<Namespace, InternalName?> = mutableMapOf()
-    private val _wildcards: MutableList<WildcardNode> = mutableListOf()
 
     val names: Map<Namespace, InternalName?> get() = _names
 
-    val fields = LazyResolvables(parent) {
+    val wildcards = LazyResolvables<WildcardVisitor, WildcardNode>(parent) {
+        WildcardNode(this, it.type, it.descs)
+    }
+    val fields = LazyResolvables<FieldVisitor, FieldNode>(parent) {
         FieldNode(this)
     }
-    val methods = LazyResolvables(parent) {
+    val methods = LazyResolvables<MethodVisitor, MethodNode>(parent) {
         MethodNode(this)
     }
-    val wildcards: List<WildcardNode> = _wildcards
 
     val inners = mutableSetOf<InnerClassNode>()
 
@@ -75,6 +76,13 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         fields.addUnresolved(this)
     }
 
+    override fun visitWildcard(
+        type: WildcardNode.WildcardType,
+        descs: Map<Namespace, FieldOrMethodDescriptor>
+    ) = WildcardNode(this, type, descs).apply {
+        wildcards.addUnresolved(this)
+    }
+
     override fun visitInnerClass(
         type: InnerClassNode.InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
@@ -94,14 +102,6 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         return inner
     }
 
-    override fun visitWildcard(
-        type: WildcardNode.WildcardType,
-        descs: Map<Namespace, FieldOrMethodDescriptor>
-    ): WildcardVisitor? {
-        val wildcard = WildcardNode(this, type, descs)
-        _wildcards.add(wildcard)
-        return wildcard
-    }
 
     override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ClassVisitor? {
         val names = _names.filterNotNullValues().filterKeys { it in nsFilter }
@@ -113,6 +113,9 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         super.acceptInner(visitor, nsFilter, minimize)
         for (inner in inners) {
             inner.accept(visitor, nsFilter, minimize)
+        }
+        for (wildcard in wildcards.resolve()) {
+            wildcard.accept(visitor, nsFilter, minimize)
         }
         for (field in fields.resolve()) {
             field.accept(visitor, nsFilter, minimize)
