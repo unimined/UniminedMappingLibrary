@@ -318,6 +318,8 @@ with static, final, abstract, synthetic, bridge, it's additive since these are f
 
 package-private is represented as `package`
 
+Changing method access from private will change `INVOKESPECIAL` to `INVOKEVIRTUAL` for the method.
+
 ## Constant Group
 
 constant uninlining targets constants used when setting the value of methods/fields.
