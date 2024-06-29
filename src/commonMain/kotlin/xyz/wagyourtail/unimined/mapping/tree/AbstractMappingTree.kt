@@ -339,26 +339,26 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         mergeNs(namespaces.map { Namespace(it) }.toSet())
     }
 
-    fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, minimize: Boolean = false) {
-        acceptInner(visitor, nsFilter, minimize)
+    fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces) {
+        acceptInner(visitor, nsFilter)
         visitor.visitEnd()
     }
 
-    override fun acceptOuter(visitor: NullVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): MappingVisitor? {
+    override fun acceptOuter(visitor: NullVisitor, nsFilter: Collection<Namespace>): MappingVisitor? {
         return null
     }
 
-    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
         visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
-        super.acceptInner(visitor, nsFilter, minimize)
+        super.acceptInner(visitor, nsFilter)
         for (pkg in packagesIter()) {
-            pkg.second().accept(visitor, nsFilter, minimize)
+            pkg.second().accept(visitor, nsFilter)
         }
         for (cls in classesIter()) {
-            cls.second().accept(visitor, nsFilter, minimize)
+            cls.second().accept(visitor, nsFilter)
         }
         for (group in constantGroupsIter()) {
-            group.second().accept(visitor, nsFilter, minimize)
+            group.second().accept(visitor, nsFilter)
         }
     }
 }

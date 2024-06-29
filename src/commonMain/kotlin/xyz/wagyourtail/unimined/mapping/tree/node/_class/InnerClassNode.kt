@@ -23,12 +23,22 @@ class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParent
         this._targets.putAll(targets)
     }
 
+    fun getTarget(namespace: Namespace): FullyQualifiedName {
+        if (namespace in targets) return targets.getValue(namespace)
+        val fromNs = targets.keys.first()
+        return root.map(fromNs, namespace, targets.getValue(fromNs))
+    }
+
     enum class InnerType {
         INNER,
         LOCAL,
         ANONYMOUS,
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) = visitor.visitInnerClass(innerType, names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to targets[ns] })
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>): InnerClassVisitor? {
+        val names = names.filterKeys { it in nsFilter }
+        if (names.isEmpty()) return null
+        return visitor.visitInnerClass(innerType, names.mapValues { it.value to getTarget(it.key) })
+    }
 
 }

@@ -10,32 +10,32 @@ import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
-    private val _names: MutableMap<Namespace, PackageName?> = mutableMapOf()
+    private val _names: MutableMap<Namespace, PackageName> = mutableMapOf()
     private val _annotations: MutableSet<AnnotationNode<PackageVisitor>> = mutableSetOf()
     private val _comments: MutableMap<Namespace, String?> = mutableMapOf()
 
-    val names: Map<Namespace, PackageName?> get() = _names
+    val names: Map<Namespace, PackageName> get() = _names
     val annotations: Set<AnnotationNode<PackageVisitor>> get() = _annotations
     val comments: Map<Namespace, String?> get() = _comments
 
     fun getName(namespace: Namespace) = names[namespace]
 
-    fun setNames(names: Map<Namespace, PackageName?>) {
+    fun setNames(names: Map<Namespace, PackageName>) {
         root.mergeNs(names.keys)
         _names.putAll(names)
     }
 
-    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): PackageVisitor? {
-        val names = names.filterNotNullValues().filterKeys { it in nsFilter }
+    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>): PackageVisitor? {
+        val names = names.filterKeys { it in nsFilter }
         if (names.isEmpty()) return null
         return visitor.visitPackage(names)
     }
 
-    override fun acceptInner(visitor: PackageVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
+    override fun acceptInner(visitor: PackageVisitor, nsFilter: Collection<Namespace>) {
         for (annotation in annotations) {
-            annotation.accept(visitor, nsFilter, minimize)
+            annotation.accept(visitor, nsFilter)
         }
-        super.acceptInner(visitor, nsFilter, minimize)
+        super.acceptInner(visitor, nsFilter)
     }
 
     override fun visitAnnotation(

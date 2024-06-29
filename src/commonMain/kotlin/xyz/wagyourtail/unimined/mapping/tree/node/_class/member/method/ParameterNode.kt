@@ -18,7 +18,7 @@ class ParameterNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val index: I
         this._names.putAll(names)
     }
 
-    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean): ParameterVisitor? {
+    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>): ParameterVisitor? {
         val names = names.filterKeys { it in nsFilter }
         if (names.isEmpty()) return null
         return visitor.visitParameter(index, lvOrd, names)

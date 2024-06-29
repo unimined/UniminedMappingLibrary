@@ -49,7 +49,7 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
         return node
     }
 
-    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ConstantGroupVisitor? {
+    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>): ConstantGroupVisitor? {
         if (baseNs !in nsFilter) {
             val ns = nsFilter.filter { it in namespaces }.toSet()
             if (ns.isEmpty()) return null
@@ -60,13 +60,13 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
         }
     }
 
-    override fun acceptInner(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        super.acceptInner(visitor, nsFilter, minimize)
+    override fun acceptInner(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>) {
+        super.acceptInner(visitor, nsFilter)
         for (c in _constants) {
-            c.accept(visitor, nsFilter, minimize)
+            c.accept(visitor, nsFilter)
         }
         for (t in _targets) {
-            t.accept(visitor, nsFilter, minimize)
+            t.accept(visitor, nsFilter)
         }
     }
 }

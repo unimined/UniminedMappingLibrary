@@ -32,7 +32,7 @@ class MCPReadTest {
         }
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(EnvType.CLIENT, it))
+            tree.accept(UMFWriter.write(EnvType.CLIENT, it, true))
             it.readUtf8()
         }
 

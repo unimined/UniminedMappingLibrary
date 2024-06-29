@@ -83,40 +83,21 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
         _exceptions.add(node)
         return node
     }
-    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): WildcardVisitor? {
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>): WildcardVisitor? {
         if (descs.isEmpty()) return visitor.visitWildcard(type, emptyMap())
-        val desc = if (minimize) {
-            val descNs = nsFilter.firstOrNull { it in this.descs }
-            if (descNs != null) {
-                val ns = nsFilter.first()
-                mapOf(ns to root.mapDescriptor(descNs, ns, this.descs[descNs]!!))
-            } else {
-                val fromNs = descs.keys.first()
-                val ns = nsFilter.first()
-                mapOf(ns to root.mapDescriptor(fromNs, ns, descs[fromNs]!!))
-            }
-        } else {
-            if (descs.keys.none { it in nsFilter }) {
-                val fromNs = descs.keys.first()
-                val ns = nsFilter.first()
-                mapOf(ns to root.mapDescriptor(fromNs, ns, descs[fromNs]!!))
-            } else {
-                descs.filter { it.key in nsFilter }
-            }
-        }
-        return visitor.visitWildcard(type, desc)
+        return visitor.visitWildcard(type, nsFilter.associateWith { getDescriptor(it)!! })
     }
 
-    override fun acceptInner(visitor: WildcardVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        super.acceptInner(visitor, nsFilter, minimize)
+    override fun acceptInner(visitor: WildcardVisitor, nsFilter: Collection<Namespace>) {
+        super.acceptInner(visitor, nsFilter)
         for (exception in exceptions) {
-            exception.accept(visitor, nsFilter, minimize)
+            exception.accept(visitor, nsFilter)
         }
         for (param in params) {
-            param.accept(visitor, nsFilter, minimize)
+            param.accept(visitor, nsFilter)
         }
         for (local in locals) {
-            local.accept(visitor, nsFilter, minimize)
+            local.accept(visitor, nsFilter)
         }
     }
 
@@ -127,7 +108,7 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
     }
 
     fun doMerge(target: WildcardNode) {
-        acceptInner(target, root.namespaces, false)
+        acceptInner(target, root.namespaces)
     }
 
     override fun merge(element: WildcardNode): WildcardNode? {

@@ -47,38 +47,13 @@ class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>) : Base
         return FieldSignature.read(root.mapFieldSignature(fromNs, ns, names[fromNs]!!))
     }
 
-    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean): SignatureVisitor? {
-        val names = if (minimize) {
-            val descNs = nsFilter.firstOrNull { it in this.names }
-            if (descNs != null) {
-                val ns = nsFilter.first()
-                val sig = mapSignature(descNs, ns, this.names[descNs]!!)
-                mapOf(ns to sig) + names.filterKeys { it != ns && it in nsFilter }.filter { mapSignature(it.key, ns, it.value) != sig }
-            } else {
-                val fromNs = names.keys.first()
-                val ns = nsFilter.first()
-                val sig = mapSignature(fromNs, ns, names[fromNs]!!)
-                mapOf(ns to sig) + names.filterKeys { it != fromNs && it in nsFilter }.filter { mapSignature(it.key, ns, it.value) != sig }
-            }
-        } else {
-            if (names.keys.none { it in nsFilter }) {
-                val fromNs = names.keys.first()
-                val ns = nsFilter.first()
-                mapOf(ns to mapSignature(fromNs, ns, names[fromNs]!!))
-            } else {
-                if (nsFilter.first() !in names) {
-                    val fromNs = this.names.keys.first()
-                    val ns = nsFilter.first()
-                    mapOf(ns to mapSignature(fromNs, ns, this.names[fromNs]!!)) + names.filterKeys { it in nsFilter }
-                } else {
-                    names.filterKeys { it in nsFilter }
-                }
-            }
-        }
-        return visitor.visitSignature(names)
+    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>): SignatureVisitor? {
+        return visitor.visitSignature(nsFilter.associateWith { getSignature(it) })
     }
 
-    fun mapSignature(fromNs: Namespace, toNs: Namespace, sig: String): String {
+    fun getSignature(toNs: Namespace): String {
+        val fromNs = names.keys.first()
+        val sig = names.getValue(fromNs)
         return when (parent) {
             is ClassNode -> parent.root.mapClassSignature(fromNs, toNs, sig)
             is FieldNode -> parent.root.mapFieldSignature(fromNs, toNs, sig)

@@ -17,7 +17,7 @@ class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constCl
 
     fun asFullyQualifiedName() = FullyQualifiedName(ObjectType(constClass), NameAndDescriptor(constName, fieldDesc?.let { FieldOrMethodDescriptor(it) }))
 
-    override fun acceptOuter(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ConstantVisitor? {
+    override fun acceptOuter(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>): ConstantVisitor? {
         if (baseNs !in nsFilter) {
             val ns = nsFilter.filter { it in (parent as ConstantGroupNode).namespaces }.toSet()
             if (ns.isEmpty()) return null

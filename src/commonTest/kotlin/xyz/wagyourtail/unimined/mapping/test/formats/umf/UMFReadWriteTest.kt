@@ -20,7 +20,7 @@ intermediary	named
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 	*	"example comment"	0
 	f	field_1724	_
-	m	method_1507;()V	testMethod
+	m	method_1507;()V	testMethod;()V
 		p	_	0	_	this
 		v	1	_	_	lv1
         """.trimIndent().trimEnd()
@@ -30,7 +30,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output))
+            mappings.accept(UMFWriter.write(output, false))
             output.readUtf8()
         }
         assertEquals(inp, output.trimEnd())
@@ -58,19 +58,18 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output))
+            mappings.accept(UMFWriter.write(output, false))
             output.readUtf8()
         }
-        val testOutput = """
-umf	1	0
+        val testOutput = """umf	1	0
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	f	field_1724	_	_
-	m	method_1507;()V	testMethod;()V	methodNameExtra
+	m	method_1507;()V	testMethod;()V	methodNameExtra;()V
 		p	_	0	_	this	p1
 		v	1	_	_	lv1	lv1Extra
-	m	__	dontMerge;()V	dontMerge2
-	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>	<init>
+	m	_;()V	dontMerge;()V	dontMerge2;()V
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
         """.trimIndent().replace(' ', '\t').trimEnd()
 
         assertEquals(testOutput, output.trimEnd())
@@ -92,7 +91,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output), minimize = true)
+            mappings.accept(UMFWriter.write(output, true))
             output.readUtf8()
         }
         val testOutput = """
@@ -128,7 +127,7 @@ c	net/minecraft/class_310	_	net/minecraft/Minecraft
             }
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output))
+            mappings.accept(UMFWriter.write(output, false))
             output.readUtf8()
         }
 
@@ -138,7 +137,7 @@ intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Minecraft
 	*	"example comment"	0	_
 	f	field_1724	_	_
-	m	method_1507;()V	testMethod	_
+	m	method_1507;()V	testMethod;()V	_
 		p	_	0	_	this	_
 		v	1	_	_	lv1	_
         """.trimIndent()

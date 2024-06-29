@@ -18,7 +18,7 @@ class LocalNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val lvOrd: Int, 
         this._names.putAll(names)
     }
 
-    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean): LocalVariableVisitor? {
+    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>): LocalVariableVisitor? {
         val names = names.filterKeys { it in nsFilter }
         if (names.isEmpty()) return null
         return visitor.visitLocalVariable(lvOrd, startOp, names)

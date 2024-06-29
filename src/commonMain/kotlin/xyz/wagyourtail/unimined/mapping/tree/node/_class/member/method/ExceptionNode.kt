@@ -18,7 +18,7 @@ class ExceptionNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val type: Ex
         _namespaces.addAll(namespaces)
     }
 
-    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean): ExceptionVisitor? {
+    override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>): ExceptionVisitor? {
         if (baseNs !in nsFilter) {
             val ns = nsFilter.filter { it in namespaces }.toSet()
             if (ns.isEmpty()) return null

@@ -48,7 +48,7 @@ class MemoryMappingTree : AbstractMappingTree() {
 
             override fun get(index: Int): Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
                 val cls = _classes[index]
-                return Triple(cls.names.filterNotNullValues(), { cls }, { visitor, nsFilter -> cls.accept(visitor, nsFilter, false) })
+                return Triple(cls.names.filterNotNullValues(), { cls }, { visitor, nsFilter -> cls.accept(visitor, nsFilter) })
             }
         }
     }
@@ -60,7 +60,7 @@ class MemoryMappingTree : AbstractMappingTree() {
 
             override fun get(index: Int): Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
                 val pkg = _packages[index]
-                return Triple(pkg.names.filterNotNullValues(), { pkg }, { visitor, nsFilter -> pkg.accept(visitor, nsFilter, false) })
+                return Triple(pkg.names.filterNotNullValues(), { pkg }, { visitor, nsFilter -> pkg.accept(visitor, nsFilter) })
             }
 
         }
@@ -72,7 +72,7 @@ class MemoryMappingTree : AbstractMappingTree() {
 
             override fun get(index: Int): Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
                 val group = _constantGroups[index]
-                return Triple(Triple(null as String?, group.type, listOf(group.baseNs) + group.namespaces.toList()), { group }, { visitor, nsFilter -> group.accept(visitor, nsFilter, false) })
+                return Triple(Triple(null as String?, group.type, listOf(group.baseNs) + group.namespaces.toList()), { group }, { visitor, nsFilter -> group.accept(visitor, nsFilter) })
             }
         }
     }

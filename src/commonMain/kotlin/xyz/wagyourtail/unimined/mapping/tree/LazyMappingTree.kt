@@ -11,6 +11,10 @@ import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
 
 /**
  * for memory limited environments
@@ -165,26 +169,26 @@ class LazyMappingTree : AbstractMappingTree() {
         return node.visitConstantGroup(type, name, baseNs, namespaces)
     }
 
-    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        if (minimize) {
-            super.acceptInner(visitor, nsFilter, minimize)
-        } else {
-            visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
-            for (ext in extensions) {
-                ext.value.accept(visitor, nsFilter, minimize)
-            }
-            val nsFilterSet = nsFilter.toSet()
-            for (node in _packages) {
-                node.accept(visitor, nsFilterSet)
-            }
-            for (node in _classes) {
-                node.accept(visitor, nsFilterSet)
-            }
-            for (node in _constantGroups) {
-                node.accept(visitor, nsFilterSet)
-            }
-        }
-    }
+//    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
+//        if (minimize) {
+//            super.acceptInner(visitor, nsFilter)
+//        } else {
+//            visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
+//            for (ext in extensions) {
+//                ext.value.accept(visitor, nsFilter,)
+//            }
+//            val nsFilterSet = nsFilter.toSet()
+//            for (node in _packages) {
+//                node.accept(visitor, nsFilterSet)
+//            }
+//            for (node in _classes) {
+//                node.accept(visitor, nsFilterSet)
+//            }
+//            for (node in _constantGroups) {
+//                node.accept(visitor, nsFilterSet)
+//            }
+//        }
+//    }
 
     class LazyClassNode(val tree: LazyMappingTree) {
         var _names: MutableMap<Namespace, InternalName> = mutableMapOf()
@@ -198,7 +202,9 @@ class LazyMappingTree : AbstractMappingTree() {
         fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor {
             tree.mergeNs(names.keys)
             this._names.putAll(names)
-            return UMFWriter.UMFClassWriter(::append, tree.namespaces.toList())
+            val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+            delegator.namespaces = tree.namespaces.toList()
+            return DelegateClassVisitor(EmptyClassVisitor(), delegator)
         }
 
         fun resolve(): ClassNode {
@@ -222,7 +228,7 @@ class LazyMappingTree : AbstractMappingTree() {
                     ThrowingVisitor(),
                     emptyMap(),
                     mutableListOf(cls),
-                    mutableListOf(-1, 0),
+                    mutableListOf(-1, -1),
                     tree.namespaces::get
                 )
             }
@@ -242,7 +248,9 @@ class LazyMappingTree : AbstractMappingTree() {
         fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
             tree.mergeNs(names.keys)
             this._names.putAll(names)
-            return UMFWriter.UMFPackageWriter(::append, tree.namespaces.toList())
+            val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+            delegator.namespaces = tree.namespaces.toList()
+            return DelegatePackageVisitor(EmptyPackageVisitor(), delegator)
         }
 
         fun resolve(): PackageNode {
@@ -266,7 +274,7 @@ class LazyMappingTree : AbstractMappingTree() {
                     ThrowingVisitor(),
                     emptyMap(),
                     mutableListOf(pkg),
-                    mutableListOf(-1, 0),
+                    mutableListOf(-1, -1),
                     tree.namespaces::get
                 )
             }
@@ -287,7 +295,11 @@ class LazyMappingTree : AbstractMappingTree() {
             baseNs: Namespace,
             namespaces: Set<Namespace>
         ): ConstantGroupVisitor {
-            return UMFWriter.UMFConstantGroupWriter(::append, namespaces.toList())
+            tree.mergeNs(setOf(baseNs))
+            tree.mergeNs(namespaces)
+            val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+            delegator.namespaces = tree.namespaces.toList()
+            return DelegateConstantGroupVisitor(EmptyConstantGroupVisitor(), delegator)
         }
 
         fun resolve(): ConstantGroupNode {
@@ -316,7 +328,7 @@ class LazyMappingTree : AbstractMappingTree() {
                     ThrowingVisitor(),
                     emptyMap(),
                     mutableListOf(cgn),
-                    mutableListOf(-1, 0),
+                    mutableListOf(-1, -1),
                     tree.namespaces::get
                 )
             }

@@ -18,6 +18,16 @@ class ListCompare<T: Comparable<T>>(val list: List<T>): Comparable<ListCompare<T
 
 }
 
+fun <K, V> Map<K, V>.firstAsMap(): Map<K, V> {
+    val entry = entries.first()
+    return mapOf(entry.key to entry.value)
+}
+
+fun <K, V> Map<K, V>.firstAsMutableMap(): MutableMap<K, V> {
+    val entry = entries.first()
+    return mutableMapOf(entry.key to entry.value)
+}
+
 inline fun <E, K, V> Iterable<E>.associateNonNull(apply: (E) -> Pair<K, V>?): Map<K, V> {
     val mut = mutableMapOf<K, V>()
     for (e in this) {

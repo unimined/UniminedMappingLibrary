@@ -26,7 +26,7 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
         val cNode = ClassNode(this)
         nodes.forEach {
             cNode.setNames(it.names)
-            it.acceptInner(cNode, namespaces, false)
+            it.acceptInner(cNode, namespaces)
         }
         return cNode
     }

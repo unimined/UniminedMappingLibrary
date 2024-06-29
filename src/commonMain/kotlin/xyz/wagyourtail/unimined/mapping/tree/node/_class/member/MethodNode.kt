@@ -69,31 +69,22 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return node
     }
 
-    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): MethodVisitor? {
-        val names = if (minimize) {
-            val descNs = nsFilter.firstOrNull { it in names }
-            if (descNs != null) {
-                names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name to if (ns == descNs) getMethodDesc(ns) else null }
-            } else {
-                names.filterKeys { it in nsFilter }.mapValues { (_, name) -> name to null }
-            }
-        } else {
-            names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name.let { name to descs[ns]?.getMethodDescriptor() } }
-        }
+    override fun acceptOuter(visitor: ClassVisitor, nsFilter: Collection<Namespace>): MethodVisitor? {
+        val names = names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name.let { name to getMethodDesc(ns) } }
         if (names.isEmpty()) return null
         return visitor.visitMethod(names)
     }
 
-    override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        super.acceptInner(visitor, nsFilter, minimize)
+    override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>) {
+        super.acceptInner(visitor, nsFilter)
         for (exception in exceptions) {
-            exception.accept(visitor, nsFilter, minimize)
+            exception.accept(visitor, nsFilter)
         }
         for (param in params) {
-            param.accept(visitor, nsFilter, minimize)
+            param.accept(visitor, nsFilter)
         }
         for (local in locals) {
-            local.accept(visitor, nsFilter, minimize)
+            local.accept(visitor, nsFilter)
         }
     }
 

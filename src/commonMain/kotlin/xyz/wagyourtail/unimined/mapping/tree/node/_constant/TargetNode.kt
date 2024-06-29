@@ -8,7 +8,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.TargetVisitor
 
 class TargetNode(parent: ConstantGroupNode, val baseNs: Namespace, val target: FullyQualifiedName, val paramIdx: Int?) : BaseNode<TargetVisitor, ConstantGroupVisitor>(parent),
     TargetVisitor {
-    override fun acceptOuter(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): TargetVisitor? {
+    override fun acceptOuter(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>): TargetVisitor? {
         if (baseNs !in nsFilter) {
             val ns = nsFilter.filter { it in (parent as ConstantGroupNode).namespaces }.toSet()
             if (ns.isEmpty()) return null

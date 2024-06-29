@@ -35,7 +35,7 @@ class RetroguardReadTest {
         val mappings = readRetroguard()
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output))
+            mappings.accept(UMFWriter.write(output, minimize = true))
             output.readUtf8()
         }
 

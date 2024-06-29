@@ -15,17 +15,17 @@ abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNo
         TODO()
     }
 
-    fun accept(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        acceptOuter(visitor, nsFilter, minimize)?.use {
-            acceptInner(this, nsFilter, minimize)
+    fun accept(visitor: U, nsFilter: Collection<Namespace>) {
+        acceptOuter(visitor, nsFilter)?.use {
+            acceptInner(this, nsFilter)
         }
     }
 
-    abstract fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>, minimize: Boolean): T?
+    abstract fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>): T?
 
-    open fun acceptInner(visitor: T, nsFilter: Collection<Namespace>, minimize: Boolean) {
+    open fun acceptInner(visitor: T, nsFilter: Collection<Namespace>) {
         for (extension in extensions.values) {
-            extension.accept(visitor, nsFilter, minimize)
+            extension.accept(visitor, nsFilter)
         }
     }
 

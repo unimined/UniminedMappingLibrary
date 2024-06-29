@@ -99,25 +99,25 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
     }
 
 
-    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>, minimize: Boolean): ClassVisitor? {
+    override fun acceptOuter(visitor: MappingVisitor, nsFilter: Collection<Namespace>): ClassVisitor? {
         val names = _names.filterNotNullValues().filterKeys { it in nsFilter }
         if (names.isEmpty()) return null
         return visitor.visitClass(names)
     }
 
-    override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>, minimize: Boolean) {
-        super.acceptInner(visitor, nsFilter, minimize)
+    override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>) {
+        super.acceptInner(visitor, nsFilter)
         for (inner in inners.values) {
-            inner.accept(visitor, nsFilter, minimize)
+            inner.accept(visitor, nsFilter)
         }
         for (wildcard in wildcards.resolve()) {
-            wildcard.accept(visitor, nsFilter, minimize)
+            wildcard.accept(visitor, nsFilter)
         }
         for (field in fields.resolve()) {
-            field.accept(visitor, nsFilter, minimize)
+            field.accept(visitor, nsFilter)
         }
         for (method in methods.resolve()) {
-            method.accept(visitor, nsFilter, minimize)
+            method.accept(visitor, nsFilter)
         }
     }
 
