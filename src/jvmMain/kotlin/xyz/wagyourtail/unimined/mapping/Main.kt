@@ -9,7 +9,7 @@ import okio.buffer
 import okio.sink
 import okio.source
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
-import xyz.wagyourtail.unimined.mapping.propogator.PropogatorImpl
+import xyz.wagyourtail.unimined.mapping.propogator.Propagator
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.mutliAssociate
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
@@ -50,7 +50,7 @@ class Main: CliktCommand() {
             if (prop.isNotEmpty() || cp.isNotEmpty()) {
                 LOGGER.info { "Propogating..." }
                 val t = measureTime {
-                    PropogatorImpl(Namespace(propogationNs!!), mappings, prop + cp)
+                    Propagator(Namespace(propogationNs!!), mappings, prop + cp)
                         .propagate(mappings.namespaces.toSet() - Namespace(propogationNs!!))
                 }
                 LOGGER.info { "Propogated in ${t.inWholeMilliseconds}ms" }
