@@ -24,8 +24,8 @@ class Main: CliktCommand() {
     val envType by option("-e", "--env").convert { EnvType.valueOf(it) }.default(EnvType.JOINED)
     val mappingFiles by option("-i", "--input", help = "the input mappings, format should auto-detect in most cases").file(mustExist = true).multiple(required = true)
     val nsMap by option("-n", "--namespace", help = "Namespace mapping to apply to the input mappings.").transformValues(nvalues = 3) { Triple(it[0].toInt(), it[1], it[2]) }.multiple(required = false, default = emptyList())
-    val propogationNs: String? by option("-pns", "--propogation-namespace", help = "Namespace mapping to apply to the propogation mappings.")
-    val propogation by option("-p", "--propogation", help = "Any jars to scan the classes of for the case of propogating the mappings.").file(mustExist = true, canBeDir = false).multiple(required = false, default = emptyList())
+    val propagationNs: String? by option("-pns", "--propagation-namespace", help = "Namespace mapping to apply to the propagation mappings.")
+    val propagation by option("-p", "--propagation", help = "Any jars to scan the classes of for the case of propagating the mappings.").file(mustExist = true, canBeDir = false).multiple(required = false, default = emptyList())
     val classpath  by option("-c", "--classpath", help = "Classpath for the jar scanning.").file(mustExist = true, canBeDir = false).multiple(required = false, default = emptyList())
     val copyMissing by option("-m", "--copy-missing", help = "Copy missing names from ns to other ns").pair().multiple(required = false, default = emptyList())
     val output by option("-o", "--output", help = "The output").transformValues(nvalues = 2) { FormatRegistry.byName[it[0]] to File(it[1]) }.required()
@@ -45,15 +45,15 @@ class Main: CliktCommand() {
                 }
                 LOGGER.info { "Loaded in ${t.inWholeMilliseconds}ms" }
             }
-            val prop = propogation.map { it.toPath() }.toSet()
+            val prop = propagation.map { it.toPath() }.toSet()
             val cp = classpath.map { it.toPath() }.toSet()
             if (prop.isNotEmpty() || cp.isNotEmpty()) {
-                LOGGER.info { "Propogating..." }
+                LOGGER.info { "Propagating..." }
                 val t = measureTime {
-                    Propagator(Namespace(propogationNs!!), mappings, prop + cp)
-                        .propagate(mappings.namespaces.toSet() - Namespace(propogationNs!!))
+                    Propagator(Namespace(propagationNs!!), mappings, prop + cp)
+                        .propagate(mappings.namespaces.toSet() - Namespace(propagationNs!!))
                 }
-                LOGGER.info { "Propogated in ${t.inWholeMilliseconds}ms" }
+                LOGGER.info { "Propagated in ${t.inWholeMilliseconds}ms" }
             }
             val copyMissingMap = copyMissing.mutliAssociate { it }
             for ((from, to) in copyMissingMap) {
