@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._constant
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
@@ -9,8 +10,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ConstantVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantVisitor
 
 class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constClass: InternalName, val constName: UnqualifiedName, val fieldDesc: FieldDescriptor?) : BaseNode<ConstantVisitor, ConstantGroupVisitor>(parent),
     ConstantVisitor {
@@ -34,4 +36,12 @@ class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constCl
         }
         return visitor.visitConstant(constClass, constName, fieldDesc)
     }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitConstant(EmptyConstantGroupVisitor(), constClass, constName, fieldDesc)
+//        acceptInner(DelegateConstantVisitor(EmptyConstantVisitor(), delegator), root.namespaces)
+    }
+
 }

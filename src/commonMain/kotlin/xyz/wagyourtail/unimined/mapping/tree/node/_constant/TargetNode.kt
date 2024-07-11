@@ -1,10 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._constant
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.TargetVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateTargetVisitor
 
 class TargetNode(parent: ConstantGroupNode, val baseNs: Namespace, val target: FullyQualifiedName, val paramIdx: Int?) : BaseNode<TargetVisitor, ConstantGroupVisitor>(parent),
     TargetVisitor {
@@ -18,4 +20,12 @@ class TargetNode(parent: ConstantGroupNode, val baseNs: Namespace, val target: F
         }
         return visitor.visitTarget(target, paramIdx)
     }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitTarget(EmptyConstantGroupVisitor(), target, paramIdx)
+//        acceptInner(DelegateTargetVisitor(EmptyTargetVisitor(), delegator), root.namespaces)
+    }
+
 }

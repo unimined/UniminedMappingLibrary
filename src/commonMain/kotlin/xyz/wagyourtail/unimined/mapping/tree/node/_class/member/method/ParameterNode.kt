@@ -1,12 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member.method
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
-import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ParameterVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateParameterVisitor
 
 class ParameterNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, MethodVisitor, T>(parent),
     ParameterVisitor {
@@ -23,4 +24,12 @@ class ParameterNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val index: I
         if (names.isEmpty()) return null
         return visitor.visitParameter(index, lvOrd, names)
     }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitParameter(EmptyMethodVisitor(), index, lvOrd, names)
+//        acceptInner(DelegateParameterVisitor(EmptyParameterVisitor(), delegator), root.namespaces)
+    }
+
 }

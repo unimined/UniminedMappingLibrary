@@ -4,13 +4,13 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ConstantVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.TargetVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateParameterVisitor
 
 class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val name: String?, val baseNs: Namespace) : BaseNode<ConstantGroupVisitor, MappingVisitor>(parent), ConstantGroupVisitor {
     private val _namespaces: MutableSet<Namespace> = mutableSetOf()
@@ -69,4 +69,12 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
             t.accept(visitor, nsFilter)
         }
     }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitConstantGroup(EmptyMappingVisitor(), type, name, baseNs, namespaces)
+//        acceptInner(DelegateConstantGroupVisitor(EmptyConstantGroupVisitor(), delegator), root.namespaces)
+    }
+
 }

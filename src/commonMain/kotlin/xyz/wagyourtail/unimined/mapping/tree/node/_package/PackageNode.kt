@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._package
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
@@ -8,6 +9,8 @@ import xyz.wagyourtail.unimined.mapping.tree.node.AnnotationNode
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
 
 class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
     private val _names: MutableMap<Namespace, PackageName> = mutableMapOf()
@@ -55,6 +58,13 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         root.mergeNs(values.keys)
         _comments.putAll(values)
         return null
+    }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitPackage(EmptyMappingVisitor(), names)
+//        acceptInner(DelegatePackageVisitor(EmptyPackageVisitor(), delegator), root.namespaces)
     }
 
 }

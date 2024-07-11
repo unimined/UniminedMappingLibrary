@@ -1,12 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member.method
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
-import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.LocalVariableVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateLocalVariableVisitor
 
 class LocalNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, MethodVisitor, T>(parent),
     LocalVariableVisitor {
@@ -22,5 +23,12 @@ class LocalNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val lvOrd: Int, 
         val names = names.filterKeys { it in nsFilter }
         if (names.isEmpty()) return null
         return visitor.visitLocalVariable(lvOrd, startOp, names)
+    }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitLocalVariable(EmptyMethodVisitor(), lvOrd, startOp, names)
+//        acceptInner(DelegateLocalVariableVisitor(EmptyLocalVariableVisitor(), delegator), root.namespaces)
     }
 }

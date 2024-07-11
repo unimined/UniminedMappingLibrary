@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.ClassSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
@@ -8,8 +9,9 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.SignatureVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateCommentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateSignatureVisitor
 
 class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>) : BaseNode<SignatureVisitor, T>(parent), SignatureVisitor {
     private val _names: MutableMap<Namespace, String> = mutableMapOf()
@@ -65,6 +67,13 @@ class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>) : Base
 
             else -> throw IllegalStateException("Invalid parent type")
         }
+    }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitSignature(EmptySignatureParentVisitor(), names)
+//        acceptInner(DelegateSignatureVisitor(EmptySignatureVisitor(), delegator), root.namespaces)
     }
 
 }

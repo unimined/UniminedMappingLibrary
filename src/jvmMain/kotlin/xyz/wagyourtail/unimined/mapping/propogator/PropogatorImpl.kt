@@ -14,12 +14,12 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
-import xyz.wagyourtail.unimined.mapping.visitor.fixes.propogator.Propogator
+import xyz.wagyourtail.unimined.mapping.visitor.fixes.propogator.Propagator
 import java.io.InputStream
 import java.nio.file.Path
 import kotlin.streams.asStream
 
-class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: Set<Path>): Propogator<PropogatorImpl>(namespace, tree) {
+class PropogatorImpl(namespace: Namespace, tree: AbstractMappingTree, required: Set<Path>): Propagator<PropogatorImpl>(namespace, tree) {
     companion object {
         val LOGGER = KotlinLogging.logger {  }
     }

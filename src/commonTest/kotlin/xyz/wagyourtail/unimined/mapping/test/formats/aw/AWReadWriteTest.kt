@@ -5,12 +5,15 @@ import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.at.ATReader
+import xyz.wagyourtail.unimined.mapping.formats.at.ATWriter
 import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader
 import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
 import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
 import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -98,6 +101,27 @@ c	net/minecraft/class_3721
         extendable	method	net/minecraft/block/entity/BellBlockEntity	serverTick	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/block/entity/BellBlockEntity;)V
         mutable	field	net/minecraft/block/entity/BellBlockEntity	resonateTime	I
         """.trimIndent().replace(" ", "\t"), betterWrite.trimEnd())
+    }
+
+    @Test
+    fun testAw2At() = runTest {
+        val m = Buffer().use {
+            it.writeUtf8(awText)
+            AWReader.read(EnvType.JOINED, it)
+        }
+
+        val aw = Buffer().use {
+            m.accept(ATWriter.write(it).nsFiltered("intermediary"))
+//            m.accept(UMFWriter.write(EnvType.JOINED, it))
+            it.readUtf8()
+        }
+
+        assertEquals("""
+            public net.minecraft.class_3720
+            public-f net.minecraft.class_3721 field_19158
+            public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+        """.trimIndent(), aw.trimEnd())
+
     }
 
 }

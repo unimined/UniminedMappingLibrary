@@ -23,7 +23,7 @@ value class NameAndDescriptor(val value: String) {
 
     companion object : TypeCompanion<NameAndDescriptor> {
         override fun shouldRead(reader: CharReader): Boolean {
-            return reader.take() !in JVMS.unqualifiedNameIllagalChars
+            return reader.take() !in JVMS.unqualifiedNameIllegalChars
         }
 
         override fun read(reader: CharReader) = try {

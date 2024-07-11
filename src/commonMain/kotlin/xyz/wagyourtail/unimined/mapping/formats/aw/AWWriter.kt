@@ -8,12 +8,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.contains
+import xyz.wagyourtail.unimined.mapping.jvms.four.plus
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.util.ListCompare
 import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.visitor.*
@@ -34,11 +37,19 @@ object AWWriter : FormatWriter {
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null
 
-        val memberAccessesAdd = mutableSetOf<AccessFlag>()
-        val memberAccessesRemove = mutableSetOf<AccessFlag>()
+        var wildcardType: WildcardNode.WildcardType? = null
 
-        val classAccessAdd = mutableSetOf<AccessFlag>()
-        val classAccessRemove = mutableSetOf<AccessFlag>()
+        var wildcardFieldAdd = 0
+        var wildcardFieldRemove = 0
+
+        var wildcardMethodAdd = 0
+        var wildcardMethodRemove = 0
+
+        var memberAccessesAdd = 0
+        var memberAccessesRemove = 0
+
+        var classAccessAdd = 0
+        var classAccessRemove = 0
 
         val mappings = defaultedMapOf<InternalName, MutableList<AWReader.AWData>> { mutableListOf() }
 
@@ -61,8 +72,10 @@ object AWWriter : FormatWriter {
                 names: Map<Namespace, Pair<String, FieldDescriptor?>>
             ): FieldVisitor? {
                 val (name, desc) = names[ns] ?: throw IllegalArgumentException("Field name not found")
-                if (desc == null) throw IllegalArgumentException("Field descriptor not found for $name on $cls")
+                if (desc == null) return null
                 member = NameAndDescriptor(UnqualifiedName.read(name), FieldOrMethodDescriptor(desc))
+                memberAccessesAdd = wildcardFieldAdd
+                memberAccessesRemove = wildcardFieldRemove
                 return default.visitField(delegate, names)
             }
 
@@ -71,8 +84,10 @@ object AWWriter : FormatWriter {
                 names: Map<Namespace, Pair<String, MethodDescriptor?>>
             ): MethodVisitor? {
                 val (name, desc) = names[ns] ?: throw IllegalArgumentException("Method name not found")
-                if (desc == null) throw IllegalArgumentException("Method descriptor not found for $name on $cls")
+                if (desc == null) return null
                 member = NameAndDescriptor(UnqualifiedName.read(name), FieldOrMethodDescriptor(desc))
+                memberAccessesAdd = wildcardMethodAdd
+                memberAccessesRemove = wildcardMethodRemove
                 return default.visitMethod(delegate, names)
             }
 
@@ -85,12 +100,50 @@ object AWWriter : FormatWriter {
             ): AccessVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
-                        classAccessAdd.add(value)
+                        classAccessAdd += value
                     } else {
-                        classAccessRemove.add(value)
+                        classAccessRemove += value
                     }
                 }
                 return null
+            }
+
+            override fun visitWildcard(
+                delegate: ClassVisitor,
+                type: WildcardNode.WildcardType,
+                descs: Map<Namespace, FieldOrMethodDescriptor>
+            ): WildcardVisitor? {
+                wildcardType = type
+                return default.visitWildcard(delegate, type, descs)
+            }
+
+            override fun visitWildcardAccess(
+                delegate: WildcardVisitor,
+                type: AccessType,
+                value: AccessFlag,
+                conditions: AccessConditions,
+                namespaces: Set<Namespace>
+            ): AccessVisitor? {
+                if (conditions == AccessConditions.ALL) {
+                    if (wildcardType == WildcardNode.WildcardType.FIELD) {
+                        if (type == AccessType.ADD) {
+                            wildcardFieldAdd += value
+                        } else {
+                            wildcardFieldRemove += value
+                        }
+                    } else {
+                        if (type == AccessType.ADD) {
+                            wildcardMethodAdd += value
+                        } else {
+                            wildcardMethodRemove += value
+                        }
+                    }
+                }
+                return null
+            }
+
+            override fun visitWildcardEnd(delegate: WildcardVisitor) {
+                wildcardType = null
             }
 
             override fun visitFieldAccess(
@@ -102,9 +155,9 @@ object AWWriter : FormatWriter {
             ): AccessVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
-                        memberAccessesAdd.add(value)
+                        memberAccessesAdd += value
                     } else {
-                        memberAccessesRemove.add(value)
+                        memberAccessesRemove += value
                     }
                 }
                 return null
@@ -119,9 +172,9 @@ object AWWriter : FormatWriter {
             ): AccessVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
-                        memberAccessesAdd.add(value)
+                        memberAccessesAdd += value
                     } else {
-                        memberAccessesRemove.add(value)
+                        memberAccessesRemove += value
                     }
                 }
                 return null
@@ -129,7 +182,7 @@ object AWWriter : FormatWriter {
 
             override fun visitClassEnd(delegate: ClassVisitor) {
                 val fqn = FullyQualifiedName(ObjectType(cls!!), null)
-                if (classAccessAdd.contains(AccessFlag.PUBLIC)) {
+                if (AccessFlag.PUBLIC in classAccessAdd) {
                     mappings[cls]!!.add(AWReader.AWData(
                         "accessible",
                         fqn
@@ -141,10 +194,14 @@ object AWWriter : FormatWriter {
                         fqn
                     ))
                 }
-                classAccessAdd.clear()
-                classAccessRemove.clear()
-                memberAccessesAdd.clear()
-                memberAccessesRemove.clear()
+                classAccessAdd = 0
+                classAccessRemove = 0
+                memberAccessesAdd = 0
+                memberAccessesRemove = 0
+                wildcardFieldAdd = 0
+                wildcardFieldRemove = 0
+                wildcardMethodAdd = 0
+                wildcardMethodRemove = 0
                 cls = null
             }
 
@@ -162,8 +219,6 @@ object AWWriter : FormatWriter {
                         fqn
                     ))
                 }
-                memberAccessesAdd.clear()
-                memberAccessesRemove.clear()
                 member = null
             }
 
@@ -181,7 +236,7 @@ object AWWriter : FormatWriter {
                         fqn
                     ))
                 }
-                super.visitMethodEnd(delegate)
+                member = null
             }
 
             override fun visitFooter(delegate: MappingVisitor) {

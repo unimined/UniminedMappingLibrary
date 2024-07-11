@@ -1,7 +1,9 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvableEntry
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
@@ -9,6 +11,8 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateFieldVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateWildcardVisitor
 
 class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>) : MemberNode<WildcardVisitor, WildcardVisitor, ClassVisitor>(parent), WildcardVisitor, LazyResolvableEntry<WildcardNode, WildcardVisitor> {
     private val _descs = descs.toMutableMap()
@@ -105,6 +109,13 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
         METHOD,
         FIELD
         ;
+
+        fun asElementType(): ElementType {
+            return when (this) {
+                METHOD -> ElementType.METHOD
+                FIELD -> ElementType.FIELD
+            }
+        }
     }
 
     fun doMerge(target: WildcardNode) {
@@ -126,6 +137,13 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
             }
         }
         return null
+    }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitWildcard(EmptyClassVisitor(), type, descs)
+//        acceptInner(DelegateWildcardVisitor(EmptyWildcardVisitor(), delegator), root.namespaces)
     }
 
 }

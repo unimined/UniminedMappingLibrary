@@ -8,6 +8,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
+import xyz.wagyourtail.unimined.mapping.jvms.four.contains
+import xyz.wagyourtail.unimined.mapping.jvms.four.plus
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
@@ -79,11 +82,11 @@ object ATWriter : FormatWriter {
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null
 
-        val memberAccessesAdd = mutableSetOf<AccessFlag>()
-        val memberAccessesRemove = mutableSetOf<AccessFlag>()
+        var memberAccessesAdd = 0
+        var memberAccessesRemove = 0
 
-        val classAccessAdd = mutableSetOf<AccessFlag>()
-        val classAccessRemove = mutableSetOf<AccessFlag>()
+        var classAccessAdd = 0
+        var classAccessRemove = 0
 
         val mappings = defaultedMapOf<InternalName, MutableList<ATReader.ATData>> { mutableListOf() }
 
@@ -146,9 +149,9 @@ object ATWriter : FormatWriter {
             ): AccessVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
-                        classAccessAdd.add(value)
+                        classAccessAdd += value
                     } else {
-                        classAccessRemove.add(value)
+                        classAccessRemove += value
                     }
                 }
                 return null
@@ -163,9 +166,9 @@ object ATWriter : FormatWriter {
             ): AccessVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
-                        memberAccessesAdd.add(value)
+                        memberAccessesAdd += value
                     } else {
-                        memberAccessesRemove.add(value)
+                        memberAccessesRemove += value
                     }
                 }
                 return null
@@ -180,9 +183,9 @@ object ATWriter : FormatWriter {
             ): AccessVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
-                        memberAccessesAdd.add(value)
+                        memberAccessesAdd += value
                     } else {
-                        memberAccessesRemove.add(value)
+                        memberAccessesRemove += value
                     }
                 }
                 return null
@@ -197,23 +200,21 @@ object ATWriter : FormatWriter {
             ): AccessVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
-                        memberAccessesAdd.add(value)
+                        memberAccessesAdd += value
                     } else {
-                        memberAccessesRemove.add(value)
+                        memberAccessesRemove += value
                     }
                 }
                 return super.visitWildcardAccess(delegate, type, value, conditions, namespaces)
             }
 
             override fun visitClassEnd(delegate: ClassVisitor) {
-                val final = if (classAccessAdd.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.ADD
-                } else if (classAccessRemove.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.REMOVE
-                } else {
-                    ATReader.TriState.LEAVE
+                val final = when (AccessFlag.FINAL) {
+                    in classAccessAdd -> ATReader.TriState.ADD
+                    in classAccessRemove -> ATReader.TriState.REMOVE
+                    else -> ATReader.TriState.LEAVE
                 }
-                val access = classAccessAdd.lastOrNull { it in AccessFlag.visibility }
+                val access = AccessFlag.visibilityOf(classAccessAdd)
                 if (access != null) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
@@ -224,28 +225,26 @@ object ATWriter : FormatWriter {
                             null
                         ))
                 }
-                classAccessAdd.clear()
-                classAccessRemove.clear()
-                memberAccessesAdd.clear()
-                memberAccessesRemove.clear()
+                classAccessAdd = 0
+                classAccessRemove = 0
+                memberAccessesAdd = 0
+                memberAccessesRemove = 0
                 cls = null
                 member = null
             }
 
             override fun visitFieldEnd(delegate: FieldVisitor) {
-                val final = if (memberAccessesAdd.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.ADD
-                } else if (memberAccessesRemove.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.REMOVE
-                } else {
-                    ATReader.TriState.LEAVE
+                val final = when (AccessFlag.FINAL) {
+                    in memberAccessesAdd -> ATReader.TriState.ADD
+                    in memberAccessesRemove -> ATReader.TriState.REMOVE
+                    else -> ATReader.TriState.LEAVE
                 }
-                val access = memberAccessesAdd.lastOrNull { it in AccessFlag.visibility }
+                val access = AccessFlag.visibilityOf(memberAccessesAdd)
                 val (name, desc) = member!!.getParts()
-                if (access != null) {
+                if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access,
+                            access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
                             name.toString(),
@@ -253,51 +252,47 @@ object ATWriter : FormatWriter {
                         ))
                 }
 
-                memberAccessesAdd.clear()
-                memberAccessesRemove.clear()
+                memberAccessesAdd = 0
+                memberAccessesRemove = 0
                 member = null
             }
 
             override fun visitMethodEnd(delegate: MethodVisitor) {
-                val final = if (memberAccessesAdd.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.ADD
-                } else if (memberAccessesRemove.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.REMOVE
-                } else {
-                    ATReader.TriState.LEAVE
+                val final = when (AccessFlag.FINAL) {
+                    in memberAccessesAdd -> ATReader.TriState.ADD
+                    in memberAccessesRemove -> ATReader.TriState.REMOVE
+                    else -> ATReader.TriState.LEAVE
                 }
-                val access = memberAccessesAdd.lastOrNull { it in AccessFlag.visibility }
+                val access = AccessFlag.visibilityOf(memberAccessesAdd)
                 val (name, desc) = member!!.getParts()
-                if (access != null) {
+                if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access,
+                            access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
                             name.toString(),
                             desc?.toString() ?: error("Method descriptor not found")
                         ))
                 }
-                memberAccessesAdd.clear()
-                memberAccessesRemove.clear()
+                memberAccessesAdd = 0
+                memberAccessesRemove = 0
                 member = null
             }
 
             override fun visitWildcardEnd(delegate: WildcardVisitor) {
-                val final = if (memberAccessesAdd.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.ADD
-                } else if (memberAccessesRemove.contains(AccessFlag.FINAL)) {
-                    ATReader.TriState.REMOVE
-                } else {
-                    ATReader.TriState.LEAVE
+                val final = when (AccessFlag.FINAL) {
+                    in memberAccessesAdd -> ATReader.TriState.ADD
+                    in memberAccessesRemove -> ATReader.TriState.REMOVE
+                    else -> ATReader.TriState.LEAVE
                 }
-                val access = memberAccessesAdd.lastOrNull { it in AccessFlag.visibility }
+                val access = AccessFlag.visibilityOf(memberAccessesAdd)
                 val (name, desc) = member!!.getParts()
-                if (access != null) {
+                if (access != null || final != ATReader.TriState.LEAVE) {
                     if (desc != null) {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access,
+                                access ?: AccessFlag.PUBLIC,
                                 final,
                                 cls!!,
                                 name.toString(),
@@ -307,7 +302,7 @@ object ATWriter : FormatWriter {
                     } else {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access,
+                                access ?: AccessFlag.PUBLIC,
                                 final,
                                 cls!!,
                                 name.toString(),
@@ -316,8 +311,8 @@ object ATWriter : FormatWriter {
                         )
                     }
                 }
-                memberAccessesAdd.clear()
-                memberAccessesRemove.clear()
+                memberAccessesAdd = 0
+                memberAccessesRemove = 0
                 member = null
             }
 

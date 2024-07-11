@@ -1,11 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
+import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
+import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 
 abstract class AbstractFieldMethodNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>>(parent: ClassNode) : MemberNode<T, V, ClassVisitor>(parent) {
 
@@ -36,4 +37,5 @@ abstract class AbstractFieldMethodNode<T: MemberVisitor<T>, V: SignatureParentVi
         root.mergeNs(descs.keys)
         this._descs.putAll(descs)
     }
+
 }

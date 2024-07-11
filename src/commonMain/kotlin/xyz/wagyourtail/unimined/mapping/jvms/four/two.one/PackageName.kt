@@ -15,7 +15,7 @@ value class PackageName private constructor(val value: String) {
 
     companion object: TypeCompanion<PackageName> {
         override fun shouldRead(reader: CharReader): Boolean {
-            val c = reader.takeUntil { it in JVMS.unqualifiedNameIllagalChars }
+            val c = reader.takeUntil { it in JVMS.unqualifiedNameIllegalChars }
             if (c.isEmpty()) return false
             return reader.take() == '/'
         }

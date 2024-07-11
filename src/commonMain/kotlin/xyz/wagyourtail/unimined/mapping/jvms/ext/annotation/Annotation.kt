@@ -1,16 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
-import okio.Buffer
-import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
-val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllagalChars + setOf('=', ',', ')', '}')
+val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllegalChars + setOf('=', ',', ')', '}')
 
 
 /**

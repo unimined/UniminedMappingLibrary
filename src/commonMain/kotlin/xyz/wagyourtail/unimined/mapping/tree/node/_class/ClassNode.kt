@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.tree.node._class
 
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -15,6 +16,8 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateCommentVisitor
 
 class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val _names: MutableMap<Namespace, InternalName?> = mutableMapOf()
@@ -119,6 +122,13 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         for (method in methods.resolve()) {
             method.accept(visitor, nsFilter)
         }
+    }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitClass(EmptyMappingVisitor(), names.filterNotNullValues())
+//        acceptInner(DelegateClassVisitor(EmptyClassVisitor(), delegator), root.namespaces)
     }
 
 }

@@ -51,7 +51,7 @@ class Main: CliktCommand() {
                 LOGGER.info { "Propogating..." }
                 val t = measureTime {
                     PropogatorImpl(Namespace(propogationNs!!), mappings, prop + cp)
-                        .propogate(mappings.namespaces.toSet() - Namespace(propogationNs!!))
+                        .propagate(mappings.namespaces.toSet() - Namespace(propogationNs!!))
                 }
                 LOGGER.info { "Propogated in ${t.inWholeMilliseconds}ms" }
             }

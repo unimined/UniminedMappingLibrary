@@ -1,11 +1,15 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyFieldVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateFieldVisitor
 
 class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisitor, FieldVisitor>(parent, ::FieldNode), FieldVisitor {
 
@@ -20,6 +24,13 @@ class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisito
         val names = names.filterKeys { it in nsFilter }.mapValues { (ns, name) -> name.let { name to getFieldDesc(ns) } }
         if (names.isEmpty()) return null
         return visitor.visitField(names)
+    }
+
+    override fun toString() = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitField(EmptyClassVisitor(), names.mapValues { it.value to getFieldDesc(it.key) })
+//        acceptInner(DelegateFieldVisitor(EmptyFieldVisitor(), delegator), root.namespaces)
     }
 
 }

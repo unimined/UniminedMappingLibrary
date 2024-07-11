@@ -8,12 +8,12 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
-abstract class Propogator<T: Propogator<T>>(val namespace: Namespace, val tree: AbstractMappingTree) {
+abstract class Propagator<T: Propagator<T>>(val namespace: Namespace, val tree: AbstractMappingTree) {
     private val LOGGER = KotlinLogging.logger {  }
 
     abstract val classes: Map<InternalName, ClassInfo<T>>
 
-    private val propogationList: Map<Pair<InternalName, Pair<String, MethodDescriptor?>>, Set<InternalName>> by lazy {
+    private val propagationList: Map<Pair<InternalName, Pair<String, MethodDescriptor?>>, Set<InternalName>> by lazy {
         val methods = mutableMapOf<Pair<InternalName, Pair<String, MethodDescriptor?>>, MutableSet<InternalName>>()
         for (c in classes.values) {
             for ((method, classes) in c.resolved) {
@@ -36,9 +36,9 @@ abstract class Propogator<T: Propogator<T>>(val namespace: Namespace, val tree: 
         methods
     }
 
-    fun propogate(targetNs: Set<Namespace>, visitor: MappingVisitor = tree) {
+    fun propagate(targetNs: Set<Namespace>, visitor: MappingVisitor = tree) {
         val names = mutableMapOf<Pair<InternalName, Pair<String, MethodDescriptor?>>, MutableMap<Namespace, MutableSet<String>>>()
-        val propogationListRemaining = propogationList.toMutableMap()
+        val propogationListRemaining = propagationList.toMutableMap()
         while (propogationListRemaining.isNotEmpty()) {
             val (method, classes) = propogationListRemaining.entries.first()
             val md = method.second
@@ -81,7 +81,7 @@ abstract class Propogator<T: Propogator<T>>(val namespace: Namespace, val tree: 
         }
     }
 
-    abstract class ClassInfo<T: Propogator<T>>(val info: T, val name: InternalName) {
+    abstract class ClassInfo<T: Propagator<T>>(val info: T, val name: InternalName) {
         protected abstract val parent: InternalName?
         protected abstract val interfaces: List<InternalName>
 

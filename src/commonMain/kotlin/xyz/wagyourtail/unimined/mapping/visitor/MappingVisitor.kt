@@ -81,6 +81,7 @@ interface MemberVisitor<T: MemberVisitor<T>> : AccessParentVisitor<T>, Annotatio
 enum class AccessType {
     ADD,
     REMOVE
+    ;
 }
 
 enum class AnnotationType {

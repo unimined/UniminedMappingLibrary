@@ -11,13 +11,13 @@ object JVMS {
     /**
      * 4.2.2
      */
-    val unqualifiedNameIllagalChars = setOf('.', ';', '[', '/')
+    val unqualifiedNameIllegalChars = setOf('.', ';', '[', '/')
 
     /**
      * 4.7.9.1
      */
 
-    val identifierIllegalChars = unqualifiedNameIllagalChars + setOf('<', '>', ':')
+    val identifierIllegalChars = unqualifiedNameIllegalChars + setOf('<', '>', ':')
 
     /**
      * 4.2.2
@@ -26,7 +26,7 @@ object JVMS {
         if (value.isEmpty()) {
             throw IllegalArgumentException("Invalid unqualified name")
         }
-        if (value.any { it in unqualifiedNameIllagalChars }) {
+        if (value.any { it in unqualifiedNameIllegalChars }) {
             throw IllegalArgumentException("Invalid unqualified name, found illegal character")
         }
     }
@@ -38,7 +38,7 @@ object JVMS {
         if (value.isEmpty()) {
             throw IllegalArgumentException("Invalid method name")
         }
-        if (value.any { it in unqualifiedNameIllagalChars }) {
+        if (value.any { it in unqualifiedNameIllegalChars }) {
             throw IllegalArgumentException("Invalid method name, found illegal character")
         }
         if (value.contains('<') || value.contains('>')) {
