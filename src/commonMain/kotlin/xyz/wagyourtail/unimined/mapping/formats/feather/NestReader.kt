@@ -1,4 +1,4 @@
-package xyz.wagyourtail.unimined.mapping.formats.nests
+package xyz.wagyourtail.unimined.mapping.formats.feather
 
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType

@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.test.formats.nests
 import kotlinx.coroutines.test.runTest
 import okio.Buffer
 import okio.use
-import xyz.wagyourtail.unimined.mapping.formats.nests.NestReader
+import xyz.wagyourtail.unimined.mapping.formats.feather.NestReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import kotlin.test.Test
 import kotlin.test.assertEquals

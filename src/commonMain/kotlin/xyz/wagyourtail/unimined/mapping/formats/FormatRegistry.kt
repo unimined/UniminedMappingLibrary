@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.formats
 import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.csrg.CsrgReader
+import xyz.wagyourtail.unimined.mapping.formats.feather.ExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.MCPExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.tsrg.TsrgV1Reader
 import xyz.wagyourtail.unimined.mapping.formats.tsrg.TsrgV2Reader
@@ -16,7 +17,8 @@ import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigAccessReader
 import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigConstructorReader
 import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigExceptionsReader
 import xyz.wagyourtail.unimined.mapping.formats.mcpconfig.MCPConfigStaticMethodsReader
-import xyz.wagyourtail.unimined.mapping.formats.nests.NestReader
+import xyz.wagyourtail.unimined.mapping.formats.feather.NestReader
+import xyz.wagyourtail.unimined.mapping.formats.feather.SignatureReader
 import xyz.wagyourtail.unimined.mapping.formats.parchment.ParchmentReader
 import xyz.wagyourtail.unimined.mapping.formats.proguard.ProguardReader
 import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
@@ -39,6 +41,8 @@ object FormatRegistry {
         FormatProvider(TinyV2Reader, TinyV2Writer),
         FormatProvider(TinyV1Reader),
         FormatProvider(NestReader),
+        FormatProvider(ExceptionReader),
+        FormatProvider(SignatureReader),
         FormatProvider(UnpickReader),
         FormatProvider(SrgReader, SrgWriter),
         FormatProvider(RetroguardReader),
