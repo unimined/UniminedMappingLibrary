@@ -104,17 +104,17 @@ open class MultiSignatureParentVisitor<T: SignatureParentVisitor<T>>(visitors: L
 
 }
 
-open class MultiCommentParentVisitor<T: CommentParentVisitor<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), CommentParentVisitor<T> {
+open class MultiJavadocParentVisitor<T: JavadocParentNode<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), JavadocParentNode<T> {
 
-    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
-        val visitors = visitors.mapNotNull { it.visitJavadoc(values) }
+    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
+        val visitors = visitors.mapNotNull { it.visitJavadoc(value, baseNs, namespaces) }
         if (visitors.isEmpty()) return null
-        return MultiCommentVisitor(visitors)
+        return MultiJavadocVisitor(visitors)
     }
 
 }
 
-open class MultiMemberVisitor<T: MemberVisitor<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), MemberVisitor<T>, AccessParentVisitor<T> by MultiAccessParentVisitor(visitors), AnnotationParentVisitor<T> by MultiAnnotationParentVisitor(visitors), CommentParentVisitor<T> by MultiCommentParentVisitor(visitors) {
+open class MultiMemberVisitor<T: MemberVisitor<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), MemberVisitor<T>, AccessParentVisitor<T> by MultiAccessParentVisitor(visitors), AnnotationParentVisitor<T> by MultiAnnotationParentVisitor(visitors), JavadocParentNode<T> by MultiJavadocParentVisitor(visitors) {
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
@@ -126,7 +126,7 @@ open class MultiMemberVisitor<T: MemberVisitor<T>>(visitors: List<T>): MultiBase
 
 }
 
-open class MultiPackageVisitor(visitors: List<PackageVisitor>): MultiBaseVisitor<PackageVisitor>(visitors), PackageVisitor, AnnotationParentVisitor<PackageVisitor> by MultiAnnotationParentVisitor(visitors), CommentParentVisitor<PackageVisitor> by MultiCommentParentVisitor(visitors) {
+open class MultiPackageVisitor(visitors: List<PackageVisitor>): MultiBaseVisitor<PackageVisitor>(visitors), PackageVisitor, AnnotationParentVisitor<PackageVisitor> by MultiAnnotationParentVisitor(visitors), JavadocParentNode<PackageVisitor> by MultiJavadocParentVisitor(visitors) {
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
@@ -260,7 +260,7 @@ open class MultiExceptionVisitor(visitors: List<ExceptionVisitor>): MultiBaseVis
 
 }
 
-open class MultiCommentVisitor(visitors: List<CommentVisitor>): MultiBaseVisitor<CommentVisitor>(visitors), CommentVisitor {
+open class MultiJavadocVisitor(visitors: List<JavadocVisitor>): MultiBaseVisitor<JavadocVisitor>(visitors), JavadocVisitor {
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)

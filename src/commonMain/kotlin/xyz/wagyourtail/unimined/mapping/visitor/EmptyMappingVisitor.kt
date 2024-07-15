@@ -85,15 +85,15 @@ open class EmptySignatureParentVisitor<T: SignatureParentVisitor<T>> :  EmptyBas
 
 }
 
-open class EmptyCommentParentVisitor<T: CommentParentVisitor<T>> : EmptyBaseVisitor<T>(), CommentParentVisitor<T> {
+open class EmptyJavadocParentVisitor<T: JavadocParentNode<T>> : EmptyBaseVisitor<T>(), JavadocParentNode<T> {
 
-    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
-        return EmptyCommentVisitor()
+    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
+        return EmptyJavadocVisitor()
     }
 
 }
 
-open class EmptyMemberVisitor<T: MemberVisitor<T>> : EmptyBaseVisitor<T>(), AccessParentVisitor<T> by EmptyAccessParentVisitor(), AnnotationParentVisitor<T> by EmptyAnnotationParentVisitor(), CommentParentVisitor<T> by EmptyCommentParentVisitor(), MemberVisitor<T> {
+open class EmptyMemberVisitor<T: MemberVisitor<T>> : EmptyBaseVisitor<T>(), AccessParentVisitor<T> by EmptyAccessParentVisitor(), AnnotationParentVisitor<T> by EmptyAnnotationParentVisitor(), JavadocParentNode<T> by EmptyJavadocParentVisitor(), MemberVisitor<T> {
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
@@ -105,7 +105,7 @@ open class EmptyMemberVisitor<T: MemberVisitor<T>> : EmptyBaseVisitor<T>(), Acce
 
 }
 
-open class EmptyPackageVisitor : EmptyBaseVisitor<PackageVisitor>(), AnnotationParentVisitor<PackageVisitor> by EmptyAnnotationParentVisitor(), CommentParentVisitor<PackageVisitor> by EmptyCommentParentVisitor(), PackageVisitor {
+open class EmptyPackageVisitor : EmptyBaseVisitor<PackageVisitor>(), AnnotationParentVisitor<PackageVisitor> by EmptyAnnotationParentVisitor(), JavadocParentNode<PackageVisitor> by EmptyJavadocParentVisitor(), PackageVisitor {
 
     override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
         return super.visitExtension(key, *values)
@@ -214,7 +214,7 @@ open class EmptyExceptionVisitor : EmptyBaseVisitor<ExceptionVisitor>(), Excepti
 
 }
 
-open class EmptyCommentVisitor : EmptyBaseVisitor<CommentVisitor>(), CommentVisitor {
+open class EmptyJavadocVisitor : EmptyBaseVisitor<JavadocVisitor>(), JavadocVisitor {
 
 }
 

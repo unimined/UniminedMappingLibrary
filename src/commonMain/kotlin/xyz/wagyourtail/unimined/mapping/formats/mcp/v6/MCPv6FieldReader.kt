@@ -9,7 +9,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.CommentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.JavadocVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
@@ -67,7 +67,7 @@ object MCPv6FieldReader : FormatReader {
 
                 override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
                     val ns = setOf(*namespaces, srcNs.name, dstNs.name)
-                    super.visitHeader(delegate, *ns.toTypedArray())
+                    default.visitHeader(delegate, *ns.toTypedArray())
                 }
 
                 override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
@@ -85,13 +85,18 @@ object MCPv6FieldReader : FormatReader {
                     nameMap[dstNs] = fdata.first to ns.second
                     val visitor = default.visitField(delegate, nameMap)
                     if (fdata.second != null) {
-                        visitor?.visitJavadoc(mapOf(dstNs to fdata.second!!))?.visitEnd()
+                        visitor?.visitJavadoc(fdata.second!!, dstNs, emptySet())?.visitEnd()
                     }
                     return visitor
                 }
 
-                override fun visitFieldJavadoc(delegate: FieldVisitor, values: Map<Namespace, String>): CommentVisitor? {
-                    return default.visitJavadoc(delegate, values)
+                override fun visitFieldJavadoc(
+                    delegate: FieldVisitor,
+                    value: String,
+                    baseNs: Namespace,
+                    namespaces: Set<Namespace>
+                ): JavadocVisitor? {
+                    return default.visitFieldJavadoc(delegate, value, baseNs, namespaces)
                 }
 
             })

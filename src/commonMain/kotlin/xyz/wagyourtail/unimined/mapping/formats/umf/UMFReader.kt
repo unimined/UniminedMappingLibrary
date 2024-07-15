@@ -227,19 +227,10 @@ object UMFReader : FormatReader {
                     last?.visitInnerClass(type, names)
                 }
                 EntryType.JAVADOC -> {
-                    val values = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to name
-                    }
-                    val fixed = values.mapValues {
-                        val ref = it.value.toIntOrNull()
-                        if (ref != null) {
-                            values[getNamespace(ref)]!!
-                        } else {
-                            it.value.removePrefix("_").toIntOrNull()?.toString() ?: it.value
-                        }
-                    }
+                    val comment = fixValue(input.takeNext())!!
+                    val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()
                     last as MemberVisitor<*>?
-                    last?.visitJavadoc(fixed)
+                    last?.visitJavadoc(comment, names.next(), names.asSequence().toSet())
                 }
                 EntryType.ANNOTATION -> {
                     val type = fixValue(input.takeNext())!!.let {

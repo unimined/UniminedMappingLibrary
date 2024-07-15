@@ -62,7 +62,12 @@ open class NullDelegator : Delegator() {
         return null
     }
 
-    override fun visitJavadoc(delegate: CommentParentVisitor<*>, values: Map<Namespace, String>): CommentVisitor? {
+    override fun visitJavadoc(
+        delegate: JavadocParentNode<*>,
+        value: String,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): JavadocVisitor? {
         return null
     }
 

@@ -226,15 +226,11 @@ and `<ns1_name>` is the name(s) of the namespaces to apply to.
 
 comments can occur under any component, and will be defined as
 ```
-* <ns1 comment> <ns2 comment> <ns3 comment> ...
+* <ns1> <ns1_name> <ns2_name> ...
 ```
 
-where `<ns1 comment>` is the comment text in for ns1.
-if there is no comment for a namespace, the value should be empty (`_`).
-if a comment is the same as another namespace, it should be the index of the namespace instead of the comment text in order to save space.
-this does mean that a comment can't be just a number, so in order to support that numbers should be prefixed with an underscore (`_`).
-for example, if the comment is `1`, it should be serialized as `_1`.
-if the comment is `_1`, it should be serialized as `__1`, etc.
+where `<ns1>` is the comment text in for ns1.
+and `<ns1_name>` is the name(s) of the namespaces to apply to.
 
 ## Signatures
 
@@ -245,6 +241,9 @@ g <ns1 sig> <ns2 sig> <ns3 sig> ...
 
 where `<ns1 sig>` is the generic signature using ns1 class names.
 only one namespace is required, ns1 is preferred.
+
+the signature is allowed to be different in different namespaces, but if it is not present, 
+he first namespace's signature that's present will be used.
 
 ## Annotations
 

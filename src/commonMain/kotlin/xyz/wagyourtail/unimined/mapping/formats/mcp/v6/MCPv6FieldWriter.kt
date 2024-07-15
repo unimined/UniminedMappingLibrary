@@ -48,12 +48,17 @@ object MCPv6FieldWriter : FormatWriter {
                 return default.visitField(delegate, names)
             }
 
-            override fun visitFieldJavadoc(delegate: FieldVisitor, values: Map<Namespace, String>): CommentVisitor? {
+            override fun visitFieldJavadoc(
+                delegate: FieldVisitor,
+                value: String,
+                baseNs: Namespace,
+                namespaces: Set<Namespace>
+            ): JavadocVisitor? {
                 if (!writeComments) return null
-                val comment = values[ns[1]] ?: return null
-                append(comment.maybeEscapeCol())
+                append(value.maybeEscapeCol())
                 return null
             }
+
         })
 
     }

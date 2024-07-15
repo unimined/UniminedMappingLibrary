@@ -91,7 +91,7 @@ object MCPv1FieldReader : FormatReader {
 
                 override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
                     val ns = setOf(*namespaces, srcNs.name, dstNs.name)
-                    super.visitHeader(delegate, *ns.toTypedArray())
+                    default.visitHeader(delegate, *ns.toTypedArray())
                 }
 
                 override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
@@ -108,13 +108,18 @@ object MCPv1FieldReader : FormatReader {
                     nameMap[dstNs] = fData.first to ns.second
                     val visitor = default.visitField(delegate, nameMap)
                     if (fData.second != null) {
-                        visitor?.visitJavadoc(mapOf(dstNs to fData.second!!))?.visitEnd()
+                        visitor?.visitJavadoc(fData.second!!, dstNs, emptySet())?.visitEnd()
                     }
                     return visitor
                 }
 
-                override fun visitFieldJavadoc(delegate: FieldVisitor, values: Map<Namespace, String>): CommentVisitor? {
-                    return default.visitJavadoc(delegate, values)
+                override fun visitFieldJavadoc(
+                    delegate: FieldVisitor,
+                    value: String,
+                    baseNs: Namespace,
+                    namespaces: Set<Namespace>
+                ): JavadocVisitor? {
+                    return default.visitFieldJavadoc(delegate, value, baseNs, namespaces)
                 }
 
             })

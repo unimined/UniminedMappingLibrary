@@ -92,8 +92,8 @@ object TinyV2Reader : FormatReader {
                         } else {
                             // comment
                             val comment = input.takeLine().removePrefix("\t").translateEscapes()
-                            last as CommentParentVisitor?
-                            last?.visitJavadoc(namespaces.drop(1).associateWith { comment })
+                            last as JavadocParentNode?
+                            last?.visitJavadoc(comment, namespaces.first(), namespaces.drop(1).toSet())
                         }
                     }
 

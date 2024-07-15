@@ -70,13 +70,13 @@ interface SignatureParentVisitor<T: SignatureParentVisitor<T>> : BaseVisitor<T> 
 
 }
 
-interface CommentParentVisitor<T: CommentParentVisitor<T>> : BaseVisitor<T> {
+interface JavadocParentNode<T: JavadocParentNode<T>> : BaseVisitor<T> {
 
-    fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor?
+    fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor?
 
 }
 
-interface MemberVisitor<T: MemberVisitor<T>> : AccessParentVisitor<T>, AnnotationParentVisitor<T>, CommentParentVisitor<T>
+interface MemberVisitor<T: MemberVisitor<T>> : AccessParentVisitor<T>, AnnotationParentVisitor<T>, JavadocParentNode<T>
 
 enum class AccessType {
     ADD,
@@ -95,7 +95,7 @@ enum class ExceptionType {
     REMOVE
 }
 
-interface PackageVisitor : AnnotationParentVisitor<PackageVisitor>, CommentParentVisitor<PackageVisitor>
+interface PackageVisitor : AnnotationParentVisitor<PackageVisitor>, JavadocParentNode<PackageVisitor>
 
 interface ClassVisitor : MemberVisitor<ClassVisitor>, SignatureParentVisitor<ClassVisitor> {
 
@@ -130,7 +130,7 @@ interface LocalVariableVisitor : MemberVisitor<LocalVariableVisitor>
 
 interface ExceptionVisitor : BaseVisitor<ExceptionVisitor>
 
-interface CommentVisitor : BaseVisitor<CommentVisitor>
+interface JavadocVisitor : BaseVisitor<JavadocVisitor>
 
 interface SignatureVisitor : BaseVisitor<SignatureVisitor>
 

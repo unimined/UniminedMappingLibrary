@@ -7,19 +7,18 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: BaseVisitor<U>>(parent: BaseNode<U, *>) : AccessParentNode<T, U>(parent), MemberVisitor<T> {
     private var _signature: SignatureNode<V>? = null
-    private var _comment: CommentNode<T>? = null
+    private var _comments: MutableSet<JavadocNode<T>> = mutableSetOf()
     private val _annotations: MutableSet<AnnotationNode<T>> = mutableSetOf()
 
     val signature: SignatureNode<V>? get() = _signature
-    val comment: CommentNode<T>? get() = _comment
+    val comments: Set<JavadocNode<T>> get() = _comments
     val annotations: Set<AnnotationNode<T>> get() = _annotations
 
-    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
-        if (_comment == null) {
-            _comment = CommentNode(this)
-        }
-        _comment?.addComments(values)
-        return _comment
+    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
+        val node = JavadocNode(this, value, baseNs)
+        node.addNamespaces(namespaces)
+        _comments?.add(node)
+        return node
     }
 
     /**
@@ -48,12 +47,14 @@ abstract class MemberNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>, U: 
     }
 
     override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>) {
+        @Suppress("UNCHECKED_CAST")
+        signature?.accept(visitor as V, nsFilter)
         for (annotation in annotations) {
             annotation.accept(visitor, nsFilter)
         }
-        @Suppress("UNCHECKED_CAST")
-        signature?.accept(visitor as V, nsFilter)
-        comment?.accept(visitor, nsFilter)
+        for (comment in comments) {
+            comment.accept(visitor, nsFilter)
+        }
         super.acceptInner(visitor, nsFilter)
     }
 

@@ -7,19 +7,17 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.AnnotationNode
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
+import xyz.wagyourtail.unimined.mapping.tree.node.JavadocNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
 
 class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
     private val _names: MutableMap<Namespace, PackageName> = mutableMapOf()
     private val _annotations: MutableSet<AnnotationNode<PackageVisitor>> = mutableSetOf()
-    private val _comments: MutableMap<Namespace, String?> = mutableMapOf()
+    private var _comments: MutableSet<JavadocNode<PackageVisitor>> = mutableSetOf()
 
     val names: Map<Namespace, PackageName> get() = _names
     val annotations: Set<AnnotationNode<PackageVisitor>> get() = _annotations
-    val comments: Map<Namespace, String?> get() = _comments
+    val comments: Set<JavadocNode<PackageVisitor>> get() = _comments
 
     fun getName(namespace: Namespace) = names[namespace]
 
@@ -54,10 +52,12 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         return node
     }
 
-    override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
-        root.mergeNs(values.keys)
-        _comments.putAll(values)
-        return null
+    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
+        val node = JavadocNode(this, value, baseNs)
+        node.addNamespaces(namespaces)
+        _comments.add(node)
+        root.mergeNs(namespaces + baseNs)
+        return node
     }
 
     override fun toString() = buildString {

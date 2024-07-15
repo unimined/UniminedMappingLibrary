@@ -47,12 +47,11 @@ object TinyV2Writer : FormatWriter {
     }
 
     open class TinyV2MemberWriter<T: MemberVisitor<T>>(into: (String) -> Unit, parent: BaseTinyV2Writer<*>?, indent: String = ""): BaseTinyV2Writer<T>(into, parent, indent), MemberVisitor<T> {
-        override fun visitJavadoc(values: Map<Namespace, String>): CommentVisitor? {
-            // only 1 comment is allowed, so we will concat them all with \n\n after uniquifying them
-            if (values.isEmpty()) return null
+        override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
+            if (value.isEmpty()) return null
             into(indent)
             into("c\t")
-            into(values.values.toSet().joinToString("\n\n").escape())
+            into(value.escape())
             into("\n")
             return null
         }

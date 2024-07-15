@@ -304,32 +304,25 @@ object UMFWriter : FormatWriter {
         }
 
         override fun visitJavadoc(
-            delegate: CommentParentVisitor<*>,
-            values: Map<Namespace, String>
-        ): CommentVisitor? {
+            delegate: JavadocParentNode<*>,
+            value: String,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
+        ): JavadocVisitor? {
             into(indent)
             into("${UMFReader.EntryType.JAVADOC.key}\t")
-            into.writeNamespaced(values.mapValues {
-                val num = it.value.toIntOrNull()
-                if (num != null) {
-                    "_${num}"
-                } else {
-                    val i = namespaces.indexOf(it.key)
-                    if (i != -1) {
-                        for (ns in namespaces.subList(0, i)) {
-                            if (it.value == values[ns]) {
-                                return@mapValues namespaces.indexOf(ns).toString()
-                            }
-                        }
-                    } else {
-                        throw IllegalArgumentException("Namespace not found ${it.key}")
-                    }
-                    it.value
+            into(value.maybeEscape())
+            into("\t")
+            into(baseNs.name.maybeEscape())
+            for (ns in this.namespaces) {
+                if (ns in namespaces) {
+                    into("\t")
+                    into(ns.name.maybeEscape())
                 }
-            })
+            }
             into("\n")
             indent += "\t"
-            return super.visitJavadoc(delegate, values)
+            return super.visitJavadoc(delegate, value, baseNs, namespaces)
         }
 
         override fun visitSignature(
@@ -368,7 +361,7 @@ object UMFWriter : FormatWriter {
             into("\t")
             into(baseNs.name.maybeEscape())
             into("\t")
-            for (ns in namespaces) {
+            for (ns in this.namespaces) {
                 if (ns in namespaces) {
                     into(ns.name.maybeEscape())
                 }
@@ -388,7 +381,7 @@ object UMFWriter : FormatWriter {
             into(indent)
             into("${UMFReader.EntryType.CONSTANT_GROUP.key}\t")
             into("${type.name.lowercase()}\t${name.maybeEscape()}\t${baseNs.name.maybeEscape()}")
-            for (ns in namespaces) {
+            for (ns in this.namespaces) {
                 if (ns in namespaces) {
                     into("\t${ns.name.maybeEscape()}")
                 }

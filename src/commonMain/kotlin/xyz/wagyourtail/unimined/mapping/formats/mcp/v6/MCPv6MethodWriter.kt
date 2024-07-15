@@ -4,7 +4,6 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
@@ -49,12 +48,24 @@ object MCPv6MethodWriter : FormatWriter {
                 return default.visitMethod(delegate, names)
             }
 
-            override fun visitMethodJavadoc(delegate: MethodVisitor, values: Map<Namespace, String>): CommentVisitor? {
+            override fun visitMethodJavadoc(
+                delegate: MethodVisitor,
+                value: String,
+                baseNs: Namespace,
+                namespaces: Set<Namespace>
+            ): JavadocVisitor? {
                 if (!writeComments) return null
-                val comment = values[ns[1]] ?: return null
-                append(comment.maybeEscapeCol())
+                append(value.maybeEscapeCol())
                 return null
+
             }
+
+//            override fun visitMethodJavadoc(delegate: MethodVisitor, values: Map<Namespace, String>): JavadocVisitor? {
+//                if (!writeComments) return null
+//                val comment = values[ns[1]] ?: return null
+//                append(comment.maybeEscapeCol())
+//                return null
+//            }
         })
 
     }

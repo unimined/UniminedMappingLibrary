@@ -44,11 +44,11 @@ k	""	net/minecraft/src/	_
 c	a	net/minecraft/src/Minecraft	_
 	f	a	field_1724	_
 	m	a;()V	method_1507	minecraftMethod
-		*	_	_	"comment data"
+		*	"comment data"	mcp
 c	b	net/minecraft/src/World	_
 	f	a	field_1725	_
 	m	a;(I)V	method_1204	worldMethod
-		*	_	_	"comment data"
+		*	"comment data"	mcp
             """.trimIndent(),
             out.trimEnd()
         )

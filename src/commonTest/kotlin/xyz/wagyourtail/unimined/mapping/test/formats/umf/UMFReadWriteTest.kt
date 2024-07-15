@@ -18,7 +18,7 @@ class UMFReadWriteTest {
 umf	1	0
 intermediary	named
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
-	*	"example comment"	0
+	*	"example comment"	named
 	f	field_1724	_
 	m	method_1507;()V	testMethod;()V
 		p	_	0	_	this
@@ -112,7 +112,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 umf	1	0
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
-	*	"example comment"	0
+	*	"example comment"	named
 	f	field_1724	_
 	m	method_1507;()V	testMethod
 		p	_	0	_	this
@@ -135,7 +135,7 @@ c	net/minecraft/class_310	_	net/minecraft/Minecraft
 umf	1	0
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Minecraft
-	*	"example comment"	0	_
+	*	"example comment"	named
 	f	field_1724	_	_
 	m	method_1507;()V	testMethod;()V	_
 		p	_	0	_	this	_
