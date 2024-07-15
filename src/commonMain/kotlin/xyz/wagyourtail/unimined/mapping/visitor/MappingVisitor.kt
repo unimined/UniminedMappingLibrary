@@ -19,8 +19,6 @@ import xyz.wagyourtail.unimined.mapping.util.Scoped
 
 interface BaseVisitor<T: BaseVisitor<T>> {
 
-    fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>?
-
     fun visitEnd()
 
 }
@@ -31,14 +29,6 @@ inline fun <T: BaseVisitor<T>> T.use(visitor: (@Scoped T).() -> Unit) {
 }
 
 interface NullVisitor : BaseVisitor<NullVisitor>
-
-interface ExtensionVisitor<T: ExtensionVisitor<T, V>, V> : BaseVisitor<T> {
-
-    fun ephemeral(): Boolean
-
-    fun write(sink: BufferedSink)
-
-}
 
 interface MappingVisitor : BaseVisitor<MappingVisitor> {
 

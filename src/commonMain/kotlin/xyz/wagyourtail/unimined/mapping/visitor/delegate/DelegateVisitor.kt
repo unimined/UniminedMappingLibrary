@@ -302,22 +302,9 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun <V> visitExtension(delegate: BaseVisitor<*>, key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return delegate.visitExtension(key, *values)
-    }
-
-    open fun <V> visitExtensionEnd(delegate: ExtensionVisitor<*, V>) {
-        visitEnd(delegate)
-    }
-
 }
 
 abstract class DelegateBaseVisitor<T: BaseVisitor<T>>(val delegate: T, val delegator: Delegator) : BaseVisitor<T> {
-
-    @Suppress("TYPE_MISMATCH")
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return delegator.visitExtension(delegate, key, *values)
-    }
 
 }
 
@@ -356,10 +343,6 @@ open class DelegatePackageVisitor(delegate: PackageVisitor, delegator: Delegator
 
     override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
         return delegator.visitPackageJavadoc(delegate, value, baseNs, namespaces)
-    }
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
     }
 
     override fun visitEnd() {
@@ -408,10 +391,6 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
         return delegator.visitClassAccess(delegate, type, value, condition, namespaces)
     }
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return delegator.visitExtension(delegate, key, *values)
-    }
-
     override fun visitAnnotation(
         type: AnnotationType,
         baseNs: Namespace,
@@ -428,10 +407,6 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
 }
 
 open class DelegateMethodVisitor(delegate: MethodVisitor, delegator: Delegator) : DelegateBaseVisitor<MethodVisitor>(delegate, delegator), MethodVisitor {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
     override fun visitAccess(
         type: AccessType,

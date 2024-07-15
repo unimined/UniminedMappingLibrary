@@ -18,11 +18,6 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 open class MultiBaseVisitor<T: BaseVisitor<T>>(val visitors: List<T>) : BaseVisitor<T> {
 
-    @Suppress("TYPE_MISMATCH")
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        TODO()
-    }
-
     override fun visitEnd() {
         visitors.forEach { it.visitEnd() }
     }
@@ -116,10 +111,6 @@ open class MultiJavadocParentVisitor<T: JavadocParentNode<T>>(visitors: List<T>)
 
 open class MultiMemberVisitor<T: MemberVisitor<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), MemberVisitor<T>, AccessParentVisitor<T> by MultiAccessParentVisitor(visitors), AnnotationParentVisitor<T> by MultiAnnotationParentVisitor(visitors), JavadocParentNode<T> by MultiJavadocParentVisitor(visitors) {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
     override fun visitEnd() {
         super.visitEnd()
     }
@@ -127,10 +118,6 @@ open class MultiMemberVisitor<T: MemberVisitor<T>>(visitors: List<T>): MultiBase
 }
 
 open class MultiPackageVisitor(visitors: List<PackageVisitor>): MultiBaseVisitor<PackageVisitor>(visitors), PackageVisitor, AnnotationParentVisitor<PackageVisitor> by MultiAnnotationParentVisitor(visitors), JavadocParentNode<PackageVisitor> by MultiJavadocParentVisitor(visitors) {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
     override fun visitEnd() {
         super.visitEnd()
@@ -170,10 +157,6 @@ open class MultiClassVisitor(visitors: List<ClassVisitor>) : MultiMemberVisitor<
         return MultiWildcardVisitor(visitors)
     }
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiMethodVisitor(visitors: List<MethodVisitor>): MultiMemberVisitor<MethodVisitor>(visitors), MethodVisitor, SignatureParentVisitor<MethodVisitor> by MultiSignatureParentVisitor(visitors) {
@@ -196,17 +179,9 @@ open class MultiMethodVisitor(visitors: List<MethodVisitor>): MultiMemberVisitor
         return MultiExceptionVisitor(visitors)
     }
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiFieldVisitor(visitors: List<FieldVisitor>): MultiMemberVisitor<FieldVisitor>(visitors), FieldVisitor, SignatureParentVisitor<FieldVisitor> by MultiSignatureParentVisitor(visitors) {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
 }
 
@@ -238,57 +213,29 @@ open class MultiWildcardVisitor(visitors: List<WildcardVisitor>): MultiMemberVis
 
 open class MultiParameterVisitor(visitors: List<ParameterVisitor>): MultiMemberVisitor<ParameterVisitor>(visitors), ParameterVisitor {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiLocalVariableVisitor(visitors: List<LocalVariableVisitor>): MultiMemberVisitor<LocalVariableVisitor>(visitors), LocalVariableVisitor {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
 }
 
 open class MultiExceptionVisitor(visitors: List<ExceptionVisitor>): MultiBaseVisitor<ExceptionVisitor>(visitors), ExceptionVisitor {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiJavadocVisitor(visitors: List<JavadocVisitor>): MultiBaseVisitor<JavadocVisitor>(visitors), JavadocVisitor {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
 }
 
 open class MultiSignatureVisitor(visitors: List<SignatureVisitor>): MultiBaseVisitor<SignatureVisitor>(visitors), SignatureVisitor {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiAccessVisitor(visitors: List<AccessVisitor>): MultiBaseVisitor<AccessVisitor>(visitors), AccessVisitor {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiAnnotationVisitor(visitors: List<AnnotationVisitor>): MultiBaseVisitor<AnnotationVisitor>(visitors), AnnotationVisitor {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
 }
 
@@ -309,33 +256,17 @@ open class MultiConstantGroupVisitor(visitors: List<ConstantGroupVisitor>): Mult
         return MultiTargetVisitor(visitors)
     }
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiConstantVisitor(visitors: List<ConstantVisitor>): MultiBaseVisitor<ConstantVisitor>(visitors), ConstantVisitor {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
 }
 
 open class MultiTargetVisitor(visitors: List<TargetVisitor>): MultiBaseVisitor<TargetVisitor>(visitors), TargetVisitor {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
 }
 
 open class MultiInnerClassVisitor(visitors: List<InnerClassVisitor>): MultiAccessParentVisitor<InnerClassVisitor>(visitors), InnerClassVisitor {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
 }
 

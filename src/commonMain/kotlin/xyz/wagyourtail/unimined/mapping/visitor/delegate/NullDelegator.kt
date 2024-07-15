@@ -117,10 +117,4 @@ open class NullDelegator : Delegator() {
         return null
     }
 
-    override fun <V> visitExtension(delegate: BaseVisitor<*>, key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return null
-    }
-
-
-
 }

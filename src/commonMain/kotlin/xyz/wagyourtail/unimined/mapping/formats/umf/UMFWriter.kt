@@ -436,14 +436,6 @@ object UMFWriter : FormatWriter {
             return super.visitTarget(delegate, target, paramIdx)
         }
 
-        override fun <V> visitExtension(
-            delegate: BaseVisitor<*>,
-            key: String,
-            vararg values: V
-        ): ExtensionVisitor<*, V>? {
-            throw UnsupportedOperationException("Extensions are not supported in UMF Yet")
-        }
-
     }
 
 

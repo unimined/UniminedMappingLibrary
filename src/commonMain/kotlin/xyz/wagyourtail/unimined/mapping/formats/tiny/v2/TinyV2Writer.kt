@@ -38,10 +38,6 @@ object TinyV2Writer : FormatWriter {
             }
         }
 
-        override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-            return null
-        }
-
         override fun visitEnd() {}
 
     }

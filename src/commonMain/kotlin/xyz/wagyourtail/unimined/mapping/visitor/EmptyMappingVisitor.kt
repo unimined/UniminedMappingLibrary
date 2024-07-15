@@ -17,10 +17,6 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 
 open class EmptyBaseVisitor<T: BaseVisitor<T>> : BaseVisitor<T> {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        throw NotImplementedError()
-    }
-
     override fun visitEnd() {}
 
 }
@@ -48,10 +44,6 @@ open class EmptyMappingVisitor : EmptyBaseVisitor<MappingVisitor>(), MappingVisi
         namespaces: Set<Namespace>
     ): ConstantGroupVisitor? {
         return EmptyConstantGroupVisitor()
-    }
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        throw NotImplementedError()
     }
 
 }
@@ -95,10 +87,6 @@ open class EmptyJavadocParentVisitor<T: JavadocParentNode<T>> : EmptyBaseVisitor
 
 open class EmptyMemberVisitor<T: MemberVisitor<T>> : EmptyBaseVisitor<T>(), AccessParentVisitor<T> by EmptyAccessParentVisitor(), AnnotationParentVisitor<T> by EmptyAnnotationParentVisitor(), JavadocParentNode<T> by EmptyJavadocParentVisitor(), MemberVisitor<T> {
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
     override fun visitEnd() {
         super.visitEnd()
     }
@@ -106,10 +94,6 @@ open class EmptyMemberVisitor<T: MemberVisitor<T>> : EmptyBaseVisitor<T>(), Acce
 }
 
 open class EmptyPackageVisitor : EmptyBaseVisitor<PackageVisitor>(), AnnotationParentVisitor<PackageVisitor> by EmptyAnnotationParentVisitor(), JavadocParentNode<PackageVisitor> by EmptyJavadocParentVisitor(), PackageVisitor {
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
 
     override fun visitEnd() {
         super.visitEnd()
@@ -140,10 +124,6 @@ open class EmptyClassVisitor : EmptyMemberVisitor<ClassVisitor>(), SignaturePare
         return EmptyInnerClassVisitor()
     }
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
-    }
-
     override fun visitEnd() {
         super.visitEnd()
     }
@@ -166,10 +146,6 @@ open class EmptyMethodVisitor : EmptyMemberVisitor<MethodVisitor>(), SignaturePa
         namespaces: Set<Namespace>
     ): ExceptionVisitor? {
         return EmptyExceptionVisitor()
-    }
-
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        return super.visitExtension(key, *values)
     }
 
     override fun visitEnd() {

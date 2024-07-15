@@ -31,10 +31,6 @@ open class ThrowingVisitor : MappingVisitor {
         throw UnsupportedOperationException()
     }
 
-    override fun <V> visitExtension(key: String, vararg values: V): ExtensionVisitor<*, V>? {
-        throw UnsupportedOperationException()
-    }
-
     override fun visitEnd() {
         throw UnsupportedOperationException()
     }

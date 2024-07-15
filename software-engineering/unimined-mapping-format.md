@@ -25,9 +25,6 @@ created over the years.
 2. Must be human-readable
 3. Must be relatively easy to parse / write
 4. all notations must be able to represent everything legal by the jvms
-5. Must be easy to extend
-    * so if I missed something, it can be added later
-    * or even as a third party extension
 
 # Format
 
@@ -59,19 +56,9 @@ will be considered a comment and will be ignored by the parser.
 
 the header will be
 ```
-umf 1 0 <ext_key1> <ext_key2> ...
+umf 1 0
 <ns1> <ns2> <ns3> ...
 ```
-
-where the first line is the magic string and version number,
-followed by the list of used third party extensions. 
-so mapping parsers can warn or throw if they don't support a required extension. 
-tho parsing the known values should always work due to the other requirements of the format.
-if an extension needs versioning, they can include the version in their key and parse it themselves.
-
-third party extension keys must be at least 2 characters long. 
-it is recommended to use a version suffix such as exampleExtension_1_0, but it is not required and the extension will
-handle version parsing of the key itself when it is read.
 
 the second line is a list of namespace names.
 it is not recommended to have namespaces with spaces in them, but it is allowed by the format.
@@ -338,17 +325,6 @@ the `t` subelement contains `<td>`, a fully qualified method or field (see [Inne
 use `-1` if the return value should be used, this would be in the case of comparing against a constant.
 
 this will search for all invocations of targets, and search upwards for matching ldc instructions to replace.
-
-## Extensions
-
-extensions are for third party extensions to the format.
-they can occur under any component or at the top level, and will be defined as
-```
-e <ext_key> <ext_value1> <ext_value2> ...
-```
-
-where `<ext_key>` is the key of the extension, and `<ext_value1> <ext_value2> ...` are the values of the extension.
-
 
 # Example
 
