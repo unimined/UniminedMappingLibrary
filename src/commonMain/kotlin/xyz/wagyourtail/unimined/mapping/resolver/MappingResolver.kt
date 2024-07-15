@@ -109,7 +109,7 @@ open class MappingResolver(val name: String, val propogator: (MemoryMappingTree.
         }
 
         for (entry in sorted) {
-            val visitor = entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).filterNotNull().toSet()) as MappingVisitor) { acc, it -> it(acc) }
+            val visitor = entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it -> it(acc) }
             entry.provider.read(envType, entry.content.content(), resolved, visitor, entry.mapNs.map { it.key.name to it.value.name }.toMap())
         }
 

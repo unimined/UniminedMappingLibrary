@@ -1,25 +1,33 @@
 package xyz.wagyourtail.unimined.mapping.resolver.mc
 
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3ClassesReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.rgs.RetroguardReader
 import xyz.wagyourtail.unimined.mapping.formats.srg.SrgReader
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.resolver.MappingResolver
 import xyz.wagyourtail.unimined.mapping.resolver.maven.Location
 import xyz.wagyourtail.unimined.mapping.resolver.maven.MavenCoords
 import xyz.wagyourtail.unimined.mapping.resolver.maven.MavenResolver
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.MustSet
+import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 import xyz.wagyourtail.unimined.mapping.visitor.fixes.renest
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
 
-abstract class MinecraftMappingResolver(name: String, val createResolver: (String) -> MavenResolver, propogator: (MemoryMappingTree.() -> Unit)?): MappingResolver(name, propogator) {
+abstract class MinecraftMappingResolver(name: String, val createResolver: () -> MavenResolver, propogator: (MemoryMappingTree.() -> Unit)?): MappingResolver(name, propogator) {
 
     val mcVersion: String by FinalizeOnRead(MustSet())
-    val mavenResolver: MavenResolver by FinalizeOnRead(createResolver(mcVersion))
+    val mavenResolver: MavenResolver by FinalizeOnRead(createResolver())
 
     protected val legacyFabricMappingsVersionFinalize = FinalizeOnRead(1)
     var legacyFabricMappingsVersion by legacyFabricMappingsVersionFinalize
@@ -110,6 +118,23 @@ abstract class MinecraftMappingResolver(name: String, val createResolver: (Strin
             }) {
                 mapNamespace("srg" to "searge")
                 provides("searge" to false)
+                insertInto.add {
+                    it.delegator(object : Delegator() {
+                        val searge = Namespace("searge")
+                        val mojmap = Namespace("mojmap")
+
+                        override fun visitClass(
+                            delegate: MappingVisitor,
+                            names: Map<Namespace, InternalName>
+                        ): ClassVisitor? {
+                            return if (mojmap in names) {
+                                super.visitClass(delegate, names + (searge to names[mojmap]!!))
+                            } else {
+                                super.visitClass(delegate, names)
+                            }
+                        }
+                    })
+                }
                 action()
             }
         } else {
@@ -196,6 +221,24 @@ abstract class MinecraftMappingResolver(name: String, val createResolver: (Strin
             requires("calamus")
             provides("feather" to true)
             mapNamespace("intermediary" to "calamus", "named" to "feather")
+            insertInto.add {
+                it.delegator(object : Delegator() {
+                    val calamus = Namespace("calamus")
+                    val feather = Namespace("feather")
+
+                    override fun visitClass(
+                        delegate: MappingVisitor,
+                        names: Map<Namespace, InternalName>
+                    ): ClassVisitor? {
+                        return if (feather in names) {
+                            super.visitClass(delegate, names + (feather to InternalName.unchecked(names[feather]!!.toString().replace("__", "$"))))
+                        } else {
+                            super.visitClass(delegate, names)
+                        }
+                    }
+
+                })
+            }
             afterLoad.add {
                 it.renest("calamus", "feather")
             }
