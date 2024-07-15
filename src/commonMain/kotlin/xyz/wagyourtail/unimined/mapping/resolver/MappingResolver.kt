@@ -29,26 +29,29 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     }
 
     var envType by FinalizeOnRead(EnvType.JOINED)
-    private val entries = finalizableMapOf<String, MappingEntry>()
 
-    private lateinit var namespaces: Set<Pair<Namespace, Boolean>>
-    private lateinit var resolved: MemoryMappingTree
+    private val _entries = finalizableMapOf<String, MappingEntry>()
+    val entries: Map<String, MappingEntry> get() = _entries
+
+    lateinit var namespaces: Set<Pair<Namespace, Boolean>>
+        private set
+    lateinit var resolved: MemoryMappingTree
+        private set
 
     val unmappedNs = Namespace("official")
 
     open val propogator: (MemoryMappingTree.() -> Unit)? = null
 
-    suspend fun finalize() {
-        entries.finalize()
-        entries.values.forEach { it.finalize() }
+    open suspend fun finalize() {
+        _entries.finalize()
+        _entries.values.forEach { it.finalize() }
     }
 
-
     fun addDependency(key: String, dependency: MappingEntry) {
-        if (entries.containsKey(key)) {
+        if (_entries.containsKey(key)) {
             LOGGER.warn { "Overwriting dependency $key" }
         }
-        entries[key] = dependency
+        _entries[key] = dependency
     }
 
     abstract fun createForPostProcess(key: String): T
@@ -79,10 +82,10 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         }).also(postProcess))
     }
 
-    suspend fun resolve(): MemoryMappingTree {
+    open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
         finalize()
-        val values = entries.values
+        val values = _entries.values
         val resolved = MemoryMappingTree()
         resolved.visitHeader(unmappedNs.name)
         val resolvedEntries = mutableSetOf<MappingEntry>()
@@ -216,6 +219,10 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
         fun requires(ns: String) {
             requires = Namespace(ns)
+        }
+
+        fun provides(ns: String, named: Boolean) {
+            provides.add(Namespace(ns) to named)
         }
 
         fun provides(vararg ns: Pair<String, Boolean>) {
