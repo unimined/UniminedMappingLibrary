@@ -22,7 +22,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
 
-open class MappingResolver(val name: String, val propogator: (MemoryMappingTree.() -> Unit)?) {
+@Scoped
+abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     companion object {
         private val LOGGER = KotlinLogging.logger {}
     }
@@ -34,6 +35,8 @@ open class MappingResolver(val name: String, val propogator: (MemoryMappingTree.
     private lateinit var resolved: MemoryMappingTree
 
     val unmappedNs = Namespace("official")
+
+    open val propogator: (MemoryMappingTree.() -> Unit)? = null
 
     suspend fun finalize() {
         entries.finalize()
@@ -48,10 +51,10 @@ open class MappingResolver(val name: String, val propogator: (MemoryMappingTree.
         entries[key] = dependency
     }
 
-    open fun createForPostProcess(key: String) = MappingResolver("$name::$key", propogator)
+    abstract fun createForPostProcess(key: String): T
 
     @JvmOverloads
-    fun postProcessDependency(key: String, intern: MappingResolver.() -> Unit, postProcess: MappingEntry.() -> Unit = {}) {
+    fun postProcessDependency(key: String, intern: T.() -> Unit, postProcess: MappingEntry.() -> Unit = {}) {
         val resolver = createForPostProcess(key)
         resolver.intern()
 
@@ -120,7 +123,7 @@ open class MappingResolver(val name: String, val propogator: (MemoryMappingTree.
         }
 
         if (propogator != null) {
-            propogator.invoke(resolved)
+            propogator?.invoke(resolved)
             val filled = mutableSetOf<Namespace>()
             for (entry in sorted) {
                 val toFill = entry.provides.map { it.first }.toSet() - filled
