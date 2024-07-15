@@ -5,6 +5,7 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
@@ -13,11 +14,13 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateFieldVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMethodVisitor
 
-class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
+class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
+    private val _signatures = mutableSetOf<SignatureNode<MethodVisitor>>()
     private val _params: MutableList<ParameterNode<MethodVisitor>> = mutableListOf()
     private val _locals: MutableList<LocalNode<MethodVisitor>> = mutableListOf()
     private val _exceptions: MutableList<ExceptionNode<MethodVisitor>> = mutableListOf()
 
+    val signatures: Set<SignatureNode<MethodVisitor>> get() = _signatures
     val params: List<ParameterNode<MethodVisitor>> get() = _params
     val locals: List<LocalNode<MethodVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<MethodVisitor>> get() = _exceptions
@@ -28,6 +31,13 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
     fun setMethodDescs(descs: Map<Namespace, MethodDescriptor>) {
         root.mergeNs(descs.keys)
         setDescriptors(descs.mapValues { FieldOrMethodDescriptor.unchecked(it.value.toString()) })
+    }
+
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        val node = SignatureNode(this, value, baseNs)
+        node.addNamespaces(namespaces)
+        _signatures.add(node)
+        return node
     }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
@@ -80,6 +90,9 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
 
     override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>) {
         super.acceptInner(visitor, nsFilter)
+        for (signature in _signatures) {
+            signature.accept(visitor, nsFilter)
+        }
         for (exception in exceptions) {
             exception.accept(visitor, nsFilter)
         }

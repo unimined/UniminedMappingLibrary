@@ -96,8 +96,8 @@ open class MultiAnnotationParentVisitor<T: AnnotationParentVisitor<T>>(visitors:
 
 open class MultiSignatureParentVisitor<T: SignatureParentVisitor<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), SignatureParentVisitor<T> {
 
-    override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
-        val visitors = visitors.mapNotNull { it.visitSignature(values) }
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        val visitors = visitors.mapNotNull { it.visitSignature(value, baseNs, namespaces) }
         if (visitors.isEmpty()) return null
         return MultiSignatureVisitor(visitors)
     }

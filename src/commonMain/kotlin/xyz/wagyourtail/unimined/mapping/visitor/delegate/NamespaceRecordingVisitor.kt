@@ -129,10 +129,12 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
 
     override fun visitSignature(
         delegate: SignatureParentVisitor<*>,
-        values: Map<Namespace, String>
+        value: String,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
     ): SignatureVisitor? {
-        recorder(values.keys)
-        return super.visitSignature(delegate, values)
+        recorder(namespaces + baseNs)
+        return super.visitSignature(delegate, value, baseNs, namespaces)
     }
 
     override fun visitAnnotation(

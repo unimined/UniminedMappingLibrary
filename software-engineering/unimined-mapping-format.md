@@ -236,14 +236,11 @@ and `<ns1_name>` is the name(s) of the namespaces to apply to.
 
 signatures (aka generics) can occur under classes/methods/fields and will be defined as
 ```
-g <ns1 sig> <ns2 sig> <ns3 sig> ...
+g <ns1 sig> <ns1_name> <ns2_name> ...
 ```
 
 where `<ns1 sig>` is the generic signature using ns1 class names.
-only one namespace is required, ns1 is preferred.
-
-the signature is allowed to be different in different namespaces, but if it is not present, 
-he first namespace's signature that's present will be used.
+and `<ns1_name>` is the name(s) of the namespaces to apply to.
 
 ## Annotations
 

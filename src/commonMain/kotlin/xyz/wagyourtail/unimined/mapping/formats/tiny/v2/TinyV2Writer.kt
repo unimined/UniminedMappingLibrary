@@ -56,7 +56,7 @@ object TinyV2Writer : FormatWriter {
             return null
         }
 
-        fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
+        fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
             return null
         }
 

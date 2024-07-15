@@ -8,7 +8,7 @@ import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 
-abstract class AbstractFieldMethodNode<T: MemberVisitor<T>, V: SignatureParentVisitor<V>>(parent: ClassNode) : MemberNode<T, V, ClassVisitor>(parent) {
+abstract class AbstractFieldMethodNode<T: MemberVisitor<T>>(parent: ClassNode) : MemberNode<T, ClassVisitor>(parent) {
 
     private val _names = mutableMapOf<Namespace, String>()
     private val _descs = mutableMapOf<Namespace, FieldOrMethodDescriptor>()

@@ -131,11 +131,12 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
 
     override fun visitSignature(
         delegate: SignatureParentVisitor<*>,
-        values: Map<Namespace, String>
+        value: String,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
     ): SignatureVisitor? {
-        val n = values.filterKeys { if (inverted) it !in ns else it in ns }
-        if (n.isEmpty()) return null
-        return super.visitSignature(delegate, n)
+        if (baseNs !in ns) return null
+        return super.visitSignature(delegate, value, baseNs, namespaces.filter { if (inverted) it !in ns else it in ns }.toSet())
     }
 
     override fun visitAnnotation(

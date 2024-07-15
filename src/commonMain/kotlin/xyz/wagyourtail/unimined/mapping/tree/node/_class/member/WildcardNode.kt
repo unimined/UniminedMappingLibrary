@@ -6,21 +6,22 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvableEntry
+import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateFieldVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateWildcardVisitor
 
-class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>) : MemberNode<WildcardVisitor, WildcardVisitor, ClassVisitor>(parent), WildcardVisitor, LazyResolvableEntry<WildcardNode, WildcardVisitor> {
+class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>) : MemberNode<WildcardVisitor, ClassVisitor>(parent), WildcardVisitor, LazyResolvableEntry<WildcardNode, WildcardVisitor> {
     private val _descs = descs.toMutableMap()
+    private val _signatures: MutableSet<SignatureNode<WildcardVisitor>> = mutableSetOf()
     private val _params: MutableList<ParameterNode<WildcardVisitor>> = mutableListOf()
     private val _locals: MutableList<LocalNode<WildcardVisitor>> = mutableListOf()
     private val _exceptions: MutableList<ExceptionNode<WildcardVisitor>> = mutableListOf()
 
     val descs: Map<Namespace, FieldOrMethodDescriptor> get() = _descs
+    val signatures: Set<SignatureNode<WildcardVisitor>> get() = _signatures
     val params: List<ParameterNode<WildcardVisitor>> get() = _params
     val locals: List<LocalNode<WildcardVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<WildcardVisitor>> get() = _exceptions
@@ -42,6 +43,14 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
     fun getMethodDescriptor(namespace: Namespace) = getDescriptor(namespace)?.getMethodDescriptor()
 
     fun getFieldDescriptor(namespace: Namespace) = getDescriptor(namespace)?.getFieldDescriptor()
+
+
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        val node = SignatureNode(this, value, baseNs)
+        node.addNamespaces(namespaces)
+        _signatures.add(node)
+        return node
+    }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
         if (type == WildcardType.FIELD) return null
@@ -94,6 +103,9 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
 
     override fun acceptInner(visitor: WildcardVisitor, nsFilter: Collection<Namespace>) {
         super.acceptInner(visitor, nsFilter)
+        for (signature in signatures) {
+            signature.accept(visitor, nsFilter)
+        }
         for (exception in exceptions) {
             exception.accept(visitor, nsFilter)
         }

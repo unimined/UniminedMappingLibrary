@@ -327,14 +327,24 @@ object UMFWriter : FormatWriter {
 
         override fun visitSignature(
             delegate: SignatureParentVisitor<*>,
-            values: Map<Namespace, String>
+            value: String,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
         ): SignatureVisitor? {
             into(indent)
             into("${UMFReader.EntryType.SIGNATURE.key}\t")
-            into.writeNamespaced(if (minimize) values.firstAsMap() else values)
+            into(value.maybeEscape())
+            into("\t")
+            into(baseNs.name.maybeEscape())
+            for (ns in this.namespaces) {
+                if (ns in namespaces) {
+                    into("\t")
+                    into(ns.name.maybeEscape())
+                }
+            }
             into("\n")
             indent += "\t"
-            return super.visitSignature(delegate, values)
+            return super.visitSignature(delegate, value, baseNs, namespaces)
         }
 
         override fun visitAnnotation(

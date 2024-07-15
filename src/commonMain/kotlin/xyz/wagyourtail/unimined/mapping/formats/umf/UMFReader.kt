@@ -282,11 +282,10 @@ object UMFReader : FormatReader {
                     last?.visitTarget(target, paramIdx)
                 }
                 EntryType.SIGNATURE -> {
-                    val values = input.takeRemainingOnLine().map { fixValue(it) }.withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to name
-                    }
+                    val sig = fixValue(input.takeNext())!!
+                    val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()
                     last as SignatureParentVisitor<*>?
-                    last?.visitSignature(values)
+                    last?.visitSignature(sig, names.next(), names.asSequence().toSet())
                 }
                 EntryType.EXTENSION -> TODO()
             }

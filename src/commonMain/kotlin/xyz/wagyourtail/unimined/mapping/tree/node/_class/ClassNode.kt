@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvables
+import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
@@ -17,8 +18,11 @@ import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVisitor, MappingVisitor>(parent), ClassVisitor {
+class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val _names: MutableMap<Namespace, InternalName?> = mutableMapOf()
+    private val _signatures: MutableSet<SignatureNode<ClassVisitor>> = mutableSetOf()
+
+    val signatures: Set<SignatureNode<ClassVisitor>> get() = _signatures
 
     val names: Map<Namespace, InternalName?> get() = _names
 
@@ -65,6 +69,13 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
         return methods
     }
 
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        val node = SignatureNode(this, value, baseNs)
+        node.addNamespaces(namespaces)
+        _signatures.add(node)
+        return node
+    }
+
     override fun visitMethod(namespaces: Map<Namespace, Pair<String, MethodDescriptor?>>) = MethodNode(this).apply {
         setNames(namespaces.mapValues { it.value.first })
         setMethodDescs(namespaces.mapNotNullValues { it.value.second })
@@ -108,6 +119,9 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, ClassVis
 
     override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>) {
         super.acceptInner(visitor, nsFilter)
+        for (signature in signatures) {
+            signature.accept(visitor, nsFilter)
+        }
         for (inner in inners.values) {
             inner.accept(visitor, nsFilter)
         }

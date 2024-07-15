@@ -44,7 +44,7 @@ object SignatureReader : FormatReader {
                     cls = visitClass(mapOf(ns to name))
                     val sig = input.takeNextLiteral()
                     if (sig != null) {
-                        cls?.visitSignature(mapOf(ns to sig))
+                        cls?.visitSignature(sig, ns, emptySet())
                     }
                 } else {
                     if (whitespace.length != 1) {
@@ -54,7 +54,7 @@ object SignatureReader : FormatReader {
                     val desc = MethodDescriptor.read(input.takeNextLiteral()!!)
                     val sig = input.takeNextLiteral()!!
                     cls?.visitMethod(mapOf(ns to (mName to desc)))?.use {
-                        visitSignature(mapOf(ns to sig))
+                        visitSignature(sig, ns, emptySet())
                     }
                 }
 

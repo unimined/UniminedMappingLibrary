@@ -79,7 +79,7 @@ open class EmptyAnnotationParentVisitor<T: AnnotationParentVisitor<T>> : EmptyBa
 
 open class EmptySignatureParentVisitor<T: SignatureParentVisitor<T>> :  EmptyBaseVisitor<T>(), SignatureParentVisitor<T> {
 
-    override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
         return EmptySignatureVisitor()
     }
 

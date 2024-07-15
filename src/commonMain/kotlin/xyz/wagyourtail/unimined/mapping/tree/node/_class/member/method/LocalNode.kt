@@ -9,7 +9,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateLocalVariableVisitor
 
-class LocalNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, MethodVisitor, T>(parent),
+class LocalNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val lvOrd: Int, val startOp: Int?) : MemberNode<LocalVariableVisitor, T>(parent),
     LocalVariableVisitor {
     private val _names: MutableMap<Namespace, String> = mutableMapOf()
     val names: Map<Namespace, String> get() = _names

@@ -51,6 +51,18 @@ private class MetadataCopyVisitor(val from: Namespace, val to: Set<Namespace>, v
         return super.visitException(delegate, type, exception, baseNs, namespaces)
     }
 
+    override fun visitSignature(
+        delegate: SignatureParentVisitor<*>,
+        value: String,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SignatureVisitor? {
+        if (baseNs == from || from in namespaces) {
+            return super.visitSignature(delegate, value, baseNs, namespaces + to)
+        }
+        return super.visitSignature(delegate, value, baseNs, namespaces)
+    }
+
     override fun visitConstantGroup(
         delegate: MappingVisitor,
         type: ConstantGroupNode.InlineType,

@@ -88,31 +88,4 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         return super.visitLocalVariable(delegate, lvOrd, startOp, nameMap)
     }
 
-    override fun visitClassSignature(delegate: ClassVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        val valueMap = values.toMutableMap()
-        val value = valueMap[from] ?: return super.visitSignature(delegate, valueMap)
-        for (namespace in valueMap.keys.ifOnlyMissing()) {
-            valueMap[namespace] = context.mapClassSignature(from, namespace, value)
-        }
-        return super.visitSignature(delegate, valueMap)
-    }
-
-    override fun visitMethodSignature(delegate: MethodVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        val valueMap = values.toMutableMap()
-        val value = valueMap[from] ?: return super.visitSignature(delegate, valueMap)
-        for (namespace in valueMap.keys.ifOnlyMissing()) {
-            valueMap[namespace] = context.mapMethodSignature(from, namespace, value)
-        }
-        return super.visitSignature(delegate, valueMap)
-    }
-
-    override fun visitFieldSignature(delegate: FieldVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        val valueMap = values.toMutableMap()
-        val value = valueMap[from] ?: return super.visitSignature(delegate, valueMap)
-        for (namespace in valueMap.keys.ifOnlyMissing()) {
-            valueMap[namespace] = context.mapFieldSignature(from, namespace, value)
-        }
-        return super.visitSignature(delegate, valueMap)
-    }
-
 }

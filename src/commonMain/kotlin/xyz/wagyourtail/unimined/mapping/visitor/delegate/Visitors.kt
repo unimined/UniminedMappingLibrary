@@ -127,11 +127,13 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
 
     override fun visitSignature(
         delegate: SignatureParentVisitor<*>,
-        values: Map<Namespace, String>
+        value: String,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
     ): SignatureVisitor? {
-        val n = values.mapKeys { nsMap[it.key] ?: it.key }
+        val n = namespaces.map { nsMap[it] ?: it }.toSet()
         if (n.isEmpty()) return null
-        return super.visitSignature(delegate, n)
+        return super.visitSignature(delegate, value, nsMap[baseNs] ?: baseNs, n)
     }
 
     override fun visitAnnotation(

@@ -71,7 +71,12 @@ open class NullDelegator : Delegator() {
         return null
     }
 
-    override fun visitSignature(delegate: SignatureParentVisitor<*>, values: Map<Namespace, String>): SignatureVisitor? {
+    override fun visitSignature(
+        delegate: SignatureParentVisitor<*>,
+        value: String,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SignatureVisitor? {
         return null
     }
 

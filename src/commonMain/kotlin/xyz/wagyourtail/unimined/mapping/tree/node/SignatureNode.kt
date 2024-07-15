@@ -11,56 +11,59 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>) : BaseNode<SignatureVisitor, T>(parent), SignatureVisitor {
-    private val _names: MutableMap<Namespace, String> = mutableMapOf()
-    val names: Map<Namespace, String> get() = _names
+class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>, val value: String, val baseNs: Namespace) : BaseNode<SignatureVisitor, T>(parent), SignatureVisitor {
+    val _namespaces: MutableSet<Namespace> = mutableSetOf()
+    val namespaces: Set<Namespace> get() = _namespaces
 
-    fun setNames(names: Map<Namespace, String>) {
-        root.mergeNs(names.keys)
-        this._names.putAll(names)
+    fun addNamespaces(namespaces: Set<Namespace>) {
+        root.mergeNs(namespaces)
+        _namespaces.addAll(namespaces)
     }
 
-    fun getClassSig(ns: Namespace): ClassSignature? {
-        if (names.isEmpty()) return null
-        if (ns in names) {
-            return ClassSignature.read(names[ns]!!)
+    fun getClassSig(ns: Namespace): ClassSignature {
+        return if (baseNs == ns) {
+            ClassSignature.read(value)
+        } else {
+            ClassSignature.read(root.mapClassSignature(baseNs, ns, value))
         }
-        val fromNs = names.keys.first()
-        return ClassSignature.read(root.mapClassSignature(fromNs, ns, names[fromNs]!!))
     }
 
-    fun getMethodSig(ns: Namespace): MethodSignature? {
-        if (names.isEmpty()) return null
-        if (ns in names) {
-            return MethodSignature.read(names[ns]!!)
+    fun getMethodSig(ns: Namespace): MethodSignature {
+        return if (baseNs == ns) {
+            MethodSignature.read(value)
+        } else {
+            MethodSignature.read(root.mapMethodSignature(baseNs, ns, value))
         }
-        val fromNs = names.keys.first()
-        return MethodSignature.read(root.mapMethodSignature(fromNs, ns, names[fromNs]!!))
     }
 
-    fun getFieldSig(ns: Namespace): FieldSignature? {
-        if (names.isEmpty()) return null
-        if (ns in names) {
-            return FieldSignature.read(names[ns]!!)
+    fun getFieldSig(ns: Namespace): FieldSignature {
+        return if (baseNs == ns) {
+            FieldSignature.read(value)
+        } else {
+            FieldSignature.read(root.mapFieldSignature(baseNs, ns, value))
         }
-        val fromNs = names.keys.first()
-        return FieldSignature.read(root.mapFieldSignature(fromNs, ns, names[fromNs]!!))
     }
 
     override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>): SignatureVisitor? {
-        return visitor.visitSignature(nsFilter.associateWith { getSignature(it) })
+        if (baseNs !in nsFilter) {
+            val ns = nsFilter.filter { it in namespaces }.toSet()
+            if (ns.isEmpty()) return null
+            val first = ns.first()
+            val sig = getSignature(first)
+            return visitor.visitSignature(sig, first, ns - first)
+        } else {
+            return visitor.visitSignature(value, baseNs, nsFilter.filter { it in namespaces }.toSet() - baseNs)
+        }
     }
 
     fun getSignature(toNs: Namespace): String {
-        val fromNs = names.keys.first()
-        val sig = names.getValue(fromNs)
         return when (parent) {
-            is ClassNode -> parent.root.mapClassSignature(fromNs, toNs, sig)
-            is FieldNode -> parent.root.mapFieldSignature(fromNs, toNs, sig)
-            is MethodNode -> parent.root.mapMethodSignature(fromNs, toNs, sig)
+            is ClassNode -> parent.root.mapClassSignature(baseNs, toNs, value)
+            is FieldNode -> parent.root.mapFieldSignature(baseNs, toNs, value)
+            is MethodNode -> parent.root.mapMethodSignature(baseNs, toNs, value)
             is WildcardNode -> when (parent.type) {
-                WildcardNode.WildcardType.METHOD -> parent.root.mapMethodSignature(fromNs, toNs, sig)
-                WildcardNode.WildcardType.FIELD -> parent.root.mapFieldSignature(fromNs, toNs, sig)
+                WildcardNode.WildcardType.METHOD -> parent.root.mapMethodSignature(baseNs, toNs, value)
+                WildcardNode.WildcardType.FIELD -> parent.root.mapFieldSignature(baseNs, toNs, value)
             }
 
             else -> throw IllegalStateException("Invalid parent type")
@@ -70,7 +73,7 @@ class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>) : Base
     override fun toString() = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
-        delegator.visitSignature(EmptySignatureParentVisitor(), names)
+        delegator.visitSignature(EmptySignatureParentVisitor(), value, baseNs, namespaces)
 //        acceptInner(DelegateSignatureVisitor(EmptySignatureVisitor(), delegator), root.namespaces)
     }
 

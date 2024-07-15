@@ -206,28 +206,33 @@ open class Delegator(delegator: Delegator? = null) {
         return visitJavadoc(delegate, value, baseNs, namespaces)
     }
 
-    open fun visitSignature(delegate: SignatureParentVisitor<*>, values: Map<Namespace, String>): SignatureVisitor? {
-        return delegate.visitSignature(values)?.let { DelegateSignatureVisitor(it, delegator) }
+    open fun visitSignature(
+        delegate: SignatureParentVisitor<*>,
+        value: String,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SignatureVisitor? {
+        return delegate.visitSignature(value, baseNs, namespaces)?.let { DelegateSignatureVisitor(it, delegator) }
     }
 
     open fun visitSignatureEnd(delegate: SignatureVisitor) {
         visitEnd(delegate)
     }
 
-    open fun visitClassSignature(delegate: ClassVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        return visitSignature(delegate, values)
+    open fun visitClassSignature(delegate: ClassVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return visitSignature(delegate, value, baseNs, namespaces)
     }
 
-    open fun visitMethodSignature(delegate: MethodVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        return visitSignature(delegate, values)
+    open fun visitMethodSignature(delegate: MethodVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return visitSignature(delegate, value, baseNs, namespaces)
     }
 
-    open fun visitWildcardSignature(delegate: WildcardVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        return visitSignature(delegate, values)
+    open fun visitWildcardSignature(delegate: WildcardVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return visitSignature(delegate, value, baseNs, namespaces)
     }
 
-    open fun visitFieldSignature(delegate: FieldVisitor, values: Map<Namespace, String>): SignatureVisitor? {
-        return visitSignature(delegate, values)
+    open fun visitFieldSignature(delegate: FieldVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return visitSignature(delegate, value, baseNs, namespaces)
     }
 
     open fun visitAnnotation(delegate: AnnotationParentVisitor<*>, type: AnnotationType, baseNs: Namespace, annotation: Annotation, namespaces: Set<Namespace>): AnnotationVisitor? {
@@ -390,8 +395,8 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
         return delegator.visitClassJavadoc(delegate, value, baseNs, namespaces)
     }
 
-    override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
-        return delegator.visitClassSignature(delegate, values)
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return delegator.visitClassSignature(delegate, value, baseNs, namespaces)
     }
 
     override fun visitAccess(
@@ -446,8 +451,8 @@ open class DelegateMethodVisitor(delegate: MethodVisitor, delegator: Delegator) 
         return delegator.visitMethodAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
-        return delegator.visitMethodSignature(delegate, values)
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return delegator.visitMethodSignature(delegate, value, baseNs, namespaces)
     }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
@@ -497,8 +502,8 @@ open class DelegateFieldVisitor(delegate: FieldVisitor, delegator: Delegator) : 
         return delegator.visitFieldAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
-        return delegator.visitFieldSignature(delegate, values)
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return delegator.visitFieldSignature(delegate, value, baseNs, namespaces)
     }
 
     override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
@@ -551,8 +556,8 @@ open class DelegateWildcardVisitor(delegate: WildcardVisitor, delegator: Delegat
         return delegator.visitWildcardJavadoc(delegate, value, baseNs, namespaces)
     }
 
-    override fun visitSignature(values: Map<Namespace, String>): SignatureVisitor? {
-        return delegator.visitWildcardSignature(delegate, values)
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+        return delegator.visitWildcardSignature(delegate, value, baseNs, namespaces)
     }
 
     override fun visitEnd() {

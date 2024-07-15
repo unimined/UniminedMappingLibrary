@@ -8,7 +8,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 
-abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, V, U>, V: SignatureParentVisitor<V>, U: MemberVisitor<U>>(parent: ClassNode, val create: (ClassNode) -> T) : AbstractFieldMethodNode<U, V>(parent),
+abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVisitor<U>>(parent: ClassNode, val create: (ClassNode) -> T) : AbstractFieldMethodNode<U>(parent),
     LazyResolvableEntry<T, U> {
 
     fun MemoryMappingTree.getDescriptor(namespace: Namespace): FieldOrMethodDescriptor? {

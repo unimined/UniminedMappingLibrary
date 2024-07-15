@@ -9,7 +9,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateParameterVisitor
 
-class ParameterNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, MethodVisitor, T>(parent),
+class ParameterNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, T>(parent),
     ParameterVisitor {
     private val _names: MutableMap<Namespace, String> = mutableMapOf()
     val names: Map<Namespace, String> get() = _names

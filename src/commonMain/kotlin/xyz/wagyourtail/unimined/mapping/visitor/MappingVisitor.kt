@@ -66,7 +66,7 @@ interface AnnotationParentVisitor<T: AnnotationParentVisitor<T>> : BaseVisitor<T
 
 interface SignatureParentVisitor<T: SignatureParentVisitor<T>> : BaseVisitor<T> {
 
-    fun visitSignature(values: Map<Namespace, String>): SignatureVisitor?
+    fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor?
 
 }
 
