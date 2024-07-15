@@ -77,10 +77,10 @@ object UMFReader : FormatReader {
         if (token.second != "0") {
             throw IllegalArgumentException("unsupported UMF minor version ${token.second}")
         }
-
-        val extensions = input.takeRemainingOnLine()
-        if (extensions.isNotEmpty()) {
-            TODO("Extensions are not fully supported yet")
+        if (input.peek() == '\n') {
+            input.take()
+        } else {
+            throw IllegalArgumentException("Invalid UMF header")
         }
 
         input.takeWhitespace()
