@@ -28,7 +28,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         private val LOGGER = KotlinLogging.logger {}
     }
 
-    var envType by FinalizeOnRead(EnvType.JOINED)
+    open var envType by FinalizeOnRead(EnvType.JOINED)
 
     private val _entries = finalizableMapOf<String, MappingEntry>()
     val entries: Map<String, MappingEntry> get() = _entries
@@ -38,7 +38,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     lateinit var resolved: MemoryMappingTree
         private set
 
-    val unmappedNs = Namespace("official")
+    open val unmappedNs = Namespace("official")
 
     open val propogator: (MemoryMappingTree.() -> Unit)? = null
 
