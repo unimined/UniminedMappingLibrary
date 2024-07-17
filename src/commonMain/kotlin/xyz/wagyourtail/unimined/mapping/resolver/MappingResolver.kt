@@ -40,7 +40,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     open val unmappedNs = Namespace("official")
 
-    open val propogator: (MemoryMappingTree.() -> Unit)? = null
+    open fun propogator(tree: MemoryMappingTree) {
+
+    }
 
     open suspend fun finalize() {
         _entries.finalize()
@@ -125,35 +127,16 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             }
         }
 
-        if (propogator != null) {
-            propogator?.invoke(resolved)
-            val filled = mutableSetOf<Namespace>()
-            for (entry in sorted) {
-                val toFill = entry.provides.map { it.first }.toSet() - filled
-                if (toFill.isNotEmpty()) {
-                    resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
-                    filled.addAll(toFill)
-                }
-                for (afterPropogate in entry.afterPropogate) {
-                    afterPropogate(resolved)
-                }
+        propogator(resolved)
+        val filled = mutableSetOf<Namespace>()
+        for (entry in sorted) {
+            val toFill = entry.provides.map { it.first }.toSet() - filled
+            if (toFill.isNotEmpty()) {
+                resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
+                filled.addAll(toFill)
             }
-        } else {
-            // at least copy the class names
-            val filled = mutableSetOf<Namespace>()
-            for (entry in sorted) {
-                val toFill = entry.provides.map { it.first }.toSet() - filled
-                if (toFill.isNotEmpty()) {
-                    resolved.accept(resolved.copyTo(entry.requires, toFill, resolved).delegator(object : NullDelegator() {
-                        override fun visitClass(
-                            delegate: MappingVisitor,
-                            names: Map<Namespace, InternalName>
-                        ): ClassVisitor? {
-                            return default.visitClass(delegate, names)
-                        }
-                    }))
-                    filled.addAll(toFill)
-                }
+            for (afterPropogate in entry.afterPropogate) {
+                afterPropogate(resolved)
             }
         }
 
