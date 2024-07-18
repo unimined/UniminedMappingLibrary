@@ -32,7 +32,7 @@ object AWWriter : FormatWriter {
      * use [AWWriter.remapMappings] to convert to the correct mappings,
      * and [AWWriter.writeData] to write the mappings
      */
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         var ns: Namespace? = null
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null

@@ -49,15 +49,15 @@ object CsrgReader : FormatReader {
         }
     }
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return fileName.endsWith(".csrg")
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")

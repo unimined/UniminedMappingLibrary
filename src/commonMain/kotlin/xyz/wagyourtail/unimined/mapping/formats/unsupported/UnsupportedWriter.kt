@@ -6,7 +6,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object UnsupportedWriter : FormatWriter {
 
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         throw UnsupportedOperationException("Unsupported format")
     }
 

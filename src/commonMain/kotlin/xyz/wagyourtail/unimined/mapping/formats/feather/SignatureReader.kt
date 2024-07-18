@@ -14,15 +14,15 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object SignatureReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return fileName.endsWith(".sigs")
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val ns = Namespace(nsMapping["source"] ?: "source")

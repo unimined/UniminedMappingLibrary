@@ -22,8 +22,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
  * FabricMC's unpick format to represent constant groups.
  */
 object UnpickReader : FormatReader {
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        return fileName.endsWith(".unpick") && inputType.peek().readUtf8Line()?.startsWith("v2") ?: false
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+        return fileName.endsWith(".unpick") && input.peek().readUtf8Line()?.startsWith("v2") ?: false
     }
 
     data class UnpickConstant(val type: String, val intlName: InternalName, val fieldName: UnqualifiedName)
@@ -31,10 +31,10 @@ object UnpickReader : FormatReader {
     data class UnpickParam(val index: Int, val group: String)
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         if (input.takeLine() != "v2") throw IllegalArgumentException("Invalid unpick file")

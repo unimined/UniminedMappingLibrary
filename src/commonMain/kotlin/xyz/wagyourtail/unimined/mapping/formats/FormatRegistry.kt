@@ -107,7 +107,7 @@ object FormatRegistry {
 
     fun autodetectFormat(envType: EnvType, fileName: String, inputType: BufferedSource): FormatProvider? {
         return formats.firstOrNull {
-            try { it.isFormat(envType, fileName, inputType.peek()) }
+            try { it.isFormat(fileName, inputType.peek(), envType) }
             catch (e: Exception) { false }
         }
     }

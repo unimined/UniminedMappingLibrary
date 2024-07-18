@@ -10,14 +10,10 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
@@ -33,7 +29,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     private val _entries = finalizableMapOf<String, MappingEntry>()
     val entries: Map<String, MappingEntry> get() = _entries
 
-    lateinit var namespaces: Set<Pair<Namespace, Boolean>>
+    lateinit var namespaces: Map<Namespace, Boolean>
         private set
     lateinit var resolved: MemoryMappingTree
         private set
@@ -42,6 +38,14 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     open fun propogator(tree: MemoryMappingTree) {
 
+    }
+
+    fun checkedNs(name: String): Namespace {
+        val ns = Namespace(name)
+        if (namespaces.keys.contains(ns)) {
+            return ns
+        }
+        throw IllegalArgumentException("Unknown namespace $name")
     }
 
     open suspend fun finalize() {
@@ -118,7 +122,13 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
         for (entry in sorted) {
             val visitor = entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it -> it(acc) }
-            entry.provider.read(envType, entry.content.content(), resolved, visitor, entry.mapNs.map { it.key.name to it.value.name }.toMap())
+            entry.provider.read(
+                entry.content.content(),
+                resolved,
+                visitor,
+                envType,
+                entry.mapNs.map { it.key.name to it.value.name }.toMap()
+            )
         }
 
         for (entry in sorted) {
@@ -140,7 +150,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             }
         }
 
-        this.namespaces = sorted.flatMap { it.provides }.toSet()
+        this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
         this.resolved = resolved
         return resolved
     }

@@ -17,9 +17,9 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
  */
 object MCPConfigConstructorReader : FormatReader{
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "constructors.txt") return false
-        val line = inputType.peek().readUtf8Line()?.split(" ")
+        val line = input.peek().readUtf8Line()?.split(" ")
         if (line?.size != 3) return false
         // check matches \d+ internalName methodDescriptor
         if (line[0].toIntOrNull() == null) return false
@@ -33,10 +33,10 @@ object MCPConfigConstructorReader : FormatReader{
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")

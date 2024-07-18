@@ -24,13 +24,13 @@ object RetroguardReader : FormatReader {
     private const val PKG = "net/minecraft/src/"
     val keys = setOf(".op", ".at", ".cl", ".me", ".fi")
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         val ext = fileName.endsWith(".rgs")
-        val firstLine = inputType.readUtf8Line() ?: return ext
+        val firstLine = input.readUtf8Line() ?: return ext
         return ext && keys.any { firstLine.startsWith(it) }
     }
 
-    override fun getSide(fileName: String, inputType: BufferedSource): Set<EnvType> {
+    override fun getSide(fileName: String, input: BufferedSource): Set<EnvType> {
         return if (fileName.endsWith("-server.rgs")) {
             setOf(EnvType.SERVER, EnvType.JOINED)
         } else {
@@ -39,10 +39,10 @@ object RetroguardReader : FormatReader {
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")

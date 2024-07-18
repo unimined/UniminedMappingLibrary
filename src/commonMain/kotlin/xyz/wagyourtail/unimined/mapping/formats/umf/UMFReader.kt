@@ -27,8 +27,8 @@ object UMFReader : FormatReader {
     @Suppress("MemberVisibilityCanBePrivate")
     var uncheckedReading = false
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        return inputType.peek().readUtf8Line()?.lowercase()?.startsWith("umf") ?: false
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+        return input.peek().readUtf8Line()?.lowercase()?.startsWith("umf") ?: false
     }
 
     fun String.indentCount(): Int {
@@ -60,7 +60,13 @@ object UMFReader : FormatReader {
         return literal
     }
 
-    override suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
+    override suspend fun read(
+        input: CharReader,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        envType: EnvType,
+        nsMapping: Map<String, String>
+    ) {
         readNonBlocking(envType, input, context, into, nsMapping)
     }
 

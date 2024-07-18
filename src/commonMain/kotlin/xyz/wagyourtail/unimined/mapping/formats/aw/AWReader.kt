@@ -25,9 +25,9 @@ object AWReader: FormatReader {
     @Suppress("MemberVisibilityCanBePrivate")
     var allowNonTransitive = true
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         // check content begins with "accessWidener"
-        return inputType.peek().readUtf8Line()?.startsWith("accessWidener") ?: false
+        return input.peek().readUtf8Line()?.startsWith("accessWidener") ?: false
     }
 
     data class AWData(
@@ -41,10 +41,10 @@ object AWReader: FormatReader {
     )
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
 

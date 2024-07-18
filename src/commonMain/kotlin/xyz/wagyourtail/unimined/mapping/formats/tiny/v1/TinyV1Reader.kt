@@ -15,15 +15,15 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object TinyV1Reader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        return inputType.peek().readUtf8Line()?.startsWith("v1\t") ?: false
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+        return input.peek().readUtf8Line()?.startsWith("v1\t") ?: false
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val v = input.takeNextLiteral()

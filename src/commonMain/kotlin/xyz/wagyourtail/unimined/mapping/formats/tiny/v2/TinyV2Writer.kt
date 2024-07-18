@@ -20,7 +20,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 
 @Suppress("UNUSED_PARAMETER")
 object TinyV2Writer : FormatWriter {
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         return TinyV2MappingWriter(append)
     }
 

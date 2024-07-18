@@ -43,7 +43,7 @@ object UMFWriter : FormatWriter {
 
     operator fun String.minus(s: String): String = this.removeSuffix(s)
 
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         return write(envType, append, global_minimize)
     }
 

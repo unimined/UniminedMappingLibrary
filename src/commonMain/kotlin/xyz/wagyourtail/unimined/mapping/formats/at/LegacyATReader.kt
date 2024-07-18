@@ -16,7 +16,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
  */
 object LegacyATReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         val cfg = fileName.substringAfterLast('.') == "cfg"
         val name = fileName.substringBeforeLast('.').lowercase()
         return (cfg && name.endsWith("_at"))
@@ -25,10 +25,10 @@ object LegacyATReader : FormatReader {
 
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val ns = Namespace(nsMapping["source"] ?: "source")

@@ -123,7 +123,7 @@ c	net/minecraft/class_310	_	net/minecraft/Minecraft
         val mappings = Buffer().use { input ->
             input.writeUtf8(inp)
             LazyMappingTree().also {
-                UMFReader.read(EnvType.JOINED, input, it)
+                UMFReader.read(input, it, EnvType.JOINED)
             }
         }
         val output = Buffer().use { output ->

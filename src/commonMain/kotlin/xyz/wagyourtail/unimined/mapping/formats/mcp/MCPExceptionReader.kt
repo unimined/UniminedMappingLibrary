@@ -17,14 +17,14 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object MCPExceptionReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return fileName.substringAfterLast('/').endsWith(".exc")
     }
 
-    override fun getSide(fileName: String, inputType: BufferedSource): Set<EnvType> {
+    override fun getSide(fileName: String, input: BufferedSource): Set<EnvType> {
         if (fileName == "client.exc") return setOf(EnvType.CLIENT, EnvType.JOINED)
         if (fileName == "server.exc") return setOf(EnvType.SERVER, EnvType.JOINED)
-        return super.getSide(fileName, inputType)
+        return super.getSide(fileName, input)
     }
 
     val split = setOf('\n', '-', '|', '=')
@@ -38,10 +38,10 @@ object MCPExceptionReader : FormatReader {
      */
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
 

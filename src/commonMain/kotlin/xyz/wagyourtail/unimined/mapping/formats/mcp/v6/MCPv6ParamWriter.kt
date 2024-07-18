@@ -4,7 +4,6 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
@@ -17,7 +16,7 @@ object MCPv6ParamWriter : FormatWriter {
         return if (this.contains(Regex("[\\n,]"))) this.escape(doubleQuote = true) else this
     }
 
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         lateinit var ns: List<Namespace>
 
         return EmptyMappingVisitor().delegator(object : NullDelegator() {

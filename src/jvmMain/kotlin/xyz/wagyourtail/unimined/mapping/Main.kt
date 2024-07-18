@@ -52,7 +52,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
             val t = measureTime {
                 input.source().buffer().use { buf ->
                     FormatRegistry.autodetectFormat(envType, input.name, buf.peek())
-                        ?.read(envType, buf, mappings, mappings, nsMapMap[idx]?.associate { it } ?: emptyMap())
+                        ?.read(buf, mappings, mappings, envType, nsMapMap[idx]?.associate { it } ?: emptyMap())
                         ?: throw IllegalArgumentException("Could not autodetect format for ${input.name}")
                 }
             }
@@ -92,7 +92,7 @@ class ExportMappings : CliktCommand(name = "export") {
         val t = measureTime {
             output.parentFile?.mkdirs()
             output.sink().buffer().use { buf ->
-                main.mappings.accept(format.write(main.envType, buf))
+                main.mappings.accept(format.write(buf, main.envType))
             }
         }
         LOGGER.info { "Wrote in ${t.inWholeMilliseconds}ms" }

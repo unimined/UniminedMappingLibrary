@@ -15,16 +15,16 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object ProguardReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (!fileName.endsWith(".txt")) return false
         // check that there's a -> in the file
-        return inputType.peek().readUtf8(1024).contains("->")
+        return input.peek().readUtf8(1024).contains("->")
     }
 
-    override fun getSide(fileName: String, inputType: BufferedSource): Set<EnvType> {
+    override fun getSide(fileName: String, input: BufferedSource): Set<EnvType> {
         if (fileName.substringAfterLast('/') == "client.txt") return setOf(EnvType.CLIENT, EnvType.JOINED)
         if (fileName.substringAfterLast('/') == "server.txt") return setOf(EnvType.SERVER, EnvType.JOINED)
-        return super.getSide(fileName, inputType)
+        return super.getSide(fileName, input)
     }
 
     private fun remapProguardParamDesc(fancyDesc: String): String {
@@ -62,10 +62,10 @@ object ProguardReader : FormatReader {
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
 

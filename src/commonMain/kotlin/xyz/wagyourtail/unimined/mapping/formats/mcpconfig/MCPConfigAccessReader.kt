@@ -21,11 +21,11 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
  */
 object MCPConfigAccessReader : FormatReader{
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "access.txt") return false
         // check matches
         // PUBLIC InternalName UnqualifiedName MethodDescriptor
-        val line = inputType.peek().readUtf8Line()?.split(" ")
+        val line = input.peek().readUtf8Line()?.split(" ")
         if (line == null || line.size != 4) return false
         if (line[0] != "PUBLIC") return false
         try {
@@ -39,10 +39,10 @@ object MCPConfigAccessReader : FormatReader{
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")

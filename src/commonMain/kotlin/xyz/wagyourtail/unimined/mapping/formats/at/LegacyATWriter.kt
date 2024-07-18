@@ -5,7 +5,7 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object LegacyATWriter : FormatWriter {
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         return ATWriter.assembleAts {
             writeData(it, append)
         }

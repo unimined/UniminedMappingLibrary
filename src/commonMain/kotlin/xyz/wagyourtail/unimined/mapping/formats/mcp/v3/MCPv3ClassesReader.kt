@@ -14,16 +14,16 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
  * this reads the classes.csv from mcp 3.0-5.6
  */
 object MCPv3ClassesReader: FormatReader {
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "classes.csv") return false
-        return inputType.peek().readUtf8Line()?.startsWith("\"name\",\"notch\"") ?: false
+        return input.peek().readUtf8Line()?.startsWith("\"name\",\"notch\"") ?: false
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["notch"] ?: "notch")

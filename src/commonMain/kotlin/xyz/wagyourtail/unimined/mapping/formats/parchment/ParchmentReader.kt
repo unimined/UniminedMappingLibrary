@@ -16,16 +16,16 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object ParchmentReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "parchment.json") return false
-        return inputType.peek().readUtf8Line()?.startsWith("{") ?: false
+        return input.peek().readUtf8Line()?.startsWith("{") ?: false
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")

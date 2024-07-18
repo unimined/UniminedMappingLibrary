@@ -24,7 +24,7 @@ class RetroguardReadTest {
         suspend fun readRetroguard(map: Map<String, String> = mapOf()): MemoryMappingTree {
             return Buffer().use {
                 it.writeUtf8(inp)
-                RetroguardReader.read(it, map)
+                RetroguardReader.read(it, nsMapping = map)
             }
         }
 

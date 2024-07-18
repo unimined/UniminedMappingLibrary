@@ -12,16 +12,16 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object PackageSrgReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "package.srg") return false
-        return inputType.peek().readUtf8Line()?.let { line -> SrgReader.keys.none { line.startsWith(it) } } ?: false
+        return input.peek().readUtf8Line()?.let { line -> SrgReader.keys.none { line.startsWith(it) } } ?: false
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
 

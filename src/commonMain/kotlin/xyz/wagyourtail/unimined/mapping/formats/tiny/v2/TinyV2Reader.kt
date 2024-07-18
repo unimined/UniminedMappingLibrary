@@ -17,11 +17,17 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
  */
 object TinyV2Reader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        return inputType.peek().readUtf8Line()?.startsWith("tiny\t2\t0\t") ?: false
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+        return input.peek().readUtf8Line()?.startsWith("tiny\t2\t0\t") ?: false
     }
 
-    override suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
+    override suspend fun read(
+        input: CharReader,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        envType: EnvType,
+        nsMapping: Map<String, String>
+    ) {
         val v = input.takeNextLiteral()
         if (v != "tiny") throw IllegalArgumentException("Invalid tinyv2 file")
         if (input.takeNextLiteral() != "2") throw IllegalArgumentException("Invalid tinyv2 file")

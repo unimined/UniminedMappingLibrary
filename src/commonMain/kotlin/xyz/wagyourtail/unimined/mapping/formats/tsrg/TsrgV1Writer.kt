@@ -11,7 +11,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
 object TsrgV1Writer : FormatWriter {
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
 
         return EmptyMappingVisitor().delegator(object : NullDelegator() {
             lateinit var namespaces: List<Namespace>

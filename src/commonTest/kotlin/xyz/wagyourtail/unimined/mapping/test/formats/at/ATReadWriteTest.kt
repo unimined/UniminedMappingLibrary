@@ -68,7 +68,7 @@ class ATReadWriteTest {
         }
 
         val umfOut = Buffer().use {
-            at.accept(UMFWriter.write(EnvType.JOINED, it))
+            at.accept(UMFWriter.write(it, EnvType.JOINED))
             it.readUtf8()
         }
 
@@ -83,7 +83,7 @@ class ATReadWriteTest {
         }
 
         val umfOut = Buffer().use {
-            at.accept(UMFWriter.write(EnvType.JOINED, it))
+            at.accept(UMFWriter.write(it, EnvType.JOINED))
             it.readUtf8()
         }
 
@@ -98,7 +98,7 @@ class ATReadWriteTest {
         }
 
         val out = Buffer().use {
-            at.accept(ATWriter.write(EnvType.JOINED, it))
+            at.accept(ATWriter.write(it, EnvType.JOINED))
             it.readUtf8()
         }
 
@@ -120,7 +120,7 @@ class ATReadWriteTest {
         }
 
         val out = Buffer().use {
-            at.accept(LegacyATWriter.write(EnvType.JOINED, it))
+            at.accept(LegacyATWriter.write(it, EnvType.JOINED))
             it.readUtf8()
         }
 
@@ -189,7 +189,7 @@ class ATReadWriteTest {
         }
         Buffer().use {
             it.writeUtf8(atText)
-            ATReader.read(EnvType.JOINED, it, m, mapOf("source" to "intermediary"))
+            ATReader.read(it, m, m, EnvType.JOINED, mapOf("source" to "intermediary"))
         }
 
         val aw = Buffer().use {

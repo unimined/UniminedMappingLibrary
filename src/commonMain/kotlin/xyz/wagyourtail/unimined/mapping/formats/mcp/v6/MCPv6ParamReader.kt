@@ -14,9 +14,9 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
 object MCPv6ParamReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "params.csv") return false
-        return inputType.peek().readUtf8Line()?.startsWith("param,name,side") ?: false
+        return input.peek().readUtf8Line()?.startsWith("param,name,side") ?: false
     }
 
     private data class FieldData(
@@ -26,10 +26,10 @@ object MCPv6ParamReader : FormatReader {
     )
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val header = input.takeLine()

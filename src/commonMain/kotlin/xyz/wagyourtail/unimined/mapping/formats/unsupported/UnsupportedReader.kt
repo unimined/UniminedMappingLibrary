@@ -8,25 +8,25 @@ import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object UnsupportedReader : FormatReader {
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return false
     }
 
     override suspend fun read(
-        envType: EnvType,
-        inputType: BufferedSource,
+        input: BufferedSource,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         throw UnsupportedOperationException("Unsupported format")
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         throw UnsupportedOperationException("Unsupported format")

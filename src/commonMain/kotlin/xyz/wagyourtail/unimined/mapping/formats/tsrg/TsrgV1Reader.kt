@@ -14,16 +14,16 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object TsrgV1Reader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (!fileName.endsWith(".tsrg")) return false
-        return !(inputType.peek().readUtf8Line()?.startsWith("tsrg") ?: true)
+        return !(input.peek().readUtf8Line()?.startsWith("tsrg") ?: true)
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")

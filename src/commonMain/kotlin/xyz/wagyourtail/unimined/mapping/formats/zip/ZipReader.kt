@@ -13,8 +13,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object ZipReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
-        inputType.peek().use {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+        input.peek().use {
             try {
                 val bs = it.readByteString(4)
                 return bs == "PK\u0003\u0004".encodeUtf8() || bs == "PK\u0005\u0006".encodeUtf8()
@@ -24,21 +24,32 @@ object ZipReader : FormatReader {
         }
     }
 
-    override suspend fun read(envType: EnvType, inputType: BufferedSource, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
-        ZipFS(inputType).use { zip ->
+    override suspend fun read(
+        input: BufferedSource,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        envType: EnvType,
+        nsMapping: Map<String, String>
+    ) {
+        ZipFS(input).use { zip ->
             val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
             for ((file, format) in files.entries.sortedBy { FormatRegistry.formats.indexOf(it.value) }) {
                 if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
-                format.read(envType, zip.getContents(file), context, into, nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") })
+                format.read(
+                    zip.getContents(file),
+                    context,
+                    into,
+                    envType,
+                    nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") })
             }
         }
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         throw UnsupportedOperationException("ZipReader does not support CharReader")

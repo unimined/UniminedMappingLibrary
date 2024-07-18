@@ -17,10 +17,10 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.*
  */
 object MCPv1MethodReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "methods.csv") return false
         // check that 4th line starts with "class"
-        inputType.peek().use {
+        input.peek().use {
             it.readUtf8Line()
             it.readUtf8Line()
             it.readUtf8Line()
@@ -29,10 +29,10 @@ object MCPv1MethodReader : FormatReader {
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
         input.takeLine()

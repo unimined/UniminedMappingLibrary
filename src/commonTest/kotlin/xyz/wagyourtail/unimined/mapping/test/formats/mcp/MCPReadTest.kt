@@ -28,7 +28,7 @@ class MCPReadTest {
                 a (Minecraft),method_1507,*,*,minecraftMethod,comment data,,[1]
                 b (World),method_1204,*,*,worldMethod,comment data
             """.trimIndent())
-            MCPv1MethodReader.read(EnvType.CLIENT, it, tree)
+            MCPv1MethodReader.read(it, tree, EnvType.CLIENT)
         }
 
         val out = Buffer().use {
@@ -69,11 +69,11 @@ c	b	net/minecraft/src/World	_
                 b,a,field_1725,*,*,worldField,comment data
             """.trimIndent()
             )
-            MCPv1FieldReader.read(EnvType.CLIENT, it, tree)
+            MCPv1FieldReader.read(it, tree, EnvType.CLIENT)
         }
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(EnvType.CLIENT, it))
+            tree.accept(UMFWriter.write(it, EnvType.CLIENT))
             it.readUtf8()
         }
 
@@ -96,7 +96,7 @@ c	b	net/minecraft/src/World	_
     suspend fun readMCPClasses(): MemoryMappingTree {
         return Buffer().use {
             it.writeUtf8(mcpClasses)
-            MCPv3ClassesReader.read(EnvType.CLIENT, it)
+            MCPv3ClassesReader.read(it, EnvType.CLIENT)
         }
     }
 
@@ -105,7 +105,7 @@ c	b	net/minecraft/src/World	_
         val tree = readMCPClasses()
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(EnvType.CLIENT, it))
+            tree.accept(UMFWriter.write(it, EnvType.CLIENT))
             it.readUtf8()
         }
 

@@ -17,16 +17,16 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object TsrgV2Reader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (!fileName.endsWith(".tsrg")) return false
-        return inputType.peek().readUtf8Line()?.startsWith("tsrg2 ") ?: false
+        return input.peek().readUtf8Line()?.startsWith("tsrg2 ") ?: false
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
 

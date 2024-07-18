@@ -5,7 +5,6 @@ import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.formats.at.ATReader
 import xyz.wagyourtail.unimined.mapping.formats.at.ATWriter
 import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader
 import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
@@ -30,11 +29,11 @@ class AWReadWriteTest {
     fun testRead() = runTest {
         val aw = Buffer().use {
             it.writeUtf8(awText)
-            AWReader.read(EnvType.JOINED, it)
+            AWReader.read(it, EnvType.JOINED)
         }
 
         val umfOut = Buffer().use {
-            aw.accept(UMFWriter.write(EnvType.JOINED, it))
+            aw.accept(UMFWriter.write(it, EnvType.JOINED))
             it.readUtf8()
         }
 
@@ -59,11 +58,11 @@ c	net/minecraft/class_3721
     fun testIndirect() = runTest {
         val aw = Buffer().use {
             it.writeUtf8(awText)
-            AWReader.read(EnvType.JOINED, it)
+            AWReader.read(it, EnvType.JOINED)
         }
 
         val out = Buffer().use {
-            aw.accept(AWWriter.write(EnvType.JOINED, it))
+            aw.accept(AWWriter.write(it, EnvType.JOINED))
             it.readUtf8()
         }
 
@@ -107,7 +106,7 @@ c	net/minecraft/class_3721
     fun testAw2At() = runTest {
         val m = Buffer().use {
             it.writeUtf8(awText)
-            AWReader.read(EnvType.JOINED, it)
+            AWReader.read(it, EnvType.JOINED)
         }
 
         val aw = Buffer().use {

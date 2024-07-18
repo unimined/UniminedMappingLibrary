@@ -18,7 +18,7 @@ object MCPv6FieldWriter : FormatWriter {
         return if (this.contains(Regex("[\\n,]"))) this.escape(doubleQuote = true) else this
     }
 
-    override fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         lateinit var ns: List<Namespace>
 
         return EmptyMappingVisitor().delegator(object : NullDelegator() {

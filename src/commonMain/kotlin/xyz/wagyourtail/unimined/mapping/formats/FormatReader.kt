@@ -1,8 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.formats
 
-import okio.Buffer
 import okio.BufferedSource
-import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
@@ -14,39 +12,85 @@ interface FormatReader {
     val name: String
         get() = this::class.simpleName!!.removeSuffix("Reader").lowercase()
 
-    fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean
+    fun isFormat(fileName: String, input: BufferedSource, envType: EnvType = EnvType.JOINED): Boolean
 
-    fun getSide(fileName: String, inputType: BufferedSource): Set<EnvType> = EnvType.entries.toSet()
+    fun getSide(fileName: String, input: BufferedSource): Set<EnvType> = EnvType.entries.toSet()
 
-    suspend fun read(fileStr: String, nsMapping: Map<String, String> = mapOf()): MemoryMappingTree = Buffer().use {
-        it.writeUtf8(fileStr)
-        read(it, nsMapping)
+    suspend fun read(
+        content: String,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ): MemoryMappingTree = MemoryMappingTree().also {
+        read(CharReader(content), null, it, envType, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, fileStr: String, nsMapping: Map<String, String> = mapOf()): MemoryMappingTree = Buffer().use {
-        it.writeUtf8(fileStr)
-        read(envType, it, nsMapping)
+    suspend fun read(
+        content: String,
+        into: AbstractMappingTree,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ) {
+        read(CharReader(content), into, into, envType, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, fileStr: String, into: AbstractMappingTree, nsMapping: Map<String, String> = mapOf()) = Buffer().use {
-        it.writeUtf8(fileStr)
-        read(envType, it, into, nsMapping)
+    suspend fun read(
+        content: String,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ) = read(CharReader(content), context, into, envType, nsMapping)
+
+    suspend fun read(
+        input: BufferedSource,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ): MemoryMappingTree = MemoryMappingTree().also {
+        read(input, null, it, envType, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, fileStr: String, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) = CharReader(fileStr).use {
-        read(envType, it, context, into, nsMapping)
+    suspend fun read(
+        input: BufferedSource,
+        into: AbstractMappingTree,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ) {
+        read(CharReader(input.readUtf8()), into, into, envType, nsMapping)
     }
 
-    suspend fun read(inputType: BufferedSource, nsMapping: Map<String, String> = mapOf()): MemoryMappingTree = MemoryMappingTree().also { read(EnvType.JOINED, inputType, it, it, nsMapping) }
-
-    suspend fun read(envType: EnvType, inputType: BufferedSource, nsMapping: Map<String, String> = mapOf()): MemoryMappingTree = MemoryMappingTree().also { read(envType, inputType, it, it, nsMapping) }
-
-    suspend fun read(envType: EnvType, inputType: BufferedSource, into: AbstractMappingTree, nsMapping: Map<String, String> = mapOf()) = read(envType, inputType, into, into, nsMapping)
-
-    suspend fun read(envType: EnvType, inputType: BufferedSource, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf()) {
-        read(envType, CharReader(inputType.readUtf8()), context, into, nsMapping)
+    suspend fun read(
+        input: BufferedSource,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ) {
+        read(CharReader(input.readUtf8()), context, into, envType, nsMapping)
     }
 
-    suspend fun read(envType: EnvType, input: CharReader, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String> = mapOf())
+    suspend fun read(
+        input: CharReader,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ): MemoryMappingTree = MemoryMappingTree().also {
+        read(input, null, it, envType, nsMapping)
+    }
+
+    suspend fun read(
+        input: CharReader,
+        into: AbstractMappingTree,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    ) {
+        read(input, into, into, envType, nsMapping)
+    }
+
+    suspend fun read(
+        input: CharReader,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        envType: EnvType = EnvType.JOINED,
+        nsMapping: Map<String, String> = mapOf()
+    )
 
 }

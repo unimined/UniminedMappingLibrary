@@ -14,18 +14,18 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 
 object MCPConfigStaticMethodsReader : FormatReader {
 
-    override fun isFormat(envType: EnvType, fileName: String, inputType: BufferedSource): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "static_methods.txt") return false
         // single field_
-        val line = inputType.peek().readUtf8Line() ?: return false
+        val line = input.peek().readUtf8Line() ?: return false
         return line.matches(Regex("^func_\\d+_\\w*]$"))
     }
 
     override suspend fun read(
-        envType: EnvType,
         input: CharReader,
         context: AbstractMappingTree?,
         into: MappingVisitor,
+        envType: EnvType,
         nsMapping: Map<String, String>
     ) {
 
