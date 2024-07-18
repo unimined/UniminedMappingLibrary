@@ -9,6 +9,8 @@ interface FormatWriter {
     val name: String
         get() = this::class.simpleName!!.removeSuffix("Reader")
 
+    fun write(into: Appendable, envType: EnvType = EnvType.JOINED): MappingVisitor = write(into::append, envType)
+
     fun write(into: BufferedSink, envType: EnvType = EnvType.JOINED): MappingVisitor = write(into::writeUtf8, envType)
 
     fun write(append: (String) -> Unit, envType: EnvType = EnvType.JOINED): MappingVisitor
