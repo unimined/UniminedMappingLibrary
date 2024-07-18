@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.resolver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okio.Buffer
 import okio.BufferedSource
 import okio.use
@@ -34,7 +36,12 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     lateinit var resolved: MemoryMappingTree
         private set
 
-    open val unmappedNs = Namespace("official")
+    open val unmappedNs = setOf(*EnvType.entries.map {
+        when(it) {
+            EnvType.JOINED -> Namespace("official");
+            else -> Namespace(envType.name.lowercase() + "Official")
+        }
+    }.toTypedArray())
 
     open fun propogator(tree: MemoryMappingTree) {
 
@@ -46,6 +53,20 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             return ns
         }
         throw IllegalArgumentException("Unknown namespace $name")
+    }
+
+    fun isOfficial(name: String): Boolean {
+        return checkedNs(name) in unmappedNs
+    }
+
+    fun isIntermediary(name: String): Boolean {
+        val ns = checkedNs(name)
+        if (ns in unmappedNs) return false
+        return !namespaces.getValue(ns)
+    }
+
+    fun isNamed(name: String): Boolean {
+        return namespaces.getValue(checkedNs(name))
     }
 
     open suspend fun finalize() {
@@ -88,71 +109,78 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         }).also(postProcess))
     }
 
+    private val resolveLock = Mutex()
+
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
-        finalize()
-        val values = _entries.values
-        val resolved = MemoryMappingTree()
-        resolved.visitHeader(unmappedNs.name)
-        val resolvedEntries = mutableSetOf<MappingEntry>()
+        return resolveLock.withLock {
+            finalize()
+            val values = _entries.values
+            val resolved = MemoryMappingTree()
+            resolved.visitHeader(*unmappedNs.map { it.name }.toTypedArray())
+            val resolvedEntries = mutableSetOf<MappingEntry>()
 
-        for (entry in values) {
-            resolvedEntries.addAll(entry.expand())
-        }
+            for (entry in values) {
+                resolvedEntries.addAll(entry.expand())
+            }
 
-        val sorted = mutableListOf<MappingEntry>()
-        val sortedNs = mutableSetOf(unmappedNs)
+            val sorted = mutableListOf<MappingEntry>()
+            val sortedNs = unmappedNs.toMutableSet()
 
-        while (resolvedEntries.isNotEmpty()) {
-            val toRemove = mutableSetOf<MappingEntry>()
-            for (entry in resolvedEntries) {
-                if (entry.requires.let { sortedNs.contains(it) }) {
-                    toRemove.add(entry)
+            while (resolvedEntries.isNotEmpty()) {
+                val toRemove = mutableSetOf<MappingEntry>()
+                for (entry in resolvedEntries) {
+                    if (entry.requires.let { sortedNs.contains(it) }) {
+                        toRemove.add(entry)
+                    }
+                }
+                if (toRemove.isEmpty()) {
+                    //TODO: better logging, determine case
+                    throw IllegalStateException("Circular dependency detected, or missing required ns")
+                }
+
+                resolvedEntries.removeAll(toRemove)
+                sorted.addAll(toRemove.sortedBy { FormatRegistry.formats.indexOf(it.provider) })
+                sortedNs.addAll(toRemove.flatMap { it.provides.map { it.first } })
+            }
+
+            for (entry in sorted) {
+                val visitor =
+                    entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
+                        it(acc)
+                    }
+                entry.provider.read(
+                    entry.content.content(),
+                    resolved,
+                    visitor,
+                    envType,
+                    entry.mapNs.map { it.key.name to it.value.name }.toMap()
+                )
+            }
+
+            for (entry in sorted) {
+                for (afterLoad in entry.afterLoad) {
+                    afterLoad(resolved)
                 }
             }
-            if (toRemove.isEmpty()) {
-                //TODO: better logging, determine case
-                throw IllegalStateException("Circular dependency detected, or missing required ns")
+
+            propogator(resolved)
+            val filled = mutableSetOf<Namespace>()
+            for (entry in sorted) {
+                val toFill = entry.provides.map { it.first }.toSet() - filled
+                if (toFill.isNotEmpty()) {
+                    resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
+                    filled.addAll(toFill)
+                }
+                for (afterPropogate in entry.afterPropogate) {
+                    afterPropogate(resolved)
+                }
             }
 
-            resolvedEntries.removeAll(toRemove)
-            sorted.addAll(toRemove.sortedBy { FormatRegistry.formats.indexOf(it.provider) })
-            sortedNs.addAll(toRemove.flatMap { it.provides.map { it.first } })
+            this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
+            this.resolved = resolved
+            resolved
         }
-
-        for (entry in sorted) {
-            val visitor = entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it -> it(acc) }
-            entry.provider.read(
-                entry.content.content(),
-                resolved,
-                visitor,
-                envType,
-                entry.mapNs.map { it.key.name to it.value.name }.toMap()
-            )
-        }
-
-        for (entry in sorted) {
-            for (afterLoad in entry.afterLoad) {
-                afterLoad(resolved)
-            }
-        }
-
-        propogator(resolved)
-        val filled = mutableSetOf<Namespace>()
-        for (entry in sorted) {
-            val toFill = entry.provides.map { it.first }.toSet() - filled
-            if (toFill.isNotEmpty()) {
-                resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
-                filled.addAll(toFill)
-            }
-            for (afterPropogate in entry.afterPropogate) {
-                afterPropogate(resolved)
-            }
-        }
-
-        this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
-        this.resolved = resolved
-        return resolved
     }
 
     inner class MappingEntry(content: ContentProvider) : MappingConfig(content) {
@@ -195,7 +223,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     }
 
     open inner class MappingConfig(val content: ContentProvider) {
-        var requires: Namespace by FinalizeOnRead(unmappedNs)
+        var requires: Namespace by FinalizeOnRead(Namespace("official"))
         val provides = finalizableSetOf<Pair<Namespace, Boolean>>()
         val mapNs = finalizableMapOf<Namespace, Namespace>()
 
