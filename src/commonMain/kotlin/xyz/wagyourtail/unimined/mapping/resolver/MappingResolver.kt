@@ -36,12 +36,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     lateinit var resolved: MemoryMappingTree
         private set
 
-    open val unmappedNs = setOf(*EnvType.entries.map {
-        when(it) {
-            EnvType.JOINED -> Namespace("official");
-            else -> Namespace(envType.name.lowercase() + "Official")
-        }
-    }.toTypedArray())
+    open val unmappedNs = setOf(Namespace("official"))
 
     open fun propogator(tree: MemoryMappingTree) {
 
