@@ -9,10 +9,10 @@ interface FormatWriter {
     val name: String
         get() = this::class.simpleName!!.removeSuffix("Reader")
 
-    fun write(into: BufferedSink): MappingVisitor = write(EnvType.JOINED, into)
+    fun write(envType: EnvType = EnvType.JOINED, into: BufferedSink): MappingVisitor = write(envType, into::writeUtf8)
 
-    fun write(envType: EnvType, into: BufferedSink): MappingVisitor = write(envType, into::writeUtf8)
-
-    fun write(envType: EnvType, append: (String) -> Unit): MappingVisitor
+    fun write(envType: EnvType = EnvType.JOINED, append: (String) -> Unit): MappingVisitor
 
 }
+
+inline fun FormatWriter.writeToString(envType: EnvType = EnvType.JOINED, acceptor: (MappingVisitor) -> Unit) = buildString { acceptor(write(EnvType.JOINED, ::append)) }
