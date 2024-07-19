@@ -26,6 +26,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         private val LOGGER = KotlinLogging.logger {}
     }
 
+    var finalized = false
+        private set
+
     open var envType by FinalizeOnRead(EnvType.JOINED)
 
     private val _entries = finalizableMapOf<String, MappingEntry>()
@@ -70,6 +73,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     }
 
     open suspend fun finalize() {
+        finalized = true
         _entries.finalize()
         _entries.values.forEach { it.finalize() }
     }
