@@ -31,6 +31,10 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     private val _entries = finalizableMapOf<String, MappingEntry>()
     val entries: Map<String, MappingEntry> get() = _entries
 
+    open val combinedNames by lazy {
+        entries.keys.sorted().map { entries[it]?.id }.joinToString { "-" }
+    }
+
     lateinit var namespaces: Map<Namespace, Boolean>
         private set
     lateinit var resolved: MemoryMappingTree
