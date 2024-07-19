@@ -101,7 +101,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 return mappings!!.peek()
             }
 
-        }).also(postProcess))
+        }, key).also(postProcess))
     }
 
     private val resolveLock = Mutex()
@@ -178,7 +178,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         }
     }
 
-    inner class MappingEntry(content: ContentProvider) : MappingConfig(content) {
+    inner class MappingEntry(content: ContentProvider, val id: String) : MappingConfig(content) {
         private val subEntries = finalizableSetOf<MappingConfig.(ContentProvider, FormatProvider) -> Unit>()
 
         override suspend fun finalize() {
@@ -200,8 +200,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
                     for ((file, format) in files.entries) {
                         if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
-                        val provider = ContentProvider.of(file, zip.getContents(file))
-                        val entry = MappingEntry(provider)
+                        val fileName = file.replace("\\", "/").substringAfterLast("/")
+                        val provider = ContentProvider.of(fileName, zip.getContents(file))
+                        val entry = MappingEntry(provider, "$id/${fileName.substringBeforeLast(".")}")
                         entry.combineWith(this)
                         entry.provider = format
                         this.subEntries.forEach { entry.it(provider, format) }
@@ -215,6 +216,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             }
         }
 
+        override fun toString(): String {
+            return id
+        }
     }
 
     open inner class MappingConfig(val content: ContentProvider) {
