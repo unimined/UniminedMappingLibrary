@@ -50,12 +50,16 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     }
 
-    fun checkedNs(name: String): Namespace {
+    fun checkedNsOrNull(name: String): Namespace? {
         val ns = Namespace(name)
         if (namespaces.keys.contains(ns)) {
             return ns
         }
-        throw IllegalArgumentException("Unknown namespace $name")
+        return null
+    }
+
+    fun checkedNs(name: String): Namespace {
+        return checkedNsOrNull(name) ?: throw IllegalArgumentException("Unknown namespace $name")
     }
 
     fun isOfficial(name: String): Boolean {
