@@ -145,6 +145,16 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 }
                 if (toRemove.isEmpty()) {
                     //TODO: better logging, determine case
+                    for (entry in sorted) {
+                        LOGGER.error { "Resolved: ${entry.id}" }
+                        LOGGER.error { "    requires: ${entry.requires}" }
+                        LOGGER.error { "    provides: ${entry.provides.map { it.first }}" }
+                    }
+                    for (entry in resolvedEntries) {
+                        LOGGER.error { "Unresolved: ${entry.id}" }
+                        LOGGER.error { "    requires: ${entry.requires}" }
+                        LOGGER.error { "    provides: ${entry.provides.map { it.first }}" }
+                    }
                     throw IllegalStateException("Circular dependency detected, or missing required ns, remaining: ${resolvedEntries.map { it.id }}")
                 }
 
