@@ -36,17 +36,19 @@ object TinyV2Reader : FormatReader {
         while (true) {
             namespaces.add(input.takeNextLiteral()?.let { Namespace(nsMapping[it] ?: it) } ?: break)
         }
-        while (input.peek() == '\n') {
-            input.take()
-        }
-        val metadataKeys = mutableListOf<String>()
-        while (input.peek() == '\t') {
-            input.take()
+        val metadataKeys = mutableMapOf<String, String?>()
+        while (!input.exhausted()) {
             if (input.peek() == '\n') {
                 input.take()
+                continue
+            }
+            if (input.peek() != '\t') {
                 break
             }
-            metadataKeys.add(input.takeLine())
+            input.take()
+            val key = input.takeNextLiteral()!!
+            val value = input.takeNextLiteral()
+            metadataKeys[key] = value
         }
         val escaped = metadataKeys.contains("escaped-names")
 
