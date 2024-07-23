@@ -41,6 +41,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     lateinit var namespaces: Map<Namespace, Boolean>
         private set
+
     lateinit var resolved: MemoryMappingTree
         private set
 
@@ -144,7 +145,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 }
                 if (toRemove.isEmpty()) {
                     //TODO: better logging, determine case
-                    throw IllegalStateException("Circular dependency detected, or missing required ns")
+                    throw IllegalStateException("Circular dependency detected, or missing required ns, remaining: ${resolvedEntries.map { it.id }}")
                 }
 
                 resolvedEntries.removeAll(toRemove)
@@ -157,13 +158,17 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
                         it(acc)
                     }
-                entry.provider.read(
-                    entry.content.content(),
-                    resolved,
-                    visitor,
-                    envType,
-                    entry.mapNs.map { it.key.name to it.value.name }.toMap()
-                )
+                try {
+                    entry.provider.read(
+                        entry.content.content(),
+                        resolved,
+                        visitor,
+                        envType,
+                        entry.mapNs.map { it.key.name to it.value.name }.toMap()
+                    )
+                } catch (e: Throwable) {
+                    throw IllegalStateException("Error reading ${entry.id}", e)
+                }
             }
 
             for (entry in sorted) {
