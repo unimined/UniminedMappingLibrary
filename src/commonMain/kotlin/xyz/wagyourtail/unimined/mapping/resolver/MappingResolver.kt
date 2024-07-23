@@ -53,7 +53,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     fun checkedNsOrNull(name: String): Namespace? {
         val ns = Namespace(name)
-        if (namespaces.keys.contains(ns)) {
+        if (namespaces.keys.contains(ns) || ns in unmappedNs) {
             return ns
         }
         return null
@@ -145,6 +145,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 }
                 if (toRemove.isEmpty()) {
                     //TODO: better logging, determine case
+                    LOGGER.error { "UnmappedNs: $unmappedNs" }
                     for (entry in sorted) {
                         LOGGER.error { "Resolved: ${entry.id}" }
                         LOGGER.error { "    requires: ${entry.requires}" }
