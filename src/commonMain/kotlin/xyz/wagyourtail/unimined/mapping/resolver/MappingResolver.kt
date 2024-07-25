@@ -120,6 +120,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     open suspend fun fromCache(key: String): MemoryMappingTree? = null
 
+    open suspend fun writeCache(key: String, tree: MemoryMappingTree) {}
+
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
         return resolveLock.withLock {
@@ -205,6 +207,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                         afterPropogate(resolved)
                     }
                 }
+
+                writeCache(cacheKey, resolved)
             }
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
