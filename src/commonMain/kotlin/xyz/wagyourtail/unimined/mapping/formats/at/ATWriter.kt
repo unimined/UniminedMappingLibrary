@@ -214,7 +214,7 @@ object ATWriter : FormatWriter {
                     else -> ATReader.TriState.LEAVE
                 }
                 val access = AccessFlag.visibilityOf(classAccessAdd)
-                if (access != null) {
+                if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
                             access,
@@ -243,7 +243,7 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access ?: AccessFlag.PUBLIC,
+                            access,
                             final,
                             cls!!,
                             name.toString(),
@@ -267,7 +267,7 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access ?: AccessFlag.PUBLIC,
+                            access,
                             final,
                             cls!!,
                             name.toString(),
@@ -291,7 +291,7 @@ object ATWriter : FormatWriter {
                     if (desc != null) {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access ?: AccessFlag.PUBLIC,
+                                access,
                                 final,
                                 cls!!,
                                 name.toString(),
@@ -301,7 +301,7 @@ object ATWriter : FormatWriter {
                     } else {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access ?: AccessFlag.PUBLIC,
+                                access,
                                 final,
                                 cls!!,
                                 name.toString(),
