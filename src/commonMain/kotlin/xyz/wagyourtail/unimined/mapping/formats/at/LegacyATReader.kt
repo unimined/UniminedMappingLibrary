@@ -46,7 +46,8 @@ object LegacyATReader : FormatReader {
                 continue
             }
             if (input.peek()?.isWhitespace() == true) {
-                throw IllegalStateException("Unexpected whitespace")
+                input.takeWhitespace()
+                continue
             }
 
             val access = input.takeNextLiteral { it.isWhitespace() }!!.parseAccess()
