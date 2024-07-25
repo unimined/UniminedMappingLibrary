@@ -125,7 +125,7 @@ object ATReader : FormatReader {
             val targetClass = InternalName.read(input.takeUntil { it.isWhitespace() }.replace(".", "/"))
             input.takeNonNewlineWhitespace()
             val memberName = if (input.peek() == '#') null else input.takeUntil { it.isWhitespace() || it == '(' }.ifEmpty { null }
-            val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifEmpty { null }
+            val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifEmpty { null }?.replace(".", "/")
 
             val remaining = input.takeLine().trimStart()
             if (remaining.isNotEmpty() && remaining.first() != '#') {
