@@ -11,8 +11,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.minus
 import xyz.wagyourtail.unimined.mapping.jvms.four.plus
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.util.DefaultMap
+import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
@@ -70,7 +73,21 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
     }
 
     fun propagate(targetNs: Set<Namespace>, visitor: MappingVisitor = tree) {
-        val names = mutableMapOf<Pair<InternalName, Pair<String, MethodDescriptor?>>, MutableMap<Namespace, MutableSet<String>>>()
+        val names = defaultedMapOf<InternalName, DefaultMap<Pair<String, MethodDescriptor?>, MutableMap<Namespace, MutableSet<String>>>> { cls ->
+            defaultedMapOf { md ->
+                val mds = tree.getClass(namespace, cls)?.getMethods(namespace, md.first, md.second) ?: setOf()
+                val methodNames = mutableMapOf<Namespace, MutableSet<String>>()
+                for (ns in targetNs) {
+                    for (mn in mds) {
+                        val name = mn.getName(ns)
+                        if (name != null) {
+                            methodNames.getOrPut(ns) { mutableSetOf() } += name
+                        }
+                    }
+                }
+                methodNames
+            }
+        }
         val propogationListRemaining = propagationList.toMutableMap()
         while (propogationListRemaining.isNotEmpty()) {
             val (method, classes) = propogationListRemaining.entries.first()
@@ -103,15 +120,46 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
             }
             for (target in targets) {
                 propogationListRemaining.remove(target)
-                names[target] = methodNames
+                names[target.first][target.second] = methodNames
             }
         }
 
-        for ((method, nsNames) in names) {
-            visitor.visitClass(mapOf(namespace to method.first))?.use {
-                val targets = nsNames.mapValues { it.value.first() to null } + (namespace to (method.second.first to method.second.second))
-                visitMethod(targets)?.visitEnd()
+        val visitClasses = tree.classList().mapNotNull { it.first[namespace] }
+        val classes = this.classes.toMutableMap()
+        for ((cls, info) in classes) {
+            visitor.visitClass(mapOf(namespace to cls))?.use {
+                val methods = info.methods.toMutableSet()
+                val nsNameCls = names[cls]
+                for (method in methods) {
+                    val orig = (namespace to (method.first to method.second))
+                    val targets = nsNameCls[method].mapValues { it.value.first() to null } + orig
+                    visitMethod(targets)?.visitEnd()
+                    methods.remove(method)
+                }
+                for (field in info.fields) {
+                    val fds = tree.getClass(namespace, cls)?.getFields(namespace, field.first, field.second) ?: setOf()
+                    val fieldNames = mutableMapOf<Namespace, MutableSet<String>>()
+                    for (ns in targetNs) {
+                        for (fd in fds) {
+                            val name = fd.getName(ns)
+                            if (name != null) {
+                                fieldNames.getOrPut(ns) { mutableSetOf() } += name
+                            }
+                        }
+                    }
+                    for ((ns, fNames) in fieldNames) {
+                        if (fNames.size > 1) {
+                            LOGGER.warn { "Multiple names found for $cls ${field.first} in $ns: $fNames" }
+                            val first = fNames.first()
+                            fNames.clear()
+                            fNames += first
+                        }
+                    }
+                    val targets = fieldNames.mapValues { it.value.first() to null } + (namespace to field)
+                    visitField(targets)?.visitEnd()
+                }
             }
+            classes.remove(cls)
         }
     }
 
@@ -140,7 +188,11 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
 
         val interfaces = self.interfaces.map { InternalName.read(it) }
 
-        val methods: List<Pair<String, MethodDescriptor?>> = self.methods.filter { method ->
+        val methods: List<Pair<String, MethodDescriptor?>> = self.methods.map {
+            it.name to MethodDescriptor.read(it.desc)
+        }
+
+        val publicMethods: List<Pair<String, MethodDescriptor?>> = self.methods.filter { method ->
             var access = method.access
 
             // modify access according to mapping's access rules for this class
@@ -161,10 +213,14 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
             access and (Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL) == 0
         }.map { it.name to MethodDescriptor.read(it.desc) }
 
+        val fields: List<Pair<String, FieldDescriptor?>> = self.fields.map {
+            it.name to FieldDescriptor.read(it.desc)
+        }
+
         val resolved: Map<Pair<String, MethodDescriptor?>, Set<InternalName>> by lazy {
             val md = mutableMapOf<Pair<String, MethodDescriptor?>, MutableSet<InternalName>>()
             for (c in traverseParents()) {
-                for ((name, desc) in c.methods) {
+                for ((name, desc) in c.publicMethods) {
                     md.getOrPut(name to desc) { mutableSetOf() } += c.name
                 }
             }
