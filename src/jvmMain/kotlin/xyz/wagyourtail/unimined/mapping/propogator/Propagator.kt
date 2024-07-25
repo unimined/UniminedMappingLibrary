@@ -73,21 +73,22 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
     }
 
     fun propagate(targetNs: Set<Namespace>, visitor: MappingVisitor = tree) {
-        val names = defaultedMapOf<InternalName, DefaultMap<Pair<String, MethodDescriptor?>, MutableMap<Namespace, MutableSet<String>>>> { cls ->
-            defaultedMapOf { md ->
-                val mds = tree.getClass(namespace, cls)?.getMethods(namespace, md.first, md.second) ?: setOf()
-                val methodNames = mutableMapOf<Namespace, MutableSet<String>>()
-                for (ns in targetNs) {
-                    for (mn in mds) {
-                        val name = mn.getName(ns)
-                        if (name != null) {
-                            methodNames.getOrPut(ns) { mutableSetOf() } += name
+        val names =
+            defaultedMapOf<InternalName, DefaultMap<Pair<String, MethodDescriptor?>, MutableMap<Namespace, MutableSet<String>>>> { cls ->
+                defaultedMapOf { md ->
+                    val mds = tree.getClass(namespace, cls)?.getMethods(namespace, md.first, md.second) ?: setOf()
+                    val methodNames = mutableMapOf<Namespace, MutableSet<String>>()
+                    for (ns in targetNs) {
+                        for (mn in mds) {
+                            val name = mn.getName(ns)
+                            if (name != null) {
+                                methodNames.getOrPut(ns) { mutableSetOf() } += name
+                            }
                         }
                     }
+                    methodNames
                 }
-                methodNames
             }
-        }
         val propogationListRemaining = propagationList.toMutableMap()
         while (propogationListRemaining.isNotEmpty()) {
             val (method, classes) = propogationListRemaining.entries.first()
@@ -124,44 +125,49 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
             }
         }
 
-        val visitClasses = tree.classList().mapNotNull { it.first[namespace] }
-        for ((cls, info) in this.classes) {
-            val clsNames = mutableMapOf<Namespace, InternalName>()
-            val c = tree.getClass(namespace, cls)
-            for (ns in targetNs) {
-                val name = c?.getName(ns)
-                if (name != null) {
-                    clsNames[ns] = name
+        visitor.use {
+            visitHeader(namespace.name, *targetNs.map { it.name }.toTypedArray())
+
+            val visitClasses = tree.classList().mapNotNull { it.first[namespace] }
+            for ((cls, info) in classes) {
+                val clsNames = mutableMapOf<Namespace, InternalName>()
+                val c = tree.getClass(namespace, cls)
+                for (ns in targetNs) {
+                    val name = c?.getName(ns)
+                    if (name != null) {
+                        clsNames[ns] = name
+                    }
                 }
-            }
-            visitor.visitClass(clsNames + (namespace to cls))?.use {
-                val nsNameCls = names[cls]
-                for (method in info.methods) {
-                    val orig = (namespace to (method.first to method.second))
-                    val targets = nsNameCls[method].mapValues { it.value.first() to null } + orig
-                    visitMethod(targets)?.visitEnd()
-                }
-                for (field in info.fields) {
-                    val fds = tree.getClass(namespace, cls)?.getFields(namespace, field.first, field.second) ?: setOf()
-                    val fieldNames = mutableMapOf<Namespace, MutableSet<String>>()
-                    for (ns in targetNs) {
-                        for (fd in fds) {
-                            val name = fd.getName(ns)
-                            if (name != null) {
-                                fieldNames.getOrPut(ns) { mutableSetOf() } += name
+                visitor.visitClass(clsNames + (namespace to cls))?.use {
+                    val nsNameCls = names[cls]
+                    for (method in info.methods) {
+                        val orig = (namespace to (method.first to method.second))
+                        val targets = nsNameCls[method].mapValues { it.value.first() to null } + orig
+                        visitMethod(targets)?.visitEnd()
+                    }
+                    for (field in info.fields) {
+                        val fds =
+                            tree.getClass(namespace, cls)?.getFields(namespace, field.first, field.second) ?: setOf()
+                        val fieldNames = mutableMapOf<Namespace, MutableSet<String>>()
+                        for (ns in targetNs) {
+                            for (fd in fds) {
+                                val name = fd.getName(ns)
+                                if (name != null) {
+                                    fieldNames.getOrPut(ns) { mutableSetOf() } += name
+                                }
                             }
                         }
-                    }
-                    for ((ns, fNames) in fieldNames) {
-                        if (fNames.size > 1) {
-                            LOGGER.warn { "Multiple names found for $cls ${field.first} in $ns: $fNames" }
-                            val first = fNames.first()
-                            fNames.clear()
-                            fNames += first
+                        for ((ns, fNames) in fieldNames) {
+                            if (fNames.size > 1) {
+                                LOGGER.warn { "Multiple names found for $cls ${field.first} in $ns: $fNames" }
+                                val first = fNames.first()
+                                fNames.clear()
+                                fNames += first
+                            }
                         }
+                        val targets = fieldNames.mapValues { it.value.first() to null } + (namespace to field)
+                        visitField(targets)?.visitEnd()
                     }
-                    val targets = fieldNames.mapValues { it.value.first() to null } + (namespace to field)
-                    visitField(targets)?.visitEnd()
                 }
             }
         }
