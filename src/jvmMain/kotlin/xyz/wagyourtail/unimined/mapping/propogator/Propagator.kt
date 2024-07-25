@@ -109,7 +109,8 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
 
         for ((method, nsNames) in names) {
             visitor.visitClass(mapOf(namespace to method.first))?.use {
-                visitMethod(mapOf(namespace to (method.second.first to method.second.second)) + nsNames.mapValues { it.value.first() to null })?.visitEnd()
+                val targets = nsNames.mapValues { it.value.first() to null } + (namespace to (method.second.first to method.second.second))
+                visitMethod(targets)?.visitEnd()
             }
         }
     }

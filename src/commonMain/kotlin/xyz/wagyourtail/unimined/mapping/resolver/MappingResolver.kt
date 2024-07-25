@@ -43,7 +43,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         private set
 
     lateinit var resolved: MemoryMappingTree
-        private set
+        protected set
 
     open val unmappedNs = setOf(Namespace("official"))
 
