@@ -47,6 +47,10 @@ object SrgReader : FormatReader {
             while (!input.exhausted()) {
                 input.takeWhitespace()
                 val key = input.takeNextLiteral(sep = ' ') ?: continue
+                if (key.startsWith("#")) {
+                    input.takeLine()
+                    continue
+                }
                 when (key) {
                     "PK:" -> {
                         val src = input.takeNextLiteral(sep = ' ')!!
