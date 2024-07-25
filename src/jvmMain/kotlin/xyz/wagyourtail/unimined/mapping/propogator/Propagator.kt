@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.propogator
 
-import com.github.ajalt.colormath.model.ROMMTransferFunctions.c
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.objectweb.asm.ClassReader
