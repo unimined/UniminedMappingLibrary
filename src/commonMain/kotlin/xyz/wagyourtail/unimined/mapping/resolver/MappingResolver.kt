@@ -36,7 +36,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     open suspend fun combinedNames(): String {
         finalize()
-        return entries.keys.sorted().map { entries[it]?.id }.joinToString("-")
+        return entries.entries.sortedBy { it.key }.joinToString("-") { it.value.id }
     }
 
     lateinit var namespaces: Map<Namespace, Boolean>
@@ -217,7 +217,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         }
     }
 
-    inner class MappingEntry(content: ContentProvider, val id: String) : MappingConfig(content) {
+    open inner class MappingEntry(content: ContentProvider, open val id: String) : MappingConfig(content) {
         private val subEntries = finalizableSetOf<MappingConfig.(ContentProvider, FormatProvider) -> Unit>()
 
         override suspend fun finalize() {
