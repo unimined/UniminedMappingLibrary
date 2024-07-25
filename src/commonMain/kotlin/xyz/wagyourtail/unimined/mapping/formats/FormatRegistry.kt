@@ -51,6 +51,7 @@ object FormatRegistry {
         FormatProvider(MCPv3ClassesReader),
         FormatProvider(MCPv3MethodReader, mustBeAfter = listOf(MCPv3ClassesReader)),
         FormatProvider(MCPv3FieldReader, mustBeAfter = listOf(MCPv3ClassesReader)),
+        FormatProvider(MCPv6PackageReader, mustBeAfter = listOf(SrgReader)),
         FormatProvider(MCPExceptionReader, mustBeAfter = listOf(RetroguardReader, MCPv3ClassesReader, SrgReader, TsrgV1Reader, TsrgV2Reader)),
         FormatProvider(MCPv6MethodReader, MCPv6MethodWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
         FormatProvider(MCPv6FieldReader, MCPv6FieldWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
