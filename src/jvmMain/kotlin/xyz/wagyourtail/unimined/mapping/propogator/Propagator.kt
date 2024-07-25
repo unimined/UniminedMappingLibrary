@@ -125,8 +125,7 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
         }
 
         val visitClasses = tree.classList().mapNotNull { it.first[namespace] }
-        val classes = this.classes.toMutableMap()
-        for ((cls, info) in classes) {
+        for ((cls, info) in this.classes) {
             visitor.visitClass(mapOf(namespace to cls))?.use {
                 val nsNameCls = names[cls]
                 for (method in info.methods) {
@@ -157,7 +156,6 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
                     visitField(targets)?.visitEnd()
                 }
             }
-            classes.remove(cls)
         }
     }
 
