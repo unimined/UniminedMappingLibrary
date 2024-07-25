@@ -43,13 +43,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         private set
 
     lateinit var resolved: MemoryMappingTree
-        protected set
+        private set
 
     open val unmappedNs = setOf(Namespace("official"))
 
-    open fun propogator(tree: MemoryMappingTree) {
-
-    }
+    open fun propogator(tree: MemoryMappingTree) {}
 
     fun checkedNsOrNull(name: String): Namespace? {
         val ns = Namespace(name)
@@ -120,13 +118,13 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     private val resolveLock = Mutex()
 
+    open suspend fun fromCache(key: String): MemoryMappingTree? = null
+
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
         return resolveLock.withLock {
             finalize()
             val values = _entries.values
-            val resolved = MemoryMappingTree()
-            resolved.visitHeader(*unmappedNs.map { it.name }.toTypedArray())
             val resolvedEntries = mutableSetOf<MappingEntry>()
 
             for (entry in values) {
@@ -164,40 +162,48 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 sortedNs.addAll(toRemove.flatMap { it.provides.map { it.first } })
             }
 
-            for (entry in sorted) {
-                val visitor =
-                    entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
-                        it(acc)
+
+            val cacheKey = "$envType-${combinedNames()}"
+            var resolved = fromCache(cacheKey)
+
+            if (resolved == null) {
+                resolved = MemoryMappingTree()
+                resolved.visitHeader(*unmappedNs.map { it.name }.toTypedArray())
+                for (entry in sorted) {
+                    val visitor =
+                        entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
+                            it(acc)
+                        }
+                    try {
+                        entry.provider.read(
+                            entry.content.content(),
+                            resolved,
+                            visitor,
+                            envType,
+                            entry.mapNs.map { it.key.name to it.value.name }.toMap()
+                        )
+                    } catch (e: Throwable) {
+                        throw IllegalStateException("Error reading ${entry.id}", e)
                     }
-                try {
-                    entry.provider.read(
-                        entry.content.content(),
-                        resolved,
-                        visitor,
-                        envType,
-                        entry.mapNs.map { it.key.name to it.value.name }.toMap()
-                    )
-                } catch (e: Throwable) {
-                    throw IllegalStateException("Error reading ${entry.id}", e)
                 }
-            }
 
-            for (entry in sorted) {
-                for (afterLoad in entry.afterLoad) {
-                    afterLoad(resolved)
+                for (entry in sorted) {
+                    for (afterLoad in entry.afterLoad) {
+                        afterLoad(resolved)
+                    }
                 }
-            }
 
-            propogator(resolved)
-            val filled = mutableSetOf<Namespace>()
-            for (entry in sorted) {
-                val toFill = entry.provides.map { it.first }.toSet() - filled
-                if (toFill.isNotEmpty()) {
-                    resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
-                    filled.addAll(toFill)
-                }
-                for (afterPropogate in entry.afterPropogate) {
-                    afterPropogate(resolved)
+                propogator(resolved)
+                val filled = mutableSetOf<Namespace>()
+                for (entry in sorted) {
+                    val toFill = entry.provides.map { it.first }.toSet() - filled
+                    if (toFill.isNotEmpty()) {
+                        resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
+                        filled.addAll(toFill)
+                    }
+                    for (afterPropogate in entry.afterPropogate) {
+                        afterPropogate(resolved)
+                    }
                 }
             }
 
