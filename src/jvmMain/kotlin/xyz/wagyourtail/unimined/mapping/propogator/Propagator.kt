@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.propogator
 
+import com.github.ajalt.colormath.model.ROMMTransferFunctions.c
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.objectweb.asm.ClassReader
@@ -126,7 +127,15 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
 
         val visitClasses = tree.classList().mapNotNull { it.first[namespace] }
         for ((cls, info) in this.classes) {
-            visitor.visitClass(mapOf(namespace to cls))?.use {
+            val clsNames = mutableMapOf<Namespace, InternalName>()
+            val c = tree.getClass(namespace, cls)
+            for (ns in targetNs) {
+                val name = c?.getName(ns)
+                if (name != null) {
+                    clsNames[ns] = name
+                }
+            }
+            visitor.visitClass(clsNames + (namespace to cls))?.use {
                 val nsNameCls = names[cls]
                 for (method in info.methods) {
                     val orig = (namespace to (method.first to method.second))
