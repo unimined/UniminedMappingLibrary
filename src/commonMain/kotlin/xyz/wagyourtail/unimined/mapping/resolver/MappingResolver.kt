@@ -34,10 +34,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     private val _entries = finalizableMapOf<String, MappingEntry>()
     val entries: Map<String, MappingEntry> get() = _entries
 
-    open suspend fun combinedNames(): String {
-        finalize()
-        return entries.entries.sortedBy { it.key }.joinToString("-") { it.value.id }
-    }
+    val afterLoad = finalizableListOf<MemoryMappingTree.() -> Unit>()
 
     lateinit var namespaces: Map<Namespace, Boolean>
         private set
@@ -46,6 +43,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         private set
 
     open val unmappedNs = setOf(Namespace("official"))
+
+    open suspend fun combinedNames(): String {
+        finalize()
+        return entries.entries.sortedBy { it.key }.joinToString("-") { it.value.id }
+    }
 
     open fun propogator(tree: MemoryMappingTree) {}
 
@@ -79,6 +81,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         finalized = true
         _entries.finalize()
         _entries.values.forEach { it.finalize() }
+        afterLoad.finalize()
     }
 
     fun addDependency(key: String, dependency: MappingEntry) {
@@ -122,7 +125,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     open suspend fun writeCache(key: String, tree: MemoryMappingTree) {}
 
-    open suspend fun afterLoad(tree: MemoryMappingTree) {}
+    open suspend fun afterLoad(tree: MemoryMappingTree) {
+        afterLoad.forEach { it(tree) }
+    }
 
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
