@@ -23,8 +23,8 @@ object MCPv6PackageReader : FormatReader {
         envType: EnvType,
         nsMapping: Map<String, String>
     ) {
-        val srcNs = Namespace(nsMapping["source"] ?: "source")
-        val dstNs = Namespace(nsMapping["target"] ?: "target")
+        val srcNs = Namespace(nsMapping["searge"] ?: "searge")
+        val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
         val header = input.takeLine()
         if (!header.startsWith("class,package")) {
