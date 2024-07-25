@@ -334,7 +334,7 @@ object ATWriter : FormatWriter {
 
     fun writeData(mappings: List<ATReader.ATData>, append: (String) -> Unit) {
         for (data in mappings) {
-            append(data.access.toString().lowercase())
+            append(data.access?.toString()?.lowercase() ?: "default")
             when (data.final) {
                 ATReader.TriState.ADD -> append("+f")
                 ATReader.TriState.REMOVE -> append("-f")

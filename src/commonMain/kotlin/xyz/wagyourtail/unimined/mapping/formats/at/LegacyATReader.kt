@@ -22,8 +22,6 @@ object LegacyATReader : FormatReader {
         return (cfg && name.endsWith("_at"))
     }
 
-
-
     override suspend fun read(
         input: CharReader,
         context: AbstractMappingTree?,

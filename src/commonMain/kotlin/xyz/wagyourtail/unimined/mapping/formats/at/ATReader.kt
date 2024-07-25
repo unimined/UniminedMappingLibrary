@@ -27,11 +27,20 @@ object ATReader : FormatReader {
         return (cfg && name.endsWith("_at") || name.startsWith("accesstransformer"))
     }
 
-    fun String.parseAccess(): Pair<AccessFlag, TriState> {
+    fun String.parseAccess(): Pair<AccessFlag?, TriState> {
         if (!this.contains(Regex("[+-]"))) {
-            return AccessFlag.valueOf(this.uppercase()) to TriState.LEAVE
+            val accessStr = this.uppercase()
+            if (accessStr == "DEFAULT") {
+                return null to TriState.LEAVE
+            }
+            return AccessFlag.valueOf(accessStr) to TriState.LEAVE
         }
-        val access = this.substring(0, this.length - 2).let { AccessFlag.valueOf(it.uppercase()) }
+        val accessStr = this.substring(0, this.length - 2)
+        val access = if (accessStr == "DEFAULT") {
+            null
+        } else {
+            AccessFlag.valueOf(accessStr.uppercase())
+        }
         if (access !in AccessFlag.visibility) {
             throw IllegalArgumentException("Unexpected access flag $access")
         }
@@ -43,8 +52,10 @@ object ATReader : FormatReader {
         return access to final
     }
 
-    fun <T: AccessParentVisitor<T>> AccessParentVisitor<T>.applyAccess(access: AccessFlag, final: TriState, ns: Set<Namespace>) {
-        this.visitAccess(AccessType.ADD, access, AccessConditions.ALL, ns)?.visitEnd()
+    private fun <T: AccessParentVisitor<T>> AccessParentVisitor<T>.applyAccess(access: AccessFlag?, final: TriState, ns: Set<Namespace>) {
+        if (access != null) {
+            this.visitAccess(AccessType.ADD, access, AccessConditions.ALL, ns)?.visitEnd()
+        }
         when (final) {
             TriState.ADD -> this.visitAccess(AccessType.ADD, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
             TriState.REMOVE -> this.visitAccess(AccessType.REMOVE, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
@@ -53,7 +64,7 @@ object ATReader : FormatReader {
     }
 
     data class ATData(
-        val access: AccessFlag,
+        val access: AccessFlag?,
         val final: TriState,
         val targetClass: InternalName,
         val memberName: String?,
