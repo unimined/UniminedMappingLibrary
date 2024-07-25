@@ -122,6 +122,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     open suspend fun writeCache(key: String, tree: MemoryMappingTree) {}
 
+    open suspend fun afterLoad(tree: MemoryMappingTree) {}
+
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
         return resolveLock.withLock {
@@ -164,7 +166,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 sortedNs.addAll(toRemove.flatMap { it.provides.map { it.first } })
             }
 
-
             val cacheKey = "$envType-${combinedNames()}"
             var resolved = fromCache(cacheKey)
 
@@ -189,22 +190,16 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     }
                 }
 
-                for (entry in sorted) {
-                    for (afterLoad in entry.afterLoad) {
-                        afterLoad(resolved)
-                    }
-                }
+                afterLoad(resolved)
 
                 propogator(resolved)
+
                 val filled = mutableSetOf<Namespace>()
                 for (entry in sorted) {
                     val toFill = entry.provides.map { it.first }.toSet() - filled
                     if (toFill.isNotEmpty()) {
                         resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
                         filled.addAll(toFill)
-                    }
-                    for (afterPropogate in entry.afterPropogate) {
-                        afterPropogate(resolved)
                     }
                 }
 
@@ -268,8 +263,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         var skip by FinalizeOnRead(false)
 
         val insertInto = finalizableSetOf<(MappingVisitor) -> MappingVisitor>()
-        val afterLoad = finalizableSetOf<(MemoryMappingTree) -> Unit>()
-        val afterPropogate = finalizableSetOf<(MemoryMappingTree) -> Unit>()
 
         var provider by FinalizeOnRead(LazyMutable {
             val format = FormatRegistry.autodetectFormat(envType, content.fileName(), content.content())
@@ -302,16 +295,12 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             mapNs.putAll(other.mapNs)
             skip = other.skip
             insertInto.addAll(other.insertInto)
-            afterLoad.addAll(other.afterLoad)
-            afterPropogate.addAll(other.afterPropogate)
         }
 
         open suspend fun finalize() {
             requires.name
             provides.finalize()
             insertInto.finalize()
-            afterLoad.finalize()
-            afterPropogate.finalize()
         }
 
     }
