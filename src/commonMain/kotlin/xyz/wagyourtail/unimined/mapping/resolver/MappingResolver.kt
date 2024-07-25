@@ -36,7 +36,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     open suspend fun combinedNames(): String {
         finalize()
-        return entries.keys.sorted().map { entries[it]?.id }.joinToString { "-" }
+        return entries.keys.sorted().map { entries[it]?.id }.joinToString("-")
     }
 
     lateinit var namespaces: Map<Namespace, Boolean>
