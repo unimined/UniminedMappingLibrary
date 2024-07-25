@@ -24,6 +24,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
 object ATWriter : FormatWriter {
 
+    var defaultToPublic: Boolean = false
+
     override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         return assembleAts {
             writeData(it, append)
@@ -217,7 +219,7 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access,
+                            access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
                             final,
                             cls!!,
                             null,
@@ -243,7 +245,7 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access,
+                            access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
                             final,
                             cls!!,
                             name.toString(),
@@ -267,7 +269,7 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access,
+                            access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
                             final,
                             cls!!,
                             name.toString(),
@@ -291,7 +293,7 @@ object ATWriter : FormatWriter {
                     if (desc != null) {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access,
+                                access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
                                 final,
                                 cls!!,
                                 name.toString(),
@@ -301,7 +303,7 @@ object ATWriter : FormatWriter {
                     } else {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access,
+                                access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
                                 final,
                                 cls!!,
                                 name.toString(),

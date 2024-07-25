@@ -109,6 +109,7 @@ c	net/minecraft/class_3721
             AWReader.read(it, EnvType.JOINED)
         }
 
+        ATWriter.defaultToPublic = false
         val aw = Buffer().use {
             m.accept(ATWriter.write(it).nsFiltered("intermediary"))
 //            m.accept(UMFWriter.write(EnvType.JOINED, it))
@@ -117,6 +118,30 @@ c	net/minecraft/class_3721
 
         assertEquals("""
             public net.minecraft.class_3720
+            default-f net.minecraft.class_3721
+            default-f net.minecraft.class_3721 field_19158
+            public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+        """.trimIndent(), aw.trimEnd())
+
+    }
+
+    @Test
+    fun testAw2AtFixDefault() = runTest {
+        val m = Buffer().use {
+            it.writeUtf8(awText)
+            AWReader.read(it, EnvType.JOINED)
+        }
+
+        ATWriter.defaultToPublic = true
+        val aw = Buffer().use {
+            m.accept(ATWriter.write(it).nsFiltered("intermediary"))
+//            m.accept(UMFWriter.write(EnvType.JOINED, it))
+            it.readUtf8()
+        }
+
+        assertEquals("""
+            public net.minecraft.class_3720
+            public-f net.minecraft.class_3721
             public-f net.minecraft.class_3721 field_19158
             public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         """.trimIndent(), aw.trimEnd())
