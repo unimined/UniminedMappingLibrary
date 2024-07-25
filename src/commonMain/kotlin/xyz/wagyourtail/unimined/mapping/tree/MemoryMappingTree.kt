@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
+import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -20,14 +21,22 @@ class MemoryMappingTree : AbstractMappingTree() {
     internal val constantGroups: List<ConstantGroupNode> get() = _constantGroups
 
 
-    val byNamespace = mutableMapOf<Namespace, MutableMap<InternalName, ClassNode>>()
+    private val byNamespace = defaultedMapOf<Namespace, MutableMap<InternalName, ClassNode>> { mutableMapOf() }
 
     override fun getClass(namespace: Namespace, name: InternalName): ClassNode? {
-        return (byNamespace.getOrPut(namespace) {
-            val map = mutableMapOf<InternalName, ClassNode>()
-            _classes.forEach { c -> c.getName(namespace)?.let { map[it] = c } }
-            map
-        })[name]
+        val cacheHit = byNamespace[namespace][name]
+        if (cacheHit != null) {
+            if (cacheHit.getName(namespace) == name) {
+                return cacheHit
+            } else {
+                byNamespace[namespace].remove(name)
+            }
+        }
+        val cacheMiss = classes.firstOrNull { it.getName(namespace) == name }
+        if (cacheMiss != null) {
+            byNamespace[namespace][name] = cacheMiss
+        }
+        return cacheMiss
     }
 
     override fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassNode>> = _classes.iterator().asSequence().map {
@@ -99,18 +108,11 @@ class MemoryMappingTree : AbstractMappingTree() {
             val existing = getClass(ns, names[ns]!!)
             if (existing != null) {
                 // add other names
-                for (ns in names.keys) {
-                    byNamespace[ns]?.remove(existing.getName(ns))
-                    byNamespace[ns]?.put(names[ns]!!, existing)
-                }
                 existing.setNames(names)
                 return existing
             }
         }
         val node = ClassNode(this)
-        for (ns in names.keys) {
-            byNamespace[ns]?.put(names[ns]!!, node)
-        }
         node.setNames(names)
         _classes.add(node)
         return node
