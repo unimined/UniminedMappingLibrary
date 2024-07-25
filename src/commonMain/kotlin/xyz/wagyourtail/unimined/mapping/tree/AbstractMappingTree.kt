@@ -164,10 +164,10 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
             val mParts = parts.second!!.getParts()
             val mappedName = if (mParts.second == null || mParts.second!!.isFieldDescriptor()) {
                 val fd = cls.getFields(fromNs, mParts.first.value, mParts.second?.getFieldDescriptor())
-                fd.first().getName(toNs) ?: mParts.first.value
+                fd.firstOrNull()?.getName(toNs) ?: mParts.first.value
             } else {
                 val md = cls.getMethods(fromNs, mParts.first.value, mParts.second?.getMethodDescriptor())
-                md.first().getName(toNs) ?: mParts.first.value
+                md.firstOrNull()?.getName(toNs) ?: mParts.first.value
             }
             val mappedDesc = if (mParts.second == null) {
                 null
