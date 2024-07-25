@@ -197,6 +197,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
                 resolved = propogator(resolved)
 
+                afterLoad(resolved)
+
                 val filled = mutableSetOf<Namespace>()
                 for (entry in sorted) {
                     val toFill = entry.provides.map { it.first }.toSet() - filled
@@ -205,8 +207,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                         filled.addAll(toFill)
                     }
                 }
-
-                afterLoad(resolved)
 
                 writeCache(cacheKey, resolved)
             }
