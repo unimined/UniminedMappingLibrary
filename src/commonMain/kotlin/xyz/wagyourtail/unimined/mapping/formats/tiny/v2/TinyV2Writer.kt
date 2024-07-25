@@ -15,11 +15,27 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 @Suppress("UNUSED_PARAMETER")
 object TinyV2Writer : FormatWriter {
+
+    fun String.escape(): String {
+        if (this.isEmpty()) return this
+        return buildString {
+            for (c in this@escape) {
+                when (c) {
+                    '\t' -> append("\\t")
+                    '\r' -> append("\\r")
+                    '\n' -> append("\\n")
+                    '\\' -> append("\\\\")
+                    '\u0000' -> append("\\0")
+                    else -> append(c)
+                }
+            }
+        }
+    }
+
     override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
         return TinyV2MappingWriter(append)
     }

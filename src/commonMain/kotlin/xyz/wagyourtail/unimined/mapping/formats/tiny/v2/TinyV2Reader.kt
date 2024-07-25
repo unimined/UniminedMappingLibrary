@@ -9,13 +9,42 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.translateEscapes
+import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 /**
  * FabricMC's tinyv2 format.
  */
 object TinyV2Reader : FormatReader {
+
+    fun String.translateEscapes(leinient: Boolean = false): String {
+        if (this.isEmpty() || !this.contains("\\")) {
+            return this
+        }
+        return buildString {
+            var i = 0
+            while (i < this@translateEscapes.length) {
+                val c = this@translateEscapes[i++]
+                if (c == '\\') {
+                    if (i >= this@translateEscapes.length) throw IllegalArgumentException("Invalid escape, hit end of string")
+                    when (val n = this@translateEscapes[i++]) {
+                        '\\' -> append('\\')
+                        'n' -> append('\n')
+                        'r' -> append('\r')
+                        't' -> append('\t')
+                        '0' -> append('\u0000')
+                        else -> {
+                            throw IllegalArgumentException(
+                                "Invalid escape: ${n.toString().escape(true)} in \"${this}\" at $i"
+                            )
+                        }
+                    }
+                } else {
+                    append(c)
+                }
+            }
+        }
+    }
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return input.peek().readUtf8Line()?.startsWith("tiny\t2\t0\t") ?: false
