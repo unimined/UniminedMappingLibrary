@@ -128,7 +128,6 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
         visitor.use {
             visitHeader(namespace.name, *targetNs.map { it.name }.toTypedArray())
 
-            val visitClasses = tree.classList().mapNotNull { it.first[namespace] }
             for ((cls, info) in classes) {
                 val clsNames = mutableMapOf<Namespace, InternalName>()
                 val c = tree.getClass(namespace, cls)
@@ -220,7 +219,7 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
                 }
             }
 
-            access and (Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL) == 0
+            access and (Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE) == 0
         }.map { it.name to MethodDescriptor.read(it.desc) }
 
         val fields: List<Pair<String, FieldDescriptor?>> = self.fields.map {
