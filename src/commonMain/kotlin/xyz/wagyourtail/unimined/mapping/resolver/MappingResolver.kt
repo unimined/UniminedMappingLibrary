@@ -132,6 +132,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
         return resolveLock.withLock {
+            if (::resolved.isInitialized) return resolved
             finalize()
             val values = _entries.values
             val resolvedEntries = mutableSetOf<MappingEntry>()
