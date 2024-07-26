@@ -22,8 +22,8 @@ object MCPExceptionReader : FormatReader {
     }
 
     override fun getSide(fileName: String, input: BufferedSource): Set<EnvType> {
-        if (fileName == "client.exc") return setOf(EnvType.CLIENT, EnvType.JOINED)
-        if (fileName == "server.exc") return setOf(EnvType.SERVER, EnvType.JOINED)
+        if (fileName.substringAfterLast('/') == "client.exc") return setOf(EnvType.CLIENT, EnvType.JOINED)
+        if (fileName.substringAfterLast('/') == "server.exc") return setOf(EnvType.SERVER, EnvType.JOINED)
         return super.getSide(fileName, input)
     }
 

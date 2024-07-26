@@ -26,8 +26,8 @@ object SrgReader : FormatReader {
     }
 
     override fun getSide(fileName: String, input: BufferedSource): Set<EnvType> {
-        if (fileName == "client.srg") return setOf(EnvType.CLIENT, EnvType.JOINED)
-        if (fileName == "server.srg") return setOf(EnvType.SERVER, EnvType.JOINED)
+        if (fileName.substringAfterLast('/') == "client.srg") return setOf(EnvType.CLIENT, EnvType.JOINED)
+        if (fileName.substringAfterLast('/') == "server.srg") return setOf(EnvType.SERVER, EnvType.JOINED)
         return super.getSide(fileName, input)
     }
 
