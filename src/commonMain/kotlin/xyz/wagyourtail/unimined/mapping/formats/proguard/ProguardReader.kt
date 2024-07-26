@@ -35,15 +35,15 @@ object ProguardReader : FormatReader {
             desc = desc.substring(0, desc.length-2)
         }
         return "[".repeat(i) + when (desc) {
-            "byte" -> return "B"
-            "char" -> return "C"
-            "double" -> return "D"
-            "float" -> return "F"
-            "int" -> return "I"
-            "long" -> return "J"
-            "short" -> return "S"
-            "boolean" -> return "Z"
-            "void" -> return "V"
+            "byte" -> "B"
+            "char" -> "C"
+            "double" -> "D"
+            "float" -> "F"
+            "int" -> "I"
+            "long" -> "J"
+            "short" -> "S"
+            "boolean" -> "Z"
+            "void" -> "V"
             else -> "L${desc.replace(".", "/")};"
         }
     }
