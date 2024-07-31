@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.util.CharReader
 import kotlin.jvm.JvmInline

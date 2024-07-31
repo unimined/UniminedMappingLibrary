@@ -143,7 +143,7 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
 
             val visitor = object : ThrowingVisitor() {
 
-                override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
+                override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor {
                     cNode.setNames(names)
                     return cNode
                 }
@@ -166,7 +166,7 @@ class MergedMappingTree(val trees: List<AbstractMappingTree>) : AbstractMappingT
 
             val visitor = object : ThrowingVisitor() {
 
-                override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
+                override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor {
                     pNode.setNames(names)
                     return pNode
                 }

@@ -1,16 +1,14 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._constant
 
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateParameterVisitor
 
 class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val name: String?, val baseNs: Namespace) : BaseNode<ConstantGroupVisitor, MappingVisitor>(parent), ConstantGroupVisitor {
     private val _namespaces: MutableSet<Namespace> = mutableSetOf()
@@ -37,13 +35,13 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
         fieldClass: InternalName,
         fieldName: UnqualifiedName,
         fieldDesc: FieldDescriptor?
-    ): ConstantVisitor? {
+    ): ConstantVisitor {
         val node = ConstantNode(this, baseNs, fieldClass, fieldName, fieldDesc)
         _constants.add(node)
         return node
     }
 
-    override fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor? {
+    override fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor {
         val node = TargetNode(this, baseNs, target, paramIdx)
         _targets.add(node)
         return node

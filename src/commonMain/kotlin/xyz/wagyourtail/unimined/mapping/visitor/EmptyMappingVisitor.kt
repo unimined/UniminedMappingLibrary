@@ -11,9 +11,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 
 open class EmptyBaseVisitor<T: BaseVisitor<T>> : BaseVisitor<T> {
 
@@ -154,9 +154,7 @@ open class EmptyMethodVisitor : EmptyMemberVisitor<MethodVisitor>(), SignaturePa
 
 }
 
-open class EmptyFieldVisitor : EmptyMemberVisitor<FieldVisitor>(), SignatureParentVisitor<FieldVisitor> by EmptySignatureParentVisitor(), FieldVisitor {
-
-}
+open class EmptyFieldVisitor : EmptyMemberVisitor<FieldVisitor>(), SignatureParentVisitor<FieldVisitor> by EmptySignatureParentVisitor(), FieldVisitor
 
 open class EmptyWildcardVisitor : EmptyMemberVisitor<WildcardVisitor>(), SignatureParentVisitor<WildcardVisitor> by EmptySignatureParentVisitor(), WildcardVisitor {
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
@@ -178,33 +176,19 @@ open class EmptyWildcardVisitor : EmptyMemberVisitor<WildcardVisitor>(), Signatu
 
 }
 
-open class EmptyParameterVisitor : EmptyMemberVisitor<ParameterVisitor>(), ParameterVisitor {
+open class EmptyParameterVisitor : EmptyMemberVisitor<ParameterVisitor>(), ParameterVisitor
 
-}
+open class EmptyLocalVariableVisitor : EmptyMemberVisitor<LocalVariableVisitor>(), LocalVariableVisitor
 
-open class EmptyLocalVariableVisitor : EmptyMemberVisitor<LocalVariableVisitor>(), LocalVariableVisitor {
+open class EmptyExceptionVisitor : EmptyBaseVisitor<ExceptionVisitor>(), ExceptionVisitor
 
-}
+open class EmptyJavadocVisitor : EmptyBaseVisitor<JavadocVisitor>(), JavadocVisitor
 
-open class EmptyExceptionVisitor : EmptyBaseVisitor<ExceptionVisitor>(), ExceptionVisitor {
+open class EmptySignatureVisitor : EmptyBaseVisitor<SignatureVisitor>(), SignatureVisitor
 
-}
+open class EmptyAccessVisitor : EmptyBaseVisitor<AccessVisitor>(), AccessVisitor
 
-open class EmptyJavadocVisitor : EmptyBaseVisitor<JavadocVisitor>(), JavadocVisitor {
-
-}
-
-open class EmptySignatureVisitor : EmptyBaseVisitor<SignatureVisitor>(), SignatureVisitor {
-
-}
-
-open class EmptyAccessVisitor : EmptyBaseVisitor<AccessVisitor>(), AccessVisitor {
-
-}
-
-open class EmptyAnnotationVisitor : EmptyBaseVisitor<AnnotationVisitor>(), AnnotationVisitor {
-
-}
+open class EmptyAnnotationVisitor : EmptyBaseVisitor<AnnotationVisitor>(), AnnotationVisitor
 
 open class EmptyConstantGroupVisitor : EmptyBaseVisitor<ConstantGroupVisitor>(), ConstantGroupVisitor {
     override fun visitConstant(
@@ -221,14 +205,8 @@ open class EmptyConstantGroupVisitor : EmptyBaseVisitor<ConstantGroupVisitor>(),
 
 }
 
-open class EmptyConstantVisitor : EmptyBaseVisitor<ConstantVisitor>(), ConstantVisitor {
+open class EmptyConstantVisitor : EmptyBaseVisitor<ConstantVisitor>(), ConstantVisitor
 
-}
+open class EmptyTargetVisitor : EmptyBaseVisitor<TargetVisitor>(), TargetVisitor
 
-open class EmptyTargetVisitor : EmptyBaseVisitor<TargetVisitor>(), TargetVisitor {
-
-}
-
-open class EmptyInnerClassVisitor : EmptyBaseVisitor<InnerClassVisitor>(), AccessParentVisitor<InnerClassVisitor> by EmptyAccessParentVisitor(), InnerClassVisitor {
-
-}
+open class EmptyInnerClassVisitor : EmptyBaseVisitor<InnerClassVisitor>(), AccessParentVisitor<InnerClassVisitor> by EmptyAccessParentVisitor(), InnerClassVisitor

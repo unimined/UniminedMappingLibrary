@@ -1,14 +1,16 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
 import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
-import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.PackageVisitor
 
 class MemoryMappingTree : AbstractMappingTree() {
     private val _namespaces = mutableListOf<Namespace>()
@@ -86,7 +88,7 @@ class MemoryMappingTree : AbstractMappingTree() {
         }
     }
 
-    override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
+    override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor {
         for (ns in namespaces.filter { it in names }) {
             // check if exists
             val existing = packages.firstOrNull { it.names[ns] == names[ns] }
@@ -123,7 +125,7 @@ class MemoryMappingTree : AbstractMappingTree() {
         name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
-    ): ConstantGroupVisitor? {
+    ): ConstantGroupVisitor {
         val node = ConstantGroupNode(this, type, name, baseNs)
         node.addNamespaces(namespaces)
         _constantGroups.add(node)

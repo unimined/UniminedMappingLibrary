@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.util.CharReader

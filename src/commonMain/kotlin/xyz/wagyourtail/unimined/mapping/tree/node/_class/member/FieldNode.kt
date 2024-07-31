@@ -6,8 +6,10 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateFieldVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.SignatureVisitor
 
 class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisitor>(parent, ::FieldNode), FieldVisitor {
     private val _signatures = mutableSetOf<SignatureNode<FieldVisitor>>()

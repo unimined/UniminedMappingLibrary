@@ -1,16 +1,16 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class
 
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvables
 import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
@@ -69,7 +69,7 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         return methods
     }
 
-    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor {
         val node = SignatureNode(this, value, baseNs)
         node.addNamespaces(namespaces)
         _signatures.add(node)
@@ -98,7 +98,7 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
     override fun visitInnerClass(
         type: InnerClassNode.InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
-    ): InnerClassVisitor? {
+    ): InnerClassVisitor {
         // find existing
         val inner = if (type in inners) {
             inners.getValue(type)

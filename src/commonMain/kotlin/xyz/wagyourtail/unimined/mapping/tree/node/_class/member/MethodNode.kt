@@ -6,13 +6,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateFieldVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMethodVisitor
 
 class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
     private val _signatures = mutableSetOf<SignatureNode<MethodVisitor>>()
@@ -33,14 +31,14 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         setDescriptors(descs.mapValues { FieldOrMethodDescriptor.unchecked(it.value.toString()) })
     }
 
-    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor {
         val node = SignatureNode(this, value, baseNs)
         node.addNamespaces(namespaces)
         _signatures.add(node)
         return node
     }
 
-    override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
+    override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor {
         for (param in params) {
             if (index != null && param.index == index) {
                 param.setNames(names)
@@ -57,7 +55,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return newParam
     }
 
-    override fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor? {
+    override fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, String>): LocalVariableVisitor {
         for (local in locals) {
             if (lvOrd == local.lvOrd && startOp == local.startOp) {
                 local.setNames(names)
@@ -75,7 +73,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         exception: InternalName,
         baseNs: Namespace,
         namespaces: Set<Namespace>
-    ): ExceptionVisitor? {
+    ): ExceptionVisitor {
         val node = ExceptionNode(this, type, exception, baseNs)
         node.addNamespaces(namespaces)
         _exceptions.add(node)

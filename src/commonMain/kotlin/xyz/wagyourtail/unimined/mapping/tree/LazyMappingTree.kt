@@ -13,7 +13,6 @@ import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
 
 /**
@@ -136,7 +135,7 @@ class LazyMappingTree : AbstractMappingTree() {
         return node.visitPackage(names)
     }
 
-    override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
+    override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor {
         for (ns in namespaces.filter { it in names }) {
             // check if exists
             val existing = getLazyClass(ns, names[ns]!!)
@@ -163,7 +162,7 @@ class LazyMappingTree : AbstractMappingTree() {
         name: String?,
         baseNs: Namespace,
         namespaces: Set<Namespace>
-    ): ConstantGroupVisitor? {
+    ): ConstantGroupVisitor {
         val node = LazyConstantGroupNode(this, type, name, baseNs, namespaces)
         _constantGroups.add(node)
         return node.visitConstantGroup(type, name, baseNs, namespaces)
@@ -211,7 +210,7 @@ class LazyMappingTree : AbstractMappingTree() {
             return ClassNode(tree).also { node ->
                 node.setNames(names)
                 accept(object: ThrowingVisitor() {
-                    override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor? {
+                    override fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor {
                         return node
                     }
                 }, tree.namespaces.toSet())
@@ -245,7 +244,7 @@ class LazyMappingTree : AbstractMappingTree() {
             this.value += value
         }
 
-        fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor? {
+        fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor {
             tree.mergeNs(names.keys)
             this._names.putAll(names)
             val delegator = UMFWriter.UMFWriterDelegator(::append, true)

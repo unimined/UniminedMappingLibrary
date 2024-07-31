@@ -1,8 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.*
+import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.unimined.mapping.util.translateEscapes
 import kotlin.jvm.JvmInline
 
 /**

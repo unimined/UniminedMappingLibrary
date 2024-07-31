@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.util.CharReader

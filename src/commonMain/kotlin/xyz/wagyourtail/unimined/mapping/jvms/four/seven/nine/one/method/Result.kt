@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.VoidDescriptor

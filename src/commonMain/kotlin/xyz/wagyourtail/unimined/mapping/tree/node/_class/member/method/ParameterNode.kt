@@ -4,10 +4,9 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateParameterVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyMethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ParameterVisitor
 
 class ParameterNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val index: Int?, val lvOrd: Int?) : MemberNode<ParameterVisitor, T>(parent),
     ParameterVisitor {

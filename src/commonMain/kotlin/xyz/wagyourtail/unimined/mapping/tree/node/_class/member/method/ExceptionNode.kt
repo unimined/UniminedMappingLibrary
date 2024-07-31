@@ -4,10 +4,10 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateWildcardVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyMethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
+import xyz.wagyourtail.unimined.mapping.visitor.ExceptionVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
 
 class ExceptionNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val type: ExceptionType, val exception: InternalName, val baseNs: Namespace) : BaseNode<ExceptionVisitor, T>(parent), ExceptionVisitor {
     private val _namespaces: MutableSet<Namespace> = mutableSetOf()

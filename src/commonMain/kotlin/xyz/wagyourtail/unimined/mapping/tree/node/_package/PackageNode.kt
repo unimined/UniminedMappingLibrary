@@ -44,7 +44,7 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         baseNs: Namespace,
         annotation: Annotation,
         namespaces: Set<Namespace>
-    ): AnnotationVisitor? {
+    ): AnnotationVisitor {
         val node = AnnotationNode(this, type, baseNs, annotation)
         node.addNamespaces(namespaces)
         _annotations.add(node)
@@ -52,7 +52,7 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         return node
     }
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
+    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor {
         val node = JavadocNode(this, value, baseNs)
         node.addNamespaces(namespaces)
         _comments.add(node)

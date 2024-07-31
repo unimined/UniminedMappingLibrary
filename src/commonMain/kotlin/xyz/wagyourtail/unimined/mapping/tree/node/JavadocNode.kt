@@ -2,8 +2,9 @@ package xyz.wagyourtail.unimined.mapping.tree.node
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
-import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyJavadocParentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.JavadocParentNode
+import xyz.wagyourtail.unimined.mapping.visitor.JavadocVisitor
 
 class JavadocNode<T: JavadocParentNode<T>>(parent: BaseNode<T, *>, val value: String, val baseNs: Namespace) : BaseNode<JavadocVisitor, T>(parent), JavadocVisitor {
     val _namespaces: MutableSet<Namespace> = mutableSetOf()

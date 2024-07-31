@@ -9,7 +9,10 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.JavadocVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 

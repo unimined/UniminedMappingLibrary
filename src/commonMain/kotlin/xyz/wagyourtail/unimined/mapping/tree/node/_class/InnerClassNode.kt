@@ -4,10 +4,9 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node.AccessParentNode
-import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateInnerClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.InnerClassVisitor
 
 class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParentNode<InnerClassVisitor, ClassVisitor>(parent), InnerClassVisitor {
     private val _names: MutableMap<Namespace, String> = mutableMapOf()

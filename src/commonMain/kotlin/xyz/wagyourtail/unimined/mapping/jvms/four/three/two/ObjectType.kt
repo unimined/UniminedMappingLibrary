@@ -1,12 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
-import okio.BufferedSource
-import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
-import xyz.wagyourtail.unimined.mapping.util.takeUTF8Until
 import kotlin.jvm.JvmInline
 
 /**

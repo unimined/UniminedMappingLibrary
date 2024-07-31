@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import xyz.wagyourtail.unimined.mapping.util.CharReader

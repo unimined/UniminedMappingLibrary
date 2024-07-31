@@ -200,7 +200,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
                 afterLoad(resolved)
 
-                val filled = mutableSetOf<Namespace>()
+                val filled = unmappedNs.toMutableSet()
                 for (entry in sorted) {
                     val toFill = entry.provides.map { it.first }.toSet() - filled
                     if (toFill.isNotEmpty()) {

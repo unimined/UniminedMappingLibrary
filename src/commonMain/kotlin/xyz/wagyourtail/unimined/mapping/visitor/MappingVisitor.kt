@@ -1,20 +1,19 @@
 package xyz.wagyourtail.unimined.mapping.visitor
 
-import okio.BufferedSink
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
+import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.util.Scoped
 
 interface BaseVisitor<T: BaseVisitor<T>> {

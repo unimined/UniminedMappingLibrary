@@ -1,12 +1,10 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
-import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
 
 abstract class AbstractFieldMethodNode<T: MemberVisitor<T>>(parent: ClassNode) : MemberNode<T, ClassVisitor>(parent) {
 

@@ -181,9 +181,7 @@ open class MultiMethodVisitor(visitors: List<MethodVisitor>): MultiMemberVisitor
 
 }
 
-open class MultiFieldVisitor(visitors: List<FieldVisitor>): MultiMemberVisitor<FieldVisitor>(visitors), FieldVisitor, SignatureParentVisitor<FieldVisitor> by MultiSignatureParentVisitor(visitors) {
-
-}
+open class MultiFieldVisitor(visitors: List<FieldVisitor>): MultiMemberVisitor<FieldVisitor>(visitors), FieldVisitor, SignatureParentVisitor<FieldVisitor> by MultiSignatureParentVisitor(visitors)
 
 open class MultiWildcardVisitor(visitors: List<WildcardVisitor>): MultiMemberVisitor<WildcardVisitor>(visitors), WildcardVisitor, SignatureParentVisitor<WildcardVisitor> by MultiSignatureParentVisitor(visitors) {
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
@@ -211,33 +209,19 @@ open class MultiWildcardVisitor(visitors: List<WildcardVisitor>): MultiMemberVis
 
 }
 
-open class MultiParameterVisitor(visitors: List<ParameterVisitor>): MultiMemberVisitor<ParameterVisitor>(visitors), ParameterVisitor {
+open class MultiParameterVisitor(visitors: List<ParameterVisitor>): MultiMemberVisitor<ParameterVisitor>(visitors), ParameterVisitor
 
-}
+open class MultiLocalVariableVisitor(visitors: List<LocalVariableVisitor>): MultiMemberVisitor<LocalVariableVisitor>(visitors), LocalVariableVisitor
 
-open class MultiLocalVariableVisitor(visitors: List<LocalVariableVisitor>): MultiMemberVisitor<LocalVariableVisitor>(visitors), LocalVariableVisitor {
+open class MultiExceptionVisitor(visitors: List<ExceptionVisitor>): MultiBaseVisitor<ExceptionVisitor>(visitors), ExceptionVisitor
 
-}
+open class MultiJavadocVisitor(visitors: List<JavadocVisitor>): MultiBaseVisitor<JavadocVisitor>(visitors), JavadocVisitor
 
-open class MultiExceptionVisitor(visitors: List<ExceptionVisitor>): MultiBaseVisitor<ExceptionVisitor>(visitors), ExceptionVisitor {
+open class MultiSignatureVisitor(visitors: List<SignatureVisitor>): MultiBaseVisitor<SignatureVisitor>(visitors), SignatureVisitor
 
-}
+open class MultiAccessVisitor(visitors: List<AccessVisitor>): MultiBaseVisitor<AccessVisitor>(visitors), AccessVisitor
 
-open class MultiJavadocVisitor(visitors: List<JavadocVisitor>): MultiBaseVisitor<JavadocVisitor>(visitors), JavadocVisitor {
-
-}
-
-open class MultiSignatureVisitor(visitors: List<SignatureVisitor>): MultiBaseVisitor<SignatureVisitor>(visitors), SignatureVisitor {
-
-}
-
-open class MultiAccessVisitor(visitors: List<AccessVisitor>): MultiBaseVisitor<AccessVisitor>(visitors), AccessVisitor {
-
-}
-
-open class MultiAnnotationVisitor(visitors: List<AnnotationVisitor>): MultiBaseVisitor<AnnotationVisitor>(visitors), AnnotationVisitor {
-
-}
+open class MultiAnnotationVisitor(visitors: List<AnnotationVisitor>): MultiBaseVisitor<AnnotationVisitor>(visitors), AnnotationVisitor
 
 open class MultiConstantGroupVisitor(visitors: List<ConstantGroupVisitor>): MultiBaseVisitor<ConstantGroupVisitor>(visitors), ConstantGroupVisitor {
     override fun visitConstant(
@@ -258,15 +242,9 @@ open class MultiConstantGroupVisitor(visitors: List<ConstantGroupVisitor>): Mult
 
 }
 
-open class MultiConstantVisitor(visitors: List<ConstantVisitor>): MultiBaseVisitor<ConstantVisitor>(visitors), ConstantVisitor {
+open class MultiConstantVisitor(visitors: List<ConstantVisitor>): MultiBaseVisitor<ConstantVisitor>(visitors), ConstantVisitor
 
-}
+open class MultiTargetVisitor(visitors: List<TargetVisitor>): MultiBaseVisitor<TargetVisitor>(visitors), TargetVisitor
 
-open class MultiTargetVisitor(visitors: List<TargetVisitor>): MultiBaseVisitor<TargetVisitor>(visitors), TargetVisitor {
-
-}
-
-open class MultiInnerClassVisitor(visitors: List<InnerClassVisitor>): MultiAccessParentVisitor<InnerClassVisitor>(visitors), InnerClassVisitor {
-
-}
+open class MultiInnerClassVisitor(visitors: List<InnerClassVisitor>): MultiAccessParentVisitor<InnerClassVisitor>(visitors), InnerClassVisitor
 

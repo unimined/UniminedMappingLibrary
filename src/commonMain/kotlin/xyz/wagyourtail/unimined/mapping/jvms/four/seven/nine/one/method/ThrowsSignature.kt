@@ -1,11 +1,9 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 
-import okio.BufferedSource
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.TypeVariableSignature
 import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.checkedToChar
 import kotlin.jvm.JvmInline
 
 /**

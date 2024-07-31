@@ -9,7 +9,9 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.EmptySignatureParentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.SignatureVisitor
 
 class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>, val value: String, val baseNs: Namespace) : BaseNode<SignatureVisitor, T>(parent), SignatureVisitor {
     val _namespaces: MutableSet<Namespace> = mutableSetOf()

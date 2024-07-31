@@ -1,7 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.util
 
-import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.internal.synchronized
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 

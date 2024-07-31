@@ -7,8 +7,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvableEntry
 import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
@@ -45,7 +45,7 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
     fun getFieldDescriptor(namespace: Namespace) = getDescriptor(namespace)?.getFieldDescriptor()
 
 
-    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
+    override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor {
         val node = SignatureNode(this, value, baseNs)
         node.addNamespaces(namespaces)
         _signatures.add(node)

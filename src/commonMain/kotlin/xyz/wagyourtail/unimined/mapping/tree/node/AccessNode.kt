@@ -4,8 +4,10 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateAccessVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.AccessParentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.AccessType
+import xyz.wagyourtail.unimined.mapping.visitor.AccessVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyAccessParentVisitor
 
 class AccessNode<U: AccessParentVisitor<U>>(parent: BaseNode<U, *>, val accessType: AccessType, val accessFlag: AccessFlag, val conditions: AccessConditions) : BaseNode<AccessVisitor, U>(parent), AccessVisitor {
     private val _namespaces: MutableSet<Namespace> = mutableSetOf()

@@ -2,7 +2,10 @@ package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.tree.node.*
+import xyz.wagyourtail.unimined.mapping.tree.node.AccessParentNode
+import xyz.wagyourtail.unimined.mapping.tree.node.AnnotationNode
+import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
+import xyz.wagyourtail.unimined.mapping.tree.node.JavadocNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 abstract class MemberNode<T: MemberVisitor<T>, U: BaseVisitor<U>>(parent: BaseNode<U, *>) : AccessParentNode<T, U>(parent), MemberVisitor<T> {
@@ -15,7 +18,7 @@ abstract class MemberNode<T: MemberVisitor<T>, U: BaseVisitor<U>>(parent: BaseNo
     override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
         val node = JavadocNode(this, value, baseNs)
         node.addNamespaces(namespaces)
-        _comments?.add(node)
+        _comments.add(node)
         return node
     }
 

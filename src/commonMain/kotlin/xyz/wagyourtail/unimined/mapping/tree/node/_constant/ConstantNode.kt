@@ -10,9 +10,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ConstantVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyConstantGroupVisitor
 
 class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constClass: InternalName, val constName: UnqualifiedName, val fieldDesc: FieldDescriptor?) : BaseNode<ConstantVisitor, ConstantGroupVisitor>(parent),
     ConstantVisitor {
