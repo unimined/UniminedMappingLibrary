@@ -132,6 +132,7 @@ class LazyMappingTree : AbstractMappingTree() {
         }
         val node = LazyPackageNode(this)
         _packages.add(node)
+        mergeNs(names.keys)
         return node.visitPackage(names)
     }
 
@@ -154,6 +155,7 @@ class LazyMappingTree : AbstractMappingTree() {
             byNamespace[ns]?.put(names[ns]!!, node)
         }
         _classes.add(node)
+        mergeNs(names.keys)
         return node.visitClass(names)
     }
 
@@ -165,6 +167,7 @@ class LazyMappingTree : AbstractMappingTree() {
     ): ConstantGroupVisitor {
         val node = LazyConstantGroupNode(this, type, name, baseNs, namespaces)
         _constantGroups.add(node)
+        mergeNs(setOf(baseNs) + namespaces)
         return node.visitConstantGroup(type, name, baseNs, namespaces)
     }
 
