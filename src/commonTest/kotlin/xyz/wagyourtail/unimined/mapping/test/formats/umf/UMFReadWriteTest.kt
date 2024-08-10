@@ -143,4 +143,38 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Min
         """.trimIndent()
         assertEquals(testOuput, output.trimEnd())
     }
+
+    @Test
+    fun testOverrideName() = runTest {
+        val inp = """
+umf	1	0
+intermediary	named
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
+	*	"example comment"	named
+	f	field_1724	_
+	m	method_1507;()V	testMethod;()V
+		p	_	0	_	this
+		v	1	_	_	lv1
+	m	method_1507;()V	nameOverride;()V
+        """.trimIndent().trimEnd()
+
+        val mappings = Buffer().use { input ->
+            input.writeUtf8(inp)
+            UMFReader.read(input)
+        }
+        val output = Buffer().use { output ->
+            mappings.accept(UMFWriter.write(output, false))
+            output.readUtf8()
+        }
+        assertEquals("""
+umf	1	0
+intermediary	named
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
+	*	"example comment"	named
+	f	field_1724	_
+	m	method_1507;()V	nameOverride;()V
+		p	_	0	_	this
+		v	1	_	_	lv1
+        """.trimIndent(), output.trimEnd())
+    }
 }

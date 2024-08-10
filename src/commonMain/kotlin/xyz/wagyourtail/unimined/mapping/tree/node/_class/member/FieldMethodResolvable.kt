@@ -37,11 +37,9 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
         for (name in names.keys) {
             val nameVal = names[name]!!
             val elementNameVal = element.names[name] ?: continue
-            if (elementNameVal != nameVal) {
-                // dont merge
-                return null
+            if (elementNameVal == nameVal) {
+                matched = true
             }
-            matched = true
         }
 
         if (!matched) {
