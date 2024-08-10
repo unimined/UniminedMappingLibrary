@@ -142,6 +142,22 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Min
 		v	1	_	_	lv1	_
         """.trimIndent()
         assertEquals(testOuput, output.trimEnd())
+
+        val lazyOutput = Buffer().use { output ->
+            mappings.lazyAccept(UMFWriter.write(output, true))
+            output.readUtf8()
+        }
+
+        assertEquals("""
+umf	1	0
+intermediary	named	extra
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Minecraft
+	*	"example comment"	named
+	f	field_1724	_	_
+	m	method_1507;()V	testMethod	_
+		p	_	0	_	this	_
+		v	1	_	_	lv1	_
+        """.trimIndent(), lazyOutput.trimEnd())
     }
 
     @Test

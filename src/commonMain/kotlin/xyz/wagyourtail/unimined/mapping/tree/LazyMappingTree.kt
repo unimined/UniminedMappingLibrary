@@ -168,26 +168,19 @@ class LazyMappingTree : AbstractMappingTree() {
         return node.visitConstantGroup(type, name, baseNs, namespaces)
     }
 
-//    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
-//        if (minimize) {
-//            super.acceptInner(visitor, nsFilter)
-//        } else {
-//            visitor.visitHeader(*namespaces.map { it.name }.toTypedArray())
-//            for (ext in extensions) {
-//                ext.value.accept(visitor, nsFilter,)
-//            }
-//            val nsFilterSet = nsFilter.toSet()
-//            for (node in _packages) {
-//                node.accept(visitor, nsFilterSet)
-//            }
-//            for (node in _classes) {
-//                node.accept(visitor, nsFilterSet)
-//            }
-//            for (node in _constantGroups) {
-//                node.accept(visitor, nsFilterSet)
-//            }
-//        }
-//    }
+    fun lazyAccept(visitor: MappingVisitor, nsFilter: Collection<Namespace> = namespaces) {
+        visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
+        for (pkg in _packages) {
+            pkg.accept(visitor, nsFilter)
+        }
+        for (cls in _classes) {
+            cls.accept(visitor, nsFilter)
+        }
+        for (group in _constantGroups) {
+            group.accept(visitor, nsFilter)
+        }
+        visitor.visitEnd()
+    }
 
     class LazyClassNode(val tree: LazyMappingTree) {
         var _names: MutableMap<Namespace, InternalName> = mutableMapOf()
