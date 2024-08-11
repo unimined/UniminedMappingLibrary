@@ -14,6 +14,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.NamespaceRecordingDelegate
 
 /**
  * for memory limited environments
@@ -198,8 +199,10 @@ class LazyMappingTree : AbstractMappingTree() {
             tree.mergeNs(names.keys)
             this._names.putAll(names)
             val delegator = UMFWriter.UMFWriterDelegator(::append, true)
-            delegator.namespaces = tree.namespaces.toList()
-            return DelegateClassVisitor(EmptyClassVisitor(), delegator)
+            return DelegateClassVisitor(DelegateClassVisitor(EmptyClassVisitor(), delegator), NamespaceRecordingDelegate {
+                tree.mergeNs(it)
+                delegator.namespaces = tree.namespaces.toList()
+            })
         }
 
         fun resolve(): ClassNode {
@@ -244,8 +247,10 @@ class LazyMappingTree : AbstractMappingTree() {
             tree.mergeNs(names.keys)
             this._names.putAll(names)
             val delegator = UMFWriter.UMFWriterDelegator(::append, true)
-            delegator.namespaces = tree.namespaces.toList()
-            return DelegatePackageVisitor(EmptyPackageVisitor(), delegator)
+            return DelegatePackageVisitor(DelegatePackageVisitor(EmptyPackageVisitor(), delegator), NamespaceRecordingDelegate {
+                tree.mergeNs(it)
+                delegator.namespaces = tree.namespaces.toList()
+            })
         }
 
         fun resolve(): PackageNode {
