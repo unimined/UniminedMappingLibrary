@@ -49,7 +49,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         return entries.entries.sortedBy { it.key }.joinToString("-") { it.value.id }
     }
 
-    open fun propogator(tree: MemoryMappingTree): MemoryMappingTree = tree
+    open suspend fun propogator(tree: MemoryMappingTree): MemoryMappingTree = tree
 
     fun checkedNsOrNull(name: String): Namespace? {
         val ns = Namespace(name)
@@ -132,7 +132,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
         return resolveLock.withLock {
-            if (::resolved.isInitialized) return resolved
+            if (::resolved.isInitialized) return@withLock resolved
             finalize()
             val values = _entries.values
             val resolvedEntries = mutableSetOf<MappingEntry>()
@@ -204,7 +204,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 for (entry in sorted) {
                     val toFill = entry.provides.map { it.first }.toSet() - filled
                     if (toFill.isNotEmpty()) {
-                        resolved.accept(resolved.copyTo(entry.requires, toFill, resolved))
+                        resolved.accept(resolved.copyTo(entry.requires, toFill))
                         filled.addAll(toFill)
                     }
                 }

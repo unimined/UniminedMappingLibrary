@@ -72,7 +72,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
         for ((from, to) in copyMissingMap) {
             LOGGER.info { "Copying missing names from $from to ${to.joinToString(", ")}" }
             val t = measureTime {
-                mappings.accept(mappings.copyTo(Namespace(from), to.map { Namespace(it) }.toSet(), mappings))
+                mappings.accept(mappings.copyTo(Namespace(from), to.map { Namespace(it) }.toSet()))
             }
             LOGGER.info { "Copied missing names in ${t.inWholeMilliseconds}ms" }
         }

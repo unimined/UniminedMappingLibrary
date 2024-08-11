@@ -5,14 +5,13 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-fun MappingVisitor.copyTo(from: Namespace, to: Set<Namespace>, context: MemoryMappingTree, onlyMissing: Boolean = true): MappingVisitor {
-    return DelegateMappingVisitor(this, NameCopyDelegate(from, to, context, onlyMissing))
+fun MappingVisitor.copyTo(from: Namespace, to: Set<Namespace>, onlyMissing: Boolean = true): MappingVisitor {
+    return DelegateMappingVisitor(this, NameCopyDelegate(from, to, onlyMissing))
 }
 
-private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val context: MemoryMappingTree, val onlyMissing: Boolean) : Delegator() {
+private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val onlyMissing: Boolean) : NullDelegator() {
 
     fun Set<Namespace>.ifOnlyMissing(): Set<Namespace> {
         return if (onlyMissing) to - this else to
@@ -20,20 +19,20 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
 
     override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
         val nameMap = names.toMutableMap()
-        val name = nameMap[from] ?: return super.visitClass(delegate, nameMap)
+        val name = nameMap[from] ?: return default.visitClass(delegate, nameMap)
         for (namespace in nameMap.keys.ifOnlyMissing()) {
             nameMap[namespace] = name
         }
-        return super.visitClass(delegate, nameMap)
+        return default.visitClass(delegate, nameMap)
     }
 
     override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
         val nameMap = names.toMutableMap()
-        val name = nameMap[from] ?: return super.visitPackage(delegate, nameMap)
+        val name = nameMap[from] ?: return default.visitPackage(delegate, nameMap)
         for (namespace in nameMap.keys.ifOnlyMissing()) {
             nameMap[namespace] = name
         }
-        return super.visitPackage(delegate, nameMap)
+        return default.visitPackage(delegate, nameMap)
     }
 
     override fun visitField(
@@ -41,11 +40,11 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         names: Map<Namespace, Pair<String, FieldDescriptor?>>
     ): FieldVisitor? {
         val nameMap = names.toMutableMap()
-        val name = nameMap[from] ?: return super.visitField(delegate, nameMap)
+        val name = nameMap[from] ?: return default.visitField(delegate, nameMap)
         for (namespace in nameMap.keys.ifOnlyMissing()) {
             nameMap[namespace] = name.first to null
         }
-        return super.visitField(delegate, nameMap)
+        return default.visitField(delegate, nameMap)
     }
 
     override fun visitMethod(
@@ -53,11 +52,11 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         names: Map<Namespace, Pair<String, MethodDescriptor?>>
     ): MethodVisitor? {
         val nameMap = names.toMutableMap()
-        val name = nameMap[from] ?: return super.visitMethod(delegate, nameMap)
+        val name = nameMap[from] ?: return default.visitMethod(delegate, nameMap)
         for (namespace in nameMap.keys.ifOnlyMissing()) {
             nameMap[namespace] = name.first to null
         }
-        return super.visitMethod(delegate, nameMap)
+        return default.visitMethod(delegate, nameMap)
     }
 
     override fun visitParameter(
@@ -67,11 +66,11 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         names: Map<Namespace, String>
     ): ParameterVisitor? {
         val nameMap = names.toMutableMap()
-        val name = nameMap[from] ?: return super.visitParameter(delegate, index, lvOrd, nameMap)
+        val name = nameMap[from] ?: return default.visitParameter(delegate, index, lvOrd, nameMap)
         for (namespace in nameMap.keys.ifOnlyMissing()) {
             nameMap[namespace] = name
         }
-        return super.visitParameter(delegate, index, lvOrd, nameMap)
+        return default.visitParameter(delegate, index, lvOrd, nameMap)
     }
 
     override fun visitLocalVariable(
@@ -81,11 +80,11 @@ private class NameCopyDelegate(val from: Namespace, val to: Set<Namespace>, val 
         names: Map<Namespace, String>
     ): LocalVariableVisitor? {
         val nameMap = names.toMutableMap()
-        val name = nameMap[from] ?: return super.visitLocalVariable(delegate, lvOrd, startOp, nameMap)
+        val name = nameMap[from] ?: return default.visitLocalVariable(delegate, lvOrd, startOp, nameMap)
         for (namespace in nameMap.keys.ifOnlyMissing()) {
             nameMap[namespace] = name
         }
-        return super.visitLocalVariable(delegate, lvOrd, startOp, nameMap)
+        return default.visitLocalVariable(delegate, lvOrd, startOp, nameMap)
     }
 
 }
