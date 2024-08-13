@@ -153,6 +153,12 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         for (inner in inners.values) {
             inner.accept(visitor, nsFilter)
         }
+        for (seal in seals) {
+            seal.accept(visitor, nsFilter)
+        }
+        for (intf in interfaces) {
+            intf.accept(visitor, nsFilter)
+        }
         for (wildcard in wildcards.resolve()) {
             wildcard.accept(visitor, nsFilter)
         }
