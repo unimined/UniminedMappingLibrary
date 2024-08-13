@@ -84,6 +84,17 @@ enum class ExceptionType {
     REMOVE
 }
 
+enum class SealedType {
+    ADD,
+    REMOVE,
+    CLEAR
+}
+
+enum class InterfacesType {
+    ADD,
+    REMOVE
+}
+
 interface PackageVisitor : AnnotationParentVisitor<PackageVisitor>, JavadocParentNode<PackageVisitor>
 
 interface ClassVisitor : MemberVisitor<ClassVisitor>, SignatureParentVisitor<ClassVisitor> {
@@ -95,6 +106,10 @@ interface ClassVisitor : MemberVisitor<ClassVisitor>, SignatureParentVisitor<Cla
     fun visitInnerClass(type: InnerClassNode.InnerType, names: Map<Namespace, Pair<String, FullyQualifiedName?>>): InnerClassVisitor?
 
     fun visitWildcard(type: WildcardNode.WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>): WildcardVisitor?
+
+    fun visitSeal(type: SealedType, name: InternalName?, baseNs: Namespace, namespaces: Set<Namespace>): SealVisitor?
+
+    fun visitInterface(type: InterfacesType, name: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): InterfaceVisitor?
 }
 
 interface InvokableVisitor<T: InvokableVisitor<T>> : MemberVisitor<T>, SignatureParentVisitor<T> {
@@ -140,4 +155,8 @@ interface ConstantVisitor : BaseVisitor<ConstantVisitor>
 interface TargetVisitor : BaseVisitor<TargetVisitor>
 
 interface InnerClassVisitor : AccessParentVisitor<InnerClassVisitor>
+
+interface SealVisitor : BaseVisitor<SealVisitor>
+
+interface InterfaceVisitor : BaseVisitor<InterfaceVisitor>
 

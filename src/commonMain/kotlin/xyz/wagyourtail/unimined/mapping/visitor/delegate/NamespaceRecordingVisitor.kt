@@ -75,6 +75,28 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
         return super.visitInnerClass(delegate, type, names)
     }
 
+    override fun visitSeal(
+        delegate: ClassVisitor,
+        type: SealedType,
+        name: InternalName?,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SealVisitor? {
+        recorder(namespaces + baseNs)
+        return super.visitSeal(delegate, type, name, baseNs, namespaces)
+    }
+
+    override fun visitInterface(
+        delegate: ClassVisitor,
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        recorder(namespaces + baseNs)
+        return super.visitInterface(delegate, type, name, baseNs, namespaces)
+    }
+
     override fun visitParameter(
         delegate: InvokableVisitor<*>,
         index: Int?,

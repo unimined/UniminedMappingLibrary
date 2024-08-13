@@ -123,7 +123,7 @@ object UMFReader : FormatReader {
                 if (input.exhausted()) break
                 throw IllegalArgumentException("Invalid entry type ${token.second}")
             }
-            val entryType = EntryType.byKey[token.second.first()] ?: throw IllegalArgumentException("Invalid entry type ${token.second}")
+            val entryType = EntryType.byKey[token.second.first().lowercaseChar()] ?: throw IllegalArgumentException("Invalid entry type ${token.second}")
             while (indent <= indentStack.last()) {
                 visitStack.removeLast()?.visitEnd()
                 indentStack.removeLast()
@@ -295,7 +295,6 @@ object UMFReader : FormatReader {
                     last as SignatureParentVisitor<*>?
                     last?.visitSignature(sig, names.next(), names.asSequence().toSet())
                 }
-                EntryType.EXTENSION -> TODO()
             }
             if (next != null) {
                 visitStack.add(next)
@@ -327,8 +326,9 @@ object UMFReader : FormatReader {
         CONSTANT_GROUP('u'),
         CONSTANT('n'),
         CONSTANT_TARGET('t'),
-        EXTENSION('e'),
         COMMENT('#'),
+        INTERFACE('j'),
+        SEAL('s')
         ;
 
         companion object {

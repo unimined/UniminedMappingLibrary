@@ -64,6 +64,28 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
         return super.visitInnerClass(delegate, type, n)
     }
 
+    override fun visitSeal(
+        delegate: ClassVisitor,
+        type: SealedType,
+        name: InternalName?,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SealVisitor? {
+        if (baseNs !in namespaces) return null
+        return super.visitSeal(delegate, type, name, baseNs, namespaces.filter { if (inverted) it !in ns else it in ns }.toSet())
+    }
+
+    override fun visitInterface(
+        delegate: ClassVisitor,
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        if (baseNs !in namespaces) return null
+        return super.visitInterface(delegate, type, name, baseNs, namespaces.filter { if (inverted) it !in ns else it in ns }.toSet())
+    }
+
     override fun visitWildcard(
         delegate: ClassVisitor,
         type: WildcardNode.WildcardType,

@@ -85,6 +85,22 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
+    open fun visitInterface(delegate: ClassVisitor, type: InterfacesType, name: InternalName, baseNs: Namespace, namespaces: Set<Namespace>): InterfaceVisitor? {
+        return delegate.visitInterface(type, name, baseNs, namespaces)?.let { DelegateInterfaceVisitor(it, delegator) }
+    }
+
+    open fun visitInterfaceEnd(delegate: InterfaceVisitor) {
+        visitEnd(delegate)
+    }
+
+    open fun visitSeal(delegate: ClassVisitor, type: SealedType, name: InternalName?, baseNs: Namespace, namespaces: Set<Namespace>): SealVisitor? {
+        return delegate.visitSeal(type, name, baseNs, namespaces)?.let { DelegateSealVisitor(it, delegator) }
+    }
+
+    open fun visitSealEnd(delegate: SealVisitor) {
+        visitEnd(delegate)
+    }
+
     open fun visitParameter(delegate: InvokableVisitor<*>,  index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
         return delegate.visitParameter(index, lvOrd, names)?.let { DelegateParameterVisitor(it, delegator) }
     }
@@ -370,6 +386,19 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
         descs: Map<Namespace, FieldOrMethodDescriptor>
     ): WildcardVisitor? {
         return delegator.visitWildcard(delegate, type, descs)
+    }
+
+    override fun visitSeal(type: SealedType, name: InternalName?, baseNs: Namespace, namespaces: Set<Namespace>): SealVisitor? {
+        return delegator.visitSeal(delegate, type, name, baseNs, namespaces)
+    }
+
+    override fun visitInterface(
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        return delegator.visitInterface(delegate, type, name, baseNs, namespaces)
     }
 
     override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
@@ -672,6 +701,22 @@ open class DelegateInnerClassVisitor(delegate: InnerClassVisitor, delegator: Del
 
     override fun visitEnd() {
         delegator.visitInnerClassEnd(delegate)
+    }
+
+}
+
+open class DelegateSealVisitor(delegate: SealVisitor, delegator: Delegator): DelegateBaseVisitor<SealVisitor>(delegate, delegator), SealVisitor {
+
+    override fun visitEnd() {
+        delegator.visitSealEnd(delegate)
+    }
+
+}
+
+open class DelegateInterfaceVisitor(delegate: InterfaceVisitor, delegator: Delegator): DelegateBaseVisitor<InterfaceVisitor>(delegate, delegator), InterfaceVisitor {
+
+    override fun visitEnd() {
+        delegator.visitInterfaceEnd(delegate)
     }
 
 }

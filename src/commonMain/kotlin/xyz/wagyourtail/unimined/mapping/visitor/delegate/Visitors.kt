@@ -68,6 +68,30 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
         return super.visitInnerClass(delegate, type, n)
     }
 
+    override fun visitSeal(
+        delegate: ClassVisitor,
+        type: SealedType,
+        name: InternalName?,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SealVisitor? {
+        val n = namespaces.map { nsMap[it] ?: it }.toSet()
+        if (n.isEmpty()) return null
+        return super.visitSeal(delegate, type, name, nsMap[baseNs] ?: baseNs, namespaces)
+    }
+
+    override fun visitInterface(
+        delegate: ClassVisitor,
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        val n = namespaces.map { nsMap[it] ?: it }.toSet()
+        if (n.isEmpty()) return null
+        return super.visitInterface(delegate, type, name, nsMap[baseNs] ?: baseNs, namespaces)
+    }
+
     override fun visitParameter(
         delegate: InvokableVisitor<*>,
         index: Int?,

@@ -157,6 +157,28 @@ open class MultiClassVisitor(visitors: List<ClassVisitor>) : MultiMemberVisitor<
         return MultiWildcardVisitor(visitors)
     }
 
+    override fun visitSeal(
+        type: SealedType,
+        name: InternalName?,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SealVisitor? {
+        val visitors = visitors.mapNotNull { it.visitSeal(type, name, baseNs, namespaces) }
+        if (visitors.isEmpty()) return null
+        return MultiSealVisitor(visitors)
+    }
+
+    override fun visitInterface(
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        val visitors = visitors.mapNotNull { it.visitInterface(type, name, baseNs, namespaces) }
+        if (visitors.isEmpty()) return null
+        return MultiInterfaceVisitor(visitors)
+    }
+
 }
 
 open class MultiMethodVisitor(visitors: List<MethodVisitor>): MultiMemberVisitor<MethodVisitor>(visitors), MethodVisitor, SignatureParentVisitor<MethodVisitor> by MultiSignatureParentVisitor(visitors) {
@@ -248,3 +270,6 @@ open class MultiTargetVisitor(visitors: List<TargetVisitor>): MultiBaseVisitor<T
 
 open class MultiInnerClassVisitor(visitors: List<InnerClassVisitor>): MultiAccessParentVisitor<InnerClassVisitor>(visitors), InnerClassVisitor
 
+open class MultiSealVisitor(visitors: List<SealVisitor>): MultiBaseVisitor<SealVisitor>(visitors), SealVisitor
+
+open class MultiInterfaceVisitor(visitors: List<InterfaceVisitor>): MultiBaseVisitor<InterfaceVisitor>(visitors), InterfaceVisitor

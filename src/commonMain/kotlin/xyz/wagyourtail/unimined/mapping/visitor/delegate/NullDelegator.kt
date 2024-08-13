@@ -46,6 +46,26 @@ open class NullDelegator : Delegator() {
         return null
     }
 
+    override fun visitSeal(
+        delegate: ClassVisitor,
+        type: SealedType,
+        name: InternalName?,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SealVisitor? {
+        return null
+    }
+
+    override fun visitInterface(
+        delegate: ClassVisitor,
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        return null
+    }
+
     override fun visitParameter(delegate: InvokableVisitor<*>, index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
         return null
     }

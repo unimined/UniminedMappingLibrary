@@ -8,7 +8,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.node.InterfaceNode
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvables
+import xyz.wagyourtail.unimined.mapping.tree.node.SealNode
 import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
@@ -19,8 +21,11 @@ import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingVisitor>(parent), ClassVisitor {
-    private val _names: MutableMap<Namespace, InternalName?> = mutableMapOf()
-    private val _signatures: MutableSet<SignatureNode<ClassVisitor>> = mutableSetOf()
+    private val _names = mutableMapOf<Namespace, InternalName?>()
+    private val _signatures = mutableSetOf<SignatureNode<ClassVisitor>>()
+    private val _inners = mutableMapOf<InnerClassNode.InnerType, InnerClassNode>()
+    private val _interfaces = mutableSetOf<InterfaceNode>()
+    private val _seals = mutableSetOf<SealNode>()
 
     val signatures: Set<SignatureNode<ClassVisitor>> get() = _signatures
 
@@ -36,7 +41,11 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         MethodNode(this)
     }
 
-    val inners = mutableMapOf<InnerClassNode.InnerType, InnerClassNode>()
+    val inners: Map<InnerClassNode.InnerType, InnerClassNode> get() = _inners
+
+    val interfaces: Set<InterfaceNode> get() = _interfaces
+
+    val seals: Set<SealNode> get() = _seals
 
     fun getName(namespace: Namespace) = _names[namespace]
 
@@ -95,6 +104,25 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         wildcards.addUnresolved(this)
     }
 
+    override fun visitSeal(type: SealedType, name: InternalName?, baseNs: Namespace, namespaces: Set<Namespace>): SealVisitor? {
+        val seal = SealNode(this, type, name, baseNs)
+        seal.addNamespaces(namespaces)
+        _seals.add(seal)
+        return seal
+    }
+
+    override fun visitInterface(
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        val intf = InterfaceNode(this, type, name, baseNs)
+        intf.addNamespaces(namespaces)
+        _interfaces.add(intf)
+        return intf
+    }
+
     override fun visitInnerClass(
         type: InnerClassNode.InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
@@ -103,7 +131,7 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         val inner = if (type in inners) {
             inners.getValue(type)
         } else {
-            InnerClassNode(this, type).also { inners[type] = it }
+            InnerClassNode(this, type).also { _inners[type] = it }
         }
         inner.setNames(names.mapValues { it.value.first })
         inner.setTargets(names.mapNotNullValues { it.value.second })

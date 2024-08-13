@@ -22,6 +22,8 @@ created over the years.
     * [access transformer / access mappings](#access)
     * [constant uninlining](#constant-group)
     * [exceptions](#exceptions)
+    * [sealed classes](#sealed)
+    * [interface modification](#interfaces)
 2. Must be human-readable
 3. Must be relatively easy to parse / write
 4. all notations must be able to represent everything legal by the jvms
@@ -302,6 +304,34 @@ with static, final, abstract, synthetic, bridge, it's additive since these are f
 package-private is represented as `package`
 
 Changing method access from private will change `INVOKESPECIAL` to `INVOKEVIRTUAL` for the method.
+
+## Sealed
+
+this can add/remove/clear the classes for sealing, if a sealed list is cleared, the class becomes unsealed.
+sealed will be defined as
+```
+s <action> <child> <ns1 name> <ns2 name> <ns3 name> ...
+s c <ns1 name> <ns2 name> <ns3 name> ...
+```
+
+where `<ns1 name>`, `<ns2 name>`, `<ns3 name>`, etc are the namespace names to operate on.
+if none of the namespaces in the file are just numbers, indexes can be used instead of names.
+
+`<action>` is either `+`, `-` or `c` for add, remove, and clear, respectively.
+`<child>` is the internal name of a class to add/remove to the sealed list  in `<ns1 name>`'s names.
+this argument is not included on `c`
+
+## Interfaces
+
+this can add/remove an interface from the interfaces list for a class/interface.
+interfaces will be defined as
+`j <action> <ifname> <ns1 name> <ns2 name> <ns3 name> ...`
+
+where `<ns1 name>`, `<ns2 name>`, `<ns3 name>`, etc are the namespace names to operate on.
+if none of the namespaces in the file are just numbers, indexes can be used instead of names.
+
+where `<action>` is either `+` or `-` for add and remove respectively.
+`<ifname>` is the internal name of an interface in `<ns1 name>`'s names.
 
 ## Constant Group
 
