@@ -234,6 +234,39 @@ object UMFReader : FormatReader {
                     last as ClassVisitor?
                     last?.visitInnerClass(type, names)
                 }
+                EntryType.SEAL -> {
+                    val type = fixValue(input.takeNext())!!.let {
+                        when (it) {
+                            "+" -> SealedType.ADD
+                            "-" -> SealedType.REMOVE
+                            "c" -> SealedType.CLEAR
+                            else -> throw IllegalArgumentException("Invalid seal type $it")
+                        }
+                    }
+                    val name = if (type != SealedType.CLEAR) {
+                        fixValue(input.takeNext())?.let {
+                            if (unchecked) InternalName.unchecked(it) else InternalName.read(it)
+                        }
+                    } else null
+                    val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()
+                    last as ClassVisitor?
+                    last?.visitSeal(type, name, names.next(), names.asSequence().toSet())
+                }
+                EntryType.INTERFACE -> {
+                    val type = fixValue(input.takeNext())!!.let {
+                        when (it) {
+                            "+" -> InterfacesType.ADD
+                            "-" -> InterfacesType.REMOVE
+                            else -> throw IllegalArgumentException("Invalid interface type $it")
+                        }
+                    }
+                    val name = fixValue(input.takeNext())!!.let {
+                        if (unchecked) InternalName.unchecked(it) else InternalName.read(it)
+                    }
+                    val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()
+                    last as ClassVisitor?
+                    last?.visitInterface(type, name, names.next(), names.asSequence().toSet())
+                }
                 EntryType.JAVADOC -> {
                     val comment = fixValue(input.takeNext())!!
                     val names = input.takeRemainingOnLine().mapNotNull { fixValue(it) }.map { Namespace(it) }.iterator()

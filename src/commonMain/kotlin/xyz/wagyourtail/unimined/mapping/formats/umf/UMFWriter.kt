@@ -219,6 +219,63 @@ object UMFWriter : FormatWriter {
             return super.visitInnerClass(delegate, type, names)
         }
 
+        override fun visitSeal(
+            delegate: ClassVisitor,
+            type: SealedType,
+            name: InternalName?,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
+        ): SealVisitor? {
+            val typeStr = when (type) {
+                SealedType.ADD -> "+"
+                SealedType.REMOVE -> "-"
+                SealedType.CLEAR -> "c"
+            }
+            into(indent)
+            into("${UMFReader.EntryType.SEAL.key}\t$typeStr\t")
+            if (type != SealedType.CLEAR) {
+                into(name!!.value.maybeEscape())
+                into("\t")
+            }
+            into(baseNs.name.maybeEscape())
+            for (ns in this.namespaces) {
+                if (ns in namespaces) {
+                    into("\t")
+                    into(ns.name.maybeEscape())
+                }
+            }
+            into("\n")
+            indent += "\t"
+            return super.visitSeal(delegate, type, name, baseNs, namespaces)
+        }
+
+        override fun visitInterface(
+            delegate: ClassVisitor,
+            type: InterfacesType,
+            name: InternalName,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
+        ): InterfaceVisitor? {
+            val typeStr = when (type) {
+                InterfacesType.ADD -> "+"
+                InterfacesType.REMOVE -> "-"
+            }
+            into(indent)
+            into("${UMFReader.EntryType.INTERFACE.key}\t$typeStr\t")
+            into(name.value.maybeEscape())
+            into("\t")
+            into(baseNs.name.maybeEscape())
+            for (ns in this.namespaces) {
+                if (ns in namespaces) {
+                    into("\t")
+                    into(ns.name.maybeEscape())
+                }
+            }
+            into("\n")
+            indent += "\t"
+            return super.visitInterface(delegate, type, name, baseNs, namespaces)
+        }
+
         override fun visitParameter(
             delegate: InvokableVisitor<*>,
             index: Int?,
