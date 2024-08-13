@@ -1,5 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.util
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlin.jvm.JvmName
 
 class ListCompare<T: Comparable<T>>(val list: List<T>): Comparable<ListCompare<T>> {
@@ -16,6 +19,10 @@ class ListCompare<T: Comparable<T>>(val list: List<T>): Comparable<ListCompare<T
         return 0
     }
 
+}
+
+suspend fun <A, B> Iterable<A>.parallelMap(f: suspend (A) -> B): List<B> = coroutineScope {
+    map { async { f(it) } }.awaitAll()
 }
 
 fun <K, V> Map<K, V>.firstAsMap(): Map<K, V> {

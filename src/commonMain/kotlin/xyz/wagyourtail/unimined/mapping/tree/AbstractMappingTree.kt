@@ -49,10 +49,15 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
 
     abstract fun getClass(namespace: Namespace, name: InternalName): ClassNode?
 
-    fun mapDescriptor(fromNs: Namespace, toNs: Namespace, descriptor: FieldOrMethodDescriptor): FieldOrMethodDescriptor {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
+    fun checkNamespace(ns: Namespace) {
+        if (ns !in namespaces) {
+            throw IllegalArgumentException("Invalid namespace $ns, expected one of: $namespaces")
         }
+    }
+
+    fun mapDescriptor(fromNs: Namespace, toNs: Namespace, descriptor: FieldOrMethodDescriptor): FieldOrMethodDescriptor {
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return descriptor
         return FieldOrMethodDescriptor.unchecked(buildString {
             descriptor.accept(descRemapAcceptor(fromNs, toNs))
@@ -60,9 +65,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun mapDescriptor(fromNs: Namespace, toNs: Namespace, descriptor: FieldDescriptor): FieldDescriptor {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return descriptor
         return FieldDescriptor.unchecked(buildString {
             descriptor.accept(descRemapAcceptor(fromNs, toNs))
@@ -70,9 +74,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun mapDescriptor(fromNs: Namespace, toNs: Namespace, descriptor: MethodDescriptor): MethodDescriptor {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return descriptor
         return MethodDescriptor.unchecked(buildString {
             descriptor.accept(descRemapAcceptor(fromNs, toNs))
@@ -80,9 +83,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun mapClassSignature(fromNs: Namespace, toNs: Namespace, signature: String): String {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return signature
         return buildString {
             JVMS.parseClassSignature(signature).accept(signatureRemapAcceptor(fromNs, toNs))
@@ -90,9 +92,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun mapMethodSignature(fromNs: Namespace, toNs: Namespace, signature: String): String {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return signature
         return buildString {
             JVMS.parseMethodSignature(signature).accept(signatureRemapAcceptor(fromNs, toNs))
@@ -100,9 +101,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun mapFieldSignature(fromNs: Namespace, toNs: Namespace, signature: String): String {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return signature
         return buildString {
             JVMS.parseFieldSignature(signature).accept(signatureRemapAcceptor(fromNs, toNs))
@@ -110,9 +110,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun mapAnnotation(fromNs: Namespace, toNs: Namespace, annotation: Annotation): Annotation {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return annotation
         return Annotation.unchecked(buildString {
             annotation.accept(annotationRemapAcceptor(fromNs, toNs, annotation))
@@ -120,9 +119,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun map(fromNs: Namespace, toNs: Namespace, internalName: InternalName): InternalName {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return internalName
         val cls = getClass(fromNs, internalName)
         if (cls != null) {
@@ -134,9 +132,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun mapPackage(fromNs: Namespace, toNs: Namespace, packageName: PackageName): PackageName {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return packageName
         for ((map, _) in packagesIter()) {
             if (map.values.contains(packageName)) {
@@ -147,9 +144,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     }
 
     fun map(fromNs: Namespace, toNs: Namespace, fullyQualifiedName: FullyQualifiedName): FullyQualifiedName {
-        if (!namespaces.contains(fromNs) || !namespaces.contains(toNs)) {
-            throw IllegalArgumentException("Invalid namespace")
-        }
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
         if (fromNs == toNs) return fullyQualifiedName
         val parts = fullyQualifiedName.getParts()
         val cls = getClass(fromNs, parts.first.getInternalName())

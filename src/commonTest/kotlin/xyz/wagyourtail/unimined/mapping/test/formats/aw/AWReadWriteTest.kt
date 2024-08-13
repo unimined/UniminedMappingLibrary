@@ -55,6 +55,17 @@ c	net/minecraft/class_3721
     }
 
     @Test
+    fun testReadWithTabs() = runTest {
+        val aw = Buffer().use {
+            it.writeUtf8(awText.replace(" ", "\t"))
+            AWReader.read(it, EnvType.JOINED)
+        }
+        val umfOut = Buffer().use {
+            aw.accept(UMFWriter.write(it, EnvType.JOINED))
+        }
+    }
+
+    @Test
     fun testIndirect() = runTest {
         val aw = Buffer().use {
             it.writeUtf8(awText)

@@ -193,4 +193,50 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 		v	1	_	_	lv1
         """.trimIndent(), output.trimEnd())
     }
+
+    @Test
+    fun testAddDescInfo() = runTest {
+        val inp = """
+umf	1	0
+intermediary	named
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
+	*	"example comment"	named
+	f	field_1724	fieldName
+		*	"comment"	named
+	f	field_1724;Z	_
+	m	method_1507	testMethod
+		p	_	0	_	this
+		v	1	_	_	lv1
+	m	method_1507;()V	nameOverride
+		*	"comment"	named
+        """.trimIndent().trimEnd()
+
+        val mappings = Buffer().use { input ->
+            input.writeUtf8(inp)
+            UMFReader.read(input)
+        }
+
+        val output = Buffer().use { output ->
+            mappings.accept(UMFWriter.write(output, false))
+            output.readUtf8()
+        }
+
+        assertEquals("""
+umf	1	0
+intermediary	named
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
+	*	"example comment"	named
+	f	field_1724	fieldName
+		*	comment	named
+	f	field_1724;Z	fieldName;Z
+		*	comment	named
+	m	method_1507	testMethod
+		p	_	0	_	this
+		v	1	_	_	lv1
+	m	method_1507;()V	nameOverride;()V
+		*	comment	named
+		p	_	0	_	this
+		v	1	_	_	lv1
+        """.trimIndent(), output.trimEnd())
+    }
 }

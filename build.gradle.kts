@@ -38,7 +38,12 @@ kotlin {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         mainRun {
             mainClass.set(main)
-            args("-i", "int.tiny", "-i", "yarn.tiny", "-pns", "official", "-p", "mc.jar", "-m", "official", "intermediary", "-m", "intermediary", "named", "-o", "tinyv2", "joined.tiny")
+            args(
+                "-i", "preProp-intermediary-yarn-1-stubs-0641d60.umf",
+                "-pns", "official",
+                "-p", "client.jar",
+                "export", "umf", "propagated.umf"
+            )
         }
     }
     js {

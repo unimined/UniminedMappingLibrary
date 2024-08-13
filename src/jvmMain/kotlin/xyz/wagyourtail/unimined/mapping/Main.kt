@@ -23,7 +23,7 @@ import kotlin.time.measureTime
 fun main(vararg args: String) {
     val totalTime = measureTime {
         Main().apply {
-            subcommands(ExportMappings())
+            subcommands(ExportMappings(this))
         }.main(args)
     }
     LOGGER.info { "Finished in ${totalTime.inWholeMilliseconds}ms" }
@@ -34,7 +34,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
         val LOGGER = KotlinLogging.logger { }
     }
 
-    val inputs by argument("input", "the input mappings, format should auto-detect in most cases").file(mustExist = true).multiple(required = true)
+    val inputs by option("-i", "--input", help = "the input mappings, format should auto-detect in most cases").file(mustExist = true).multiple(required = true)
     val envType by option("-e", "--env").enum<EnvType>().default(EnvType.JOINED)
     val nsMap by option("-n", "--namespace", help = "Namespace mapping to apply to the input mappings.").transformValues(nvalues = 3) { Triple(it[0].toInt(), it[1], it[2]) }.multiple(required = false, default = emptyList())
     val propagationNs: String? by option("-pns", "--propagation-namespace", help = "Namespace mapping to apply to the propagation mappings.")
@@ -42,7 +42,6 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
     val classpath  by option("-c", "--classpath", help = "Classpath for the jar scanning.").file(mustExist = true, canBeDir = false).multiple(required = false, default = emptyList())
     val copyMissing by option("-m", "--copy-missing", help = "Copy missing names from ns to other ns").pair().multiple(required = false, default = emptyList())
 
-    val self by findOrSetObject { this }
     val mappings = MemoryMappingTree()
 
     override fun run() = runBlocking {
@@ -80,12 +79,10 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
 
 }
 
-class ExportMappings : CliktCommand(name = "export") {
+class ExportMappings(val main: Main) : CliktCommand(name = "export") {
 
     val format by argument("format", help = "The format to export as").convert { FormatRegistry.byName.getValue(it) }
-    val output by argument("output", help = "The output file").file()
-
-    val main by requireObject<Main>()
+    val output by argument("output", help = "The output file").file(mustExist = false)
 
     override fun run() {
         LOGGER.info { "Writing ${output.name}..." }

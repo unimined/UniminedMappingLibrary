@@ -66,6 +66,24 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
             if (acc.size > 1) throw IllegalArgumentException("Multiple visibility flags found")
             return acc.firstOrNull()
         }
+
+        fun toInt(set: Set<AccessFlag>): Int {
+            var acc = 0
+            for (access in set) {
+                acc += access
+            }
+            return acc
+        }
+
+        fun isInheritable(set: Set<AccessFlag>): Boolean {
+            val vis = set.intersect(visibility)
+            return vis.isNotEmpty() && !vis.contains(PRIVATE) && !set.contains(STATIC)
+        }
+
+        fun isInheritable(access: Int): Boolean {
+            val vis = visibilityOf(access)
+            return vis != null && vis != PRIVATE && STATIC !in access
+        }
     }
 
 }

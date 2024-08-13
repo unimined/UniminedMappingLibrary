@@ -34,9 +34,8 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
         }
 
         var matched = false
-        for (name in names.keys) {
-            val nameVal = names[name]!!
-            val elementNameVal = element.names[name] ?: continue
+        for ((ns, nameVal) in names) {
+            val elementNameVal = element.names[ns] ?: continue
             if (elementNameVal == nameVal) {
                 matched = true
             }
@@ -65,19 +64,18 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                 val new = create(parent as ClassNode)
                 new.setNames(names)
                 element.setNames(names)
-                doMerge(element)
+                element.doMerge(new)
                 doMerge(new)
                 new
             }
         } else {
             if (descs.isNotEmpty()) {
-                // merge, but also create a new one without descs
+                // merge, but also create a new one with descs
                 val new = create(parent as ClassNode)
                 new.setNames(element.names)
                 new.setNames(names)
                 new.setDescriptors(descs)
-                element.setNames(names)
-                doMerge(element)
+                element.doMerge(new)
                 doMerge(new)
                 new
             } else {

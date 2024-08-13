@@ -139,14 +139,15 @@ class Propagator(val namespace: Namespace, val tree: AbstractMappingTree, requir
                 }
                 visitor.visitClass(clsNames + (namespace to cls))?.use {
                     val nsNameCls = names[cls]
+                    val clsNode = tree.getClass(namespace, cls)
                     for (method in info.methods) {
                         val orig = (namespace to (method.first to method.second))
                         val targets = nsNameCls[method].mapValues { it.value.first() to null } + orig
                         visitMethod(targets)?.visitEnd()
                     }
+                    val fieldNodes = info.fields.associateWith { clsNode?.getFields(namespace, it.first, it.second) ?: setOf() }
                     for (field in info.fields) {
-                        val fds =
-                            tree.getClass(namespace, cls)?.getFields(namespace, field.first, field.second) ?: setOf()
+                        val fds = fieldNodes.getValue(field)
                         val fieldNames = mutableMapOf<Namespace, MutableSet<String>>()
                         for (ns in targetNs) {
                             for (fd in fds) {
