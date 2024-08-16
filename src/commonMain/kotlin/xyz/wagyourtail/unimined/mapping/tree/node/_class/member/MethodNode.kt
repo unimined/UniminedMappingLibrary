@@ -23,6 +23,12 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
     val locals: List<LocalNode<MethodVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<MethodVisitor>> get() = _exceptions
 
+    override fun setNames(names: Map<Namespace, String>) {
+        super.setNames(names)
+        if (names.values.any { it.isEmpty() }) {
+            throw IllegalStateException("empty name in $names")
+        }
+    }
 
     fun getMethodDesc(namespace: Namespace) = getDescriptor(namespace)?.getMethodDescriptor()
 

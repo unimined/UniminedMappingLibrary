@@ -117,6 +117,24 @@ open class EmptyClassVisitor : EmptyMemberVisitor<ClassVisitor>(), SignaturePare
         return EmptyWildcardVisitor()
     }
 
+    override fun visitSeal(
+        type: SealedType,
+        name: InternalName?,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): SealVisitor? {
+        return EmptySealVisitor()
+    }
+
+    override fun visitInterface(
+        type: InterfacesType,
+        name: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        return EmptyInterfaceVisitor()
+    }
+
     override fun visitInnerClass(
         type: InnerClassNode.InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
@@ -210,3 +228,7 @@ open class EmptyConstantVisitor : EmptyBaseVisitor<ConstantVisitor>(), ConstantV
 open class EmptyTargetVisitor : EmptyBaseVisitor<TargetVisitor>(), TargetVisitor
 
 open class EmptyInnerClassVisitor : EmptyBaseVisitor<InnerClassVisitor>(), AccessParentVisitor<InnerClassVisitor> by EmptyAccessParentVisitor(), InnerClassVisitor
+
+open class EmptySealVisitor : EmptyBaseVisitor<SealVisitor>(), SealVisitor
+
+open class EmptyInterfaceVisitor : EmptyBaseVisitor<InterfaceVisitor>(), InterfaceVisitor {}

@@ -170,7 +170,11 @@ object TinyV2Reader : FormatReader {
                         val nameMap = mutableMapOf<Namespace, Pair<String, MethodDescriptor?>>()
                         nameMap[nsIter.next()] = nameIter.next() to MethodDescriptor.read(desc)
                         while (nameIter.hasNext()) {
-                            nameMap[nsIter.next()] = nameIter.next() to null
+                            val ns = nsIter.next()
+                            val name = nameIter.next()
+                            if (name.isNotEmpty()) {
+                                nameMap[ns] = name to null
+                            }
                         }
                         last as ClassVisitor?
                         last?.visitMethod(nameMap)

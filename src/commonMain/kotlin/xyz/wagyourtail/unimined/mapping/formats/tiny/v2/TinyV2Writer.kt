@@ -169,6 +169,24 @@ object TinyV2Writer : FormatWriter {
             return null
         }
 
+        override fun visitSeal(
+            type: SealedType,
+            name: InternalName?,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
+        ): SealVisitor? {
+            return null
+        }
+
+        override fun visitInterface(
+            type: InterfacesType,
+            name: InternalName,
+            baseNs: Namespace,
+            namespaces: Set<Namespace>
+        ): InterfaceVisitor? {
+            return null
+        }
+
     }
 
     class TinyV2MethodWriter(into: (String) -> Unit, parent: BaseTinyV2Writer<*>?): TinyV2MemberWriter<MethodVisitor>(into, parent, "\t\t"), MethodVisitor {

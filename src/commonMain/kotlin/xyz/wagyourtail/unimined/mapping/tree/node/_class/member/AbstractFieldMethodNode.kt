@@ -26,7 +26,7 @@ abstract class AbstractFieldMethodNode<T: MemberVisitor<T>>(parent: ClassNode) :
 
     fun getName(namespace: Namespace) = names[namespace]
 
-    fun setNames(names: Map<Namespace, String>) {
+    open fun setNames(names: Map<Namespace, String>) {
         root.mergeNs(names.keys)
         this._names.putAll(names)
     }
