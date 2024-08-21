@@ -97,6 +97,9 @@ object TinyV1Reader : FormatReader {
                         }
                         currentCls.second?.visitMethod(nameMap)?.visitEnd()
                     }
+                    else -> {
+                        throw IllegalArgumentException("Invalid tinyv1 file, unknown type $col")
+                    }
                 }
             }
 
