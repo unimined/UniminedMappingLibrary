@@ -17,7 +17,10 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
  */
 object TinyV2Reader : FormatReader {
 
-    fun String.translateEscapes(leinient: Boolean = false): String {
+    /**
+     * translate escapes function that only does the ones actually allowed by tinyv2
+     */
+    private fun String.translateEscapes(leinient: Boolean = false): String {
         if (this.isEmpty() || !this.contains("\\")) {
             return this
         }

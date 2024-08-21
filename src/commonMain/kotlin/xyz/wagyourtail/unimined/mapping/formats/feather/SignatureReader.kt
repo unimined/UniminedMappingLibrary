@@ -8,6 +8,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.unimined.mapping.util.translateEscapes
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
@@ -39,20 +40,20 @@ object SignatureReader : FormatReader {
                 }
                 val whitespace = input.takeWhitespace()
                 if (whitespace.isEmpty()) {
-                    val name = InternalName.read(input.takeNextLiteral()!!)
+                    val name = InternalName.read(input.takeNextLiteral()!!.translateEscapes())
                     cls?.visitEnd()
                     cls = visitClass(mapOf(ns to name))
                     val sig = input.takeNextLiteral()
                     if (sig != null) {
-                        cls?.visitSignature(sig, ns, emptySet())
+                        cls?.visitSignature(sig.translateEscapes(), ns, emptySet())
                     }
                 } else {
                     if (whitespace.length != 1) {
                         throw IllegalArgumentException("invalid line: $whitespace")
                     }
-                    val mName = input.takeNextLiteral()!!
-                    val desc = MethodDescriptor.read(input.takeNextLiteral()!!)
-                    val sig = input.takeNextLiteral()!!
+                    val mName = input.takeNextLiteral()!!.translateEscapes()
+                    val desc = MethodDescriptor.read(input.takeNextLiteral()!!.translateEscapes())
+                    val sig = input.takeNextLiteral()!!.translateEscapes()
                     cls?.visitMethod(mapOf(ns to (mName to desc)))?.use {
                         visitSignature(sig, ns, emptySet())
                     }

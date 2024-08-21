@@ -41,6 +41,10 @@ object TinyV1Reader : FormatReader {
                     continue
                 }
                 val col = input.takeNextLiteral() ?: continue
+                if (col.startsWith("#")) {
+                    input.takeLine()
+                    continue
+                }
                 when (col) {
                     "CLASS" -> {
                         val names = input.takeRemainingOnLine().map { it.second }
