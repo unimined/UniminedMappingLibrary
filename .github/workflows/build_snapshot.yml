@@ -22,9 +22,14 @@ jobs:
         run: chmod +x gradlew
         
       - name: Publish
-        run: ./gradlew publish -Pversion_snapshot -Pmvn.user=${{ secrets.MAVEN_USER }} -Pmvn.key=${{ secrets.MAVEN_TOKEN }} -x test
+        run: ./gradlew publish -Pversion_snapshot -Pmvn.user=${{ secrets.MAVEN_USER }} -Pmvn.key=${{ secrets.MAVEN_TOKEN }}
 
       - uses: actions/upload-artifact@v2
         with:
           name: Unimined Snapshot Artifacts
           path: ./build/libs/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: CLI Snapshot Artifacts
+          path: ./cli/build/libs/

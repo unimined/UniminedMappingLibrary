@@ -1,9 +1,8 @@
-package xyz.wagyourtail.unimined.mapping
+package xyz.wagyourtail.unimined.mapping.cli
 
 import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
-import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.file
@@ -12,7 +11,9 @@ import kotlinx.coroutines.runBlocking
 import okio.buffer
 import okio.sink
 import okio.source
-import xyz.wagyourtail.unimined.mapping.Main.Companion.LOGGER
+import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.cli.Main.Companion.LOGGER
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.propogator.Propagator
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree

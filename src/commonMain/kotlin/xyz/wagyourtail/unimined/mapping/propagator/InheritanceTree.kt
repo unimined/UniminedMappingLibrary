@@ -34,35 +34,32 @@ open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
                 data.take()
                 continue
             }
-            var col = data.takeNextLiteral() ?: continue
+            var col = data.takeNext().second
             var indent = 0
             while (col.isEmpty()) {
                 indent++
-                col = data.takeNextLiteral() ?: continue
+                col = data.takeNext().second
             }
             if (indent > 1) {
                 throw IllegalArgumentException("expected method, found double indent")
             }
             if (indent == 0) {
                 val cls = col
-                val sup = data.takeNextLiteral()!!.ifEmpty { null }
-                val intf = mutableListOf<String>()
-                while (true) {
-                    intf.add(data.takeNextLiteral() ?: break)
-                }
-                ci = ClassInfo(InternalName.read(cls), sup?.let { InternalName.read(it) }, intf.map { InternalName.read(it) })
+                val sup = data.takeNext().second.ifEmpty { null }
+                val intf = data.takeRemainingOnLine().map { InternalName.read(it.second) }
+                ci = ClassInfo(InternalName.read(cls), sup?.let { InternalName.read(it) }, intf)
                 _classes[ci.name] = ci
             } else {
-                val acc = col.split("|")
-                val name = data.takeNextLiteral()!!
-                val desc = FieldOrMethodDescriptor.read(data.takeNextLiteral()!!)
+                val acc = col.split("|").map { AccessFlag.valueOf(it.uppercase()) }
+                val name = data.takeNext().second
+                val desc = FieldOrMethodDescriptor.read(data.takeNext().second)
 
                 if (desc.isMethodDescriptor()) {
                     ci!!._methods.add(
                         MethodInfo(
                             name,
                             desc.getMethodDescriptor(),
-                            AccessFlag.toInt(acc.map { AccessFlag.valueOf(it.uppercase()) }.toSet())
+                            AccessFlag.toInt(acc.toSet())
                         )
                     )
                 } else {
@@ -70,7 +67,7 @@ open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
                         FieldInfo(
                             name,
                             desc.getFieldDescriptor(),
-                            AccessFlag.toInt(acc.map { AccessFlag.valueOf(it.uppercase()) }.toSet())
+                            AccessFlag.toInt(acc.toSet())
                         )
                     )
                 }
