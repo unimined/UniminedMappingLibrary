@@ -13,6 +13,7 @@ class TinyV2ReadWriteTest {
     companion object {
         val mappings = """
         tiny	2	0	intermediary	named
+        	escaped-names
         c	net/minecraft/class_3720	net/minecraft/block/entity/BlastFurnaceBlockEntity
         	c	this is a comment block
         	m	(Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;)V	<init>	<init>

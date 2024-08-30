@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
 import xyz.wagyourtail.commons.gradle.shadow.ShadowJar
 
 plugins {
@@ -20,7 +19,7 @@ dependencies {
 val shadowJar by tasks.registering(ShadowJar::class) {
     from(sourceSets.main.get().output)
 
-    archivesName.set(base.archivesName.get() + "-cli")
+    archiveBaseName.set(base.archivesName.get() + "-cli")
     archiveClassifier = "all"
     shadowContents.add(configurations.runtimeClasspath.get())
 

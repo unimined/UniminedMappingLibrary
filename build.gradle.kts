@@ -22,6 +22,7 @@ allprojects {
 
     repositories {
         mavenCentral()
+        maven("https://maven.wagyourtail.xyz/snapshots")
     }
 }
 
@@ -51,6 +52,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
+                api("xyz.wagyourtail.commons:commons-kt:1.0.0-SNAPSHOT")
                 api("io.github.oshai:kotlin-logging:6.0.1")
                 api("com.squareup.okio:okio:3.7.0")
                 api("com.sschr15.annotations:jb-annotations-kmp:24.1.0")
