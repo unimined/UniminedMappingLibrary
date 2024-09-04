@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.BaseType
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -18,10 +18,10 @@ value class JavaTypeSignature private constructor(val type: String) {
 
         val innerTypes: Set<TypeCompanion<*>> = setOf(ReferenceTypeSignature, BaseType)
 
-        override fun shouldRead(reader: CharReader) =
+        override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
 
-        override fun read(reader: CharReader) =
+        override fun read(reader: CharReader<*>) =
             try {
                 JavaTypeSignature(innerTypes.first {
                     it.shouldRead(

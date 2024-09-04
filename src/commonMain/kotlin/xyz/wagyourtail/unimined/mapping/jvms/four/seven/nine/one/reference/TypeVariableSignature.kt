@@ -2,7 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,11 +14,11 @@ value class TypeVariableSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeVariableSignature> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == 'T'
         }
 
-        override fun read(reader: CharReader): TypeVariableSignature {
+        override fun read(reader: CharReader<*>): TypeVariableSignature {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid type variable signature")
             }

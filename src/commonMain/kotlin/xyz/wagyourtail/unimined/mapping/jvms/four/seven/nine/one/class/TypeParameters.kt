@@ -1,7 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,11 +14,11 @@ value class TypeParameters private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeParameters> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == '<'
         }
 
-        override fun read(reader: CharReader): TypeParameters {
+        override fun read(reader: CharReader<*>): TypeParameters {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid type parameters")
             }
@@ -38,14 +39,12 @@ value class TypeParameters private constructor(val value: String) {
 
     }
 
-    fun getParts(): List<TypeParameter> {
+    fun getParts(): List<TypeParameter> = StringCharReader(value.substring(1, value.length - 1)).let {
         val params = mutableListOf<TypeParameter>()
-        CharReader(value.substring(1, value.length - 1)).use {
-            while (!it.exhausted()) {
-                params.add(TypeParameter.read(it))
-            }
+        while (!it.exhausted()) {
+            params.add(TypeParameter.read(it))
         }
-        return params
+        params
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

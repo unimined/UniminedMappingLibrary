@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.formats.unpick
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.collection.defaultedMapOf
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -13,8 +15,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -31,7 +31,7 @@ object UnpickReader : FormatReader {
     data class UnpickParam(val index: Int, val group: String)
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -50,27 +50,27 @@ object UnpickReader : FormatReader {
             val line = input.takeRemainingOnLine()
             if (line.isEmpty()) continue
             if (indent == 0) {
-                when (line[0].second) {
+                when (line[0]) {
                     "constant" -> {
-                        val key = line[1].second
-                        val intlName = InternalName.read(line[2].second)
-                        val fieldName = UnqualifiedName.read(line[3].second)
+                        val key = line[1]
+                        val intlName = InternalName.read(line[2])
+                        val fieldName = UnqualifiedName.read(line[3])
                         constants.getValue(key).add(UnpickConstant("constant", intlName, fieldName))
                         currentTarget = null
                     }
 
                     "flag" -> {
-                        val key = line[1].second
-                        val intlName = InternalName.read(line[2].second)
-                        val fieldName = UnqualifiedName.read(line[3].second)
+                        val key = line[1]
+                        val intlName = InternalName.read(line[2])
+                        val fieldName = UnqualifiedName.read(line[3])
                         constants.getValue(key).add(UnpickConstant("flag", intlName, fieldName))
                         currentTarget = null
                     }
 
                     "target_method" -> {
-                        val intlName = InternalName.read(line[1].second)
-                        val targetName = UnqualifiedName.read(line[2].second)
-                        val targetDesc = MethodDescriptor.read(line[3].second)
+                        val intlName = InternalName.read(line[1])
+                        val targetName = UnqualifiedName.read(line[2])
+                        val targetDesc = MethodDescriptor.read(line[3])
                         targets.add(UnpickTarget(intlName, targetName, targetDesc, mutableListOf()))
                         currentTarget = targets.last()
                     }
@@ -79,14 +79,14 @@ object UnpickReader : FormatReader {
                 if (currentTarget == null) {
                     throw IllegalArgumentException("Invalid unpick file, found double indent")
                 }
-                when (line[0].second) {
+                when (line[0]) {
                     "param" -> {
-                        val index = line[1].second.toInt()
-                        val group = line[2].second
+                        val index = line[1].toInt()
+                        val group = line[2]
                         currentTarget.params.add(UnpickParam(index, group))
                     }
                     "return" -> {
-                        val group = line[1].second
+                        val group = line[1]
                         currentTarget.params.add(UnpickParam(-1, group))
                     }
                 }

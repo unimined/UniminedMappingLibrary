@@ -11,13 +11,13 @@ import kotlinx.coroutines.runBlocking
 import okio.buffer
 import okio.sink
 import okio.source
+import xyz.wagyourtail.commonskt.utils.mutliAssociate
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.cli.Main.Companion.LOGGER
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.propogator.Propagator
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
-import xyz.wagyourtail.unimined.mapping.util.mutliAssociate
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
 import kotlin.time.measureTime
 

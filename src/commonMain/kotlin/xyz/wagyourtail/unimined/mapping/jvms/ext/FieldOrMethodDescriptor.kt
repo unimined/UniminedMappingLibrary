@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
 
@@ -16,11 +16,11 @@ value class FieldOrMethodDescriptor private constructor(val value: String) {
             MethodDescriptor
         )
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return innterTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: CharReader): FieldOrMethodDescriptor {
+        override fun read(reader: CharReader<*>): FieldOrMethodDescriptor {
             return FieldOrMethodDescriptor(
                 innterTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString()
             )
@@ -39,9 +39,9 @@ value class FieldOrMethodDescriptor private constructor(val value: String) {
 
     fun isFieldDescriptor() = !isMethodDescriptor()
 
-    fun getFieldDescriptor() = FieldDescriptor.unchecked(value)
+    fun getFieldDescriptor() = if (isFieldDescriptor()) { FieldDescriptor.unchecked(value) } else { error("expected field desc") }
 
-    fun getMethodDescriptor() = MethodDescriptor.unchecked(value)
+    fun getMethodDescriptor() = if (isMethodDescriptor()) { MethodDescriptor.unchecked(value) } else { error("expected method desc") }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {
         if (visitor(this, false)) {

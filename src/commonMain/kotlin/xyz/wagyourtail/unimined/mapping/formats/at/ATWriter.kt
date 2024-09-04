@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.formats.at
 
+import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
@@ -17,7 +18,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator

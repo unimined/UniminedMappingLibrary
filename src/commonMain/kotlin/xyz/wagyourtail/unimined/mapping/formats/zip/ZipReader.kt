@@ -3,12 +3,12 @@ package xyz.wagyourtail.unimined.mapping.formats.zip
 import okio.BufferedSource
 import okio.ByteString.Companion.encodeUtf8
 import okio.use
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.utils.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object ZipReader : FormatReader {
@@ -46,7 +46,7 @@ object ZipReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,

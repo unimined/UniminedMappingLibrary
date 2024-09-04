@@ -1,7 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,11 +14,11 @@ value class MethodDescriptor private constructor(val value: String) {
 
     companion object: TypeCompanion<MethodDescriptor> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == '('
         }
 
-        override fun read(reader: CharReader): MethodDescriptor {
+        override fun read(reader: CharReader<*>): MethodDescriptor {
             try {
                 if (!shouldRead(reader)) {
                     throw IllegalArgumentException("Invalid method type")
@@ -51,7 +52,7 @@ value class MethodDescriptor private constructor(val value: String) {
 
     }
 
-    fun getParts(): Pair<ReturnDescriptor, List<ParameterDescriptor>> = CharReader(value.substring(1)).use {
+    fun getParts(): Pair<ReturnDescriptor, List<ParameterDescriptor>> = StringCharReader(value.substring(1)).let {
         val params = mutableListOf<ParameterDescriptor>()
         while (true) {
             val value = it.peek()

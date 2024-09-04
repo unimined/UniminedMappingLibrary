@@ -25,7 +25,7 @@ actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
         return zipFile.getInputStream(zipFile.getEntry(path)).use { Buffer().readFrom(it) }
     }
 
-    override fun close() {
+    actual override fun close() {
         zipFile.close()
     }
 

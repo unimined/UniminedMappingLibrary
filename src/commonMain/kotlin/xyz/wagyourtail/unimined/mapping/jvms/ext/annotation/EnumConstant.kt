@@ -2,7 +2,9 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.commonskt.utils.escape
 import kotlin.jvm.JvmInline
 
 /**
@@ -15,7 +17,7 @@ import kotlin.jvm.JvmInline
 value class EnumConstant private constructor(val value: String) {
 
     companion object: TypeCompanion<EnumConstant> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             if (!ObjectType.shouldRead(reader.copy())) {
                 return false
             }
@@ -24,7 +26,7 @@ value class EnumConstant private constructor(val value: String) {
             return reader.take() == '.'
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             EnumConstant(buildString {
                 append(ObjectType.read(reader))
                 val next = reader.take()
@@ -37,7 +39,9 @@ value class EnumConstant private constructor(val value: String) {
                     if (str.length <= 2) {
                         throw IllegalArgumentException("Invalid enum constant, found $str which is empty")
                     }
-                    append(str)
+                    append("\"")
+                    append(str.escape(true))
+                    append("\"")
                 } else {
                     val value = reader.takeUntil { it in annotationIdentifierIllegalCharacters }
                     if (value.isEmpty()) {
@@ -53,7 +57,7 @@ value class EnumConstant private constructor(val value: String) {
         override fun unchecked(value: String) = EnumConstant(value)
     }
 
-    fun getParts(): Pair<ObjectType, String> = CharReader(value).use {
+    fun getParts(): Pair<ObjectType, String> = StringCharReader(value).let {
         val obj = ObjectType.read(it)
         val next = it.take()
         if (next != '.') {

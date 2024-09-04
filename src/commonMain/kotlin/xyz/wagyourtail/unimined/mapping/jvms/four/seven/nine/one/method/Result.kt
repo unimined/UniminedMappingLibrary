@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.VoidDescriptor
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -18,10 +18,10 @@ value class Result private constructor(val value: String) {
         val innerTypes =
             setOf(JavaTypeSignature, VoidDescriptor)
 
-        override fun shouldRead(reader: CharReader) =
+        override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
 
-        override fun read(reader: CharReader) =
+        override fun read(reader: CharReader<*>) =
             Result(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
 
         override fun unchecked(value: String) = Result(value)

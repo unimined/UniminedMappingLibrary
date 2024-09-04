@@ -3,7 +3,8 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllegalChars + setOf('=', ',', ')', '}')
@@ -17,11 +18,11 @@ val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllegalChars + s
 value class Annotation private constructor(val value: String) {
 
     companion object: TypeCompanion<Annotation> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == '@'
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             Annotation(buildString {
                 val at = reader.take()
                 if (at != '@') {
@@ -54,7 +55,7 @@ value class Annotation private constructor(val value: String) {
 
     }
 
-    fun getParts(): Triple<ObjectType, AnnotationElements?, Invisible?> = CharReader(value.substring(1)).let {
+    fun getParts(): Triple<ObjectType, AnnotationElements?, Invisible?> = StringCharReader(value.substring(1)).let {
         val obj = ObjectType.read(it)
         val open = it.take()
         if (open != '(') {

@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats.csrg
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -8,7 +9,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -54,7 +54,7 @@ object CsrgReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -72,35 +72,35 @@ object CsrgReader : FormatReader {
                     input.takeLine()
                     continue
                 }
-                val parts = input.takeRemainingOnLine()
+                val parts = input.takeRemainingLiteralOnLine()
                 when (parts.size) {
                     CLASS_MAPPING -> {
-                        val src = InternalName.read(parts[0].second)
-                        val dst = context.mapPackage(srcNs, dstNs, InternalName.read(parts[1].second))
+                        val src = InternalName.read(parts[0])
+                        val dst = context.mapPackage(srcNs, dstNs, InternalName.read(parts[1]))
                         visitClass(mapOf(srcNs to src, dstNs to dst))?.visitEnd()
                     }
 
                     FIELD_MAPPING -> {
-                        val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0].second))
-                        val srcName = parts[1].second
-                        val dstName = parts[2].second
+                        val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0]))
+                        val srcName = parts[1]
+                        val dstName = parts[2]
                         visitClass(mapOf(dstNs to dstCls))?.use {
                             visitField(mapOf(srcNs to (srcName to null), dstNs to (dstName to null)))?.visitEnd()
                         }
                     }
 
                     METHOD_MAPPING -> {
-                        val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0].second))
-                        val srcName = parts[1].second
-                        val dstDesc = context.mapDescPackages(srcNs, dstNs, MethodDescriptor.read(parts[2].second))
-                        val dstName = parts[3].second
+                        val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0]))
+                        val srcName = parts[1]
+                        val dstDesc = context.mapDescPackages(srcNs, dstNs, MethodDescriptor.read(parts[2]))
+                        val dstName = parts[3]
                         into.visitClass(mapOf(dstNs to dstCls))?.use {
                             visitMethod(mapOf(srcNs to (srcName to null), dstNs to (dstName to dstDesc)))?.visitEnd()
                         }
                     }
 
                     else -> {
-                        throw IllegalArgumentException("Invalid line: ${parts.joinToString(" ") { it.second }}")
+                        throw IllegalArgumentException("Invalid line: ${parts.joinToString(" ") { it }}")
                     }
                 }
             }

@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.TypeVariableSignature
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -16,11 +16,11 @@ value class ThrowsSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<ThrowsSignature> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == '^'
         }
 
-        override fun read(reader: CharReader): ThrowsSignature {
+        override fun read(reader: CharReader<*>): ThrowsSignature {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid throws signature")
             }

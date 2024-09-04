@@ -5,6 +5,8 @@ import org.apache.commons.compress.archivers.zip.ZipFile
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
+import xyz.wagyourtail.commonskt.collection.DefaultMap
+import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
@@ -14,8 +16,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.DefaultMap
-import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use

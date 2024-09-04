@@ -1,13 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.formats.mcp.v3
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
@@ -23,7 +23,7 @@ object MCPv3FieldReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -49,15 +49,15 @@ object MCPv3FieldReader : FormatReader {
                     input.take()
                     continue
                 }
-                val searge = input.takeCol().second
-                val name = input.takeCol().second
-                val notch = input.takeCol().second
+                val searge = input.takeCol()!!
+                val name = input.takeCol()!!
+                val notch = input.takeCol()!!
                 input.takeCol() // sig
-                FieldDescriptor.read(input.takeCol().second) // notchsig
-                val className = input.takeCol().second
-                var classNotch = input.takeCol().second
-                val pkg = input.takeCol().second
-                val side = input.takeCol().second
+                FieldDescriptor.read(input.takeCol()!!) // notchsig
+                val className = input.takeCol()
+                var classNotch = input.takeCol()!!
+                val pkg = input.takeCol()
+                val side = input.takeCol()!!
 
                 if (side == "2" || side.toInt() == envType.ordinal) {
                     if (className == classNotch) {

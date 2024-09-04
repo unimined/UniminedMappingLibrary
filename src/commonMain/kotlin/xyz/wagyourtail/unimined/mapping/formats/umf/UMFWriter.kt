@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.formats.umf
 
 import okio.BufferedSink
+import xyz.wagyourtail.commonskt.utils.escape
+import xyz.wagyourtail.commonskt.utils.firstAsMap
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
@@ -17,8 +19,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.util.escape
-import xyz.wagyourtail.unimined.mapping.util.firstAsMap
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator

@@ -9,4 +9,6 @@ expect class ZipFS(zip: BufferedSource) : Closeable {
     suspend fun getFiles(): List<String>
     suspend fun getContents(path: String): BufferedSource
 
+    override fun close()
+
 }

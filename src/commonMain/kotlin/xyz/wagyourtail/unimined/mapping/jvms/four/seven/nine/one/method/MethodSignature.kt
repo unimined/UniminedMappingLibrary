@@ -3,7 +3,8 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.TypeParameters
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -15,14 +16,14 @@ value class MethodSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<MethodSignature> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             if (TypeParameters.shouldRead(reader.copy())) {
                 return TypeParameters.shouldRead(reader)
             }
             return reader.take() == '('
         }
 
-        override fun read(reader: CharReader): MethodSignature {
+        override fun read(reader: CharReader<*>): MethodSignature {
             try {
                 return MethodSignature(buildString {
                     if (TypeParameters.shouldRead(reader.copy())) {
@@ -74,30 +75,28 @@ value class MethodSignature private constructor(val value: String) {
         override fun unchecked(value: String) = MethodSignature(value)
     }
 
-    fun getParts(): Pair<TypeParameters?, Triple<List<JavaTypeSignature>, Result, List<ThrowsSignature>>> {
-        CharReader(value).use {
-            val typeParams = if (TypeParameters.shouldRead(it.copy())) {
-                TypeParameters.read(it)
-            } else null
-            if (it.take() != '(') {
-                throw IllegalArgumentException("Invalid method signature")
-            }
-            val params = mutableListOf<JavaTypeSignature>()
-            while (true) {
-                val value = it.peek()
-                if (value == ')') {
-                    it.take()
-                    break
-                }
-                params.add(JavaTypeSignature.read(it))
-            }
-            val result = Result.read(it)
-            val throws = mutableListOf<ThrowsSignature>()
-            while (!it.exhausted()) {
-                throws.add(ThrowsSignature.read(it))
-            }
-            return Pair(typeParams, Triple(params, result, throws))
+    fun getParts(): Pair<TypeParameters?, Triple<List<JavaTypeSignature>, Result, List<ThrowsSignature>>> = StringCharReader(value).let {
+        val typeParams = if (TypeParameters.shouldRead(it.copy())) {
+            TypeParameters.read(it)
+        } else null
+        if (it.take() != '(') {
+            throw IllegalArgumentException("Invalid method signature")
         }
+        val params = mutableListOf<JavaTypeSignature>()
+        while (true) {
+            val value = it.peek()
+            if (value == ')') {
+                it.take()
+                break
+            }
+            params.add(JavaTypeSignature.read(it))
+        }
+        val result = Result.read(it)
+        val throws = mutableListOf<ThrowsSignature>()
+        while (!it.exhausted()) {
+            throws.add(ThrowsSignature.read(it))
+        }
+        Pair(typeParams, Triple(params, result, throws))
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

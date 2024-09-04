@@ -1,7 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -15,12 +15,12 @@ value class BaseType private constructor(val value: Char) {
     companion object: TypeCompanion<BaseType> {
         private val types = setOf('B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z')
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             val value = reader.take()
             return value in types
         }
 
-        override fun read(reader: CharReader): BaseType {
+        override fun read(reader: CharReader<*>): BaseType {
             val value = reader.take()
             if (value !in types) {
                 throw IllegalArgumentException("Invalid base type")

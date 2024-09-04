@@ -2,7 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,9 +14,9 @@ value class ObjectType private constructor(val value: String) {
 
     companion object: TypeCompanion<ObjectType> {
 
-        override fun shouldRead(reader: CharReader) = reader.take() == 'L'
+        override fun shouldRead(reader: CharReader<*>) = reader.take() == 'L'
 
-        override fun read(reader: CharReader): ObjectType {
+        override fun read(reader: CharReader<*>): ObjectType {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid object type")
             }

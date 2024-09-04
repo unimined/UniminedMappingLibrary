@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats.srg
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -8,7 +9,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -32,7 +32,7 @@ object SrgReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -46,29 +46,29 @@ object SrgReader : FormatReader {
 
             while (!input.exhausted()) {
                 input.takeWhitespace()
-                val key = input.takeNextLiteral(sep = ' ') ?: continue
+                val key = input.takeNextLiteral(' ') ?: continue
                 if (key.startsWith("#")) {
                     input.takeLine()
                     continue
                 }
                 when (key) {
                     "PK:" -> {
-                        val src = input.takeNextLiteral(sep = ' ')!!
-                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val src = input.takeNextLiteral(' ')!!
+                        val dst = input.takeNextLiteral(' ')!!
                         val srcFix = PackageName.read(if (src == ".") "" else "${src}/")
                         val dstFix = PackageName.read(if (dst == ".") "" else "${dst}/")
                         visitPackage(mapOf(srcNs to srcFix, dstNs to dstFix))?.visitEnd()
                     }
 
                     "CL:" -> {
-                        val src = input.takeNextLiteral(sep = ' ')!!
-                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val src = input.takeNextLiteral(' ')!!
+                        val dst = input.takeNextLiteral(' ')!!
                         visitClass(mapOf(srcNs to InternalName.read(src), dstNs to InternalName.read(dst)))?.visitEnd()
                     }
 
                     "FD:" -> {
-                        val src = input.takeNextLiteral(sep = ' ')!!
-                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val src = input.takeNextLiteral(' ')!!
+                        val dst = input.takeNextLiteral(' ')!!
                         val srcClass = src.substringBeforeLast('/')
                         val dstClass = dst.substringBeforeLast('/')
                         val srcField = src.substringAfterLast('/')
@@ -86,10 +86,10 @@ object SrgReader : FormatReader {
                     }
 
                     "MD:" -> {
-                        val src = input.takeNextLiteral(sep = ' ')!!
-                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
-                        val dst = input.takeNextLiteral(sep = ' ')!!
-                        val dstDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
+                        val src = input.takeNextLiteral(' ')!!
+                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
+                        val dst = input.takeNextLiteral(' ')!!
+                        val dstDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
                         val srcClass = src.substringBeforeLast('/')
                         val dstClass = dst.substringBeforeLast('/')
                         val srcMethod = src.substringAfterLast('/')

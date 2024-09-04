@@ -1,8 +1,9 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.translateEscapes
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.utils.escape
+import xyz.wagyourtail.commonskt.utils.translateEscapes
 import kotlin.jvm.JvmInline
 
 /**
@@ -18,7 +19,7 @@ import kotlin.jvm.JvmInline
 value class Constant private constructor(val value: String) {
 
     companion object: TypeCompanion<Constant> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             val first = reader.take()
             // string or number
             if (first == '"' || first?.isDigit() == true) {
@@ -39,11 +40,13 @@ value class Constant private constructor(val value: String) {
             return false
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             Constant(buildString {
                 // string
                 if (reader.peek() == '"') {
-                    append(reader.takeString())
+                    append("\"")
+                    append(reader.takeString().escape(unicode = true))
+                    append("\"")
                     return@buildString
                 }
                 // boolean

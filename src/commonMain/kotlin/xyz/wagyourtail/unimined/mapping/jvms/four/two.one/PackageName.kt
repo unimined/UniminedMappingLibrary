@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.two.one
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,13 +14,13 @@ import kotlin.jvm.JvmInline
 value class PackageName private constructor(val value: String) {
 
     companion object: TypeCompanion<PackageName> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             val c = reader.takeUntil { it in JVMS.unqualifiedNameIllegalChars }
             if (c.isEmpty()) return false
             return reader.take() == '/'
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             PackageName(buildString {
                 while (shouldRead(reader.copy())) {
                     append(UnqualifiedName.read(reader))

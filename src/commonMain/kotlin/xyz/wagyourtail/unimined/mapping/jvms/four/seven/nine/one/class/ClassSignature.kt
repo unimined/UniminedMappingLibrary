@@ -1,7 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,14 +14,14 @@ value class ClassSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<ClassSignature> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             if (TypeParameters.shouldRead(reader.copy())) {
                 return TypeParameters.shouldRead(reader)
             }
             return SuperclassSignature.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader): ClassSignature {
+        override fun read(reader: CharReader<*>): ClassSignature {
             try {
                 return ClassSignature(buildString {
                     if (TypeParameters.shouldRead(reader.copy())) {
@@ -51,18 +52,16 @@ value class ClassSignature private constructor(val value: String) {
         override fun unchecked(value: String) = ClassSignature(value)
     }
 
-    fun getParts(): Triple<TypeParameters?, SuperclassSignature, List<SuperinterfaceSignature>> {
-        return CharReader(value).use { buf ->
-            val typeParams = if (TypeParameters.shouldRead(buf.copy())) {
-                TypeParameters.read(buf)
-            } else null
-            val superclass = SuperclassSignature.read(buf)
-            val interfaces = mutableListOf<SuperinterfaceSignature>()
-            while (!buf.exhausted()) {
-                interfaces.add(SuperinterfaceSignature.read(buf))
-            }
-            Triple(typeParams, superclass, interfaces)
+    fun getParts(): Triple<TypeParameters?, SuperclassSignature, List<SuperinterfaceSignature>> = StringCharReader(value).let {
+        val typeParams = if (TypeParameters.shouldRead(it.copy())) {
+            TypeParameters.read(it)
+        } else null
+        val superclass = SuperclassSignature.read(it)
+        val interfaces = mutableListOf<SuperinterfaceSignature>()
+        while (!it.exhausted()) {
+            interfaces.add(SuperinterfaceSignature.read(it))
         }
+        Triple(typeParams, superclass, interfaces)
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

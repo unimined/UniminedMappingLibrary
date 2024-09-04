@@ -1,8 +1,9 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.translateEscapes
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.utils.escape
+import xyz.wagyourtail.commonskt.utils.translateEscapes
 import kotlin.jvm.JvmInline
 
 /**
@@ -15,14 +16,16 @@ import kotlin.jvm.JvmInline
 value class AnnotationElementName private constructor(val value: String) {
 
     companion object: TypeCompanion<AnnotationElementName> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() !in annotationIdentifierIllegalCharacters
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             AnnotationElementName(buildString {
                 if (reader.peek() == '"') {
-                    append(reader.takeString())
+                    append("\"")
+                    append(reader.takeString().escape(true))
+                    append("\"")
                     return@buildString
                 }
                 append(reader.takeUntil { it in annotationIdentifierIllegalCharacters })

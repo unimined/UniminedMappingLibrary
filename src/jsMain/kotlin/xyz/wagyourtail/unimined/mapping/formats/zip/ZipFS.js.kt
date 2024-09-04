@@ -45,6 +45,6 @@ actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
         }
     }
 
-    override fun close() {}
+    actual override fun close() {}
 
 }

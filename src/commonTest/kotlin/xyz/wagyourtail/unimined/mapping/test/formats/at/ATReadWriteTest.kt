@@ -13,7 +13,8 @@ import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
 import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -136,7 +137,7 @@ class ATReadWriteTest {
 
     @Test
     fun testDirect() = runTest {
-        val betterRead = ATReader.readData(CharReader(atText))
+        val betterRead = ATReader.readData(StringCharReader(atText))
         val betterWrite = buildString { ATWriter.writeData(betterRead, ::append) }
         assertEquals("""
             public+f net.minecraft.class_3720
@@ -150,7 +151,7 @@ class ATReadWriteTest {
 
     @Test
     fun testLegacyDirect() = runTest {
-        val betterRead = LegacyATReader.readData(CharReader(legacyAtText))
+        val betterRead = LegacyATReader.readData(StringCharReader(legacyAtText))
         val betterWrite = buildString { LegacyATWriter.writeData(betterRead, ::append) }
         assertEquals("""
             public+f net/minecraft/class_3720
@@ -168,7 +169,7 @@ class ATReadWriteTest {
             input.writeUtf8(TinyV2ReadWriteTest.mappings)
             TinyV2Reader.read(input)
         }
-        val betterRead = LegacyATReader.readData(CharReader(legacyAtText))
+        val betterRead = LegacyATReader.readData(StringCharReader(legacyAtText))
         val remapped = ATWriter.remapMappings(betterRead, m, Namespace("intermediary"), Namespace("named"))
         val betterWrite = buildString { ATWriter.writeData(remapped, ::append) }
         assertEquals("""

@@ -2,7 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,9 +14,9 @@ value class SuperclassSignature private constructor(val value: ClassTypeSignatur
 
     companion object: TypeCompanion<SuperclassSignature> {
 
-        override fun shouldRead(reader: CharReader) = ClassTypeSignature.shouldRead(reader)
+        override fun shouldRead(reader: CharReader<*>) = ClassTypeSignature.shouldRead(reader)
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             SuperclassSignature(ClassTypeSignature.read(reader))
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid superclass signature", e)

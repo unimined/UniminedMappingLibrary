@@ -2,7 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,11 +14,11 @@ value class SimpleClassTypeSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<SimpleClassTypeSignature> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() !in JVMS.identifierIllegalChars
         }
 
-        override fun read(reader: CharReader): SimpleClassTypeSignature {
+        override fun read(reader: CharReader<*>): SimpleClassTypeSignature {
             if (!shouldRead(reader.copy())) {
                 throw IllegalArgumentException("Invalid simple class type signature")
             }

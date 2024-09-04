@@ -6,6 +6,12 @@ import kotlinx.coroutines.sync.withLock
 import okio.Buffer
 import okio.BufferedSource
 import okio.use
+import xyz.wagyourtail.commonskt.collection.finalizable.finalizableListOf
+import xyz.wagyourtail.commonskt.collection.finalizable.finalizableMapOf
+import xyz.wagyourtail.commonskt.collection.finalizable.finalizableSetOf
+import xyz.wagyourtail.commonskt.properties.FinalizeOnRead
+import xyz.wagyourtail.commonskt.properties.LazyMutable
+import xyz.wagyourtail.commonskt.utils.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
@@ -17,7 +23,6 @@ import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
-import xyz.wagyourtail.unimined.util.FinalizeOnRead
 import kotlin.jvm.JvmOverloads
 
 @Scoped

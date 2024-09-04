@@ -1,13 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
@@ -26,7 +26,7 @@ object MCPv6ParamReader : FormatReader {
     )
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -45,9 +45,9 @@ object MCPv6ParamReader : FormatReader {
                 input.take()
                 continue
             }
-            val searge = input.takeCol().second
-            val name = input.takeCol().second
-            val side = input.takeCol().second
+            val searge = input.takeCol()!!
+            val name = input.takeCol()!!
+            val side = input.takeCol()!!
 
             if (side == "2" || side.toInt() == envType.ordinal || envType == EnvType.JOINED) {
                 data[searge] = name

@@ -1,11 +1,11 @@
 package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 
+import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator

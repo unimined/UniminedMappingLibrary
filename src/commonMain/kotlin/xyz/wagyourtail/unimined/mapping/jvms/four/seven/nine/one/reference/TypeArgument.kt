@@ -1,7 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,7 +14,7 @@ import kotlin.jvm.JvmInline
 value class TypeArgument private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeArgument> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             if (reader.peek() == '*') {
                 reader.take()
                 return true
@@ -24,7 +25,7 @@ value class TypeArgument private constructor(val value: String) {
             return ReferenceTypeSignature.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader): TypeArgument {
+        override fun read(reader: CharReader<*>): TypeArgument {
             if (!shouldRead(reader.copy())) {
                 throw IllegalArgumentException("Invalid type argument")
             }
@@ -54,7 +55,7 @@ value class TypeArgument private constructor(val value: String) {
         if (isWildcard()) {
             return null
         }
-        CharReader(value).use {
+        StringCharReader(value).let {
             val wildcard = if (WildcardIndicator.shouldRead(it.copy())) {
                 WildcardIndicator.read(it)
             } else {

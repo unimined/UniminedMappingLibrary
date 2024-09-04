@@ -1,18 +1,18 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.two.two
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 @JvmInline
 value class MethodName private constructor(val value: UnqualifiedName) {
 
     companion object: TypeCompanion<MethodName> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return UnqualifiedName.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             val value = UnqualifiedName.read(reader)
             if (value.value.contains('<') || value.value.contains('>')) {
                 if (value.value != "<init>" && value.value != "<clinit>") {

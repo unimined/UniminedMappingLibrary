@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats.rgs
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -8,7 +9,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -39,7 +39,7 @@ object RetroguardReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -56,19 +56,19 @@ object RetroguardReader : FormatReader {
 
             while (!input.exhausted()) {
                 input.takeWhitespace()
-                val key = input.takeNextLiteral(sep = ' ') ?: continue
+                val key = input.takeNextLiteral(' ') ?: continue
 
                 when (key) {
                     ".class_map" -> {
-                        val srcName = InternalName.read(input.takeNextLiteral(sep = ' ')!!)
-                        val dst = input.takeNextLiteral(sep = ' ')!!
+                        val srcName = InternalName.read(input.takeNextLiteral(' ')!!)
+                        val dst = input.takeNextLiteral(' ')!!
                         val dstName = InternalName.read(if (dst.contains('/')) dst else "$PKG$dst")
                         visitClass(mapOf(srcNs to srcName, dstNs to dstName))?.visitEnd()
                     }
 
                     ".field_map" -> {
-                        val srcName = input.takeNextLiteral(sep = ' ')!!
-                        val dstFd = input.takeNextLiteral(sep = ' ')!!
+                        val srcName = input.takeNextLiteral(' ')!!
+                        val dstFd = input.takeNextLiteral(' ')!!
                         val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
                         val srcFd = srcName.substringAfterLast('/')
                         into.visitClass(mapOf(srcNs to srcCls))?.use {
@@ -79,9 +79,9 @@ object RetroguardReader : FormatReader {
                     }
 
                     ".method_map" -> {
-                        val srcName = input.takeNextLiteral(sep = ' ')!!
-                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(sep = ' ')!!)
-                        val dstMd = input.takeNextLiteral(sep = ' ')!!
+                        val srcName = input.takeNextLiteral(' ')!!
+                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
+                        val dstMd = input.takeNextLiteral(' ')!!
                         val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
                         val srcMd = srcName.substringAfterLast('/')
 

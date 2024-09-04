@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.formats.tiny.v2
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -8,8 +10,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.escape
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 /**
@@ -54,7 +54,7 @@ object TinyV2Reader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,

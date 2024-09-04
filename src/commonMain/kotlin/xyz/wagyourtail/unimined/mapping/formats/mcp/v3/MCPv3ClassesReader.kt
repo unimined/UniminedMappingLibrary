@@ -1,12 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.formats.mcp.v3
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -20,7 +20,7 @@ object MCPv3ClassesReader: FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -42,17 +42,17 @@ object MCPv3ClassesReader: FormatReader {
                     input.take()
                     continue
                 }
-                val dstName = input.takeCol()
-                val srcName = input.takeCol()
+                val dstName = input.takeCol()!!
+                val srcName = input.takeCol()!!
                 input.takeCol() // supername
-                val pkg = input.takeCol()
-                val side = input.takeCol()
+                val pkg = input.takeCol()!!
+                val side = input.takeCol()!!
 
-                if (side.second == "2" || side.second.toInt() == envType.ordinal) {
+                if (side == "2" || side.toInt() == envType.ordinal) {
                     val dstCls =
-                        InternalName.read(if (pkg.second.isNotEmpty()) pkg.second + "/" + dstName.second else dstName.second)
+                        InternalName.read(if (pkg.isNotEmpty()) "$pkg/$dstName" else dstName)
                     val srcCls =
-                        InternalName.read(if (dstName.second == srcName.second && pkg.second.isNotEmpty()) "${pkg.second}/${srcName.second}" else srcName.second)
+                        InternalName.read(if (dstName == srcName && pkg.isNotEmpty()) "${pkg}/${srcName}" else srcName)
                     visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))?.visitEnd()
                 }
             }

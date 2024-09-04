@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -22,11 +22,11 @@ value class NameAndDescriptor(val value: String) {
     })
 
     companion object : TypeCompanion<NameAndDescriptor> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() !in JVMS.unqualifiedNameIllegalChars
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             NameAndDescriptor(buildString {
                 append(UnqualifiedName.read(reader))
                 if (!reader.exhausted() && reader.peek() == ';') {

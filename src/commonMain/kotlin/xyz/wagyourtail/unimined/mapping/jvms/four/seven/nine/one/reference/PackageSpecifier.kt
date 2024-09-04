@@ -2,7 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,7 +14,7 @@ value class PackageSpecifier private constructor(val value: String) {
 
     companion object: TypeCompanion<PackageSpecifier> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             // read ahead to make sure there's a trailing / after a bunch of identifier characters
             reader.takeUntil { it in JVMS.identifierIllegalChars }
             if (reader.exhausted()) {
@@ -23,7 +23,7 @@ value class PackageSpecifier private constructor(val value: String) {
             return reader.take() == '/'
         }
 
-        override fun read(reader: CharReader): PackageSpecifier {
+        override fun read(reader: CharReader<*>): PackageSpecifier {
             if (!shouldRead(reader.copy())) {
                 throw IllegalArgumentException("Invalid package specifier")
             }

@@ -1,12 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
+import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
-import xyz.wagyourtail.unimined.mapping.util.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.MultiClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.MultiConstantGroupVisitor

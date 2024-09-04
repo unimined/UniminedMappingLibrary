@@ -2,7 +2,8 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -20,11 +21,11 @@ value class FullyQualifiedName(val value: String) {
     })
 
     companion object : TypeCompanion<FullyQualifiedName> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == 'L'
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             FullyQualifiedName(buildString {
                 append(ObjectType.read(reader))
                 if (!reader.exhausted() && NameAndDescriptor.shouldRead(reader.copy())) {
@@ -39,7 +40,7 @@ value class FullyQualifiedName(val value: String) {
 
     }
 
-    fun getParts(): Pair<ObjectType, NameAndDescriptor?> = CharReader(value).let {
+    fun getParts(): Pair<ObjectType, NameAndDescriptor?> = StringCharReader(value).let {
         val objectType = ObjectType.read(it)
         if (it.exhausted()) {
             objectType to null

@@ -24,7 +24,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 @Suppress("UNUSED_PARAMETER")
 object TinyV2Writer : FormatWriter {
 
-    fun String.escape(): String {
+    private fun String.escape(): String {
         if (this.isEmpty()) return this
         return buildString {
             for (c in this@escape) {

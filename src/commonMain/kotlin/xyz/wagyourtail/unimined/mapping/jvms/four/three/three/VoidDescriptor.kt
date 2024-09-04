@@ -5,7 +5,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -17,11 +17,11 @@ value class VoidDescriptor private constructor(val value: Char) {
 
     companion object: TypeCompanion<VoidDescriptor> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == 'V'
         }
 
-        override fun read(reader: CharReader): VoidDescriptor {
+        override fun read(reader: CharReader<*>): VoidDescriptor {
             val value = reader.take()
             if (value != 'V') {
                 throw IllegalArgumentException("Invalid void type: $value")

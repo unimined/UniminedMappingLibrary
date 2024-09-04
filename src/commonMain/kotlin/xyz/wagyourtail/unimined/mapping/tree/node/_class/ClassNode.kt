@@ -1,5 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class
 
+import xyz.wagyourtail.commonskt.utils.filterNotNullValues
+import xyz.wagyourtail.commonskt.utils.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
@@ -16,8 +18,6 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.util.filterNotNullValues
-import xyz.wagyourtail.unimined.mapping.util.mapNotNullValues
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingVisitor>(parent), ClassVisitor {

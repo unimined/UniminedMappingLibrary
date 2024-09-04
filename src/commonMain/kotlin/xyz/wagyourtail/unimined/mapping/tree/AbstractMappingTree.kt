@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
+import xyz.wagyourtail.commonskt.utils.maybeEscape
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
@@ -19,7 +20,6 @@ import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
-import xyz.wagyourtail.unimined.mapping.util.maybeEscape
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.NullVisitor
 

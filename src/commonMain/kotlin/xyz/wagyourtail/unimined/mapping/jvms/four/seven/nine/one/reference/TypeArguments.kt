@@ -1,7 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -12,11 +13,11 @@ import kotlin.jvm.JvmInline
 value class TypeArguments private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeArguments> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == '<'
         }
 
-        override fun read(reader: CharReader): TypeArguments {
+        override fun read(reader: CharReader<*>): TypeArguments {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid type arguments")
             }
@@ -40,17 +41,15 @@ value class TypeArguments private constructor(val value: String) {
         override fun unchecked(value: String) = TypeArguments(value)
     }
 
-    fun getParts(): List<TypeArgument> {
-        CharReader(value.substring(1, value.length - 1)).use {
-            val args = mutableListOf<TypeArgument>()
-            while (true) {
-                args.add(TypeArgument.read(it))
-                if (it.exhausted()) {
-                    break
-                }
+    fun getParts(): List<TypeArgument> = StringCharReader(value.substring(1, value.length - 1)).let {
+        val args = mutableListOf<TypeArgument>()
+        while (true) {
+            args.add(TypeArgument.read(it))
+            if (it.exhausted()) {
+                break
             }
-            return args
         }
+        return args
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

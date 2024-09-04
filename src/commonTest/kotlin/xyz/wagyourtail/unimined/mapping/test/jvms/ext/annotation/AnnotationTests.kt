@@ -86,12 +86,21 @@ class AnnotationTests {
         assertEquals("Lcom/example/test2;", annotation7.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().first.toString())
         assertEquals("enum", annotation7.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().second.toString())
 
-        // class constant
-        val annotation8 = Annotation.read("@Lcom/example/test;(value=Lcom/example/test2;)")
+        // escaped enum constant
+        val annotation8 =  Annotation.read("@Lcom/example/test;(value=Lcom/example/test2;.\"enum\")")
         assertEquals("Lcom/example/test;", annotation8.getParts().first.toString())
-        assertEquals("value=Lcom/example/test2;", annotation8.getParts().second.toString())
+        assertEquals("value=Lcom/example/test2;.\"enum\"", annotation8.getParts().second.toString())
         assertEquals("value", annotation8.getParts().second!!.getParts()[0].getParts().first.unescape())
-        assertEquals("Lcom/example/test2;", annotation8.getParts().second!!.getParts()[0].getParts().second.toString())
+        assertEquals("Lcom/example/test2;.\"enum\"", annotation8.getParts().second!!.getParts()[0].getParts().second.toString())
+        assertEquals("Lcom/example/test2;", annotation8.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().first.toString())
+        assertEquals("enum", annotation8.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().second.toString())
+
+        // class constant
+        val annotation9 = Annotation.read("@Lcom/example/test;(value=Lcom/example/test2;)")
+        assertEquals("Lcom/example/test;", annotation9.getParts().first.toString())
+        assertEquals("value=Lcom/example/test2;", annotation9.getParts().second.toString())
+        assertEquals("value", annotation9.getParts().second!!.getParts()[0].getParts().first.unescape())
+        assertEquals("Lcom/example/test2;", annotation9.getParts().second!!.getParts()[0].getParts().second.toString())
     }
 
     @Test

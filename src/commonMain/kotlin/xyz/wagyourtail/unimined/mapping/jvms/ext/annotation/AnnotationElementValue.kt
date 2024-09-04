@@ -1,7 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -25,11 +26,11 @@ value class AnnotationElementValue private constructor(val value: String) {
             Constant
         )
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             AnnotationElementValue(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid annotation element value", e)
@@ -42,7 +43,7 @@ value class AnnotationElementValue private constructor(val value: String) {
 
     fun isArrayConstant() = value[0] == '{'
 
-    fun isEnumConstant() = CharReader(value).use {
+    fun isEnumConstant() = StringCharReader(value).let {
         EnumConstant.shouldRead(it)
     }
 

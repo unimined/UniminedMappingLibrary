@@ -1,7 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,11 +13,11 @@ value class ClassTypeSignatureSuffix private constructor(val value: String) {
 
     companion object: TypeCompanion<ClassTypeSignatureSuffix> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == '.'
         }
 
-        override fun read(reader: CharReader): ClassTypeSignatureSuffix {
+        override fun read(reader: CharReader<*>): ClassTypeSignatureSuffix {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid class type signature suffix")
             }

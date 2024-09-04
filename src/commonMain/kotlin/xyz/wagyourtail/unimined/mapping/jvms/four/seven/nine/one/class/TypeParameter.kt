@@ -2,7 +2,8 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,11 +15,11 @@ value class TypeParameter private constructor(val value: String) {
 
     companion object: TypeCompanion<TypeParameter> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() !in JVMS.identifierIllegalChars
         }
 
-        override fun read(reader: CharReader): TypeParameter {
+        override fun read(reader: CharReader<*>): TypeParameter {
             if (!shouldRead(reader.copy())) {
                 throw IllegalArgumentException("Invalid type parameter")
             }
@@ -34,16 +35,14 @@ value class TypeParameter private constructor(val value: String) {
         override fun unchecked(value: String) = TypeParameter(value)
     }
 
-    fun getParts(): Triple<String, ClassBound, List<InterfaceBound>> {
-        return CharReader(value).use { buf ->
-            val name = buf.takeUntil { it == ':' }
-            val classBound = ClassBound.read(buf)
-            val interfaces = mutableListOf<InterfaceBound>()
-            while (!buf.exhausted()) {
-                interfaces.add(InterfaceBound.read(buf))
-            }
-            Triple(name, classBound, interfaces)
+    fun getParts(): Triple<String, ClassBound, List<InterfaceBound>> = StringCharReader(value).let {
+        val name = it.takeUntil { it == ':' }
+        val classBound = ClassBound.read(it)
+        val interfaces = mutableListOf<InterfaceBound>()
+        while (!it.exhausted()) {
+            interfaces.add(InterfaceBound.read(it))
         }
+        Triple(name, classBound, interfaces)
     }
 
     fun accept(visitor: (Any, Boolean) -> Boolean) {

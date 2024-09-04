@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats.at
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -8,7 +9,6 @@ import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.ATData
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.parseAccess
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 /**
@@ -23,7 +23,7 @@ object LegacyATReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -34,7 +34,7 @@ object LegacyATReader : FormatReader {
         ATReader.applyData(data, into, ns)
     }
 
-    fun readData(input: CharReader): List<ATData> {
+    fun readData(input: CharReader<*>): List<ATData> {
         val data = mutableListOf<ATData>()
         while (!input.exhausted()) {
             if (input.peek() == '\n') {

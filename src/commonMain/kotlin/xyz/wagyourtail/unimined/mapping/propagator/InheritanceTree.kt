@@ -12,8 +12,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
-import xyz.wagyourtail.unimined.mapping.util.parallelMap
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
 
 open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
     val LOGGER = KotlinLogging.logger {  }
@@ -27,32 +27,32 @@ open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
         }
     }
 
-    fun read(data: CharReader) {
+    fun read(data: CharReader<*>) {
         var ci: ClassInfo? = null
         while (!data.exhausted()) {
             if (data.peek() == '\n') {
                 data.take()
                 continue
             }
-            var col = data.takeNext().second
+            var col = data.takeNext()!!
             var indent = 0
             while (col.isEmpty()) {
                 indent++
-                col = data.takeNext().second
+                col = data.takeNext()!!
             }
             if (indent > 1) {
                 throw IllegalArgumentException("expected method, found double indent")
             }
             if (indent == 0) {
                 val cls = col
-                val sup = data.takeNext().second.ifEmpty { null }
-                val intf = data.takeRemainingOnLine().map { InternalName.read(it.second) }
+                val sup = data.takeNext()!!.ifEmpty { null }
+                val intf = data.takeRemainingOnLine().map { InternalName.read(it) }
                 ci = ClassInfo(InternalName.read(cls), sup?.let { InternalName.read(it) }, intf)
                 _classes[ci.name] = ci
             } else {
                 val acc = col.split("|").map { AccessFlag.valueOf(it.uppercase()) }
-                val name = data.takeNext().second
-                val desc = FieldOrMethodDescriptor.read(data.takeNext().second)
+                val name = data.takeNext()!!
+                val desc = FieldOrMethodDescriptor.read(data.takeNext()!!)
 
                 if (desc.isMethodDescriptor()) {
                     ci!!._methods.add(

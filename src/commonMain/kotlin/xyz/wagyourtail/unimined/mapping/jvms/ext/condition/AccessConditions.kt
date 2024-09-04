@@ -2,7 +2,8 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.condition
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -16,12 +17,12 @@ value class AccessConditions private constructor(val value: String) {
     companion object : TypeCompanion<AccessConditions> {
         val ALL = AccessConditions("*")
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             val peek = reader.peek()
             return peek == '*' || AccessCondition.shouldRead(reader.copy())
         }
 
-        override fun read(reader: CharReader) = AccessConditions(buildString {
+        override fun read(reader: CharReader<*>) = AccessConditions(buildString {
             val peek = reader.take()
             if (peek == '*') {
                 append(peek)
@@ -41,7 +42,7 @@ value class AccessConditions private constructor(val value: String) {
             return emptyList()
         }
         val parts = mutableListOf<AccessCondition>()
-        CharReader(value).use {
+        StringCharReader(value).let {
             while (true) {
                 parts.add(AccessCondition.read(it))
                 if (it.exhausted()) {

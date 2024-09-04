@@ -1,7 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,11 +14,11 @@ value class ClassTypeSignature private constructor(val value: String) {
 
     companion object: TypeCompanion<ClassTypeSignature> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == 'L'
         }
 
-        override fun read(reader: CharReader): ClassTypeSignature {
+        override fun read(reader: CharReader<*>): ClassTypeSignature {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid class type signature")
             }
@@ -47,7 +48,7 @@ value class ClassTypeSignature private constructor(val value: String) {
         override fun unchecked(value: String) = ClassTypeSignature(value)
     }
 
-    fun getParts(): Triple<PackageSpecifier?, SimpleClassTypeSignature, List<ClassTypeSignatureSuffix>> = CharReader(value.substring(1)).use {
+    fun getParts(): Triple<PackageSpecifier?, SimpleClassTypeSignature, List<ClassTypeSignatureSuffix>> = StringCharReader(value.substring(1)).let {
         val packageSpec = if (PackageSpecifier.shouldRead(it.copy())) {
             PackageSpecifier.read(it)
         } else {

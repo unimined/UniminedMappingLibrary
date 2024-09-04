@@ -1,7 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.condition
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -14,12 +14,12 @@ value class AccessCondition private constructor(val value: String) {
 
     companion object : TypeCompanion<AccessCondition> {
 
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             val peek = reader.peek()
             return peek == '+' || peek == '-'
         }
 
-        override fun read(reader: CharReader) = AccessCondition(buildString {
+        override fun read(reader: CharReader<*>) = AccessCondition(buildString {
             val peek = reader.take()
             if (peek != '+' && peek != '-') {
                 throw IllegalArgumentException("Invalid access condition, expected + or -, found $peek")

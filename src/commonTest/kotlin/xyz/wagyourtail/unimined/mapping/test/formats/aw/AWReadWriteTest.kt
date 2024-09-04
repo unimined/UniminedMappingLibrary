@@ -11,7 +11,8 @@ import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
 import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -89,7 +90,7 @@ c	net/minecraft/class_3721
 
     @Test
     fun testDirect() {
-        val betterRead = AWReader.readData(CharReader(awText))
+        val betterRead = AWReader.readData(StringCharReader(awText))
         val betterWrite = buildString { AWWriter.writeData(betterRead, ::append) }
         assertEquals(awText.replace(" ", "\t"), betterWrite.trimEnd())
     }
@@ -100,7 +101,7 @@ c	net/minecraft/class_3721
             input.writeUtf8(TinyV2ReadWriteTest.mappings)
             TinyV2Reader.read(input)
         }
-        val betterRead = AWReader.readData(CharReader(awText))
+        val betterRead = AWReader.readData(StringCharReader(awText))
         val remapped = AWWriter.remapMappings(betterRead, m, Namespace("named"))
         val betterWrite = buildString { AWWriter.writeData(remapped, ::append) }
 

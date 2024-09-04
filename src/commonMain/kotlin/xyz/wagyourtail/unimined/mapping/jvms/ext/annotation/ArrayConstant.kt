@@ -1,7 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
-import xyz.wagyourtail.unimined.mapping.util.CharReader
+import xyz.wagyourtail.commonskt.reader.CharReader
 import kotlin.jvm.JvmInline
 
 /**
@@ -12,11 +12,11 @@ import kotlin.jvm.JvmInline
 value class ArrayConstant private constructor(val value: String) {
 
     companion object: TypeCompanion<ArrayConstant> {
-        override fun shouldRead(reader: CharReader): Boolean {
+        override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() == '{'
         }
 
-        override fun read(reader: CharReader) = try {
+        override fun read(reader: CharReader<*>) = try {
             if (!shouldRead(reader)) {
                 throw IllegalArgumentException("Invalid array constant")
             }

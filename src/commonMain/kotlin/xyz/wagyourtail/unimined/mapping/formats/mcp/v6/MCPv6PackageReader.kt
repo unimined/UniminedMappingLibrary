@@ -1,12 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 
 import okio.BufferedSource
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -17,7 +17,7 @@ object MCPv6PackageReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -39,8 +39,8 @@ object MCPv6PackageReader : FormatReader {
                     input.take()
                     continue
                 }
-                val cls = input.takeCol().second
-                val pkg = input.takeCol().second
+                val cls = input.takeCol()
+                val pkg = input.takeCol()
 
                 into.visitClass(mapOf(
                     srcNs to InternalName.read("net/minecraft/src/$cls"),

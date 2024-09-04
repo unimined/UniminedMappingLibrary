@@ -2,13 +2,13 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v1
 
 import okio.BufferedSource
 import okio.use
+import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.util.CharReader
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.JavadocVisitor
@@ -32,7 +32,7 @@ object MCPv1FieldReader : FormatReader {
     }
 
     override suspend fun read(
-        input: CharReader,
+        input: CharReader<*>,
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
@@ -71,17 +71,17 @@ object MCPv1FieldReader : FormatReader {
                 input.takeRemainingCol()
             }
 
-            if (fieldName.second.isEmpty()) {
+            if (fieldName.isNullOrEmpty()) {
                 continue
             }
 
             if (envType == EnvType.CLIENT) {
-                if (clientSrg.second == "*") continue
-                data[clientSrg.second] = fieldName.second to comment.second
+                if (clientSrg == "*") continue
+                data[clientSrg!!] = fieldName to comment
             }
             if (envType == EnvType.SERVER) {
-                if (serverSrg.second == "*") continue
-                data[serverSrg.second] = fieldName.second to comment.second
+                if (serverSrg == "*") continue
+                data[serverSrg!!] = fieldName to comment
             }
 
         }
