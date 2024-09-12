@@ -14,8 +14,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
+import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 
-open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
+open class InheritanceTree(val tree: AbstractMappingTree, val fns: Namespace, val targets: Set<Namespace>) {
     val LOGGER = KotlinLogging.logger {  }
 
     private val _classes = mutableMapOf<InternalName, ClassInfo>()
@@ -55,7 +56,7 @@ open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
                 val desc = FieldOrMethodDescriptor.read(data.takeNext()!!)
 
                 if (desc.isMethodDescriptor()) {
-                    ci!!._methods.add(
+                    ci!!.methods.add(
                         MethodInfo(
                             name,
                             desc.getMethodDescriptor(),
@@ -63,7 +64,7 @@ open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
                         )
                     )
                 } else {
-                    ci!!._fields.add(
+                    ci!!.fields.add(
                         FieldInfo(
                             name,
                             desc.getFieldDescriptor(),
@@ -84,7 +85,7 @@ open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
             append(cls.interfaces.joinToString("\t") { it.toString() })
             append("\n")
 
-            for (method in cls._methods) {
+            for (method in cls.methods) {
                 append("\t")
                 append(AccessFlag.of(ElementType.METHOD, method.access).joinToString("|") { it.toString() })
                 append("\t")
@@ -102,45 +103,106 @@ open class InheritanceTree(val tree: AbstractMappingTree, val ns: Namespace) {
         val superType: InternalName?,
         val interfaces: List<InternalName>,
     ) {
-        val _methods = mutableListOf<MethodInfo>()
-        val methods: List<MethodInfo> get() = _methods
+        val methods = mutableListOf<MethodInfo>()
 
-        val _fields = mutableListOf<FieldInfo>()
-        val fields: List<FieldInfo> get() = _fields
+        val fields = mutableListOf<FieldInfo>()
 
         val superClass by lazy {
             this@InheritanceTree.classes[superType]
         }
 
         val interfaceClasses by lazy {
-            interfaces.map { this@InheritanceTree.classes[it] }
+            interfaces.mapNotNull { this@InheritanceTree.classes[it] }
         }
 
         val clsNode by lazy {
-            tree.getClass(ns, name)
+            tree.getClass(fns, name)
         }
 
         val propagateLock = Mutex()
 
-        lateinit var methodData: MutableMap<Pair<String, MethodDescriptor>, Map<Namespace, String>>
+        lateinit var methodData: MutableMap<MethodInfo, MutableMap<Namespace, String>>
 
-        suspend fun propagate(): Map<Pair<String, MethodDescriptor>, Map<Namespace, String>> = coroutineScope {
+        suspend fun propagate(): Unit = coroutineScope {
             if (::methodData.isInitialized) methodData
             propagateLock.withLock {
                 if (::methodData.isInitialized) methodData
-                methods.filter { md ->
+
+                superClass?.propagate()
+                interfaceClasses.parallelMap { it.propagate() }
+
+                for (method in methods) {
+                    clsNode?.visitMethod(mapOf(fns to (method.name to method.descriptor))).visitEnd()
+                }
+
+                val methods = methods.filter { md ->
                     // modify access
                     val acc = AccessFlag.of(ElementType.METHOD, md.access).toMutableSet()
-                    val methods = clsNode?.getMethods(ns, md.name, md.descriptor)
+                    val methods = clsNode?.getMethods(fns, md.name, md.descriptor)
                     methods?.flatMap { it.access }?.forEach {
                         it.apply(acc)
                     }
                     AccessFlag.isInheritable(acc)
-                }.parallelMap {
+                }.parallelMap { md ->
+                    val names = (clsNode?.getMethods(fns, md.name, md.descriptor)?.firstOrNull()?.names?.filterKeys { it in targets } ?: emptyMap()).toMutableMap()
                     // traverse parents, retrieve matching mappings
+                    val superNames = superClass?.methodData?.get(md)
+                    val interfaces = interfaceClasses.map { it to it.methodData[md] }
+                    for (ns in targets) {
+                        if (superNames != null) {
+                            if (names[ns] != superNames[ns]) {
+                                if (superNames[ns] == null) {
+                                    superClass!!.overwriteMethodName(md, ns, names[ns]!!)
+                                } else {
+                                    names[ns] = superNames.getValue(ns)
+                                }
+                            }
+                        }
+                        for ((intf, intfNames) in interfaces) {
+                            if (intfNames != null) {
+                                if (names[ns] != intfNames[ns] && names[ns] != null) {
+                                    intf.overwriteMethodName(md, ns, names[ns]!!)
+                                }
+                            }
+                        }
+                    }
+                    clsNode?.visitMethod(
+                        mapOf(fns to (md.name to md.descriptor)) +
+                        names.mapValues { it.value to null }
+                    )?.visitEnd()
+                    names[fns] = md.name
+                    md to names
+                }.associate { it }.toMutableMap()
 
+                for (method in superClass?.methodData ?: emptyMap()) {
+                    if (method.key !in methods) {
+                        methods[method.key] = method.value
+                    }
                 }
-                methodData
+
+                for (intf in interfaceClasses) {
+                    for (method in intf.methodData) {
+                        if (method.key !in methods) {
+                            methods[method.key] = method.value
+                        }
+                    }
+                }
+
+                methodData = methods
+            }
+        }
+
+        private fun overwriteMethodName(md: MethodInfo, namespace: Namespace, newName: String) {
+            if (md in methodData) {
+                methodData[md]!![namespace] = newName
+                clsNode?.visitMethod(mapOf(
+                    fns to (md.name to md.descriptor),
+                    namespace to (newName to null)
+                ))?.visitEnd()
+                superClass?.overwriteMethodName(md, namespace, newName)
+                for (interfaceClass in interfaceClasses) {
+                    interfaceClass.overwriteMethodName(md, namespace, newName)
+                }
             }
         }
 

@@ -6,6 +6,7 @@ import xyz.wagyourtail.commonskt.utils.translateEscapes
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
@@ -52,10 +53,16 @@ object SignatureReader : FormatReader {
                         throw IllegalArgumentException("invalid line: $whitespace")
                     }
                     val mName = input.takeNextLiteral()!!.translateEscapes()
-                    val desc = MethodDescriptor.read(input.takeNextLiteral()!!.translateEscapes())
+                    val desc = FieldOrMethodDescriptor.read(input.takeNextLiteral()!!.translateEscapes())
                     val sig = input.takeNextLiteral()!!.translateEscapes()
-                    cls?.visitMethod(mapOf(ns to (mName to desc)))?.use {
-                        visitSignature(sig, ns, emptySet())
+                    if (desc.isMethodDescriptor()) {
+                        cls?.visitMethod(mapOf(ns to (mName to desc.getMethodDescriptor())))?.use {
+                            visitSignature(sig, ns, emptySet())
+                        }
+                    } else {
+                        cls?.visitField(mapOf(ns to (mName to desc.getFieldDescriptor())))?.use {
+                            visitSignature(sig, ns, emptySet())
+                        }
                     }
                 }
 

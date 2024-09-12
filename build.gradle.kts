@@ -1,13 +1,10 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import xyz.wagyourtail.commons.gradle.shadow.ShadowJar
 import java.net.URI
 
 plugins {
-    val kotlinVersion: String by System.getProperties()
-    kotlin("multiplatform") version kotlinVersion
+    kotlin("multiplatform") version libs.versions.kotlin.asProvider()
+    kotlin("plugin.serialization") version libs.versions.kotlin.asProvider()
+    id("xyz.wagyourtail.commons-gradle") version libs.versions.commons
     `maven-publish`
-    kotlin("plugin.serialization") version kotlinVersion
-    id("xyz.wagyourtail.commons-gradle") version "1.0.0-SNAPSHOT"
 }
 
 allprojects {
@@ -25,9 +22,6 @@ allprojects {
         maven("https://maven.wagyourtail.xyz/snapshots")
     }
 }
-
-val kotlinVersion: String by System.getProperties()
-val javaVersion: String by System.getProperties()
 
 kotlin {
     jvmToolchain(8)
@@ -52,29 +46,26 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api("xyz.wagyourtail.commons:commons-kt:1.0.0-SNAPSHOT")
-                api("io.github.oshai:kotlin-logging:6.0.1")
-                api("com.squareup.okio:okio:3.7.0")
-                api("com.sschr15.annotations:jb-annotations-kmp:24.1.0")
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC2")
-                api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+                api(libs.commons.kt)
+                api(libs.kotlin.logging)
+                api(libs.okio)
+                api(libs.jetbrains.annotations.kmp)
+                api(libs.kotlin.coroutines)
+                api(libs.kotlin.serialization.json)
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0-RC2")
+                implementation(libs.kotlin.coroutines.tests)
             }
         }
         val jvmMain by getting {
             dependencies {
-                // apache compress
-                api("org.apache.commons:commons-compress:1.26.1")
-
-                // asm
-                api("org.ow2.asm:asm:9.6")
-                api("org.ow2.asm:asm-tree:9.6")
+                api(libs.appache.commons.compress)
+                api(libs.asm)
+                api(libs.asm.tree)
             }
         }
         val jvmTest by getting {
@@ -85,7 +76,7 @@ kotlin {
         }
         val jsMain by getting {
             dependencies {
-                implementation(npm("jszip", "3.10.1"))
+                implementation(npm("jszip", libs.versions.jszip.get()))
             }
         }
         val jsTest by getting {

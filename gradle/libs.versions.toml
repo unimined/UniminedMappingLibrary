@@ -1,0 +1,38 @@
+[versions]
+asm = "9.7"
+okio = "3.7.0"
+kotlin = "2.0.20"
+commons = "1.0.0-SNAPSHOT"
+jb_annotations = "24.1.0"
+apache_commons_compress = "1.26.2"
+kotlin_serialization = "1.6.2"
+kotlin_coroutines = "1.9.0-RC"
+kotlin_logging = "6.0.1"
+clikt = "4.3.0"
+slf4j = "2.0.13"
+
+jszip = "3.10.1"
+
+[libraries]
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+asm_commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
+asm_util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
+asm_analysis = { module = "org.ow2.asm:asm-analysis", version.ref = "asm" }
+asm_tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+
+commons_kt = { module = "xyz.wagyourtail.commons:commons-kt", version.ref = "commons" }
+
+jetbrains_annotations_kmp = { module = "com.sschr15.annotations:jb-annotations-kmp", version.ref = "jb_annotations" }
+appache_commons_compress = { module = "org.apache.commons:commons-compress", version.ref = "apache_commons_compress" }
+
+kotlin_coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin_coroutines" }
+kotlin_coroutines_tests = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlin_coroutines" }
+kotlin_serialization_json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlin_serialization" }
+kotlin_logging = { module = "io.github.oshai:kotlin-logging", version.ref = "kotlin_logging" }
+
+clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
+
+slf4j_api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j_simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }

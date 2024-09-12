@@ -54,24 +54,46 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         this._names.putAll(names)
     }
 
-    fun getFields(namespace: Namespace, name: String, desc: FieldDescriptor?): Set<FieldNode> {
-        val fields = mutableSetOf<FieldNode>()
+    /**
+     *  because of how resolve works, there should really be a max of 2
+     *  the one that matches best will be first.
+     *  ie, if desc is not-null, it'll put the match with a not-null desc first.
+     *  or vis-versa for null descs.
+     */
+    fun getFields(namespace: Namespace, name: String, desc: FieldDescriptor?): List<FieldNode> {
+        val fields = mutableListOf<FieldNode>()
         for (field in this.fields.resolve()) {
             if (field.getName(namespace) == name) {
                 if (desc == null || !field.hasDescriptor() || field.getFieldDesc(namespace) == desc) {
-                    fields.add(field)
+                    // ensure best match first
+                    if ((desc == null) xor field.hasDescriptor()) {
+                        fields.add(0, field)
+                    } else {
+                        fields.add(field)
+                    }
                 }
             }
         }
         return fields
     }
 
-    fun getMethods(namespace: Namespace, name: String, desc: MethodDescriptor?): Set<MethodNode> {
-        val methods = mutableSetOf<MethodNode>()
+    /**
+     *  because of how resolve works, there should really be a max of 2
+     *  the one that matches best will be first.
+     *  ie, if desc is not-null, it'll put the match with a not-null desc first.
+     *  or vis-versa for null descs.
+     */
+    fun getMethods(namespace: Namespace, name: String, desc: MethodDescriptor?): List<MethodNode> {
+        val methods = mutableListOf<MethodNode>()
         for (method in this.methods.resolve()) {
             if (method.getName(namespace) == name) {
                 if (desc == null || !method.hasDescriptor() || method.getMethodDesc(namespace) == desc) {
-                    methods.add(method)
+                    // ensure best match first
+                    if ((desc == null) xor method.hasDescriptor()) {
+                        methods.add(0, method)
+                    } else {
+                        methods.add(method)
+                    }
                 }
             }
         }

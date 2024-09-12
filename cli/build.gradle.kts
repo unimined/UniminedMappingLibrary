@@ -4,15 +4,13 @@ plugins {
     kotlin("jvm")
 }
 
-val cliktVersion: String by project.properties
-
 dependencies {
     implementation(project(":"))
 
-    implementation("com.github.ajalt.clikt:clikt:$cliktVersion")
+    implementation(libs.clikt)
 
-    implementation("org.slf4j:slf4j-api:2.0.12")
-    implementation("org.slf4j:slf4j-simple:2.0.10")
+    implementation(libs.slf4j.api)
+    implementation(libs.slf4j.simple)
 
 }
 
