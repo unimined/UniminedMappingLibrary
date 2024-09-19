@@ -63,7 +63,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
         if (prop.isNotEmpty() || cp.isNotEmpty()) {
             LOGGER.info { "Propagating..." }
             val t = measureTime {
-                Propagator(Namespace(propagationNs!!), mappings, prop + cp)
+                Propagator(mappings, Namespace(propagationNs!!), prop + cp)
                     .propagate(mappings.namespaces.toSet() - Namespace(propagationNs!!))
             }
             LOGGER.info { "Propagated in ${t.inWholeMilliseconds}ms" }
