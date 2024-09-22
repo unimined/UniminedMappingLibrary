@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor

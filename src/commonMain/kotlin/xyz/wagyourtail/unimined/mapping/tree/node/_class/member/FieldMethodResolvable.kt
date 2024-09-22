@@ -51,22 +51,23 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
             return null
         }
 
-        // warn if a method name is getting implicitly overridden
-        if (notMatched) {
-            LOGGER.warn {
-                """
-                    Joining different names, second will take priority
-                    $element
-                    $this
-                """.trimIndent()
-            }
-        }
-
         return if (element.hasDescriptor()) {
             if (descs.isNotEmpty()) {
                 val descNs = descs.keys.first()
                 if (element.getDescriptor(descNs) == descs[descNs]) {
                     // same descriptor, merge
+
+                    // warn if a method name is getting implicitly overridden
+                    if (notMatched) {
+                        LOGGER.warn {
+                            """
+                                Joining different names, second will take priority
+                                $element
+                                $this
+                            """.trimIndent()
+                        }
+                    }
+
                     element.setNames(names)
                     element.setDescriptors(descs)
                     doMerge(element)
@@ -77,6 +78,18 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                 }
             } else {
                 // merge, but also create new unmerged one
+
+                // warn if a method name is getting implicitly overridden
+                if (notMatched) {
+                    LOGGER.warn {
+                        """
+                            Joining different names, second will take priority
+                            $element
+                            $this
+                        """.trimIndent()
+                    }
+                }
+
                 val new = create(parent as ClassNode)
                 new.setNames(names)
                 element.setNames(names)
@@ -87,6 +100,18 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
         } else {
             if (descs.isNotEmpty()) {
                 // merge, but also create a new one with descs
+
+                // warn if a method name is getting implicitly overridden
+                if (notMatched) {
+                    LOGGER.warn {
+                        """
+                            Joining different names, second will take priority
+                            $element
+                            $this
+                        """.trimIndent()
+                    }
+                }
+
                 val new = create(parent as ClassNode)
                 new.setNames(element.names)
                 new.setNames(names)
@@ -96,6 +121,18 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                 new
             } else {
                 // merge
+
+                // warn if a method name is getting implicitly overridden
+                if (notMatched) {
+                    LOGGER.warn {
+                        """
+                            Joining different names, second will take priority
+                            $element
+                            $this
+                        """.trimIndent()
+                    }
+                }
+
                 element.setNames(names)
                 doMerge(element)
                 element

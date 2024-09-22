@@ -113,8 +113,8 @@ abstract class InheritanceTree(val tree: AbstractMappingTree, val fns: Namespace
                         overwriteParentMethodNames(md, names.filterKeys { it in needsOverwrite })
                     }
                     clsNode?.visitMethod(
-                        mapOf(fns to (md.name to md.descriptor)) +
-                        names.mapValues { it.value to null }
+                        names.mapValues { it.value to null } +
+                                mapOf(fns to (md.name to md.descriptor))
                     )?.visitEnd()
                     names[fns] = md.name
                     md to names
@@ -142,8 +142,8 @@ abstract class InheritanceTree(val tree: AbstractMappingTree, val fns: Namespace
             if (md in methodData) {
                 methodData[md]!!.putAll(names)
                 clsNode?.visitMethod(mapOf(
-                    fns to (md.name to md.descriptor),
-                    *names.mapValues { it.value to null }.entries.map { it.key to it.value }.toTypedArray()
+                    *names.mapValues { it.value to null }.entries.map { it.key to it.value }.toTypedArray(),
+                    fns to (md.name to md.descriptor)
                 ))?.visitEnd()
                 overwriteParentMethodNames(md, names)
             }
