@@ -1,10 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvables
 import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
@@ -13,13 +15,15 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.Parameter
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
+
     private val _signatures = mutableSetOf<SignatureNode<MethodVisitor>>()
-    private val _params: MutableList<ParameterNode<MethodVisitor>> = mutableListOf()
     private val _locals: MutableList<LocalNode<MethodVisitor>> = mutableListOf()
     private val _exceptions: MutableList<ExceptionNode<MethodVisitor>> = mutableListOf()
 
     val signatures: Set<SignatureNode<MethodVisitor>> get() = _signatures
-    val params: List<ParameterNode<MethodVisitor>> get() = _params
+    val params = LazyResolvables<ParameterVisitor, ParameterNode<MethodVisitor>>(root) {
+        ParameterNode(this, null, null)
+    }
     val locals: List<LocalNode<MethodVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<MethodVisitor>> get() = _exceptions
 
@@ -45,19 +49,9 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
     }
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor {
-        for (param in params) {
-            if (index != null && param.index == index) {
-                param.setNames(names)
-                return param
-            }
-            if (lvOrd != null && param.lvOrd == lvOrd) {
-                param.setNames(names)
-                return param
-            }
-        }
         val newParam = ParameterNode(this, index, lvOrd)
         newParam.setNames(names)
-        _params.add(newParam)
+        params.addUnresolved(newParam)
         return newParam
     }
 
@@ -100,7 +94,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         for (exception in exceptions) {
             exception.accept(visitor, nsFilter)
         }
-        for (param in params) {
+        for (param in params.resolve()) {
             param.accept(visitor, nsFilter)
         }
         for (local in locals) {
@@ -113,6 +107,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         // override to merge disperate constructor methods
         val name = names.values.first()
         if (merged == null && (name == "<init>" || name == "<clinit>") && name == element.names.values.first()) {
+
             // test desc
             if (descs.isNotEmpty() && element.descs.isNotEmpty()) {
                 val descNs = descs.keys.first()

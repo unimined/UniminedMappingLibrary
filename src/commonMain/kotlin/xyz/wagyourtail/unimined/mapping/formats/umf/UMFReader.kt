@@ -18,7 +18,6 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.filterNotNullValues
-import xyz.wagyourtail.unimined.mapping.formats.mcp.MCPExceptionReader.sep
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 /**

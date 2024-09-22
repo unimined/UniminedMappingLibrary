@@ -8,10 +8,12 @@ import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
+import xyz.wagyourtail.unimined.mapping.jvms.four.contains
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.visitor.use
 
 abstract class InheritanceTree(val tree: AbstractMappingTree, val fns: Namespace) {
     val LOGGER = KotlinLogging.logger {  }
@@ -58,7 +60,13 @@ abstract class InheritanceTree(val tree: AbstractMappingTree, val fns: Namespace
                 interfaceClasses.parallelMap { it.propagate(targets) }
 
                 for (method in methods) {
-                    clsNode?.visitMethod(mapOf(fns to (method.name to method.descriptor)))?.visitEnd()
+                    clsNode?.visitMethod(mapOf(fns to (method.name to method.descriptor)))?.use {
+                        var lvOrd = if (AccessFlag.STATIC in method.access) 0 else 1
+                        method.descriptor.getParts().second.forEachIndexed { i, p ->
+                            visitParameter(i, lvOrd, emptyMap())?.visitEnd()
+                            lvOrd += p.value.getWidth()
+                        }
+                    }
                 }
 
                 val methods = methods.filter { md ->
@@ -68,10 +76,9 @@ abstract class InheritanceTree(val tree: AbstractMappingTree, val fns: Namespace
                     methods?.flatMap { it.access }?.forEach {
                         it.apply(acc)
                     }
-                    AccessFlag.isInheritable(acc)
+                    AccessFlag.isInheritable(acc) && !md.name.startsWith("<")
                 }.parallelMap { md ->
                     md to (clsNode?.getMethods(fns, md.name, md.descriptor)?.firstOrNull()?.names?.filterKeys { it in targets } ?: emptyMap()).toMutableMap()
-//                }.parallelMap { (md, names) ->
                 }.parallelMap { (md, names) ->
                     // traverse parents, retrieve matching mappings
                     val superNames = superClass?.methodData?.get(md)

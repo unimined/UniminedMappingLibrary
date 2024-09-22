@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.tree.node._class.member
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
@@ -9,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MemberVisitor
 
 abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVisitor<U>>(parent: ClassNode, val create: (ClassNode) -> T) : AbstractFieldMethodNode<U>(parent),
     LazyResolvableEntry<T, U> {
+    val LOGGER = KotlinLogging.logger {  }
 
     fun MemoryMappingTree.getDescriptor(namespace: Namespace): FieldOrMethodDescriptor? {
         if (descs.isEmpty()) return null
@@ -34,16 +36,30 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
         }
 
         var matched = false
+        var notMatched = false
         for ((ns, nameVal) in names) {
             val elementNameVal = element.names[ns] ?: continue
             if (elementNameVal == nameVal) {
                 matched = true
+            } else {
+                notMatched = true
             }
         }
 
         if (!matched) {
             // dont merge
             return null
+        }
+
+        // warn if a method name is getting implicitly overridden
+        if (notMatched) {
+            LOGGER.warn {
+                """
+                    Joining different names, second will take priority
+                    $element
+                    $this
+                """.trimIndent()
+            }
         }
 
         return if (element.hasDescriptor()) {

@@ -13,12 +13,8 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.*
-import java.util.stream.Collectors
-import java.util.stream.Stream
 import kotlin.streams.asSequence
 import kotlin.streams.asStream
-import kotlin.streams.toList
 
 class Propagator(tree: AbstractMappingTree, fns: Namespace, jars: Set<Path>): InheritanceTree(tree, fns) {
 
@@ -50,7 +46,6 @@ class Propagator(tree: AbstractMappingTree, fns: Namespace, jars: Set<Path>): In
 
         return className to ClassInfo(className, InternalName.read(node.superName), node.interfaces.map(InternalName::read)).apply {
             for (method in node.methods) {
-                if (method.name.startsWith("<")) continue
                 methods.add(MethodInfo(method.name, MethodDescriptor.read(method.desc), method.access))
             }
             for (field in node.fields) {
