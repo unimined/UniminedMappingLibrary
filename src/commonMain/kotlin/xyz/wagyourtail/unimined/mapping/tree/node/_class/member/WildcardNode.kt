@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvableEntry
+import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvables
 import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ExceptionNode
@@ -16,13 +17,14 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>) : MemberNode<WildcardVisitor, ClassVisitor>(parent), WildcardVisitor, LazyResolvableEntry<WildcardNode, WildcardVisitor> {
     private val _descs = descs.toMutableMap()
     private val _signatures: MutableSet<SignatureNode<WildcardVisitor>> = mutableSetOf()
-    private val _params: MutableList<ParameterNode<WildcardVisitor>> = mutableListOf()
     private val _locals: MutableList<LocalNode<WildcardVisitor>> = mutableListOf()
     private val _exceptions: MutableList<ExceptionNode<WildcardVisitor>> = mutableListOf()
 
     val descs: Map<Namespace, FieldOrMethodDescriptor> get() = _descs
     val signatures: Set<SignatureNode<WildcardVisitor>> get() = _signatures
-    val params: List<ParameterNode<WildcardVisitor>> get() = _params
+    val params = LazyResolvables<ParameterVisitor, ParameterNode<WildcardVisitor>>(root) {
+        ParameterNode(this, null, null)
+    }
     val locals: List<LocalNode<WildcardVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<WildcardVisitor>> get() = _exceptions
 
@@ -54,19 +56,9 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
 
     override fun visitParameter(index: Int?, lvOrd: Int?, names: Map<Namespace, String>): ParameterVisitor? {
         if (type == WildcardType.FIELD) return null
-        for (param in params) {
-            if (index != null && param.index == index) {
-                param.setNames(names)
-                return param
-            }
-            if (lvOrd != null && param.lvOrd == lvOrd) {
-                param.setNames(names)
-                return param
-            }
-        }
         val newParam = ParameterNode(this, index, lvOrd)
         newParam.setNames(names)
-        _params.add(newParam)
+        params.addUnresolved(newParam)
         return newParam
     }
 
@@ -109,7 +101,8 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
         for (exception in exceptions) {
             exception.accept(visitor, nsFilter)
         }
-        for (param in params) {
+        for (param in params.resolve()) {
+            if (param.names.isEmpty()) continue
             param.accept(visitor, nsFilter)
         }
         for (local in locals) {

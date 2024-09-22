@@ -95,6 +95,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
             exception.accept(visitor, nsFilter)
         }
         for (param in params.resolve()) {
+            if (param.names.isEmpty()) continue
             param.accept(visitor, nsFilter)
         }
         for (local in locals) {
