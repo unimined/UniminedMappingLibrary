@@ -22,7 +22,7 @@ interface FormatReader {
         envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf()
     ): MemoryMappingTree = MemoryMappingTree().also {
-        read(StringCharReader(content), null, it, envType, nsMapping)
+        read(StringCharReader(content.replace("\r", "")), null, it, envType, nsMapping)
     }
 
     suspend fun read(
@@ -31,7 +31,7 @@ interface FormatReader {
         envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf()
     ) {
-        read(StringCharReader(content), into, into, envType, nsMapping)
+        read(StringCharReader(content.replace("\r", "")), into, into, envType, nsMapping)
     }
 
     suspend fun read(
@@ -40,7 +40,7 @@ interface FormatReader {
         into: MappingVisitor,
         envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf()
-    ) = read(StringCharReader(content), context, into, envType, nsMapping)
+    ) = read(StringCharReader(content.replace("\r", "")), context, into, envType, nsMapping)
 
     suspend fun read(
         input: BufferedSource,
@@ -56,7 +56,7 @@ interface FormatReader {
         envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf()
     ) {
-        read(StringCharReader(input.readUtf8()), into, into, envType, nsMapping)
+        read(StringCharReader(input.readUtf8().replace("\r", "")), into, into, envType, nsMapping)
     }
 
     suspend fun read(
@@ -66,7 +66,7 @@ interface FormatReader {
         envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf()
     ) {
-        read(StringCharReader(input.readUtf8()), context, into, envType, nsMapping)
+        read(StringCharReader(input.readUtf8().replace("\r", "")), context, into, envType, nsMapping)
     }
 
     suspend fun read(

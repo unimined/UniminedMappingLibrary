@@ -64,8 +64,12 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 api(libs.appache.commons.compress)
+
                 api(libs.asm)
                 api(libs.asm.tree)
+
+                api(libs.slf4j.api)
+                api(libs.slf4j.simple)
             }
         }
         val jvmTest by getting {

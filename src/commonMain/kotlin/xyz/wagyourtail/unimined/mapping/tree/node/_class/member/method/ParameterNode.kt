@@ -46,11 +46,14 @@ class ParameterNode<T: InvokableVisitor<T>>(
     }
 
     fun doMerge(target: ParameterNode<T>) {
+        target.setNames(names)
         acceptInner(target, root.namespaces)
     }
 
     override fun merge(element: ParameterNode<T>): ParameterNode<T>? {
         if (element.index == null && element.lvOrd == null) {
+            element.index = index
+            element.lvOrd = lvOrd
             doMerge(element)
             return element
         }
@@ -65,6 +68,7 @@ class ParameterNode<T: InvokableVisitor<T>>(
                 }
                 return null
             }
+            if (lvOrd != null) element.lvOrd = lvOrd
             doMerge(element)
             return element
         }

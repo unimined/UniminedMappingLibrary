@@ -247,7 +247,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                         if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
                         val fileName = file.replace("\\", "/").substringAfterLast("/")
                         val provider = ContentProvider.of(fileName, zip.getContents(file))
-                        val entry = MappingEntry(provider, "$id/${fileName.substringBeforeLast(".")}")
+                        val entry = MappingEntry(provider, "$id/$fileName")
                         entry.combineWith(this)
                         entry.provider = format
                         this.subEntries.forEach { entry.it(provider, format) }
