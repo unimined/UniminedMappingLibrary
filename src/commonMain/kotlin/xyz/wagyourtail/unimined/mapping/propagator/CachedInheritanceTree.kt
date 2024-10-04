@@ -21,6 +21,16 @@ class CachedInheritanceTree(tree: AbstractMappingTree, fns: Namespace, data: Cha
                 append(cls.interfaces.joinToString("\t") { it.toString() })
                 append("\n")
 
+                for (field in cls.fields) {
+                    append("\t")
+                    append(AccessFlag.of(ElementType.METHOD, field.access).joinToString("|") { it.toString() })
+                    append("\t")
+                    append(field.name)
+                    append("\t")
+                    append(field.descriptor.toString())
+                    append("\n")
+                }
+
                 for (method in cls.methods) {
                     append("\t")
                     append(AccessFlag.of(ElementType.METHOD, method.access).joinToString("|") { it.toString() })
