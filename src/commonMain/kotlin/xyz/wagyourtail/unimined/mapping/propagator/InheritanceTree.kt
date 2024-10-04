@@ -59,6 +59,10 @@ abstract class InheritanceTree(val tree: AbstractMappingTree, val fns: Namespace
                 superClass?.propagate(targets)
                 interfaceClasses.parallelMap { it.propagate(targets) }
 
+                for (field in fields) {
+                    clsNode?.visitField(mapOf(fns to (field.name to field.descriptor)))?.visitEnd()
+                }
+
                 for (method in methods) {
                     clsNode?.visitMethod(mapOf(fns to (method.name to method.descriptor)))?.use {
                         var lvOrd = if (AccessFlag.STATIC in method.access) 0 else 1
