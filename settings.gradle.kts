@@ -1,6 +1,6 @@
 pluginManagement {
     repositories {
-        maven("https://maven.wagyourtail.xyz/snapshots")
+        maven("https://maven.wagyourtail.xyz/releases")
         mavenCentral()
         gradlePluginPortal()
     }

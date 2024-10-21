@@ -2,7 +2,7 @@
 asm = "9.7"
 okio = "3.7.0"
 kotlin = "2.0.20"
-commons = "1.0.0-SNAPSHOT"
+commons = "1.0.0"
 jb_annotations = "24.1.0"
 apache_commons_compress = "1.26.2"
 kotlin_serialization = "1.6.2"
