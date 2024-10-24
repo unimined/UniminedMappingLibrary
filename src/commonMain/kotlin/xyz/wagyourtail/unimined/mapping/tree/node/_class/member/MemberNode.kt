@@ -9,16 +9,16 @@ import xyz.wagyourtail.unimined.mapping.tree.node.JavadocNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 abstract class MemberNode<T: MemberVisitor<T>, U: BaseVisitor<U>>(parent: BaseNode<U, *>) : AccessParentNode<T, U>(parent), MemberVisitor<T> {
-    private var _comments: MutableSet<JavadocNode<T>> = mutableSetOf()
+    private var _comments: MutableMap<String, JavadocNode<T>> = mutableMapOf()
     private val _annotations: MutableSet<AnnotationNode<T>> = mutableSetOf()
 
-    val comments: Set<JavadocNode<T>> get() = _comments
+    val comments: Set<JavadocNode<T>> get() = _comments.values.toSet()
     val annotations: Set<AnnotationNode<T>> get() = _annotations
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        val node = JavadocNode(this, value, baseNs)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        val node = _comments.getOrPut(value) { JavadocNode(this, value) }
         node.addNamespaces(namespaces)
-        _comments.add(node)
+        root.mergeNs(namespaces)
         return node
     }
 

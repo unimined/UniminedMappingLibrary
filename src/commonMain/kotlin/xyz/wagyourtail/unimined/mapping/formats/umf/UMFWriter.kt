@@ -363,14 +363,11 @@ object UMFWriter : FormatWriter {
         override fun visitJavadoc(
             delegate: JavadocParentNode<*>,
             value: String,
-            baseNs: Namespace,
             namespaces: Set<Namespace>
         ): JavadocVisitor? {
             into(indent)
             into("${UMFReader.EntryType.JAVADOC.key}\t")
             into(value.maybeEscape())
-            into("\t")
-            into(baseNs.name.maybeEscape())
             for (ns in this.namespaces) {
                 if (ns in namespaces) {
                     into("\t")
@@ -379,7 +376,7 @@ object UMFWriter : FormatWriter {
             }
             into("\n")
             indent += "\t"
-            return super.visitJavadoc(delegate, value, baseNs, namespaces)
+            return super.visitJavadoc(delegate, value, namespaces)
         }
 
         override fun visitSignature(

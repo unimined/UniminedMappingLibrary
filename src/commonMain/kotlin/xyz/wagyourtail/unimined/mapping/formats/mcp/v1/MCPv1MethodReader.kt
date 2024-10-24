@@ -112,7 +112,7 @@ object MCPv1MethodReader : FormatReader {
                     nameMap[dstNs] = mData.first to ns.second
                     val visitor = default.visitMethod(delegate, nameMap)
                     if (mData.second != null) {
-                        visitor?.visitJavadoc(mData.second!!, dstNs, emptySet())?.visitEnd()
+                        visitor?.visitJavadoc(mData.second!!, setOf(dstNs))?.visitEnd()
                     }
                     return visitor
                 }
@@ -120,10 +120,9 @@ object MCPv1MethodReader : FormatReader {
                 override fun visitMethodJavadoc(
                     delegate: MethodVisitor,
                     value: String,
-                    baseNs: Namespace,
                     namespaces: Set<Namespace>
                 ): JavadocVisitor? {
-                    return default.visitMethodJavadoc(delegate, value, baseNs, namespaces)
+                    return default.visitMethodJavadoc(delegate, value, namespaces)
                 }
 
             })

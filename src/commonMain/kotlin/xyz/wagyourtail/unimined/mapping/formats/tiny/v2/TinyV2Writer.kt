@@ -21,7 +21,6 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
-@Suppress("UNUSED_PARAMETER")
 object TinyV2Writer : FormatWriter {
 
     private fun String.escape(): String {
@@ -115,7 +114,6 @@ object TinyV2Writer : FormatWriter {
         override fun visitJavadoc(
             delegate: JavadocParentNode<*>,
             value: String,
-            baseNs: Namespace,
             namespaces: Set<Namespace>
         ): JavadocVisitor? {
             if (indent.isEmpty()) throw IllegalStateException("Top level javadoc?")

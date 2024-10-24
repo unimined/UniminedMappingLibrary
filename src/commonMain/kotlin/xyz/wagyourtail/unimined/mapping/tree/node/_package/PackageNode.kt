@@ -13,11 +13,11 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
 class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
     private val _names: MutableMap<Namespace, PackageName> = mutableMapOf()
     private val _annotations: MutableSet<AnnotationNode<PackageVisitor>> = mutableSetOf()
-    private var _comments: MutableSet<JavadocNode<PackageVisitor>> = mutableSetOf()
+    private var _comments: MutableMap<String, JavadocNode<PackageVisitor>> = mutableMapOf()
 
     val names: Map<Namespace, PackageName> get() = _names
     val annotations: Set<AnnotationNode<PackageVisitor>> get() = _annotations
-    val comments: Set<JavadocNode<PackageVisitor>> get() = _comments
+    val comments: Set<JavadocNode<PackageVisitor>> get() = _comments.values.toSet()
 
     fun getName(namespace: Namespace) = names[namespace]
 
@@ -52,11 +52,10 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         return node
     }
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor {
-        val node = JavadocNode(this, value, baseNs)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor {
+        val node = _comments.getOrPut(value) { JavadocNode(this, value) }
         node.addNamespaces(namespaces)
-        _comments.add(node)
-        root.mergeNs(namespaces + baseNs)
+        root.mergeNs(namespaces)
         return node
     }
 

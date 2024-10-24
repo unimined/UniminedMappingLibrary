@@ -29,13 +29,12 @@ private class MetadataCopyVisitor(val from: Namespace, val to: Set<Namespace>, v
     override fun visitJavadoc(
         delegate: JavadocParentNode<*>,
         value: String,
-        baseNs: Namespace,
         namespaces: Set<Namespace>
     ): JavadocVisitor? {
-        if (baseNs == from || from in namespaces) {
-            return super.visitJavadoc(delegate, value, baseNs, namespaces + to)
+        if (from in namespaces) {
+            return super.visitJavadoc(delegate, value, namespaces + to)
         }
-        return super.visitJavadoc(delegate, value, baseNs, namespaces)
+        return super.visitJavadoc(delegate, value, namespaces)
     }
 
     override fun visitException(

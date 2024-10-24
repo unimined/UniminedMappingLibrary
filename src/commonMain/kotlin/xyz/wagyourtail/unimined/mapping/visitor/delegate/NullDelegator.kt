@@ -85,7 +85,6 @@ open class NullDelegator : Delegator() {
     override fun visitJavadoc(
         delegate: JavadocParentNode<*>,
         value: String,
-        baseNs: Namespace,
         namespaces: Set<Namespace>
     ): JavadocVisitor? {
         return null

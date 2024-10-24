@@ -61,7 +61,7 @@ interface SignatureParentVisitor<T: SignatureParentVisitor<T>> : BaseVisitor<T> 
 
 interface JavadocParentNode<T: JavadocParentNode<T>> : BaseVisitor<T> {
 
-    fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor?
+    fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor?
 
 }
 

@@ -141,12 +141,11 @@ fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisi
     override fun visitJavadoc(
         delegate: JavadocParentNode<*>,
         value: String,
-        baseNs: Namespace,
         namespaces: Set<Namespace>
     ): JavadocVisitor? {
         val n = namespaces.map { nsMap[it] ?: it }.toSet()
         if (n.isEmpty()) return null
-        return super.visitJavadoc(delegate, value, nsMap[baseNs] ?: baseNs, n)
+        return super.visitJavadoc(delegate, value, n)
     }
 
     override fun visitSignature(

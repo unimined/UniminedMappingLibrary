@@ -185,41 +185,41 @@ open class Delegator(delegator: Delegator? = null) {
         return visitAccess(delegate, type, value, conditions, namespaces)
     }
 
-    open fun visitJavadoc(delegate: JavadocParentNode<*>, value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegate.visitJavadoc(value, baseNs, namespaces)?.let { DelegateJavadocVisitor(it, delegator) }
+    open fun visitJavadoc(delegate: JavadocParentNode<*>, value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegate.visitJavadoc(value, namespaces)?.let { DelegateJavadocVisitor(it, delegator) }
     }
 
     open fun visitJavadocEnd(delegate: JavadocVisitor) {
         visitEnd(delegate)
     }
 
-    open fun visitPackageJavadoc(delegate: PackageVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return visitJavadoc(delegate, value, baseNs, namespaces)
+    open fun visitPackageJavadoc(delegate: PackageVisitor, value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return visitJavadoc(delegate, value, namespaces)
     }
 
 
-    open fun visitClassJavadoc(delegate: ClassVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return visitJavadoc(delegate, value, baseNs, namespaces)
+    open fun visitClassJavadoc(delegate: ClassVisitor, value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return visitJavadoc(delegate, value, namespaces)
     }
 
-    open fun visitMethodJavadoc(delegate: MethodVisitor,value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return visitJavadoc(delegate, value, baseNs, namespaces)
+    open fun visitMethodJavadoc(delegate: MethodVisitor,value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return visitJavadoc(delegate, value, namespaces)
     }
 
-    open fun visitWildcardJavadoc(delegate: WildcardVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return visitJavadoc(delegate, value, baseNs, namespaces)
+    open fun visitWildcardJavadoc(delegate: WildcardVisitor, value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return visitJavadoc(delegate, value, namespaces)
     }
 
-    open fun visitFieldJavadoc(delegate: FieldVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return visitJavadoc(delegate, value, baseNs, namespaces)
+    open fun visitFieldJavadoc(delegate: FieldVisitor, value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return visitJavadoc(delegate, value, namespaces)
     }
 
-    open fun visitParameterJavadoc(delegate: ParameterVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return visitJavadoc(delegate, value, baseNs, namespaces)
+    open fun visitParameterJavadoc(delegate: ParameterVisitor, value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return visitJavadoc(delegate, value, namespaces)
     }
 
-    open fun visitLocalVariableJavadoc(delegate: LocalVariableVisitor, value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return visitJavadoc(delegate, value, baseNs, namespaces)
+    open fun visitLocalVariableJavadoc(delegate: LocalVariableVisitor, value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return visitJavadoc(delegate, value, namespaces)
     }
 
     open fun visitSignature(
@@ -355,8 +355,8 @@ open class DelegateMappingVisitor(delegate: MappingVisitor, delegator: Delegator
 
 open class DelegatePackageVisitor(delegate: PackageVisitor, delegator: Delegator) : DelegateBaseVisitor<PackageVisitor>(delegate, delegator), PackageVisitor by delegate {
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegator.visitPackageJavadoc(delegate, value, baseNs, namespaces)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegator.visitPackageJavadoc(delegate, value, namespaces)
     }
 
     override fun visitEnd() {
@@ -401,8 +401,8 @@ open class DelegateClassVisitor(delegate: ClassVisitor, delegator: Delegator) : 
         return delegator.visitInterface(delegate, type, name, baseNs, namespaces)
     }
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegator.visitClassJavadoc(delegate, value, baseNs, namespaces)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegator.visitClassJavadoc(delegate, value, namespaces)
     }
 
     override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
@@ -474,8 +474,8 @@ open class DelegateMethodVisitor(delegate: MethodVisitor, delegator: Delegator) 
         return delegator.visitMethodException(delegate, type, exception, baseNs, namespaces)
     }
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegator.visitMethodJavadoc(delegate, value, baseNs, namespaces)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegator.visitMethodJavadoc(delegate, value, namespaces)
     }
 
     override fun visitEnd() {
@@ -508,8 +508,8 @@ open class DelegateFieldVisitor(delegate: FieldVisitor, delegator: Delegator) : 
         return delegator.visitFieldSignature(delegate, value, baseNs, namespaces)
     }
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegator.visitFieldJavadoc(delegate, value, baseNs, namespaces)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegator.visitFieldJavadoc(delegate, value, namespaces)
     }
 
     override fun visitEnd() {
@@ -554,8 +554,8 @@ open class DelegateWildcardVisitor(delegate: WildcardVisitor, delegator: Delegat
         return delegator.visitWildcardAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegator.visitWildcardJavadoc(delegate, value, baseNs, namespaces)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegator.visitWildcardJavadoc(delegate, value, namespaces)
     }
 
     override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor? {
@@ -570,8 +570,8 @@ open class DelegateWildcardVisitor(delegate: WildcardVisitor, delegator: Delegat
 
 open class DelegateParameterVisitor(delegate: ParameterVisitor, delegator: Delegator) : DelegateBaseVisitor<ParameterVisitor>(delegate, delegator), ParameterVisitor {
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegator.visitParameterJavadoc(delegate, value, baseNs, namespaces)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegator.visitParameterJavadoc(delegate, value, namespaces)
     }
 
     override fun visitAccess(
@@ -618,8 +618,8 @@ open class DelegateLocalVariableVisitor(delegate: LocalVariableVisitor, delegato
         return delegator.visitLocalVariableAnnotation(delegate, type, baseNs, annotation, namespaces)
     }
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        return delegator.visitLocalVariableJavadoc(delegate, value, baseNs, namespaces)
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        return delegator.visitLocalVariableJavadoc(delegate, value, namespaces)
     }
 
     override fun visitEnd() {

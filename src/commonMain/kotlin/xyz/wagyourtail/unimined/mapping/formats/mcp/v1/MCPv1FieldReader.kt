@@ -111,7 +111,7 @@ object MCPv1FieldReader : FormatReader {
                     nameMap[dstNs] = fData.first to ns.second
                     val visitor = default.visitField(delegate, nameMap)
                     if (fData.second != null) {
-                        visitor?.visitJavadoc(fData.second!!, dstNs, emptySet())?.visitEnd()
+                        visitor?.visitJavadoc(fData.second!!, setOf(dstNs))?.visitEnd()
                     }
                     return visitor
                 }
@@ -119,10 +119,9 @@ object MCPv1FieldReader : FormatReader {
                 override fun visitFieldJavadoc(
                     delegate: FieldVisitor,
                     value: String,
-                    baseNs: Namespace,
                     namespaces: Set<Namespace>
                 ): JavadocVisitor? {
-                    return default.visitFieldJavadoc(delegate, value, baseNs, namespaces)
+                    return default.visitFieldJavadoc(delegate, value, namespaces)
                 }
 
             })

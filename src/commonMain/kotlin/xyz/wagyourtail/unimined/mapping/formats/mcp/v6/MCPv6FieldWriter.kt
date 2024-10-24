@@ -51,7 +51,6 @@ object MCPv6FieldWriter : FormatWriter {
             override fun visitFieldJavadoc(
                 delegate: FieldVisitor,
                 value: String,
-                baseNs: Namespace,
                 namespaces: Set<Namespace>
             ): JavadocVisitor? {
                 if (!writeComments) return null

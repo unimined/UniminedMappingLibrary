@@ -133,7 +133,7 @@ object TinyV2Reader : FormatReader {
                             // comment
                             val comment = input.takeLine().removePrefix("\t").translateEscapes()
                             last as JavadocParentNode?
-                            last?.visitJavadoc(comment, namespaces.first(), namespaces.drop(1).toSet())
+                            last?.visitJavadoc(comment, namespaces.toSet())
                         }
                     }
 

@@ -142,11 +142,10 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
     override fun visitJavadoc(
         delegate: JavadocParentNode<*>,
         value: String,
-        baseNs: Namespace,
         namespaces: Set<Namespace>
     ): JavadocVisitor? {
-        recorder(namespaces + baseNs)
-        return super.visitJavadoc(delegate, value, baseNs, namespaces)
+        recorder(namespaces)
+        return super.visitJavadoc(delegate, value, namespaces)
     }
 
     override fun visitSignature(

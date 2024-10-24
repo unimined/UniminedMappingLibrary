@@ -101,8 +101,8 @@ open class MultiSignatureParentVisitor<T: SignatureParentVisitor<T>>(visitors: L
 
 open class MultiJavadocParentVisitor<T: JavadocParentNode<T>>(visitors: List<T>): MultiBaseVisitor<T>(visitors), JavadocParentNode<T> {
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
-        val visitors = visitors.mapNotNull { it.visitJavadoc(value, baseNs, namespaces) }
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
+        val visitors = visitors.mapNotNull { it.visitJavadoc(value, namespaces) }
         if (visitors.isEmpty()) return null
         return MultiJavadocVisitor(visitors)
     }

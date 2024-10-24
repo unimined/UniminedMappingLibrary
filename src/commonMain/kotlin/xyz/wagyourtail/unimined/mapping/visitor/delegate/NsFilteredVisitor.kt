@@ -144,11 +144,9 @@ class NsFilteredDelegate(val ns: Set<Namespace>, val inverted: Boolean) : Delega
     override fun visitJavadoc(
         delegate: JavadocParentNode<*>,
         value: String,
-        baseNs: Namespace,
         namespaces: Set<Namespace>
     ): JavadocVisitor? {
-        if (baseNs !in ns) return null
-        return super.visitJavadoc(delegate, value, baseNs, namespaces.filter { if (inverted) it !in ns else it in ns }.toSet())
+        return super.visitJavadoc(delegate, value, namespaces.filter { if (inverted) it !in ns else it in ns }.toSet())
     }
 
     override fun visitSignature(

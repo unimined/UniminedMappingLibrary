@@ -79,7 +79,7 @@ open class EmptySignatureParentVisitor<T: SignatureParentVisitor<T>> :  EmptyBas
 
 open class EmptyJavadocParentVisitor<T: JavadocParentNode<T>> : EmptyBaseVisitor<T>(), JavadocParentNode<T> {
 
-    override fun visitJavadoc(value: String, baseNs: Namespace, namespaces: Set<Namespace>): JavadocVisitor? {
+    override fun visitJavadoc(value: String, namespaces: Set<Namespace>): JavadocVisitor? {
         return EmptyJavadocVisitor()
     }
 

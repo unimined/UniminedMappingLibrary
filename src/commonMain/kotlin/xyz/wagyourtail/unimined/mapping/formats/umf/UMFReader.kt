@@ -294,9 +294,9 @@ object UMFReader : FormatReader {
                 }
                 EntryType.JAVADOC -> {
                     val comment = input.takeNextFixed()!!
-                    val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
+                    val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }
                     last as MemberVisitor<*>?
-                    last?.visitJavadoc(comment, names.next(), names.asSequence().toSet())
+                    last?.visitJavadoc(comment, names.toSet())
                 }
                 EntryType.ANNOTATION -> {
                     val type = input.takeNextFixed()!!.let {
