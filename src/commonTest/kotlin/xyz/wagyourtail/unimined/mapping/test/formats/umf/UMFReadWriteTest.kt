@@ -49,8 +49,10 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 		p	_	0	_	this	_
 		v	1	_	_	lv1	lv1Extra
 	m	__	dontMerge;()V	dontMerge2
-    m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
+		p	0	_	p1	_	_
 	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>	<init>
+		p	0	1	_	_	_
         """.trimIndent().trimEnd()
 
         val mappings = Buffer().use { input ->
@@ -70,6 +72,37 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 		v	1	_	_	lv1	lv1Extra
 	m	_;()V	dontMerge;()V	dontMerge2;()V
 	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
+		p	0	1	p1	_	_
+        """.trimIndent().replace(' ', '\t').trimEnd()
+
+        assertEquals(testOutput, output.trimEnd())
+    }
+
+    @Test
+    fun testMergableParams() = runTest {
+        val inp = """
+umf	1	0
+intermediary	named	extra
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
+		p	0	_	p1	_	_
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>	<init>
+		p	0	1	_	_	_
+        """.trimIndent().trimEnd()
+
+        val mappings = Buffer().use { input ->
+            input.writeUtf8(inp)
+            UMFReader.read(input)
+        }
+        val output = Buffer().use { output ->
+            mappings.accept(UMFWriter.write(output, false))
+            output.readUtf8()
+        }
+        val testOutput = """umf	1	0
+intermediary	named	extra
+c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
+		p	0	1	p1	_	_
         """.trimIndent().replace(' ', '\t').trimEnd()
 
         assertEquals(testOutput, output.trimEnd())

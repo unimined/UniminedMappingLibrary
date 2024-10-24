@@ -34,7 +34,6 @@ class ParameterNode<T: InvokableVisitor<T>>(
 
     override fun acceptOuter(visitor: T, nsFilter: Collection<Namespace>): ParameterVisitor? {
         val names = names.filterKeys { it in nsFilter }
-        if (names.isEmpty()) return null
         return visitor.visitParameter(index, lvOrd, names)
     }
 
