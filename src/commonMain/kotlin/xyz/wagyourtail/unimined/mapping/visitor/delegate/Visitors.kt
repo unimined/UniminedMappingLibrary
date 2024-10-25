@@ -19,6 +19,10 @@ fun MappingVisitor.delegator(delegator: Delegator) = DelegateMappingVisitor(this
 
 fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisitor(this, object : Delegator() {
 
+    override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+        super.visitHeader(delegate, *namespaces.map { nsMap[Namespace(it)]?.name ?: it }.toTypedArray())
+    }
+
     override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
