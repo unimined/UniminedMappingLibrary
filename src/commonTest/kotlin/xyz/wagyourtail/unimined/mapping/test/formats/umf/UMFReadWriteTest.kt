@@ -43,16 +43,23 @@ umf	1	0
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	f	field_1724	_	_
-	m	method_1507;()V	testMethod	_
+	f	c	field_71512_c	
+	f	c;Ljava/util/Map;	_	c;Ljava/util/Map;
+	f	c;Ljava/util/Map;	_	field_3;Ljava/util/Map;
+	m	method_1507	testMethod	_
 		p	_	0	_	_	p1
-	m	_	testMethod;()V	methodNameExtra
+	m	_	testMethod;()V	ignored
 		p	_	0	_	this	_
 		v	1	_	_	lv1	lv1Extra
+	m	_	testMethod;()V	methodNameExtra
 	m	__	dontMerge;()V	dontMerge2
-	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	_	_
 		p	0	_	p1	_	_
-	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>	<init>
-		p	0	1	_	_	_
+	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	_	<init>
+		p	_	2	p2	_	_
+	m	<init>	<init>	<init>
+		p	0	1	_	_	test
+		p	1	2	_	_
         """.trimIndent().trimEnd()
 
         val mappings = Buffer().use { input ->
@@ -63,16 +70,25 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             mappings.accept(UMFWriter.write(output, false))
             output.readUtf8()
         }
-        val testOutput = """umf	1	0
+        val testOutput = """
+umf	1	0
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	f	field_1724	_	_
+	f	c	field_71512_c	c
+	f	c;Ljava/util/Map;	field_71512_c;Ljava/util/Map;	field_3;Ljava/util/Map;
+	m	method_1507	testMethod	ignored
+		p	_	0	_	_	p1
 	m	method_1507;()V	testMethod;()V	methodNameExtra;()V
 		p	_	0	_	this	p1
 		v	1	_	_	lv1	lv1Extra
 	m	_;()V	dontMerge;()V	dontMerge2;()V
 	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
-		p	0	1	p1	_	_
+		p	0	1	p1	_	test
+		p	1	2	p2	_	_
+	m	<init>	<init>	<init>
+		p	0	1	_	_	test
+		p	1	2	_	_	_
         """.trimIndent().replace(' ', '\t').trimEnd()
 
         assertEquals(testOutput, output.trimEnd())

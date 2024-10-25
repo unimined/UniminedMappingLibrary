@@ -59,7 +59,7 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
 
                     // warn if a method name is getting implicitly overridden
                     if (notMatched) {
-                        LOGGER.warn {
+                        LOGGER.info {
                             """
                                 Joining different names, second will take priority
                                 $element
@@ -77,54 +77,25 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                     null
                 }
             } else {
-                // merge, but also create new unmerged one
-
-                // warn if a method name is getting implicitly overridden
-                if (notMatched) {
-                    LOGGER.warn {
-                        """
-                            Joining different names, second will take priority
-                            $element
-                            $this
-                        """.trimIndent()
-                    }
-                }
-
-                val new = create(parent as ClassNode)
-                new.setNames(names)
-                element.setNames(names)
-                element.doMerge(new)
-                doMerge(new)
-                new
+                element.setNames(names.filter { it.key !in element.names })
+                setNames(element.names.filter { it.key !in names })
+                doMerge(element)
+                // return null when desc/nodesc match is found
+                null
             }
         } else {
             if (descs.isNotEmpty()) {
-                // merge, but also create a new one with descs
-
-                // warn if a method name is getting implicitly overridden
-                if (notMatched) {
-                    LOGGER.warn {
-                        """
-                            Joining different names, second will take priority
-                            $element
-                            $this
-                        """.trimIndent()
-                    }
-                }
-
-                val new = create(parent as ClassNode)
-                new.setNames(element.names)
-                new.setNames(names)
-                new.setDescriptors(descs)
-                element.doMerge(new)
-                doMerge(new)
-                new
+                element.setNames(names.filter { it.key !in element.names })
+                setNames(element.names.filter { it.key !in names })
+                element.doMerge(this as T)
+                // return null when desc/nodesc match is found
+                null
             } else {
                 // merge
 
                 // warn if a method name is getting implicitly overridden
                 if (notMatched) {
-                    LOGGER.warn {
+                    LOGGER.info {
                         """
                             Joining different names, second will take priority
                             $element

@@ -16,13 +16,13 @@ class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: AbstractMappingTree, v
             resolved.clear()
             for (element in unresolved) {
                 var resolvedElement: U? = null
-                for (existing in resolved) {
-                    resolvedElement = element.merge(existing)
-                    if (resolvedElement != null) {
-                        if (resolvedElement != existing) {
-                            resolved.add(resolvedElement)
+                for (existing in resolved.toList()) {
+                    val res = element.merge(existing) as U?
+                    if (res != null) {
+                        if (res != existing) {
+                            resolved.add(res)
                         }
-                        break
+                        resolvedElement = res
                     }
                 }
                 if (resolvedElement == null) {

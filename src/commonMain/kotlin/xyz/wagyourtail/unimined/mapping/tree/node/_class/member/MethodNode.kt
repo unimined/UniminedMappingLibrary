@@ -108,45 +108,35 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         if (merged == null && (name == "<init>" || name == "<clinit>") && name == element.names.values.first()) {
 
             // test desc
-            if (descs.isNotEmpty() && element.descs.isNotEmpty()) {
-                val descNs = descs.keys.first()
-                return if (hasDescriptor()) {
-                    if (element.hasDescriptor()) {
-                        if (getMethodDesc(descNs) == element.getMethodDesc(descNs)) {
-                            // merge
-                            element.setNames(names)
-                            doMerge(element)
-                            element
-                        } else {
-                            // dont merge
-                            null
-                        }
-                    } else {
-                        // merge but also create new unmerged one
-                        val new = create(parent as ClassNode)
-                        new.setNames(names)
-                        element.setNames(names)
-                        doMerge(element)
-                        doMerge(new)
-                        new
-                    }
-                } else {
-                    if (element.hasDescriptor()) {
-                        // merge, but also create a new one without descs
-                        val new = create(parent as ClassNode)
-                        new.setNames(element.names)
-                        new.setNames(names)
-                        new.setDescriptors(descs)
-                        element.setNames(names)
-                        doMerge(element)
-                        doMerge(new)
-                        new
-                    } else {
+            return if (element.hasDescriptor()) {
+                if (hasDescriptor()) {
+                    val descNs = descs.keys.first()
+                    if (getMethodDesc(descNs) == element.getMethodDesc(descNs)) {
                         // merge
                         element.setNames(names)
                         doMerge(element)
                         element
+                    } else {
+                        // dont merge
+                        null
                     }
+                } else {
+                    element.setNames(names.filter { it.key !in element.names })
+                    setNames(element.names.filter { it.key !in names })
+                    doMerge(element)
+                    null
+                }
+            } else {
+                if (element.hasDescriptor()) {
+                    element.setNames(names.filter { it.key !in element.names })
+                    setNames(element.names.filter { it.key !in names })
+                    element.doMerge(this)
+                    null
+                } else {
+                    // merge
+                    element.setNames(names)
+                    doMerge(element)
+                    element
                 }
             }
         }
