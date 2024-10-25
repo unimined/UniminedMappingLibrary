@@ -77,12 +77,12 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
 
         fun isInheritable(set: Set<AccessFlag>): Boolean {
             val vis = set.intersect(visibility)
-            return vis.isNotEmpty() && !vis.contains(PRIVATE) && !set.contains(STATIC)
+            return !vis.contains(PRIVATE) && !set.contains(STATIC)
         }
 
         fun isInheritable(access: Int): Boolean {
             val vis = visibilityOf(access)
-            return vis != null && vis != PRIVATE && STATIC !in access
+            return vis != PRIVATE && STATIC !in access
         }
     }
 
