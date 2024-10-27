@@ -183,7 +183,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             if (resolved == null) {
                 resolved = MemoryMappingTree()
                 resolved.visitHeader(*unmappedNs.map { it.name }.toTypedArray())
+
                 for (entry in sorted) {
+                    LOGGER.info { "Reading: $entry" }
                     val visitor =
                         entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
                             it(acc)
@@ -197,7 +199,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                             entry.mapNs.map { it.key.name to it.value.name }.toMap()
                         )
                     } catch (e: Throwable) {
-                        throw IllegalStateException("Error reading ${entry.id}", e)
+                        throw IllegalStateException("Error reading $entry", e)
                     }
                 }
 
