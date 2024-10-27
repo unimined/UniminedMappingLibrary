@@ -354,12 +354,8 @@ object UMFReader : FormatReader {
                     last?.visitSignature(sig, names.next(), names.asSequence().toSet())
                 }
             }
-            if (next != null) {
-                visitStack.add(next)
-                indentStack.add(indent)
-            } else {
-                visitStack.add(null)
-            }
+            visitStack.add(next)
+            indentStack.add(indent)
         }
         while (visitStack.size > initialSize) {
             visitStack.removeLast()?.visitEnd()
