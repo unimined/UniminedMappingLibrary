@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   < [TypeParameter] {[TypeParameter]} >
  */
 @JvmInline
-value class TypeParameters private constructor(val value: String) {
+value class TypeParameters private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<TypeParameters> {
 
@@ -47,11 +48,11 @@ value class TypeParameters private constructor(val value: String) {
         params
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
-            visitor("<", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor("<")
             getParts().forEach { it.accept(visitor) }
-            visitor(">", true)
+            visitor(">")
         }
     }
 

@@ -4,6 +4,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.commonskt.utils.translateEscapes
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationIdentifier.Companion.annotationIdentifierIllegalCharacters
 import kotlin.jvm.JvmInline
 
 /**
@@ -16,7 +18,7 @@ import kotlin.jvm.JvmInline
  *   double
  */
 @JvmInline
-value class Constant private constructor(val value: String) {
+value class Constant private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<Constant> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -45,7 +47,7 @@ value class Constant private constructor(val value: String) {
                 // string
                 if (reader.peek() == '"') {
                     append("\"")
-                    append(reader.takeString().escape(unicode = true))
+                    append(reader.takeString().escape(true))
                     append("\"")
                     return@buildString
                 }
@@ -98,8 +100,10 @@ value class Constant private constructor(val value: String) {
 
     fun getInt() = value.toInt()
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(value)
+        }
     }
 
     override fun toString() = value

@@ -269,7 +269,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                 }
                 is AnnotationElementName -> {
                     if (cls != null) {
-                        val md = cls.getMethods(fromNs, obj.unescape(), null).map { it.getName(toNs) }.toSet()
+                        val md = cls.getMethods(fromNs, obj.value.unescape(), null).map { it.getName(toNs) }.toSet()
                         if (md.isNotEmpty()) {
                             val mappedName = md.first()!!
                             append(mappedName.maybeEscape())

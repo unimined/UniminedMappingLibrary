@@ -5,16 +5,18 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.commonskt.utils.escape
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationIdentifier.Companion.annotationIdentifierIllegalCharacters
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Identifier
 import kotlin.jvm.JvmInline
 
 /**
  * EnumConstant:
- *   [ObjectType] . Identifier
- *   [ObjectType] . " String "
+ *   [ObjectType] . [AnnotationIdentifier]
  *
  */
 @JvmInline
-value class EnumConstant private constructor(val value: String) {
+value class EnumConstant private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<EnumConstant> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -34,21 +36,7 @@ value class EnumConstant private constructor(val value: String) {
                     throw IllegalArgumentException("Invalid enum constant, expected ., found $next")
                 }
                 append('.')
-                if (reader.peek() == '"') {
-                    val str = reader.takeString()
-                    if (str.length <= 2) {
-                        throw IllegalArgumentException("Invalid enum constant, found $str which is empty")
-                    }
-                    append("\"")
-                    append(str.escape(true))
-                    append("\"")
-                } else {
-                    val value = reader.takeUntil { it in annotationIdentifierIllegalCharacters }
-                    if (value.isEmpty()) {
-                        throw IllegalArgumentException("Invalid enum constant, expected identifier, found $value")
-                    }
-                    append(value)
-                }
+                append(AnnotationIdentifier.read(reader))
             })
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid enum constant", e)
@@ -75,12 +63,12 @@ value class EnumConstant private constructor(val value: String) {
         Pair(obj, str)
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             val (obj, str) = getParts()
             obj.accept(visitor)
-            visitor(".", true)
-            visitor(str, true)
+            visitor(".")
+            visitor(str)
         }
     }
 

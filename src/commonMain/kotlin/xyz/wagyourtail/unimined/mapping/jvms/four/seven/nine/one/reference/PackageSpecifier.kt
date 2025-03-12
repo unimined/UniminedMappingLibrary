@@ -3,14 +3,16 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Identifier
 import kotlin.jvm.JvmInline
 
 /**
  * PackageSpecifier:
- *   Identifier / {[PackageSpecifier]}
+ *   [Identifier] / {[PackageSpecifier]}
  */
 @JvmInline
-value class PackageSpecifier private constructor(val value: String) {
+value class PackageSpecifier private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<PackageSpecifier> {
 
@@ -43,17 +45,17 @@ value class PackageSpecifier private constructor(val value: String) {
         override fun unchecked(value: String) = PackageSpecifier(value)
     }
 
-    fun getParts(): List<String> {
-        return value.split("/")
+    fun getParts(): List<Identifier> {
+        return value.split("/").map { Identifier.unchecked(it) }
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             val parts = getParts()
             for (i in parts.indices) {
-                visitor(parts[i], true)
+                parts[i].accept(visitor)
                 if (i != parts.lastIndex) {
-                    visitor("/", true)
+                    visitor("/")
                 }
             }
         }

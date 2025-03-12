@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   [VoidDescriptor]
  */
 @JvmInline
-value class ReturnDescriptor private constructor(val value: String) {
+value class ReturnDescriptor private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ReturnDescriptor> {
 
@@ -37,8 +38,8 @@ value class ReturnDescriptor private constructor(val value: String) {
 
     fun getFieldType() = FieldType.unchecked(value)
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             if (isVoidType()) {
                 getVoidType().accept(visitor)
             } else {

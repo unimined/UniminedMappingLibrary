@@ -6,6 +6,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,7 +14,7 @@ import kotlin.jvm.JvmInline
  *   V
  */
 @JvmInline
-value class VoidDescriptor private constructor(val value: Char) {
+value class VoidDescriptor private constructor(val value: Char) : Type {
 
     companion object: TypeCompanion<VoidDescriptor> {
 
@@ -32,8 +33,10 @@ value class VoidDescriptor private constructor(val value: Char) {
         override fun unchecked(value: String) = VoidDescriptor(value.toCharArray()[0])
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(value)
+        }
     }
 
     override fun toString() = value.toString()

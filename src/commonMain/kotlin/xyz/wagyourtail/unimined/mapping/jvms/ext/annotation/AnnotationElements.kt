@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   [AnnotationElement]
  */
 @JvmInline
-value class AnnotationElements private constructor(val value: String) {
+value class AnnotationElements private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<AnnotationElements> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -46,13 +47,13 @@ value class AnnotationElements private constructor(val value: String) {
         parts
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             val parts = getParts()
             for (i in parts.indices) {
                 parts[i].accept(visitor)
                 if (i != parts.lastIndex) {
-                    visitor(",", true)
+                    visitor(",")
                 }
             }
         }

@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.test.jvms.signature.method
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
+import xyz.wagyourtail.unimined.mapping.test.jvms.buildStringAcceptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -56,24 +57,10 @@ class MethodSignatureTest {
     @Test
     fun check_visitor() {
         val signature = JVMS.parseMethodSignature("(Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;Ljava/util/List<*>;)V^Ljava/lang/Exception;")
-        assertEquals("(Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;Ljava/util/List<*>;)V^Ljava/lang/Exception;", buildString {
-            signature.accept { part, isLeaf ->
-                if (isLeaf) {
-                    append(part.toString())
-                }
-                true
-            }
-        })
+        assertEquals("(Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;Ljava/util/List<*>;)V^Ljava/lang/Exception;", buildStringAcceptor(signature))
 
         val signature2 = JVMS.parseMethodSignature("(Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;Ljava/util/List<*>;)V^Ljava/lang/Exception;")
-        assertEquals("(Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;Ljava/util/List<*>;)V^Ljava/lang/Exception;", buildString {
-            signature2.accept { part, isLeaf ->
-                if (isLeaf) {
-                    append(part.toString())
-                }
-                true
-            }
-        })
+        assertEquals("(Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;Ljava/util/List<*>;)V^Ljava/lang/Exception;", buildStringAcceptor(signature2))
     }
 
     @Test

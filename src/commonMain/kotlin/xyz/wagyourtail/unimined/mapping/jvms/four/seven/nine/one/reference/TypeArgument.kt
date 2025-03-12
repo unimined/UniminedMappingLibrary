@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   *
  */
 @JvmInline
-value class TypeArgument private constructor(val value: String) {
+value class TypeArgument private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<TypeArgument> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -65,10 +66,10 @@ value class TypeArgument private constructor(val value: String) {
         }
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             if (isWildcard()) {
-                visitor("*", true)
+                visitor("*")
             } else {
                 getParts()?.let {
                     it.first?.accept(visitor)

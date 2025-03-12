@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.test.jvms.signature.field
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
+import xyz.wagyourtail.unimined.mapping.test.jvms.buildStringAcceptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -35,7 +36,7 @@ class FieldSignatureTest {
         assertTrue(suffix.isEmpty())
 
         val (name, types) = cls.getParts()
-        assertEquals("Map", name)
+        assertEquals("Map", name.value)
         assertEquals("<TT;Ljava/util/List<[TT;>;>", types.toString())
         assertEquals("TT;", types!!.getParts().first().toString())
         assertEquals("Ljava/util/List<[TT;>;", types.getParts()[1].toString())
@@ -44,24 +45,10 @@ class FieldSignatureTest {
     @Test
     fun check_visitor() {
         val signature = JVMS.parseFieldSignature("Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;")
-        assertEquals("Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;", buildString {
-            signature.accept { part, isLeaf ->
-                if (isLeaf) {
-                    append(part.toString())
-                }
-                true
-            }
-        })
+        assertEquals("Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;", buildStringAcceptor(signature))
 
         val signature2 = JVMS.parseFieldSignature("Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;")
-        assertEquals("Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;", buildString {
-            signature2.accept { part, isLeaf ->
-                if (isLeaf) {
-                    append(part.toString())
-                }
-                true
-            }
-        })
+        assertEquals("Ljava/util/Map<TT;Ljava/util/List<[TT;>;>;", buildStringAcceptor(signature2))
     }
 
     @Test

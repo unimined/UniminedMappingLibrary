@@ -3,10 +3,11 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.two.two
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 @JvmInline
-value class UnqualifiedName private constructor(val value: String) {
+value class UnqualifiedName private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<UnqualifiedName> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -28,8 +29,10 @@ value class UnqualifiedName private constructor(val value: String) {
 
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(value, true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(value)
+        }
     }
 
     override fun toString() = value

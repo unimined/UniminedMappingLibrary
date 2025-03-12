@@ -5,6 +5,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignatu
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.TypeParameters
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -12,7 +13,7 @@ import kotlin.jvm.JvmInline
  *   [[TypeParameters]] ( {[JavaTypeSignature]} ) [Result] {[ThrowsSignature]}
  */
 @JvmInline
-value class MethodSignature private constructor(val value: String) {
+value class MethodSignature private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<MethodSignature> {
 
@@ -99,14 +100,14 @@ value class MethodSignature private constructor(val value: String) {
         Pair(typeParams, Triple(params, result, throws))
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             getParts().let { (typeParams, values) ->
                 val (params, result, throws) = values
                 typeParams?.accept(visitor)
-                visitor("(", true)
+                visitor("(")
                 params.forEach { it.accept(visitor) }
-                visitor(")", true)
+                visitor(")")
                 result.accept(visitor)
                 throws.forEach { it.accept(visitor) }
             }

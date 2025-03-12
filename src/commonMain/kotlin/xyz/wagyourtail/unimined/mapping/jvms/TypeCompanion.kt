@@ -4,7 +4,7 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.commonskt.utils.escape
 
-interface TypeCompanion<T> {
+interface TypeCompanion<T: Type> {
 
     fun shouldRead(reader: CharReader<*>): Boolean
 

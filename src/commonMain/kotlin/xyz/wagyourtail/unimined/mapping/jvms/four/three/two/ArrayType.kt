@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -9,7 +10,7 @@ import kotlin.jvm.JvmInline
  *   [ [ComponentType]
  */
 @JvmInline
-value class ArrayType private constructor(val value: String) {
+value class ArrayType private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ArrayType> {
 
@@ -39,10 +40,10 @@ value class ArrayType private constructor(val value: String) {
         return Pair(dimensions, ComponentType.unchecked(component))
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             val parts = getParts()
-            visitor("[".repeat(parts.first), true)
+            visitor("[".repeat(parts.first))
             parts.second.accept(visitor)
         }
     }

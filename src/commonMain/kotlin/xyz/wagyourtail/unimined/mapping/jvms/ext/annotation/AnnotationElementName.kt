@@ -4,50 +4,38 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.commonskt.utils.translateEscapes
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationIdentifier.Companion.annotationIdentifierIllegalCharacters
 import kotlin.jvm.JvmInline
 
 /**
  * AnnotationElementName:
  *   AnnotationIdentifier
- *   " String "
  */
 
 @JvmInline
-value class AnnotationElementName private constructor(val value: String) {
+value class AnnotationElementName private constructor(val value: AnnotationIdentifier) : Type {
 
     companion object: TypeCompanion<AnnotationElementName> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
-            return reader.take() !in annotationIdentifierIllegalCharacters
+            return AnnotationIdentifier.shouldRead(reader)
         }
 
         override fun read(reader: CharReader<*>) = try {
-            AnnotationElementName(buildString {
-                if (reader.peek() == '"') {
-                    append("\"")
-                    append(reader.takeString().escape(true))
-                    append("\"")
-                    return@buildString
-                }
-                append(reader.takeUntil { it in annotationIdentifierIllegalCharacters })
-            })
+            AnnotationElementName(AnnotationIdentifier.read(reader))
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid annotation element name", e)
         }
 
-        override fun unchecked(value: String) = AnnotationElementName(value)
+        override fun unchecked(value: String) = AnnotationElementName(AnnotationIdentifier.unchecked(value))
     }
 
-    fun unescape(): String {
-        if (value.first() == '"') {
-            return value.substring(1, value.length - 1).translateEscapes()
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            value.accept(visitor)
         }
-        return value
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
-    }
-
-    override fun toString() = value
+    override fun toString() = value.toString()
 
 }

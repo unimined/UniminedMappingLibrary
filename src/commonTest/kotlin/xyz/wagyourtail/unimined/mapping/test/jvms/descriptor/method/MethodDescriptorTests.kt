@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.test.jvms.descriptor.method
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
+import xyz.wagyourtail.unimined.mapping.test.jvms.buildStringAcceptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -61,14 +62,7 @@ class MethodDescriptorTests {
     @Test
     fun check_visitor() {
         val methodDesc = JVMS.parseMethodDescriptor("(Ljava/lang/String;I)[[[I")
-        assertEquals("(Ljava/lang/String;I)[[[I", buildString {
-            methodDesc.accept { obj, isLeaf ->
-                if (isLeaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("(Ljava/lang/String;I)[[[I", buildStringAcceptor(methodDesc))
     }
 
     @Test

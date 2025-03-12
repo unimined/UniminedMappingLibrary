@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.test.jvms.descriptor.field
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
+import xyz.wagyourtail.unimined.mapping.test.jvms.buildStringAcceptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -81,44 +82,16 @@ class FieldDescriptorTests {
     @Test
     fun check_visitor() {
         val str = JVMS.parseFieldDescriptor("Ljava/lang/String;")
-        assertEquals("Ljava/lang/String;", buildString {
-            str.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("Ljava/lang/String;", buildStringAcceptor(str))
 
         val int = JVMS.parseFieldDescriptor("I")
-        assertEquals("I", buildString {
-            int.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("I", buildStringAcceptor(int))
 
         val intArray = JVMS.parseFieldDescriptor("[Ljava/lang/String;")
-        assertEquals("[Ljava/lang/String;", buildString {
-            intArray.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("[Ljava/lang/String;", buildStringAcceptor(intArray))
 
         val int2DArray = JVMS.parseFieldDescriptor("[[I")
-        assertEquals("[[I", buildString {
-            int2DArray.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("[[I", buildStringAcceptor(int2DArray))
     }
 
     @Test

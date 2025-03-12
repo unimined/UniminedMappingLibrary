@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.test.jvms.signature.`class`
 
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
+import xyz.wagyourtail.unimined.mapping.test.jvms.buildStringAcceptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -23,7 +24,7 @@ class ClassSignatureTest {
         assertEquals("Ljava/util/ArrayList<TT;>;", superClass.toString())
         assertEquals("LIntf<LElement;>;", interfaces[0].toString())
         assertEquals("T:Ljava/lang/String;", typeParams!!.getParts()[0].toString())
-        assertEquals("T", typeParams.getParts()[0].getParts().first)
+        assertEquals("T", typeParams.getParts()[0].getParts().first.value)
         assertEquals("Ljava/lang/String;", typeParams.getParts()[0].getParts().second.getParts().toString())
         assertEquals("<TT;>", superClass.value.getParts().second.getParts().second.toString())
         assertEquals("TT;", superClass.value.getParts().second.getParts().second!!.getParts().first().toString())
@@ -38,7 +39,7 @@ class ClassSignatureTest {
         assertEquals("Ljava/util/ArrayList<TT;>;", superClass.toString())
         assertEquals("LIntf<LElement;>;", interfaces[0].toString())
         assertEquals("T:Ljava/lang/String;", typeParams!!.getParts()[0].toString())
-        assertEquals("T", typeParams.getParts()[0].getParts().first)
+        assertEquals("T", typeParams.getParts()[0].getParts().first.value)
         assertEquals("Ljava/lang/String;", typeParams.getParts()[0].getParts().second.getParts().toString())
         assertEquals("<TT;>", superClass.value.getParts().second.getParts().second.toString())
         assertEquals("TT;", superClass.value.getParts().second.getParts().second!!.getParts().first().toString())
@@ -47,34 +48,13 @@ class ClassSignatureTest {
     @Test
     fun check_visitor() {
         val signature = JVMS.parseClassSignature("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;")
-        assertEquals("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;", buildString {
-            signature.accept { part, isLeaf ->
-                if (isLeaf) {
-                    append(part.toString())
-                }
-                true
-            }
-        })
+        assertEquals("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;", buildStringAcceptor(signature))
 
         val signature2 = JVMS.parseClassSignature("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;")
-        assertEquals("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;", buildString {
-            signature2.accept { part, isLeaf ->
-                if (isLeaf) {
-                    append(part.toString())
-                }
-                true
-            }
-        })
+        assertEquals("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;", buildStringAcceptor(signature2))
 
         val signature3 = JVMS.parseClassSignature("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;")
-        assertEquals("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;", buildString {
-            signature3.accept { part, isLeaf ->
-                if (isLeaf) {
-                    append(part.toString())
-                }
-                true
-            }
-        })
+        assertEquals("<T:Ljava/lang/String;>Ljava/util/ArrayList<TT;>;LIntf<LElement;>;", buildStringAcceptor(signature3))
     }
 
     @Test

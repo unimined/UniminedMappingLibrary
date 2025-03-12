@@ -4,14 +4,16 @@ import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Identifier
 import kotlin.jvm.JvmInline
 
 /**
  * TypeParameter:
- *   Identifier [ClassBound] {[InterfaceBound]}
+ *   [Identifier] [ClassBound] {[InterfaceBound]}
  */
 @JvmInline
-value class TypeParameter private constructor(val value: String) {
+value class TypeParameter private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<TypeParameter> {
 
@@ -24,7 +26,7 @@ value class TypeParameter private constructor(val value: String) {
                 throw IllegalArgumentException("Invalid type parameter")
             }
             return TypeParameter(buildString {
-                append(reader.takeUntil { it in JVMS.identifierIllegalChars })
+                append(Identifier.read(reader))
                 append(ClassBound.read(reader))
                 while (!reader.exhausted() && InterfaceBound.shouldRead(reader.copy())) {
                     append(InterfaceBound.read(reader))
@@ -35,8 +37,8 @@ value class TypeParameter private constructor(val value: String) {
         override fun unchecked(value: String) = TypeParameter(value)
     }
 
-    fun getParts(): Triple<String, ClassBound, List<InterfaceBound>> = StringCharReader(value).let {
-        val name = it.takeUntil { it == ':' }
+    fun getParts(): Triple<Identifier, ClassBound, List<InterfaceBound>> = StringCharReader(value).let {
+        val name = Identifier.read(it)
         val classBound = ClassBound.read(it)
         val interfaces = mutableListOf<InterfaceBound>()
         while (!it.exhausted()) {
@@ -45,10 +47,10 @@ value class TypeParameter private constructor(val value: String) {
         Triple(name, classBound, interfaces)
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             getParts().let { (name, classBound, interfaces) ->
-                visitor(name, true)
+                name.accept(visitor)
                 classBound.accept(visitor)
                 interfaces.forEach { it.accept(visitor) }
             }

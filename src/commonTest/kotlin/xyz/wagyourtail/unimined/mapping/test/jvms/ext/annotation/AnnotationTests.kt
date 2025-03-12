@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.test.jvms.ext.annotation
 
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.test.jvms.buildStringAcceptor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -26,7 +28,7 @@ class AnnotationTests {
         assertEquals("a=1", elements2.toString())
         assertEquals(null, invis2)
         assertEquals("a=1", elements2!!.getParts()[0].toString())
-        assertEquals("a", elements2.getParts()[0].getParts().first.unescape())
+        assertEquals("a", elements2.getParts()[0].getParts().first.value.unescape())
         assertEquals("1", elements2.getParts()[0].getParts().second.toString())
 
         val annotation3 = Annotation.read("@Lcom/example/test;(\"a\"=1,b=\"2\")")
@@ -36,10 +38,10 @@ class AnnotationTests {
         assertEquals("\"a\"=1,b=\"2\"", elements3.toString())
         assertEquals(null, invis3)
         assertEquals("\"a\"=1", elements3!!.getParts()[0].toString())
-        assertEquals("a", elements3.getParts()[0].getParts().first.unescape())
+        assertEquals("a", elements3.getParts()[0].getParts().first.value.unescape())
         assertEquals("1", elements3.getParts()[0].getParts().second.toString())
         assertEquals("b=\"2\"", elements3.getParts()[1].toString())
-        assertEquals("b", elements3.getParts()[1].getParts().first.unescape())
+        assertEquals("b", elements3.getParts()[1].getParts().first.value.unescape())
         assertEquals("\"2\"", elements3.getParts()[1].getParts().second.toString())
         assertEquals("2", elements3.getParts()[1].getParts().second.getConstant().getString())
 
@@ -48,7 +50,7 @@ class AnnotationTests {
         assertEquals("\"a\"=1,b=\"2\",c={1,2,3}", annotation4.getParts().second.toString())
         // check c
         assertEquals("c={1,2,3}", annotation4.getParts().second!!.getParts()[2].toString())
-        assertEquals("c", annotation4.getParts().second!!.getParts()[2].getParts().first.unescape())
+        assertEquals("c", annotation4.getParts().second!!.getParts()[2].getParts().first.value.unescape())
         assertEquals("{1,2,3}", annotation4.getParts().second!!.getParts()[2].getParts().second.toString())
         assertEquals("1", annotation4.getParts().second!!.getParts()[2].getParts().second.getArrayConstant().getParts()!!.getParts()[0].toString())
         assertEquals("2", annotation4.getParts().second!!.getParts()[2].getParts().second.getArrayConstant().getParts()!!.getParts()[1].toString())
@@ -62,7 +64,7 @@ class AnnotationTests {
         assertEquals("\"a\"=1,b=\"2\",c={}", annotation5.getParts().second.toString())
         // check c
         assertEquals("c={}", annotation5.getParts().second!!.getParts()[2].toString())
-        assertEquals("c", annotation5.getParts().second!!.getParts()[2].getParts().first.unescape())
+        assertEquals("c", annotation5.getParts().second!!.getParts()[2].getParts().first.value.unescape())
         assertEquals("{}", annotation5.getParts().second!!.getParts()[2].getParts().second.toString())
         assertEquals(null, annotation5.getParts().second!!.getParts()[2].getParts().second.getArrayConstant().getParts())
 
@@ -70,18 +72,18 @@ class AnnotationTests {
         val annotation6 = Annotation.read("@Lcom/example/test;(value=@Lcom/example/test2;(a=1))")
         assertEquals("Lcom/example/test;", annotation6.getParts().first.toString())
         assertEquals("value=@Lcom/example/test2;(a=1)", annotation6.getParts().second.toString())
-        assertEquals("value", annotation6.getParts().second!!.getParts()[0].getParts().first.unescape())
+        assertEquals("value", annotation6.getParts().second!!.getParts()[0].getParts().first.value.unescape())
         assertEquals("@Lcom/example/test2;(a=1)", annotation6.getParts().second!!.getParts()[0].getParts().second.toString())
         assertEquals("Lcom/example/test2;", annotation6.getParts().second!!.getParts()[0].getParts().second.getAnnotation().getParts().first.toString())
         assertEquals("a=1", annotation6.getParts().second!!.getParts()[0].getParts().second.getAnnotation().getParts().second.toString())
-        assertEquals("a", annotation6.getParts().second!!.getParts()[0].getParts().second.getAnnotation().getParts().second!!.getParts()[0].getParts().first.unescape())
+        assertEquals("a", annotation6.getParts().second!!.getParts()[0].getParts().second.getAnnotation().getParts().second!!.getParts()[0].getParts().first.value.unescape())
         assertEquals("1", annotation6.getParts().second!!.getParts()[0].getParts().second.getAnnotation().getParts().second!!.getParts()[0].getParts().second.toString())
 
         // enum constant
         val annotation7 = Annotation.read("@Lcom/example/test;(value=Lcom/example/test2;.enum)")
         assertEquals("Lcom/example/test;", annotation7.getParts().first.toString())
         assertEquals("value=Lcom/example/test2;.enum", annotation7.getParts().second.toString())
-        assertEquals("value", annotation7.getParts().second!!.getParts()[0].getParts().first.unescape())
+        assertEquals("value", annotation7.getParts().second!!.getParts()[0].getParts().first.value.unescape())
         assertEquals("Lcom/example/test2;.enum", annotation7.getParts().second!!.getParts()[0].getParts().second.toString())
         assertEquals("Lcom/example/test2;", annotation7.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().first.toString())
         assertEquals("enum", annotation7.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().second.toString())
@@ -90,7 +92,7 @@ class AnnotationTests {
         val annotation8 =  Annotation.read("@Lcom/example/test;(value=Lcom/example/test2;.\"enum\")")
         assertEquals("Lcom/example/test;", annotation8.getParts().first.toString())
         assertEquals("value=Lcom/example/test2;.\"enum\"", annotation8.getParts().second.toString())
-        assertEquals("value", annotation8.getParts().second!!.getParts()[0].getParts().first.unescape())
+        assertEquals("value", annotation8.getParts().second!!.getParts()[0].getParts().first.value.unescape())
         assertEquals("Lcom/example/test2;.\"enum\"", annotation8.getParts().second!!.getParts()[0].getParts().second.toString())
         assertEquals("Lcom/example/test2;", annotation8.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().first.toString())
         assertEquals("enum", annotation8.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().second.toString())
@@ -99,51 +101,23 @@ class AnnotationTests {
         val annotation9 = Annotation.read("@Lcom/example/test;(value=Lcom/example/test2;)")
         assertEquals("Lcom/example/test;", annotation9.getParts().first.toString())
         assertEquals("value=Lcom/example/test2;", annotation9.getParts().second.toString())
-        assertEquals("value", annotation9.getParts().second!!.getParts()[0].getParts().first.unescape())
+        assertEquals("value", annotation9.getParts().second!!.getParts()[0].getParts().first.value.unescape())
         assertEquals("Lcom/example/test2;", annotation9.getParts().second!!.getParts()[0].getParts().second.toString())
     }
 
     @Test
     fun check_visitor() {
         val annotation = Annotation.read("@Lcom/example/test;()")
-        assertEquals("@Lcom/example/test;()", buildString {
-            annotation.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("@Lcom/example/test;()", buildStringAcceptor(annotation))
 
         val annotation2 = Annotation.read("@Lcom/example/test;(a=1)")
-        assertEquals("@Lcom/example/test;(a=1)", buildString {
-            annotation2.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("@Lcom/example/test;(a=1)", buildStringAcceptor(annotation2))
 
         val annotation3 = Annotation.read("@Lcom/example/test;(a=1,b=\"2\")")
-        assertEquals("@Lcom/example/test;(a=1,b=\"2\")", buildString {
-            annotation3.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("@Lcom/example/test;(a=1,b=\"2\")", buildStringAcceptor(annotation3))
 
         val annotation4 = Annotation.read("@Lcom/example/test;(\"a\"=1,b=\"2\",c={1,2,3}).invisible")
-        assertEquals("@Lcom/example/test;(\"a\"=1,b=\"2\",c={1,2,3}).invisible", buildString {
-            annotation4.accept { obj, leaf ->
-                if (leaf) {
-                    append(obj.toString())
-                }
-                true
-            }
-        })
+        assertEquals("@Lcom/example/test;(\"a\"=1,b=\"2\",c={1,2,3}).invisible", buildStringAcceptor(annotation4))
 
     }
 

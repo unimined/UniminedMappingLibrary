@@ -3,14 +3,16 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Identifier
 import kotlin.jvm.JvmInline
 
 /**
  * TypeVariableSignature:
- *   T Identifier ;
+ *   T [Identifier] ;
  */
 @JvmInline
-value class TypeVariableSignature private constructor(val value: String) {
+value class TypeVariableSignature private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<TypeVariableSignature> {
 
@@ -25,7 +27,7 @@ value class TypeVariableSignature private constructor(val value: String) {
             try {
                 return TypeVariableSignature(buildString {
                     append('T')
-                    val value = reader.takeUntil { it in JVMS.identifierIllegalChars }
+                    val value = Identifier.read(reader)
                     val end = reader.take()
                     if (end != ';') {
                         throw IllegalArgumentException("Invalid type variable signature: found illegal character: $end")
@@ -41,8 +43,14 @@ value class TypeVariableSignature private constructor(val value: String) {
         override fun unchecked(value: String) = TypeVariableSignature(value)
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
+    fun getParts() = Identifier.unchecked(value.substring(1, value.length - 1))
+
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor("T")
+            getParts().accept(visitor)
+            visitor(";")
+        }
     }
 
     override fun toString() = value

@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   [ArrayType]
  */
 @JvmInline
-value class FieldType private constructor(val value: String) {
+value class FieldType private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<FieldType> {
 
@@ -47,8 +48,8 @@ value class FieldType private constructor(val value: String) {
         else -> 1
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             if (isBaseType()) {
                 getBaseType().accept(visitor)
             } else if (isObjectType()) {

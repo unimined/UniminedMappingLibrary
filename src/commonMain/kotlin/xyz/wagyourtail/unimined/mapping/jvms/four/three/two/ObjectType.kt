@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,9 +11,7 @@ import kotlin.jvm.JvmInline
  *   L [InternalName] ;
  */
 @JvmInline
-value class ObjectType private constructor(val value: String) {
-
-    constructor(internalName: InternalName) : this("L${internalName.value};")
+value class ObjectType private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ObjectType> {
 
@@ -40,11 +39,11 @@ value class ObjectType private constructor(val value: String) {
 
     fun getInternalName() = InternalName.unchecked(value.substring(1, value.length - 1))
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
-            visitor("L", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor("L")
             getInternalName().accept(visitor)
-            visitor(";", true)
+            visitor(";")
         }
     }
 

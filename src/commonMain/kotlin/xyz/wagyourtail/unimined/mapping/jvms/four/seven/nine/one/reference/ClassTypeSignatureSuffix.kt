@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -9,7 +10,7 @@ import kotlin.jvm.JvmInline
  *   . [SimpleClassTypeSignature]
  */
 @JvmInline
-value class ClassTypeSignatureSuffix private constructor(val value: String) {
+value class ClassTypeSignatureSuffix private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ClassTypeSignatureSuffix> {
 
@@ -38,9 +39,9 @@ value class ClassTypeSignatureSuffix private constructor(val value: String) {
         return SimpleClassTypeSignature.unchecked(value.substring(1))
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
-            visitor(".", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(".")
             getParts().accept(visitor)
         }
     }

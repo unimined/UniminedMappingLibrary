@@ -4,11 +4,12 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
 
 @JvmInline
-value class FieldOrMethodDescriptor private constructor(val value: String) {
+value class FieldOrMethodDescriptor private constructor(val value: String) : Type {
 
     companion object : TypeCompanion<FieldOrMethodDescriptor> {
         val innterTypes = setOf(
@@ -43,8 +44,8 @@ value class FieldOrMethodDescriptor private constructor(val value: String) {
 
     fun getMethodDescriptor() = if (isMethodDescriptor()) { MethodDescriptor.unchecked(value) } else { error("expected method desc") }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             if (isMethodDescriptor()) {
                 getMethodDescriptor().accept(visitor)
             } else {

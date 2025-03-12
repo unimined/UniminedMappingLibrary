@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -15,7 +16,7 @@ import kotlin.jvm.JvmInline
  */
 
 @JvmInline
-value class AnnotationElementValue private constructor(val value: String) {
+value class AnnotationElementValue private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<AnnotationElementValue> {
         private val innerTypes = listOf(
@@ -61,8 +62,8 @@ value class AnnotationElementValue private constructor(val value: String) {
 
     fun getConstant() = Constant.unchecked(value)
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             when {
                 isAnnotation() -> getAnnotation().accept(visitor)
                 isArrayConstant() -> getArrayConstant().accept(visitor)

@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -9,7 +10,7 @@ import kotlin.jvm.JvmInline
  *   { [ArrayElements] }
  */
 @JvmInline
-value class ArrayConstant private constructor(val value: String) {
+value class ArrayConstant private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ArrayConstant> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -45,11 +46,11 @@ value class ArrayConstant private constructor(val value: String) {
         return ArrayElements.unchecked(value.substring(1, value.length - 1))
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
-            visitor("{", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor("{")
             getParts()?.accept(visitor)
-            visitor("}", true)
+            visitor("}")
         }
     }
 

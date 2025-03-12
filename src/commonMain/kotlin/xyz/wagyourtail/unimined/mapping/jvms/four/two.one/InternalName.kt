@@ -4,6 +4,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   [[PackageName]] [UnqualifiedName]
  */
 @JvmInline
-value class InternalName private constructor(val value: String) {
+value class InternalName private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<InternalName> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -38,8 +39,8 @@ value class InternalName private constructor(val value: String) {
         return PackageName.unchecked(pkg) to UnqualifiedName.unchecked(parts.last())
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             val parts = getParts()
             parts.first.accept(visitor)
             parts.second.accept(visitor)

@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   [ArrayTypeSignature]
  */
 @JvmInline
-value class ReferenceTypeSignature private constructor(val value: String) {
+value class ReferenceTypeSignature private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ReferenceTypeSignature> {
         val innerTypes: Set<TypeCompanion<*>> = setOf(ClassTypeSignature, TypeVariableSignature, ArrayTypeSignature)
@@ -40,8 +41,8 @@ value class ReferenceTypeSignature private constructor(val value: String) {
 
     fun getArrayTypeSignature() = ArrayTypeSignature.unchecked(value)
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             if (isClassTypeSignature()) {
                 getClassTypeSignature().accept(visitor)
             } else if (isTypeVariableSignature()) {

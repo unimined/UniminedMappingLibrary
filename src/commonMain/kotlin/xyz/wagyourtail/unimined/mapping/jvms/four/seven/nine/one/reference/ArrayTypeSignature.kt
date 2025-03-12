@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   [ [JavaTypeSignature]
  */
 @JvmInline
-value class ArrayTypeSignature private constructor(val value: String) {
+value class ArrayTypeSignature private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ArrayTypeSignature> {
 
@@ -39,9 +40,9 @@ value class ArrayTypeSignature private constructor(val value: String) {
         return JavaTypeSignature.unchecked(value.substring(1))
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
-            visitor("[", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor("[")
             getParts().accept(visitor)
         }
     }

@@ -4,6 +4,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *  [ObjectType] [[NameAndDescriptor]]
  */
 @JvmInline
-value class FullyQualifiedName(val value: String) {
+value class FullyQualifiedName(val value: String) : Type {
 
     constructor(type: ObjectType, nameAndDescriptor: NameAndDescriptor?) : this(buildString {
         append(type)
@@ -46,6 +47,14 @@ value class FullyQualifiedName(val value: String) {
             objectType to null
         } else {
             objectType to NameAndDescriptor.read(it)
+        }
+    }
+
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            val (owner, nameAndDesc) = getParts()
+            owner.accept(visitor)
+            nameAndDesc?.accept(visitor)
         }
     }
 

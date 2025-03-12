@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -9,7 +10,7 @@ import kotlin.jvm.JvmInline
  *   .invisible
  */
 @JvmInline
-value class Invisible private constructor(val value: String) {
+value class Invisible private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<Invisible> {
 
@@ -38,8 +39,10 @@ value class Invisible private constructor(val value: String) {
 
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(value)
+        }
     }
 
     override fun toString() = value

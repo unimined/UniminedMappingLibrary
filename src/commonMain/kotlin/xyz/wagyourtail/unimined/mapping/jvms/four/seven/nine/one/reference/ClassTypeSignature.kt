@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   L [[PackageSpecifier]] [SimpleClassTypeSignature] {[ClassTypeSignatureSuffix]} ;
  */
 @JvmInline
-value class ClassTypeSignature private constructor(val value: String) {
+value class ClassTypeSignature private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ClassTypeSignature> {
 
@@ -72,15 +73,15 @@ value class ClassTypeSignature private constructor(val value: String) {
         Triple(packageSpec, simpleClassTypeSignature, suffixes)
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
-            visitor("L", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor("L")
             getParts().let { (packageSpec, simpleClassTypeSignature, suffixes) ->
                 packageSpec?.accept(visitor)
                 simpleClassTypeSignature.accept(visitor)
                 suffixes.forEach { it.accept(visitor) }
             }
-            visitor(";", true)
+            visitor(";")
         }
     }
 

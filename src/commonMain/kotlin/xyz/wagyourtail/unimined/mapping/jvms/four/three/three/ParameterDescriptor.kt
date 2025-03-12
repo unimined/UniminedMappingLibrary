@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   [FieldType]
  */
 @JvmInline
-value class ParameterDescriptor private constructor(val value: FieldType) {
+value class ParameterDescriptor private constructor(val value: FieldType) : Type {
 
     companion object: TypeCompanion<ParameterDescriptor> {
 
@@ -21,8 +22,8 @@ value class ParameterDescriptor private constructor(val value: FieldType) {
         override fun unchecked(value: String) = ParameterDescriptor(FieldType.unchecked(value))
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             value.accept(visitor)
         }
     }

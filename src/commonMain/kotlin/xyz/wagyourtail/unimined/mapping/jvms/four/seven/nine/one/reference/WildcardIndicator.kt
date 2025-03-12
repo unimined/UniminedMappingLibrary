@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   -
  */
 @JvmInline
-value class WildcardIndicator private constructor(val value: Char) {
+value class WildcardIndicator private constructor(val value: Char) : Type {
 
     companion object: TypeCompanion<WildcardIndicator> {
 
@@ -31,8 +32,10 @@ value class WildcardIndicator private constructor(val value: Char) {
         override fun unchecked(value: String) = WildcardIndicator(value.toCharArray()[0])
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(value)
+        }
     }
 
     override fun toString() = value.toString()

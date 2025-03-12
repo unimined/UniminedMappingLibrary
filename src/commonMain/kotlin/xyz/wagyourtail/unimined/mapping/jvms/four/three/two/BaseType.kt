@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   B C D F I J S Z
  */
 @JvmInline
-value class BaseType private constructor(val value: Char) {
+value class BaseType private constructor(val value: Char) : Type {
 
     companion object: TypeCompanion<BaseType> {
         private val types = setOf('B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z')
@@ -36,8 +37,10 @@ value class BaseType private constructor(val value: Char) {
         else -> 1
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        visitor(this, true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(value)
+        }
     }
 
     override fun toString() = value.toString()

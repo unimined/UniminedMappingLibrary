@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.annotation
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *    [ObjectType]
  */
 @JvmInline
-value class ClassConstant private constructor(val value: ObjectType) {
+value class ClassConstant private constructor(val value: ObjectType) : Type {
 
     companion object: TypeCompanion<ClassConstant> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -26,8 +27,8 @@ value class ClassConstant private constructor(val value: ObjectType) {
         override fun unchecked(value: String) = ClassConstant(ObjectType.unchecked(value))
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             value.accept(visitor)
         }
     }

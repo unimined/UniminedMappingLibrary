@@ -3,14 +3,16 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Identifier
 import kotlin.jvm.JvmInline
 
 /**
  * SimpleClassTypeSignature:
- *   Identifier [[TypeArguments]]
+ *   [Identifier] [[TypeArguments]]
  */
 @JvmInline
-value class SimpleClassTypeSignature private constructor(val value: String) {
+value class SimpleClassTypeSignature private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<SimpleClassTypeSignature> {
 
@@ -24,7 +26,7 @@ value class SimpleClassTypeSignature private constructor(val value: String) {
             }
             try {
                 return SimpleClassTypeSignature(buildString {
-                    append(reader.takeUntil { it in JVMS.identifierIllegalChars })
+                    append(Identifier.read(reader))
                     if (!reader.exhausted() && TypeArguments.shouldRead(reader.copy())) {
                         append(TypeArguments.read(reader))
                     }
@@ -37,17 +39,17 @@ value class SimpleClassTypeSignature private constructor(val value: String) {
         override fun unchecked(value: String) = SimpleClassTypeSignature(value)
     }
 
-    fun getParts(): Pair<String, TypeArguments?> {
+    fun getParts(): Pair<Identifier, TypeArguments?> {
         return Pair(
-            value.substringBefore('<'),
+            Identifier.unchecked(value.substringBefore('<')),
             if (value.contains("<")) TypeArguments.unchecked("<${value.substringAfter('<')}") else null
         )
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             getParts().let {
-                visitor(it.first, true)
+                it.first.accept(visitor)
                 it.second?.accept(visitor)
             }
         }

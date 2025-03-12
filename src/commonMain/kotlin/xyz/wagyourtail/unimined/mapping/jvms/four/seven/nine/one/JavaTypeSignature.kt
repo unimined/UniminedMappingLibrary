@@ -4,6 +4,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.BaseType
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -12,7 +13,7 @@ import kotlin.jvm.JvmInline
  *   [BaseType]
  */
 @JvmInline
-value class JavaTypeSignature private constructor(val type: String) {
+value class JavaTypeSignature private constructor(val type: String) : Type {
 
     companion object: TypeCompanion<JavaTypeSignature> {
 
@@ -43,8 +44,8 @@ value class JavaTypeSignature private constructor(val type: String) {
 
     fun getReferenceTypeSignature() = ReferenceTypeSignature.unchecked(type)
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
             if (isBaseType()) {
                 getBaseType().accept(visitor)
             } else {

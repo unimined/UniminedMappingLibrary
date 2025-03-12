@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.three
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   ( {[ParameterDescriptor]} ) [ReturnDescriptor]
  */
 @JvmInline
-value class MethodDescriptor private constructor(val value: String) {
+value class MethodDescriptor private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<MethodDescriptor> {
 
@@ -69,12 +70,12 @@ value class MethodDescriptor private constructor(val value: String) {
         Pair(returnType, params)
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        if (visitor(this, false)) {
-            visitor("(", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor("(")
             val (returnType, params) = getParts()
             params.forEach { it.accept(visitor) }
-            visitor(")", true)
+            visitor(")")
             returnType.accept(visitor)
         }
     }

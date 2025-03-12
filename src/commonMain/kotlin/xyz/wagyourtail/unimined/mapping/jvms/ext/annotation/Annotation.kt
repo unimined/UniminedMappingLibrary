@@ -5,17 +5,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
-
-val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllegalChars + setOf('=', ',', ')', '}')
-
 
 /**
  * Annotation:
  *   @ [ObjectType] ( [[AnnotationElements]] ) [[Invisible]]
  */
 @JvmInline
-value class Annotation private constructor(val value: String) {
+value class Annotation private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<Annotation> {
         override fun shouldRead(reader: CharReader<*>): Boolean {
@@ -78,14 +76,14 @@ value class Annotation private constructor(val value: String) {
         Triple(obj, elements, invis)
     }
 
-    fun accept(visitor: (Any, Boolean) -> Boolean) {
-        val (obj, elements, invis) = getParts()
-        if (visitor(this, false)) {
-            visitor("@", true)
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            val (obj, elements, invis) = getParts()
+            visitor("@")
             obj.accept(visitor)
-            visitor("(", true)
+            visitor("(")
             elements?.accept(visitor)
-            visitor(")", true)
+            visitor(")")
             invis?.accept(visitor)
         }
     }

@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.condition
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   {[AccessCondition]}
  */
 @JvmInline
-value class Access private constructor(val value: String) {
+value class Access private constructor(val value: String) : Type {
 
     companion object : TypeCompanion<Access> {
         val flags = AccessFlag.entries.map { it.name.lowercase() }
@@ -30,6 +31,12 @@ value class Access private constructor(val value: String) {
 
         override fun unchecked(value: String) = Access(value)
 
+    }
+
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            visitor(value)
+        }
     }
 
     fun getAccessFlag(): AccessFlag {

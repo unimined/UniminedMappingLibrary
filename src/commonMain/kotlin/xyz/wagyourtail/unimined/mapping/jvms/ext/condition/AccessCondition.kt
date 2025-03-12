@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.condition
 
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *  - [Access]
  */
 @JvmInline
-value class AccessCondition private constructor(val value: String) {
+value class AccessCondition private constructor(val value: String) : Type {
 
     companion object : TypeCompanion<AccessCondition> {
 
@@ -43,11 +44,25 @@ value class AccessCondition private constructor(val value: String) {
         )
     }
 
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            val (req, acc) = getParts()
+            visitor(req)
+            acc.accept(visitor)
+        }
+    }
+
     override fun toString() = value
 
-    enum class Requirement {
-        CONTAINS,
-        EXCLUDES
+    enum class Requirement(val value: String) {
+        CONTAINS("+"),
+        EXCLUDES("-")
+        ;
+
+        override fun toString(): String {
+            return value
+        }
+
     }
 
 }

@@ -4,6 +4,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
@@ -12,7 +13,7 @@ import kotlin.jvm.JvmInline
  *   {[AccessCondition]}
  */
 @JvmInline
-value class AccessConditions private constructor(val value: String) {
+value class AccessConditions private constructor(val value: String) : Type {
 
     companion object : TypeCompanion<AccessConditions> {
         val ALL = AccessConditions("*")
@@ -51,6 +52,14 @@ value class AccessConditions private constructor(val value: String) {
             }
         }
         return parts
+    }
+
+    override fun accept(visitor: (Any) -> Boolean) {
+        if (visitor(this)) {
+            for (part in getParts()) {
+                part.accept(visitor)
+            }
+        }
     }
 
     override fun toString() = value
