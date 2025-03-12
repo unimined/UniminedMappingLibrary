@@ -63,15 +63,15 @@ object NestReader : FormatReader {
                 } else {
                     InnerClassNode.InnerType.LOCAL
                 }
-                visitClass(mapOf(ns to className))?.use {
-
-                    val fqn = FullyQualifiedName(
-                        ObjectType(outerClassName),
-                        if (outerMethodName == null) null else NameAndDescriptor(
-                            outerMethodName,
-                            FieldOrMethodDescriptor(outerMethodDesc!!)
-                        )
+                val fqn = FullyQualifiedName(
+                    ObjectType(outerClassName),
+                    if (outerMethodName == null) null else NameAndDescriptor(
+                        outerMethodName,
+                        FieldOrMethodDescriptor(outerMethodDesc!!)
                     )
+                )
+
+                visitClass(mapOf(ns to className))?.use {
 
                     visitInnerClass(type, mapOf(ns to (innerName.value to fqn)))?.use {
                         for (acc in AccessFlag.of(ElementType.INNER_CLASS, access)) {
@@ -79,6 +79,7 @@ object NestReader : FormatReader {
                             visitAccess(AccessType.ADD, acc, AccessConditions.ALL, setOf(ns))?.visitEnd()
                         }
                     }
+
                 }
             }
 

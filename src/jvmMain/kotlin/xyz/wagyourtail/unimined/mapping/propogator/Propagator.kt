@@ -30,7 +30,7 @@ class Propagator(tree: AbstractMappingTree, fns: Namespace, jars: Set<Path>): In
         ZipFile.builder().setSeekableByteChannel(Files.newByteChannel(jar)).setIgnoreLocalFileHeader(true).get().use { zf ->
             return zf.entries.asSequence().map {
                 return@map if (!it.isDirectory && !it.name.startsWith("META-INF/versions") && it.name.endsWith(".class")) {
-                    scanClass(it.name, zf.getInputStream(it))
+                    zf.getInputStream(it).use { stream -> scanClass(it.name, stream) }
                 } else {
                     null
                 }

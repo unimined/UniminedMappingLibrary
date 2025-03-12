@@ -12,6 +12,8 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class ObjectType private constructor(val value: String) {
 
+    constructor(internalName: InternalName) : this("L${internalName.value};")
+
     companion object: TypeCompanion<ObjectType> {
 
         override fun shouldRead(reader: CharReader<*>) = reader.take() == 'L'
