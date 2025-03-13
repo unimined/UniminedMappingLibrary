@@ -17,10 +17,8 @@ value class SuperinterfaceSignature private constructor(val value: ClassTypeSign
 
         override fun shouldRead(reader: CharReader<*>) = ClassTypeSignature.shouldRead(reader)
 
-        override fun read(reader: CharReader<*>) = try {
-            SuperinterfaceSignature(ClassTypeSignature.read(reader))
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid superinterface signature", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(ClassTypeSignature.read(reader))
         }
 
         override fun unchecked(value: String) = SuperinterfaceSignature(ClassTypeSignature.unchecked(value))

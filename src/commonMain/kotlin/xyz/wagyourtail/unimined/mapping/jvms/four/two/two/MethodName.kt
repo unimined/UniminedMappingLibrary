@@ -13,16 +13,14 @@ value class MethodName private constructor(val value: UnqualifiedName) : Type {
             return UnqualifiedName.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val value = UnqualifiedName.read(reader)
             if (value.value.contains('<') || value.value.contains('>')) {
                 if (value.value != "<init>" && value.value != "<clinit>") {
                     throw IllegalArgumentException("Invalid method name, cannot contain < or >")
                 }
             }
-            MethodName(value)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid unqualified name", e)
+            append(value)
         }
 
         override fun unchecked(value: String) = MethodName(UnqualifiedName.unchecked(value))

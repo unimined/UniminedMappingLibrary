@@ -18,18 +18,9 @@ value class ClassTypeSignatureSuffix private constructor(val value: String) : Ty
             return reader.take() == '.'
         }
 
-        override fun read(reader: CharReader<*>): ClassTypeSignatureSuffix {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid class type signature suffix")
-            }
-            try {
-                return ClassTypeSignatureSuffix(buildString {
-                    append('.')
-                    append(SimpleClassTypeSignature.read(reader))
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid class type signature suffix", e)
-            }
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append('.')
+            append(SimpleClassTypeSignature.read(reader))
         }
 
         override fun unchecked(value: String) = ClassTypeSignatureSuffix(value)

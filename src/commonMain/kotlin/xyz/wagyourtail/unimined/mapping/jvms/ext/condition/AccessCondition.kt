@@ -20,14 +20,14 @@ value class AccessCondition private constructor(val value: String) : Type {
             return peek == '+' || peek == '-'
         }
 
-        override fun read(reader: CharReader<*>) = AccessCondition(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val peek = reader.take()
             if (peek != '+' && peek != '-') {
                 throw IllegalArgumentException("Invalid access condition, expected + or -, found $peek")
             }
             append(peek)
             append(Access.read(reader))
-        })
+        }
 
         override fun unchecked(value: String) = AccessCondition(value)
 
@@ -59,9 +59,7 @@ value class AccessCondition private constructor(val value: String) : Type {
         EXCLUDES("-")
         ;
 
-        override fun toString(): String {
-            return value
-        }
+        override fun toString() = value
 
     }
 

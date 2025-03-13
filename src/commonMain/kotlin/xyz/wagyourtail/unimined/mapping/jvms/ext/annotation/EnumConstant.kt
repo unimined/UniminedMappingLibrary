@@ -28,18 +28,14 @@ value class EnumConstant private constructor(val value: String) : Type {
             return reader.take() == '.'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            EnumConstant(buildString {
-                append(ObjectType.read(reader))
-                val next = reader.take()
-                if (next != '.') {
-                    throw IllegalArgumentException("Invalid enum constant, expected ., found $next")
-                }
-                append('.')
-                append(AnnotationIdentifier.read(reader))
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid enum constant", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(ObjectType.read(reader))
+            val next = reader.take()
+            if (next != '.') {
+                throw IllegalArgumentException("Invalid enum constant, expected ., found $next")
+            }
+            append('.')
+            append(AnnotationIdentifier.read(reader))
         }
 
         override fun unchecked(value: String) = EnumConstant(value)

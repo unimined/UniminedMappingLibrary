@@ -18,14 +18,12 @@ value class OctalConstant private constructor(val value: String): Type {
             return first?.isDigit() == true && first != '8' && first != '9'
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val first = reader.peek()
             if (first?.isDigit() != true) {
                 throw IllegalArgumentException("Invalid octal constant, cannot start with ${first ?: "null"}")
             }
-            OctalConstant(reader.takeWhile { it.isDigit() && it != '8' && it != '9' })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid octal constant", e)
+            append(reader.takeWhile { it.isDigit() && it != '8' && it != '9' })
         }
 
         override fun unchecked(value: String): OctalConstant {

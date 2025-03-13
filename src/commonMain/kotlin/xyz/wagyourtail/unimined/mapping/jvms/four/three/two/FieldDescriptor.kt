@@ -15,10 +15,8 @@ value class FieldDescriptor(val value: FieldType) : Type {
     companion object: TypeCompanion<FieldDescriptor> {
         override fun shouldRead(reader: CharReader<*>) = FieldType.shouldRead(reader)
 
-        override fun read(reader: CharReader<*>) = try {
-            FieldDescriptor(FieldType.read(reader))
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid field descriptor", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(FieldType.read(reader))
         }
 
         override fun unchecked(value: String) = FieldDescriptor(FieldType.unchecked(value))

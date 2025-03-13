@@ -21,12 +21,12 @@ value class BaseType private constructor(val value: Char) : Type {
             return value in types
         }
 
-        override fun read(reader: CharReader<*>): BaseType {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val value = reader.take()
             if (value !in types) {
                 throw IllegalArgumentException("Invalid base type")
             }
-            return BaseType(value!!)
+            append(value!!)
         }
 
         override fun unchecked(value: String) = BaseType(value.toCharArray()[0])

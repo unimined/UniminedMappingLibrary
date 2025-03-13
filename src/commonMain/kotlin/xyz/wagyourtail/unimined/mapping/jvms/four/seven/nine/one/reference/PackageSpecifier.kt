@@ -25,20 +25,10 @@ value class PackageSpecifier private constructor(val value: String) : Type {
             return reader.take() == '/'
         }
 
-        override fun read(reader: CharReader<*>): PackageSpecifier {
-            if (!shouldRead(reader.copy())) {
-                throw IllegalArgumentException("Invalid package specifier")
-            }
-            try {
-                return PackageSpecifier(buildString {
-                    while (shouldRead(reader.copy())) {
-                        append(reader.takeUntil { it in JVMS.identifierIllegalChars })
-                        if (reader.exhausted()) break
-                        append(reader.take())
-                    }
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid package specifier", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            while (shouldRead(reader.copy())) {
+                append(Identifier.read(reader))
+                append(reader.expect('/'))
             }
         }
 

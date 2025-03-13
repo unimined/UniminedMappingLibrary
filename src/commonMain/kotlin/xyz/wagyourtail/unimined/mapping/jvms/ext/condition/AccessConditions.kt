@@ -23,16 +23,16 @@ value class AccessConditions private constructor(val value: String) : Type {
             return peek == '*' || AccessCondition.shouldRead(reader.copy())
         }
 
-        override fun read(reader: CharReader<*>) = AccessConditions(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val peek = reader.take()
             if (peek == '*') {
                 append(peek)
-                return@buildString
+                return
             }
             while (AccessCondition.shouldRead(reader.copy())) {
                 append(AccessCondition.read(reader))
             }
-        })
+        }
 
         override fun unchecked(value: String) = AccessConditions(value)
 

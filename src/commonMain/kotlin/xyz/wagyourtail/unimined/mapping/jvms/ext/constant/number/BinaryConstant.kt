@@ -18,14 +18,12 @@ value class BinaryConstant private constructor(val value: String): Type {
             return first in '0'..'1'
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val first = reader.peek()
             if (first?.isDigit() != true) {
                 throw IllegalArgumentException("Invalid binary constant, cannot start with ${first ?: "null"}")
             }
-            BinaryConstant(reader.takeWhile { it in '0' .. '1' })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid binary constant", e)
+            append(reader.takeWhile { it in '0' .. '1' })
         }
 
         override fun unchecked(value: String): BinaryConstant {

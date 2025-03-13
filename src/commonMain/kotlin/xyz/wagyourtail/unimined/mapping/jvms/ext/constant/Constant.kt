@@ -36,17 +36,15 @@ value class Constant private constructor(val value: String) : Type {
             return innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             if (reader.peek() == 'n') {
                 for (char in "null") {
                     reader.expect(char)
                 }
-                Constant("null")
+                append("null")
             } else {
-                Constant(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
+                append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
             }
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid constant", e)
         }
 
         override fun unchecked(value: String) = Constant(value)

@@ -26,10 +26,8 @@ value class FieldOrMethodDescriptor private constructor(val value: String) : Typ
             return innterTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: CharReader<*>): FieldOrMethodDescriptor {
-            return FieldOrMethodDescriptor(
-                innterTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString()
-            )
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(innterTypes.first { it.shouldRead(reader.copy()) }.read(reader))
         }
 
         @JvmName("ofField")

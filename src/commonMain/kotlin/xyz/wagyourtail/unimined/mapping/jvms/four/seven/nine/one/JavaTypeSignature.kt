@@ -22,16 +22,9 @@ value class JavaTypeSignature private constructor(val type: String) : Type {
         override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
 
-        override fun read(reader: CharReader<*>) =
-            try {
-                JavaTypeSignature(innerTypes.first {
-                    it.shouldRead(
-                        reader.copy()
-                    )
-                }.read(reader).toString())
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid java type signature", e)
-            }
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
+        }
 
         override fun unchecked(value: String) = JavaTypeSignature(value)
     }

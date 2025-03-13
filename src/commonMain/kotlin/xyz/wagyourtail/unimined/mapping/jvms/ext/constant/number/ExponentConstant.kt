@@ -22,16 +22,12 @@ value class ExponentConstant(val value: String) : Type {
             return DecimalConstant.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            ExponentConstant(buildString {
-                val first = reader.peek()
-                if (first == '-' || first == '+') {
-                    append(reader.take())
-                }
-                append(DecimalConstant.read(reader))
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid exponent constant", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            val first = reader.peek()
+            if (first == '-' || first == '+') {
+                append(reader.take()!!)
+            }
+            append(DecimalConstant.read(reader))
         }
 
         override fun unchecked(value: String): ExponentConstant {

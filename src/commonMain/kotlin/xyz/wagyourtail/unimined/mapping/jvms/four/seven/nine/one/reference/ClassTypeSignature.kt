@@ -19,31 +19,18 @@ value class ClassTypeSignature private constructor(val value: String) : Type {
             return reader.take() == 'L'
         }
 
-        override fun read(reader: CharReader<*>): ClassTypeSignature {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid class type signature")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append('L')
+            // optional package specifier
+            if (PackageSpecifier.shouldRead(reader.copy())) {
+                append(PackageSpecifier.read(reader))
             }
-            try {
-                return ClassTypeSignature(buildString {
-                    append('L')
-                    // optional package specifier
-                    if (PackageSpecifier.shouldRead(reader.copy())) {
-                        append(PackageSpecifier.read(reader))
-                    }
-                    // simple class value signature
-                    append(SimpleClassTypeSignature.read(reader))
-                    while (!reader.exhausted() && ClassTypeSignatureSuffix.shouldRead(reader.copy())) {
-                        append(ClassTypeSignatureSuffix.read(reader))
-                    }
-                    val end = reader.take()
-                    if (end != ';') {
-                        throw IllegalArgumentException("Invalid class type signature, expected ';' but got '$end'")
-                    }
-                    append(';')
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid class type signature", e)
+            // simple class value signature
+            append(SimpleClassTypeSignature.read(reader))
+            while (!reader.exhausted() && ClassTypeSignatureSuffix.shouldRead(reader.copy())) {
+                append(ClassTypeSignatureSuffix.read(reader))
             }
+            append(reader.expect(';'))
         }
 
         override fun unchecked(value: String) = ClassTypeSignature(value)

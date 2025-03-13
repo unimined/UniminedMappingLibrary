@@ -19,19 +19,15 @@ value class StringConstant private constructor(val value: String) : Type {
             return reader.take() == '"'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            StringConstant(buildString {
-                val first = reader.take()
-                if (first == '"') {
-                    append("\"")
-                    append(reader.takeString().escape(true))
-                    append("\"")
-                } else {
-                    throw IllegalArgumentException("expected \" but got $first")
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid string constant", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            val first = reader.take()
+            if (first == '"') {
+                append("\"")
+                append(reader.takeString().escape(true))
+                append("\"")
+            } else {
+                throw IllegalArgumentException("expected \" but got $first")
+            }
         }
 
         override fun unchecked(value: String): StringConstant {

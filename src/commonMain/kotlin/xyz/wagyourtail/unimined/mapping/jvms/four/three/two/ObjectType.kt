@@ -17,19 +17,10 @@ value class ObjectType private constructor(val value: String) : Type {
 
         override fun shouldRead(reader: CharReader<*>) = reader.take() == 'L'
 
-        override fun read(reader: CharReader<*>): ObjectType {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid object type")
-            }
-            return ObjectType(buildString {
-                append('L')
-                append(InternalName.read(reader))
-                val end = reader.take()
-                if (end != ';') {
-                    throw IllegalArgumentException("Invalid object type, expected ;, found $end")
-                }
-                append(';')
-            })
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(reader.expect('L'))
+            append(InternalName.read(reader))
+            append(reader.expect(';'))
         }
 
         operator fun invoke(internalName: InternalName) = ObjectType("L$internalName;")

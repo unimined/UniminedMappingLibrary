@@ -21,17 +21,12 @@ value class TypeParameter private constructor(val value: String) : Type {
             return reader.take() !in JVMS.identifierIllegalChars
         }
 
-        override fun read(reader: CharReader<*>): TypeParameter {
-            if (!shouldRead(reader.copy())) {
-                throw IllegalArgumentException("Invalid type parameter")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(Identifier.read(reader))
+            append(ClassBound.read(reader))
+            while (!reader.exhausted() && InterfaceBound.shouldRead(reader.copy())) {
+                append(InterfaceBound.read(reader))
             }
-            return TypeParameter(buildString {
-                append(Identifier.read(reader))
-                append(ClassBound.read(reader))
-                while (!reader.exhausted() && InterfaceBound.shouldRead(reader.copy())) {
-                    append(InterfaceBound.read(reader))
-                }
-            })
         }
 
         override fun unchecked(value: String) = TypeParameter(value)

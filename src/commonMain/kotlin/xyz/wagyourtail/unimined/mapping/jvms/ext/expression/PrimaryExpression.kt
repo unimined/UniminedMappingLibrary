@@ -23,10 +23,8 @@ value class PrimaryExpression(val value: String) : Type {
             return innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            PrimaryExpression(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid primary expression", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
         }
 
         override fun unchecked(value: String): PrimaryExpression {

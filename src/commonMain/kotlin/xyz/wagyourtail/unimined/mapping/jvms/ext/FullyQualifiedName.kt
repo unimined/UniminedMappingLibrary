@@ -26,15 +26,11 @@ value class FullyQualifiedName(val value: String) : Type {
             return reader.take() == 'L'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            FullyQualifiedName(buildString {
-                append(ObjectType.read(reader))
-                if (!reader.exhausted() && NameAndDescriptor.shouldRead(reader.copy())) {
-                    append(NameAndDescriptor.read(reader))
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid fully qualified member type", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(ObjectType.read(reader))
+            if (!reader.exhausted() && NameAndDescriptor.shouldRead(reader.copy())) {
+                append(NameAndDescriptor.read(reader))
+            }
         }
 
         override fun unchecked(value: String) = FullyQualifiedName(value)

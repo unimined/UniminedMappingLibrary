@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.expression
 
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import kotlin.jvm.JvmInline
@@ -19,21 +20,15 @@ value class AdditiveExpression(val value: String) : Type {
             return MultiplicativeExpression.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            AdditiveExpression(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(MultiplicativeExpression.read(reader))
+            reader.takeWhitespace()
+            while (reader.peek() == '+' || reader.peek() == '-') {
+                append(" ${reader.take()!!} ")
+                reader.takeWhitespace()
                 append(MultiplicativeExpression.read(reader))
                 reader.takeWhitespace()
-                while (reader.peek() == '+' || reader.peek() == '-') {
-                    append(" ")
-                    append(reader.take())
-                    append(" ")
-                    reader.takeWhitespace()
-                    append(MultiplicativeExpression.read(reader))
-                    reader.takeWhitespace()
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid additive expression", e)
+            }
         }
 
         override fun unchecked(value: String): AdditiveExpression {
@@ -42,28 +37,29 @@ value class AdditiveExpression(val value: String) : Type {
 
     }
 
-    fun getParts(end: Int = value.length): Triple<AdditiveExpression?, String?, MultiplicativeExpression> {
-        val v = value.substring(0, end)
-        val opIndex: Int = max(v.lastIndexOf("+"), v.lastIndexOf("-"))
-        if (opIndex == -1) {
-            return Triple(null, null, MultiplicativeExpression.unchecked(value))
+    fun getParts(): Pair<List<Pair<MultiplicativeExpression, String>>, MultiplicativeExpression> {
+        val list = mutableListOf<Pair<MultiplicativeExpression, String>>()
+        var last: MultiplicativeExpression? = null
+        read(StringCharReader(value)) {
+            when (it) {
+                is MultiplicativeExpression -> last = it
+                " + " -> list.add(Pair(last!!, "+"))
+                " - " -> list.add(Pair(last!!, "-"))
+                else -> throw IllegalStateException()
+            }
         }
-        if (value[opIndex - 1].lowercaseChar() == 'e') {
-            return getParts(opIndex)
-        }
-        return Triple(
-            AdditiveExpression.unchecked(value.substring(0, opIndex).trimEnd()),
-            value.substring(opIndex, opIndex + 1),
-            MultiplicativeExpression.unchecked(value.substring(opIndex + 1).trimStart())
-        )
+        return Pair(list, last!!)
     }
 
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {
-            val (left, op, right) = getParts()
-            left?.accept(visitor)
-            if (op != null) visitor(" $op ")
-            right.accept(visitor)
+            read(StringCharReader(value)) {
+                if (it !is Type) {
+                    visitor(it)
+                } else {
+                    it.accept(visitor)
+                }
+            }
         }
     }
 

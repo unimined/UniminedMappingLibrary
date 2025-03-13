@@ -17,10 +17,8 @@ value class SuperclassSignature private constructor(val value: ClassTypeSignatur
 
         override fun shouldRead(reader: CharReader<*>) = ClassTypeSignature.shouldRead(reader)
 
-        override fun read(reader: CharReader<*>) = try {
-            SuperclassSignature(ClassTypeSignature.read(reader))
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid superclass signature", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(ClassTypeSignature.read(reader))
         }
 
         override fun unchecked(value: String) = SuperclassSignature(ClassTypeSignature.unchecked(value))

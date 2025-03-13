@@ -19,21 +19,12 @@ value class TypeParameters private constructor(val value: String) : Type {
             return reader.take() == '<'
         }
 
-        override fun read(reader: CharReader<*>): TypeParameters {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid type parameters")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(reader.expect('<'))
+            while (reader.peek() != '>') {
+                append(TypeParameter.read(reader))
             }
-            return TypeParameters(buildString {
-                append('<')
-                while (true) {
-                    if (reader.peek() == '>') {
-                        reader.take()
-                        break
-                    }
-                    append(TypeParameter.read(reader))
-                }
-                append('>')
-            })
+            append(reader.expect('>'))
         }
 
         override fun unchecked(value: String) = TypeParameters(value)

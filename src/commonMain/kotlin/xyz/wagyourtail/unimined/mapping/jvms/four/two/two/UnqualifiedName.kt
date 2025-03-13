@@ -14,15 +14,12 @@ value class UnqualifiedName private constructor(val value: String) : Type {
             return reader.take() !in JVMS.unqualifiedNameIllegalChars
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val value = reader.takeUntil { it in JVMS.unqualifiedNameIllegalChars }
             if (value.isEmpty()) {
                 throw IllegalArgumentException("Invalid unqualified name, cannot be empty")
             }
-
-            UnqualifiedName(value)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid unqualified name", e)
+            append(value)
         }
 
         override fun unchecked(value: String) = UnqualifiedName(value)

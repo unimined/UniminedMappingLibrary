@@ -19,18 +19,14 @@ value class AnnotationElement private constructor(val value: String) : Type {
             return AnnotationElementName.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            AnnotationElement(buildString {
-                append(AnnotationElementName.read(reader))
-                val next = reader.take()
-                if (next != '=') {
-                    throw IllegalArgumentException("Invalid annotation element, expected =, found $next")
-                }
-                append('=')
-                append(AnnotationElementValue.read(reader))
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid annotation element", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(AnnotationElementName.read(reader))
+            val next = reader.take()
+            if (next != '=') {
+                throw IllegalArgumentException("Invalid annotation element, expected =, found $next")
+            }
+            append('=')
+            append(AnnotationElementValue.read(reader))
         }
 
         override fun unchecked(value: String) = AnnotationElement(value)

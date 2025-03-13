@@ -16,14 +16,14 @@ import kotlin.jvm.JvmInline
 value class Result private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<Result> {
-        val innerTypes =
-            setOf(JavaTypeSignature, VoidDescriptor)
+        val innerTypes = setOf(JavaTypeSignature, VoidDescriptor)
 
         override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
 
-        override fun read(reader: CharReader<*>) =
-            Result(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
+        }
 
         override fun unchecked(value: String) = Result(value)
     }

@@ -19,14 +19,9 @@ value class InterfaceBound private constructor(val value: String) : Type {
             return reader.take() == ':'
         }
 
-        override fun read(reader: CharReader<*>): InterfaceBound {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid interface bound")
-            }
-            return InterfaceBound(buildString {
-                append(':')
-                append(ReferenceTypeSignature.read(reader))
-            })
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(':')
+            append(ReferenceTypeSignature.read(reader))
         }
 
         override fun unchecked(value: String) = InterfaceBound(value)

@@ -21,18 +21,13 @@ value class ThrowsSignature private constructor(val value: String) : Type {
             return reader.take() == '^'
         }
 
-        override fun read(reader: CharReader<*>): ThrowsSignature {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid throws signature")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append('^')
+            if (ClassTypeSignature.shouldRead(reader.copy())) {
+                append(ClassTypeSignature.read(reader))
+            } else {
+                append(TypeVariableSignature.read(reader))
             }
-            return ThrowsSignature(buildString {
-                append('^')
-                if (ClassTypeSignature.shouldRead(reader.copy())) {
-                    append(ClassTypeSignature.read(reader))
-                } else {
-                    append(TypeVariableSignature.read(reader))
-                }
-            })
         }
 
         override fun unchecked(value: String) = ThrowsSignature(value)

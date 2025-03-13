@@ -19,13 +19,9 @@ value class InternalName private constructor(val value: String) : Type {
             return reader.take() !in JVMS.unqualifiedNameIllegalChars
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            InternalName(buildString {
-                append(PackageName.read(reader))
-                append(UnqualifiedName.read(reader))
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid internal name", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(PackageName.read(reader))
+            append(UnqualifiedName.read(reader))
         }
 
         override fun unchecked(value: String) = InternalName(value)

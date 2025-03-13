@@ -20,10 +20,8 @@ value class ReferenceTypeSignature private constructor(val value: String) : Type
         override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
 
-        override fun read(reader: CharReader<*>) = try {
-            ReferenceTypeSignature(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid reference type signature", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
         }
 
         override fun unchecked(value: String) = ReferenceTypeSignature(value)

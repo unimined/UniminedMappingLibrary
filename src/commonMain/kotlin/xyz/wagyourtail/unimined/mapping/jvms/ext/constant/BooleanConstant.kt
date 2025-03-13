@@ -12,7 +12,7 @@ class BooleanConstant(val value: Boolean) : Type {
             return f == 't' || f == 'f'
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val b = when (val first = reader.peek()) {
                 'f' -> {
                     for (char in "false") {
@@ -30,9 +30,7 @@ class BooleanConstant(val value: Boolean) : Type {
                     throw IllegalArgumentException("expected t or f, got $first")
                 }
             }
-            BooleanConstant(b)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid boolean constant", e)
+            append(BooleanConstant(b))
         }
 
         override fun unchecked(value: String): BooleanConstant {

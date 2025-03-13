@@ -22,12 +22,8 @@ value class VoidDescriptor private constructor(val value: Char) : Type {
             return reader.take() == 'V'
         }
 
-        override fun read(reader: CharReader<*>): VoidDescriptor {
-            val value = reader.take()
-            if (value != 'V') {
-                throw IllegalArgumentException("Invalid void type: $value")
-            }
-            return VoidDescriptor(value)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(reader.expect('V'))
         }
 
         override fun unchecked(value: String) = VoidDescriptor(value.toCharArray()[0])

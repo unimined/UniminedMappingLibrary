@@ -29,14 +29,12 @@ value class DataType(val value: String) : Type {
             return types.containsKey(reader.take())
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val type = types.getValue(reader.peek()!!)
             for (char in type) {
                 reader.expect(char)
             }
-            DataType(type)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid data type", e)
+            append(type)
         }
 
         override fun unchecked(value: String): DataType {

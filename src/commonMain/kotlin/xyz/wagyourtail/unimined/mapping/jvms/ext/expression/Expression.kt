@@ -18,10 +18,8 @@ value class Expression(val value: BitOrExpression) : Type {
             return BitOrExpression.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            Expression(BitOrExpression.read(reader))
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid expression", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(BitOrExpression.read(reader))
         }
 
         override fun unchecked(value: String): Expression {

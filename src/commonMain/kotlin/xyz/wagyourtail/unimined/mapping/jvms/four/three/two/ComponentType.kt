@@ -16,10 +16,8 @@ value class ComponentType private constructor(val value: FieldType) : Type {
 
         override fun shouldRead(reader: CharReader<*>) = FieldType.shouldRead(reader)
 
-        override fun read(reader: CharReader<*>) = try {
-            ComponentType(FieldType.read(reader))
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid component type", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(FieldType.read(reader))
         }
 
         override fun unchecked(value: String) = ComponentType(FieldType.unchecked(value))

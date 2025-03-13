@@ -31,17 +31,13 @@ value class UnaryExpression(val value: String) : Type {
             return innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            UnaryExpression(buildString {
-                if (reader.peek() == '-') {
-                    append(reader.take())
-                } else if (reader.peek() == '~') {
-                    append(reader.take())
-                }
-                append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid unary expression", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            if (reader.peek() == '-') {
+                append(reader.take()!!)
+            } else if (reader.peek() == '~') {
+                append(reader.take()!!)
+            }
+            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
         }
 
         override fun unchecked(value: String): UnaryExpression {

@@ -18,14 +18,12 @@ value class ParenExpression(val value: String) : Type {
             return reader.take() == '('
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            ParenExpression(buildString {
-                append(reader.expect('('))
-                append(Expression.read(reader))
-                append(reader.expect(')'))
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid paren expression", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(reader.expect('('))
+            reader.takeWhitespace()
+            append(Expression.read(reader))
+            reader.takeWhitespace()
+            append(reader.expect(')'))
         }
 
         override fun unchecked(value: String): ParenExpression {
@@ -37,7 +35,7 @@ value class ParenExpression(val value: String) : Type {
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {
             visitor("(")
-            Expression.unchecked(value.substring(1, value.length - 1)).accept(visitor)
+            Expression.unchecked(value.substring(1, value.length - 1).trim()).accept(visitor)
             visitor(")")
         }
     }

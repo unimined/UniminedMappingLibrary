@@ -19,17 +19,13 @@ value class AnnotationElements private constructor(val value: String) : Type {
             return AnnotationElement.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            AnnotationElements(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(AnnotationElement.read(reader))
+            while (reader.peek() == ',') {
+                reader.take()
+                append(',')
                 append(AnnotationElement.read(reader))
-                while (reader.peek() == ',') {
-                    reader.take()
-                    append(',')
-                    append(AnnotationElement.read(reader))
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid annotation elements", e)
+            }
         }
 
         override fun unchecked(value: String) = AnnotationElements(value)

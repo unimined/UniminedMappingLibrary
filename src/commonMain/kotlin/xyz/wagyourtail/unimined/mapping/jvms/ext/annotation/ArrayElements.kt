@@ -19,17 +19,13 @@ value class ArrayElements private constructor(val value: String) : Type {
             return AnnotationElementValue.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            ArrayElements(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(AnnotationElementValue.read(reader))
+            while (reader.peek() == ',') {
+                reader.take()
+                append(',')
                 append(AnnotationElementValue.read(reader))
-                while (reader.peek() == ',') {
-                    reader.take()
-                    append(',')
-                    append(AnnotationElementValue.read(reader))
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid array elements", e)
+            }
         }
 
         override fun unchecked(value: String) = ArrayElements(value)

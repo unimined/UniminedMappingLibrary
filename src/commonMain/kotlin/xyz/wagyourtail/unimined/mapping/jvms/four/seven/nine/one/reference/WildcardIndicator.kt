@@ -21,12 +21,12 @@ value class WildcardIndicator private constructor(val value: Char) : Type {
             return reader.take() in types
         }
 
-        override fun read(reader: CharReader<*>): WildcardIndicator {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val value = reader.take()
             if (value !in types) {
                 throw IllegalArgumentException("Invalid wildcard indicator")
             }
-            return WildcardIndicator(value!!)
+            append(value!!)
         }
 
         override fun unchecked(value: String) = WildcardIndicator(value.toCharArray()[0])

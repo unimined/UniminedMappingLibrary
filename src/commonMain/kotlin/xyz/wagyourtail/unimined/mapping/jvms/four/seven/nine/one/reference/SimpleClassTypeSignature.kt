@@ -20,19 +20,10 @@ value class SimpleClassTypeSignature private constructor(val value: String) : Ty
             return reader.take() !in JVMS.identifierIllegalChars
         }
 
-        override fun read(reader: CharReader<*>): SimpleClassTypeSignature {
-            if (!shouldRead(reader.copy())) {
-                throw IllegalArgumentException("Invalid simple class type signature")
-            }
-            try {
-                return SimpleClassTypeSignature(buildString {
-                    append(Identifier.read(reader))
-                    if (!reader.exhausted() && TypeArguments.shouldRead(reader.copy())) {
-                        append(TypeArguments.read(reader))
-                    }
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid simple class type signature", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(Identifier.read(reader))
+            if (!reader.exhausted() && TypeArguments.shouldRead(reader.copy())) {
+                append(TypeArguments.read(reader))
             }
         }
 

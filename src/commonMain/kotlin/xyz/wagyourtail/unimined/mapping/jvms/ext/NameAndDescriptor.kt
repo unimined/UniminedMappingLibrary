@@ -27,16 +27,12 @@ value class NameAndDescriptor(val value: String) : Type {
             return reader.take() !in JVMS.unqualifiedNameIllegalChars
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            NameAndDescriptor(buildString {
-                append(UnqualifiedName.read(reader))
-                if (!reader.exhausted() && reader.peek() == ';') {
-                    append(reader.expect(';'))
-                    append(FieldOrMethodDescriptor.read(reader))
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid fully qualified member type", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(UnqualifiedName.read(reader))
+            if (!reader.exhausted() && reader.peek() == ';') {
+                append(reader.expect(';'))
+                append(FieldOrMethodDescriptor.read(reader))
+            }
         }
 
         override fun unchecked(value: String) = NameAndDescriptor(value)

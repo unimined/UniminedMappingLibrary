@@ -18,7 +18,7 @@ value class WholeConstant private constructor(val value: String): Type {
             return first?.isDigit() == true && first != '0'
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val first = reader.peek()
             if (first == '0') {
                 throw IllegalArgumentException("Invalid whole constant, cannot start with 0")
@@ -26,9 +26,7 @@ value class WholeConstant private constructor(val value: String): Type {
             if (first?.isDigit() != true) {
                 throw IllegalArgumentException("Invalid whole constant, cannot start with ${first ?: "null"}")
             }
-            WholeConstant(reader.takeWhile { it.isDigit() })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid whole constant", e)
+            append(reader.takeWhile { it.isDigit() })
         }
 
         override fun unchecked(value: String): WholeConstant {

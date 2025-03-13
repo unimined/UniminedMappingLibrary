@@ -18,10 +18,8 @@ value class ClassConstant private constructor(val value: ObjectType) : Type {
             return ObjectType.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            ClassConstant(ObjectType.read(reader))
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid class constant", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(ObjectType.read(reader))
         }
 
         override fun unchecked(value: String) = ClassConstant(ObjectType.unchecked(value))

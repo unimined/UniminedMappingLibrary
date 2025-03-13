@@ -17,13 +17,13 @@ value class DecimalConstant private constructor(val value: String) : Type {
             return reader.take()?.isDigit() == true
         }
 
-        override fun read(reader: CharReader<*>) = DecimalConstant(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val first = reader.peek()
             if (first?.isDigit() != true) {
                 throw IllegalArgumentException("Invalid decimal constant, expected number, got $first")
             }
             append(reader.takeWhile { it.isDigit() })
-        })
+        }
 
         override fun unchecked(value: String): DecimalConstant {
             return DecimalConstant(value)

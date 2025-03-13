@@ -18,16 +18,12 @@ value class CastExpression(val value: String) : Type {
             return reader.take() == '<'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            CastExpression(buildString {
-                append(reader.expect('<'))
-                append(DataType.read(reader))
-                append(reader.expect('>'))
-                reader.takeWhitespace()
-                append(UnaryExpression.read(reader))
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid cast expression", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(reader.expect('<'))
+            append(DataType.read(reader))
+            append(reader.expect('>'))
+            reader.takeWhitespace()
+            append(UnaryExpression.read(reader))
         }
 
         override fun unchecked(value: String): CastExpression {
@@ -40,6 +36,7 @@ value class CastExpression(val value: String) : Type {
             visitor("<")
             DataType.unchecked(value.substringBefore(">").substring(1)).accept(visitor)
             visitor(">")
+            UnaryExpression.unchecked(value.substringAfter(">").trimStart()).accept(visitor)
         }
     }
 

@@ -19,27 +19,15 @@ value class MethodDescriptor private constructor(val value: String) : Type {
             return reader.take() == '('
         }
 
-        override fun read(reader: CharReader<*>): MethodDescriptor {
-            try {
-                if (!shouldRead(reader)) {
-                    throw IllegalArgumentException("Invalid method type")
-                }
-                return MethodDescriptor(buildString {
-                    append('(')
-                    while (true) {
-                        if (reader.peek() == ')') {
-                            reader.take()
-                            break
-                        }
-                        append(ParameterDescriptor.read(reader))
-                    }
-                    append(')')
-                    append(ReturnDescriptor.read(reader))
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid method type", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(reader.expect('('))
+            while (reader.peek() != ')') {
+                append(ParameterDescriptor.read(reader))
             }
+            append(reader.expect(')'))
+            append(ReturnDescriptor.read(reader))
         }
+
         override fun unchecked(value: String) = MethodDescriptor(value)
 
         operator fun invoke(returnValue: String, vararg params: String) = MethodDescriptor(ReturnDescriptor.read(returnValue), params.map { ParameterDescriptor.read(it) })

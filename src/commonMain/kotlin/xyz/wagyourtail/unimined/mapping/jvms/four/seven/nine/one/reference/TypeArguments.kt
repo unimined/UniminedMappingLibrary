@@ -18,25 +18,12 @@ value class TypeArguments private constructor(val value: String) : Type {
             return reader.take() == '<'
         }
 
-        override fun read(reader: CharReader<*>): TypeArguments {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid type arguments")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(reader.expect('<'))
+            while (reader.peek() != '>') {
+                append(TypeArgument.read(reader))
             }
-            try {
-                return TypeArguments(buildString {
-                    append('<')
-                    while (true) {
-                        append(TypeArgument.read(reader))
-                        if (reader.peek() == '>') {
-                            reader.take()
-                            break
-                        }
-                    }
-                    append('>')
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid type arguments", e)
-            }
+            append(reader.expect('>'))
         }
 
         override fun unchecked(value: String) = TypeArguments(value)

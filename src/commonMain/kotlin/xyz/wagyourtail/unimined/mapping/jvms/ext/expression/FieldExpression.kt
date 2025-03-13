@@ -31,34 +31,30 @@ value class FieldExpression(val value: String) : Type {
             return true
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            FieldExpression(buildString {
-                val first = reader.peek()
-                val hasOwner = first == 'L'
-                if (hasOwner) {
-                    append(ObjectType.read(reader))
-                }
-                if (reader.peek() == '.') {
-                    if (!hasOwner) throw IllegalArgumentException("expected ObjectType or \"this.\"")
-                    append(reader.take())
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            val first = reader.peek()
+            val hasOwner = first == 'L'
+            if (hasOwner) {
+                append(ObjectType.read(reader))
+            }
+            if (reader.peek() == '.') {
+                if (!hasOwner) throw IllegalArgumentException("expected ObjectType or \"this.\"")
+                append(reader.take()!!)
+                append(UnqualifiedName.read(reader))
+            } else {
+                val uqn = UnqualifiedName.read(reader)
+                if (uqn.value == "this" && reader.peek() == '.') {
+                    reader.take()
+                    append("this.")
                     append(UnqualifiedName.read(reader))
                 } else {
-                    val uqn = UnqualifiedName.read(reader)
-                    if (uqn.value == "this" && reader.peek() == '.') {
-                        append(uqn)
-                        append(reader.take())
-                        append(UnqualifiedName.read(reader))
-                    } else {
-                        append(uqn)
-                    }
+                    append(uqn)
                 }
-                reader.expect(';')
-                if (FieldDescriptor.shouldRead(reader.copy())) {
-                    append(FieldDescriptor.read(reader))
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid field expression", e)
+            }
+            append(reader.expect(';'))
+            if (FieldDescriptor.shouldRead(reader.copy())) {
+                append(FieldDescriptor.read(reader))
+            }
         }
 
         override fun unchecked(value: String): FieldExpression {
@@ -69,7 +65,7 @@ value class FieldExpression(val value: String) : Type {
 
     fun getParts(): Triple<ObjectType?, Boolean, Pair<UnqualifiedName, FieldDescriptor?>> {
         val (owner, rest) = if (value.startsWith("L")) {
-            val (owner, part) = value.split(';', limit = 2)
+        val (owner, part) = value.split(';', limit = 2)
             ObjectType.unchecked("$owner;") to part
         } else {
             null to value

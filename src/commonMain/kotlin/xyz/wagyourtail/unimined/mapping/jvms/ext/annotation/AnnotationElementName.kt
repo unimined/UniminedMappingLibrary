@@ -21,10 +21,8 @@ value class AnnotationElementName private constructor(val value: AnnotationIdent
             return AnnotationIdentifier.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            AnnotationElementName(AnnotationIdentifier.read(reader))
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid annotation element name", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(AnnotationIdentifier.read(reader))
         }
 
         override fun unchecked(value: String) = AnnotationElementName(AnnotationIdentifier.unchecked(value))

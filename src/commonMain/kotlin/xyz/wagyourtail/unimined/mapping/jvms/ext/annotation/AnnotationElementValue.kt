@@ -32,10 +32,8 @@ value class AnnotationElementValue private constructor(val value: String) : Type
             return innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            AnnotationElementValue(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader).toString())
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid annotation element value", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
         }
 
         override fun unchecked(value: String) = AnnotationElementValue(value)

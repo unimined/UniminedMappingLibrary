@@ -19,16 +19,11 @@ value class ClassBound private constructor(val value: String) : Type {
             return reader.take() == ':'
         }
 
-        override fun read(reader: CharReader<*>): ClassBound {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid class bound")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(':')
+            if (ReferenceTypeSignature.shouldRead(reader.copy())) {
+                append(ReferenceTypeSignature.read(reader))
             }
-            return ClassBound(buildString {
-                append(':')
-                if (ReferenceTypeSignature.shouldRead(reader.copy())) {
-                    append(ReferenceTypeSignature.read(reader))
-                }
-            })
         }
 
         override fun unchecked(value: String) = ClassBound(value)

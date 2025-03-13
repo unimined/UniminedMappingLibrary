@@ -20,33 +20,29 @@ value class Annotation private constructor(val value: String) : Type {
             return reader.take() == '@'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            Annotation(buildString {
-                val at = reader.take()
-                if (at != '@') {
-                    throw IllegalArgumentException("Invalid annotation, expected @, found $at")
-                }
-                append('@')
-                append(ObjectType.read(reader))
-                val next = reader.take()
-                if (next != '(') {
-                    throw IllegalArgumentException("Invalid annotation, expected (, found $next")
-                }
-                append('(')
-                if (AnnotationElements.shouldRead(reader.copy())) {
-                    append(AnnotationElements.read(reader))
-                }
-                val end = reader.take()
-                if (end != ')') {
-                    throw IllegalArgumentException("Invalid annotation, expected ), found $end")
-                }
-                append(')')
-                if (Invisible.shouldRead(reader.copy())) {
-                    append(Invisible.read(reader))
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid annotation", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            val at = reader.take()
+            if (at != '@') {
+                throw IllegalArgumentException("Invalid annotation, expected @, found $at")
+            }
+            append('@')
+            append(ObjectType.read(reader))
+            val next = reader.take()
+            if (next != '(') {
+                throw IllegalArgumentException("Invalid annotation, expected (, found $next")
+            }
+            append('(')
+            if (AnnotationElements.shouldRead(reader.copy())) {
+                append(AnnotationElements.read(reader))
+            }
+            val end = reader.take()
+            if (end != ')') {
+                throw IllegalArgumentException("Invalid annotation, expected ), found $end")
+            }
+            append(')')
+            if (Invisible.shouldRead(reader.copy())) {
+                append(Invisible.read(reader))
+            }
         }
 
         override fun unchecked(value: String) = Annotation(value)

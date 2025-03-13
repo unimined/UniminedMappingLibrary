@@ -17,23 +17,16 @@ value class ArrayConstant private constructor(val value: String) : Type {
             return reader.take() == '{'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid array constant")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append('{')
+            if (reader.peek() != '}') {
+                append(ArrayElements.read(reader))
             }
-            ArrayConstant(buildString {
-                append('{')
-                if (reader.peek() != '}') {
-                    append(ArrayElements.read(reader))
-                }
-                val end = reader.take()
-                if (end != '}') {
-                    throw IllegalArgumentException("Invalid array constant, expected }, found $end")
-                }
-                append('}')
-            })
-        } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException("Invalid array constant", e)
+            val end = reader.take()
+            if (end != '}') {
+                throw IllegalArgumentException("Invalid array constant, expected }, found $end")
+            }
+            append('}')
         }
 
         override fun unchecked(value: String) = ArrayConstant(value)

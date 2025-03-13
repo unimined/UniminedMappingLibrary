@@ -26,25 +26,16 @@ value class TypeArgument private constructor(val value: String) : Type {
             return ReferenceTypeSignature.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>): TypeArgument {
-            if (!shouldRead(reader.copy())) {
-                throw IllegalArgumentException("Invalid type argument")
-            }
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             if (reader.peek() == '*') {
                 reader.take()
-                return TypeArgument("*")
-            }
-            val wildcard = if (WildcardIndicator.shouldRead(reader.copy())) {
-                WildcardIndicator.read(reader)
+                append("*")
             } else {
-                null
-            }
-            return TypeArgument(buildString {
-                if (wildcard != null) {
-                    append(wildcard)
+                if (WildcardIndicator.shouldRead(reader.copy())) {
+                    append(WildcardIndicator.read(reader))
                 }
                 append(ReferenceTypeSignature.read(reader))
-            })
+            }
         }
 
         override fun unchecked(value: String) = TypeArgument(value)

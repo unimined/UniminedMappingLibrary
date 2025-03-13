@@ -19,18 +19,9 @@ value class ArrayTypeSignature private constructor(val value: String) : Type {
             return reader.take() == '['
         }
 
-        override fun read(reader: CharReader<*>): ArrayTypeSignature {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid type value signature")
-            }
-            try {
-                return ArrayTypeSignature(buildString {
-                    append('[')
-                    append(JavaTypeSignature.read(reader))
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid type value signature", e)
-            }
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append('[')
+            append(JavaTypeSignature.read(reader))
         }
 
         override fun unchecked(value: String) = ArrayTypeSignature(value)

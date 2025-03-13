@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.expression
 
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import kotlin.jvm.JvmInline
@@ -18,21 +19,15 @@ value class BitOrExpression(val value: String) : Type {
             return BitXorExpression.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            BitOrExpression(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(BitXorExpression.read(reader))
+            reader.takeWhitespace()
+            while (reader.peek() == '|') {
+                append(" ${reader.take()!!} ")
+                reader.takeWhitespace()
                 append(BitXorExpression.read(reader))
                 reader.takeWhitespace()
-                while (reader.peek() == '|') {
-                    append(" ")
-                    append(reader.take())
-                    append(" ")
-                    reader.takeWhitespace()
-                    append(BitXorExpression.read(reader))
-                    reader.takeWhitespace()
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid bit or expression", e)
+            }
         }
 
         override fun unchecked(value: String): BitOrExpression {
@@ -41,26 +36,28 @@ value class BitOrExpression(val value: String) : Type {
 
     }
 
-    fun getParts(): Pair<BitOrExpression?, BitXorExpression> {
-        val opIndex = value.lastIndexOf("|")
-        if (opIndex == -1) {
-            return null to BitXorExpression.unchecked(value)
+    fun getParts(): Pair<List<BitXorExpression>, BitXorExpression> {
+        val list = mutableListOf<BitXorExpression>()
+        var last: BitXorExpression? = null
+        read(StringCharReader(value)) {
+            when (it) {
+                is BitXorExpression -> last = it
+                " | " -> list.add(last!!)
+                else -> throw IllegalStateException()
+            }
         }
-        return BitOrExpression.unchecked(value.substring(0, opIndex).trimEnd()) to BitXorExpression.unchecked(
-            value.substring(
-                opIndex + 1
-            ).trimStart()
-        )
+        return Pair(list, last!!)
     }
 
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {
-            val (left, right) = getParts()
-            if (left != null) {
-                left.accept(visitor)
-                visitor(" | ")
+            read(StringCharReader(value)) {
+                if (it !is Type) {
+                    visitor(it)
+                } else {
+                    it.accept(visitor)
+                }
             }
-            right.accept(visitor)
         }
     }
 

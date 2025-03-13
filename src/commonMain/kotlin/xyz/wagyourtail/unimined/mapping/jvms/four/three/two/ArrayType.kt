@@ -18,17 +18,12 @@ value class ArrayType private constructor(val value: String) : Type {
             return reader.take() == '['
         }
 
-        override fun read(reader: CharReader<*>): ArrayType {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid array type")
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append("[")
+            while (reader.peek() == '[') {
+                append(reader.take()!!)
             }
-            return ArrayType(buildString {
-                append("[")
-                while (reader.peek() == '[') {
-                    append(reader.take())
-                }
-                append(ComponentType.read(reader).value)
-            })
+            append(ComponentType.read(reader).value)
         }
 
         override fun unchecked(value: String) = ArrayType(value)

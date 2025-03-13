@@ -13,15 +13,12 @@ value class Identifier private constructor(val value: String) : Type {
             return reader.take() !in JVMS.identifierIllegalChars
         }
 
-        override fun read(reader: CharReader<*>) = try {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val value = reader.takeUntil { it in JVMS.identifierIllegalChars }
             if (value.isEmpty()) {
                 throw IllegalArgumentException("Invalid identifier name, cannot be empty")
             }
-
-            Identifier(value)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid identifier name", e)
+            append(value)
         }
 
         override fun unchecked(value: String) = Identifier(value)

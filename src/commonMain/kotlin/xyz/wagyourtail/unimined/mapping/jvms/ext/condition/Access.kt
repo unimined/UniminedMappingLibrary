@@ -21,12 +21,15 @@ value class Access private constructor(val value: String) : Type {
             return true
         }
 
-        override fun read(reader: CharReader<*>): Access {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            if (reader.peek() == '*') {
+                append("*")
+            }
             val accessName = reader.takeWhile { it.isLetter() }
             if (accessName.lowercase() !in flags) {
                 throw IllegalArgumentException("Invalid access flag: $accessName")
             }
-            return Access(accessName)
+            append(accessName)
         }
 
         override fun unchecked(value: String) = Access(value)
@@ -42,5 +45,7 @@ value class Access private constructor(val value: String) : Type {
     fun getAccessFlag(): AccessFlag {
         return AccessFlag.valueOf(value.uppercase())
     }
+
+    override fun toString() = value
 
 }

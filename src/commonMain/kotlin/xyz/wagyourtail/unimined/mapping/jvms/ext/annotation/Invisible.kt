@@ -21,18 +21,14 @@ value class Invisible private constructor(val value: String) : Type {
             return reader.take() == '.'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            Invisible(buildString {
-                for (i in ".invisible") {
-                    val char = reader.take()
-                    if (char != i) {
-                        throw IllegalArgumentException("Invalid invisible, expected $i, found $char")
-                    }
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            for (i in ".invisible") {
+                val char = reader.take()
+                if (char != i) {
+                    throw IllegalArgumentException("Invalid invisible, expected $i, found $char")
                 }
-                append(".invisible")
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid invisible", e)
+            }
+            append(".invisible")
         }
 
         override fun unchecked(value: String) = Invisible(value)

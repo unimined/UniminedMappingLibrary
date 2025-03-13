@@ -16,12 +16,9 @@ value class FieldSignature private constructor(val value: ReferenceTypeSignature
     companion object: TypeCompanion<FieldSignature> {
         override fun shouldRead(reader: CharReader<*>) = ReferenceTypeSignature.shouldRead(reader)
 
-        override fun read(reader: CharReader<*>) =
-            try {
-                FieldSignature(ReferenceTypeSignature.read(reader))
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid field signature", e)
-            }
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(ReferenceTypeSignature.read(reader))
+        }
 
         override fun unchecked(value: String) = FieldSignature(ReferenceTypeSignature.unchecked(value))
 

@@ -20,24 +20,10 @@ value class TypeVariableSignature private constructor(val value: String) : Type 
             return reader.take() == 'T'
         }
 
-        override fun read(reader: CharReader<*>): TypeVariableSignature {
-            if (!shouldRead(reader)) {
-                throw IllegalArgumentException("Invalid type variable signature")
-            }
-            try {
-                return TypeVariableSignature(buildString {
-                    append('T')
-                    val value = Identifier.read(reader)
-                    val end = reader.take()
-                    if (end != ';') {
-                        throw IllegalArgumentException("Invalid type variable signature: found illegal character: $end")
-                    }
-                    append(value)
-                    append(';')
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid type variable signature", e)
-            }
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append('T')
+            append(Identifier.read(reader))
+            append(reader.expect(';'))
         }
 
         override fun unchecked(value: String) = TypeVariableSignature(value)

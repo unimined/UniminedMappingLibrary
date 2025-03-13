@@ -22,22 +22,13 @@ value class ClassSignature private constructor(val value: String) : Type {
             return SuperclassSignature.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>): ClassSignature {
-            try {
-                return ClassSignature(buildString {
-                    if (TypeParameters.shouldRead(reader.copy())) {
-                        append(TypeParameters.read(reader))
-                    }
-                    append(SuperclassSignature.read(reader))
-                    while (true) {
-                        if (reader.exhausted()) {
-                            break
-                        }
-                        append(SuperinterfaceSignature.read(reader))
-                    }
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid class signature", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            if (TypeParameters.shouldRead(reader.copy())) {
+                append(TypeParameters.read(reader))
+            }
+            append(SuperclassSignature.read(reader))
+            while (!reader.exhausted() && SuperinterfaceSignature.shouldRead(reader.copy())) {
+                append(SuperinterfaceSignature.read(reader))
             }
         }
 

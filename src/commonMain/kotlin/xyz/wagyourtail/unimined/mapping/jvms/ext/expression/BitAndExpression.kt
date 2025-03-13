@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.jvms.ext.expression
 
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import kotlin.jvm.JvmInline
@@ -18,21 +19,15 @@ value class BitAndExpression(val value: String) : Type {
             return BitShiftExpression.shouldRead(reader)
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            BitAndExpression(buildString {
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(BitShiftExpression.read(reader))
+            reader.takeWhitespace()
+            while (reader.peek() == '&') {
+                append(" ${reader.take()!!} ")
+                reader.takeWhitespace()
                 append(BitShiftExpression.read(reader))
                 reader.takeWhitespace()
-                while (reader.peek() == '&') {
-                    append(" ")
-                    append(reader.take())
-                    append(" ")
-                    reader.takeWhitespace()
-                    append(BitShiftExpression.read(reader))
-                    reader.takeWhitespace()
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid bit and expression", e)
+            }
         }
 
         override fun unchecked(value: String): BitAndExpression {
@@ -41,26 +36,28 @@ value class BitAndExpression(val value: String) : Type {
 
     }
 
-    fun getParts(): Pair<BitAndExpression?, BitShiftExpression> {
-        val opIndex = value.lastIndexOf("&")
-        if (opIndex == -1) {
-            return null to BitShiftExpression.unchecked(value)
+    fun getParts(): Pair<List<BitShiftExpression>, BitShiftExpression> {
+        val list = mutableListOf<BitShiftExpression>()
+        var last: BitShiftExpression? = null
+        read(StringCharReader(value)) {
+            when (it) {
+                is BitShiftExpression -> last = it
+                " & " -> list.add(last!!)
+                else -> throw IllegalStateException()
+            }
         }
-        return BitAndExpression.unchecked(value.substring(0, opIndex).trimEnd()) to BitShiftExpression.unchecked(
-            value.substring(
-                opIndex + 1
-            ).trimStart()
-        )
+        return Pair(list, last!!)
     }
 
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {
-            val (left, right) = getParts()
-            if (left != null) {
-                left.accept(visitor)
-                visitor(" & ")
+            read(StringCharReader(value)) {
+                if (it !is Type) {
+                    visitor(it)
+                } else {
+                    it.accept(visitor)
+                }
             }
-            right.accept(visitor)
         }
     }
 

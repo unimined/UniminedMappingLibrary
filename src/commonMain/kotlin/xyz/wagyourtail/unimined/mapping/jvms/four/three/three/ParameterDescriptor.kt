@@ -17,7 +17,9 @@ value class ParameterDescriptor private constructor(val value: FieldType) : Type
 
         override fun shouldRead(reader: CharReader<*>) = FieldType.shouldRead(reader)
 
-        override fun read(reader: CharReader<*>) = ParameterDescriptor(FieldType.read(reader))
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            append(FieldType.read(reader))
+        }
 
         override fun unchecked(value: String) = ParameterDescriptor(FieldType.unchecked(value))
     }

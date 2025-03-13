@@ -21,19 +21,11 @@ value class PackageName private constructor(val value: String) : Type {
             return reader.take() == '/'
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            PackageName(buildString {
-                while (shouldRead(reader.copy())) {
-                    append(UnqualifiedName.read(reader))
-                    val c = reader.take()
-                    if (c != '/') {
-                        throw IllegalArgumentException("Invalid package name, expected '/' got '${c}'")
-                    }
-                    append(c)
-                }
-            })
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid package name", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            while (shouldRead(reader.copy())) {
+                append(UnqualifiedName.read(reader))
+                append(reader.expect('/'))
+            }
         }
 
         override fun unchecked(value: String) = PackageName(value)

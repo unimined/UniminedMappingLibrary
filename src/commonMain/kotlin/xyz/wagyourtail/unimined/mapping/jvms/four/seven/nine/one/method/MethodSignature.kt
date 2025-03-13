@@ -24,34 +24,18 @@ value class MethodSignature private constructor(val value: String) : Type {
             return reader.take() == '('
         }
 
-        override fun read(reader: CharReader<*>): MethodSignature {
-            try {
-                return MethodSignature(buildString {
-                    if (TypeParameters.shouldRead(reader.copy())) {
-                        append(TypeParameters.read(reader))
-                    }
-                    if (reader.take() != '(') {
-                        throw IllegalArgumentException("Invalid method signature")
-                    }
-                    append('(')
-                    while (true) {
-                        if (reader.peek() == ')') {
-                            reader.take()
-                            break
-                        }
-                        append(JavaTypeSignature.read(reader))
-                    }
-                    append(')')
-                    append(Result.read(reader))
-                    while (true) {
-                        if (reader.exhausted()) {
-                            break
-                        }
-                        append(ThrowsSignature.read(reader))
-                    }
-                })
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid method signature", e)
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            if (TypeParameters.shouldRead(reader.copy())) {
+                append(TypeParameters.read(reader))
+            }
+            append(reader.expect('('))
+            while (reader.peek() != ')') {
+                append(JavaTypeSignature.read(reader))
+            }
+            append(reader.expect(')'))
+            append(Result.read(reader))
+            while (!reader.exhausted() && ThrowsSignature.shouldRead(reader.copy())) {
+                append(ThrowsSignature.read(reader))
             }
         }
 

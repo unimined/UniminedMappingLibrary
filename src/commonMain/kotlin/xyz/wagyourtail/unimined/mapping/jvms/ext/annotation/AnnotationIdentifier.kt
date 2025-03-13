@@ -23,19 +23,14 @@ value class AnnotationIdentifier private constructor(val value: String) : Type {
             return reader.take() !in annotationIdentifierIllegalCharacters
         }
 
-        override fun read(reader: CharReader<*>) = try {
-            val value = buildString {
-                if (reader.peek() == '"') {
-                    append("\"")
-                    append(reader.takeString().escape(true))
-                    append("\"")
-                    return@buildString
-                }
-                append(reader.takeUntil { it in annotationIdentifierIllegalCharacters })
+        override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
+            if (reader.peek() == '"') {
+                append("\"")
+                append(reader.takeString().escape(true))
+                append("\"")
+                return
             }
-            AnnotationIdentifier(value)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid identifier name", e)
+            append(reader.takeUntil { it in annotationIdentifierIllegalCharacters })
         }
 
         override fun unchecked(value: String) = AnnotationIdentifier(value)
