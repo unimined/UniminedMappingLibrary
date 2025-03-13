@@ -11,13 +11,13 @@ import kotlin.jvm.JvmInline
 /**
  * AnnotationIdentifier:
  *   " String "
- *   AnnotationIdentifier
+ *   Identifier
  */
 @JvmInline
 value class AnnotationIdentifier private constructor(val value: String) : Type {
     companion object: TypeCompanion<AnnotationIdentifier> {
 
-        val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllegalChars + setOf('=', ',', ')', '}')
+        val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllegalChars + setOf('=', ',', ')', '}', '"')
 
         override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() !in annotationIdentifierIllegalCharacters

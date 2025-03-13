@@ -43,7 +43,7 @@ class AnnotationTests {
         assertEquals("b=\"2\"", elements3.getParts()[1].toString())
         assertEquals("b", elements3.getParts()[1].getParts().first.value.unescape())
         assertEquals("\"2\"", elements3.getParts()[1].getParts().second.toString())
-        assertEquals("2", elements3.getParts()[1].getParts().second.getConstant().getString())
+        assertEquals("2", elements3.getParts()[1].getParts().second.getConstant().getString()!!.unescape())
 
         val annotation4 = Annotation.read("@Lcom/example/test;(\"a\"=1,b=\"2\",c={1,2,3}).invisible")
         assertEquals("Lcom/example/test;", annotation4.getParts().first.toString())

@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
+import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.commonskt.utils.maybeEscape
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
@@ -8,6 +9,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationElementName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationIdentifier
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.EnumConstant
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -294,10 +296,16 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                     }
                     append(".")
                     val second = parts.second
-                    val fd = eCls?.getFields(fromNs, second, null)?.map { it.getName(toNs) }?.toSet()
+                    val fd = eCls?.getFields(fromNs, second.unescape(), null)?.map { it.getName(toNs) }?.toSet()
                     if (!fd.isNullOrEmpty()) {
                         val mappedName = fd.first()!!
-                        append(mappedName.maybeEscape())
+                        if (AnnotationIdentifier.annotationIdentifierIllegalCharacters.any { it in mappedName }) {
+                            append("\"")
+                            append(mappedName.escape(true))
+                            append("\"")
+                        } else {
+                            append(mappedName)
+                        }
                     } else {
                         append(second)
                     }

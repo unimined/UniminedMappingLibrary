@@ -45,30 +45,18 @@ value class EnumConstant private constructor(val value: String) : Type {
         override fun unchecked(value: String) = EnumConstant(value)
     }
 
-    fun getParts(): Pair<ObjectType, String> = StringCharReader(value).let {
-        val obj = ObjectType.read(it)
-        val next = it.take()
-        if (next != '.') {
-            throw IllegalArgumentException("Invalid enum constant, expected ., found $next")
-        }
-        val str = if (it.peek() == '"') {
-            it.takeString()
-        } else {
-            val value = it.takeUntil { it in annotationIdentifierIllegalCharacters }
-            if (value.isEmpty()) {
-                throw IllegalArgumentException("Invalid enum constant, expected identifier, found $value")
-            }
-            value
-        }
-        Pair(obj, str)
+    fun getParts(): Pair<ObjectType, AnnotationIdentifier> {
+        val objectType = ObjectType.unchecked(value.substringBefore('.'))
+        val annotationIdentifier = AnnotationIdentifier.unchecked(value.substringAfter('.'))
+        return objectType to annotationIdentifier
     }
 
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {
-            val (obj, str) = getParts()
-            obj.accept(visitor)
+            val (objectType, annotationIdentifier) = getParts()
+            objectType.accept(visitor)
             visitor(".")
-            visitor(str)
+            annotationIdentifier.accept(visitor)
         }
     }
 

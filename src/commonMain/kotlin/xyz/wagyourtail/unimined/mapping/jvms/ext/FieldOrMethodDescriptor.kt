@@ -8,6 +8,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
 
+/**
+ * FieldOrMethodDescriptor:
+ *   [FieldDescriptor]
+ *   [MethodDescriptor]
+ */
 @JvmInline
 value class FieldOrMethodDescriptor private constructor(val value: String) : Type {
 
