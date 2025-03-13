@@ -20,7 +20,9 @@ value class AnnotationIdentifier private constructor(val value: String) : Type {
         val annotationIdentifierIllegalCharacters = JVMS.unqualifiedNameIllegalChars + setOf('=', ',', ')', '}', '"')
 
         override fun shouldRead(reader: CharReader<*>): Boolean {
-            return reader.take() !in annotationIdentifierIllegalCharacters
+            val v = reader.take()
+            if (v == '"') return true
+            return v !in annotationIdentifierIllegalCharacters
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {

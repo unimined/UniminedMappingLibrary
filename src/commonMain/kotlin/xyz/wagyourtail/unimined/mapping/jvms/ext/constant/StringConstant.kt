@@ -20,14 +20,7 @@ value class StringConstant private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            val first = reader.take()
-            if (first == '"') {
-                append("\"")
-                append(reader.takeString().escape(true))
-                append("\"")
-            } else {
-                throw IllegalArgumentException("expected \" but got $first")
-            }
+            append("\"${reader.takeString().escape(true)}\"")
         }
 
         override fun unchecked(value: String): StringConstant {

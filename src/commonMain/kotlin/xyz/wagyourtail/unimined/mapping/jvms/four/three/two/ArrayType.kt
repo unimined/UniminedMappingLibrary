@@ -19,7 +19,7 @@ value class ArrayType private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append("[")
+            append(reader.expect('['))
             while (reader.peek() == '[') {
                 append(reader.take()!!)
             }
