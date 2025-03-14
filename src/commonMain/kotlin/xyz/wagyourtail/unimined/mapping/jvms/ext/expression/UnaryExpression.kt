@@ -9,9 +9,11 @@ import kotlin.jvm.JvmInline
  * UnaryExpression:
  *   "-" [PrimaryExpression]
  *   "~" [PrimaryExpression]
+ *   "!" [PrimaryExpression]
  *   [PrimaryExpression]
  *   "-" [CastExpression]
  *   "~" [CastExpression]
+ *   "!" [CastExpression]
  *   [CastExpression]
  *
  */
@@ -22,9 +24,11 @@ value class UnaryExpression(val value: String) : Type {
 
         val innerTypes: Set<TypeCompanion<*>> = setOf(CastExpression, PrimaryExpression)
 
+        val unaryTokens = setOf('-', '~', '!')
+
         override fun shouldRead(reader: CharReader<*>): Boolean {
             val first = reader.peek()
-            if (first == '-' || first == '~') {
+            if (first in unaryTokens) {
                 reader.take()
                 return true
             }
@@ -32,9 +36,7 @@ value class UnaryExpression(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            if (reader.peek() == '-') {
-                append(reader.take()!!)
-            } else if (reader.peek() == '~') {
+            if (reader.peek() in unaryTokens) {
                 append(reader.take()!!)
             }
             append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
@@ -47,7 +49,7 @@ value class UnaryExpression(val value: String) : Type {
     }
 
     fun getParts(): Pair<String?, PrimaryExpression> {
-        if (value.startsWith("-") || value.startsWith("~")) {
+        if (value[0] in unaryTokens) {
             return Pair(value.substring(0, 1), PrimaryExpression.unchecked(value.substring(1)))
         }
         return Pair(null, PrimaryExpression.unchecked(value))

@@ -75,26 +75,9 @@ Annotation identifiers may be any valid unicode character except for the followi
 
 #### Constant
 
-&nbsp;&nbsp;&nbsp;&nbsp;" *String* "
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*integer*
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*float*
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*long*
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*double*
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*boolean*
+see constant format in [Constant Serialization Format](./constant-serialization-format.md)
 
-
-##### Constant values:
-String is an escaped string, for example: `\"Hello World\"`
-integer is a number matching the regex: `/[-+]?[0-9]+/`
-float is a number matching the regex: `/[-+]?[0-9]*\.?[0-9]+F/i`
-long is a number matching the regex: `/[-+]?[0-9]+L/i`
-double is a number matching the regex: `/[-+]?[0-9]*\.?[0-9]+D/i`
-boolean is either `true` or `false`
+must not be null
 
 ## Examples
 

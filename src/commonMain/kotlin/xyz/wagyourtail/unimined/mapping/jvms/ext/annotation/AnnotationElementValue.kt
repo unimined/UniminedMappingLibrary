@@ -33,7 +33,9 @@ value class AnnotationElementValue private constructor(val value: String) : Type
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
+            val type = innerTypes.first { it.shouldRead(reader.copy()) }.read(reader)
+            append(type)
+            if (type is Constant && type.isNull()) throw IllegalArgumentException("Null annotation element value")
         }
 
         override fun unchecked(value: String) = AnnotationElementValue(value)
