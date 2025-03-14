@@ -32,53 +32,76 @@ object ATWriter : FormatWriter {
         }
     }
 
-    fun remapMappings(mappings: List<ATReader.ATData>, context: AbstractMappingTree, sourceNs: Namespace, targetNs: Namespace) =
+    fun remapMappings(mappings: List<ATReader.ATItem>, context: AbstractMappingTree, sourceNs: Namespace, targetNs: Namespace) =
         mappings.map {
-            val mappedClass = context.map(sourceNs, targetNs, it.targetClass)
-            if (it.isClass()) {
-                ATReader.ATData(
-                    it.access,
-                    it.final,
-                    mappedClass,
-                    null,
-                    null
-                )
-            } else {
-                if (it.isWildcard()) {
+            if (it is ATReader.ATData) {
+                val mappedClass = context.map(sourceNs, targetNs, it.targetClass)
+                if (it.isClass()) {
                     ATReader.ATData(
                         it.access,
                         it.final,
                         mappedClass,
-                        "*",
-                        it.memberDesc
+                        null,
+                        null
                     )
                 } else {
-                    if (it.isMethod()) {
-                        val mappedMethod = context.map(sourceNs, targetNs, FullyQualifiedName(ObjectType(it.targetClass), NameAndDescriptor(UnqualifiedName.unchecked(it.memberName!!), FieldOrMethodDescriptor(it.fixedDesc()))))
-                        val (name, desc) = mappedMethod.getParts().second!!.getParts()
+                    if (it.isWildcard()) {
                         ATReader.ATData(
                             it.access,
                             it.final,
                             mappedClass,
-                            name.toString(),
-                            desc?.toString()
+                            "*",
+                            it.memberDesc
                         )
                     } else {
-                        val mappedField = context.map(sourceNs, targetNs, FullyQualifiedName(ObjectType(it.targetClass), NameAndDescriptor(UnqualifiedName.unchecked(it.memberName!!), it.memberDesc?.let { FieldOrMethodDescriptor.unchecked(it) })))
-                        val (name, desc) = mappedField.getParts().second!!.getParts()
-                        ATReader.ATData(
-                            it.access,
-                            it.final,
-                            mappedClass,
-                            name.toString(),
-                            desc?.toString()
-                        )
+                        if (it.isMethod()) {
+                            val mappedMethod = context.map(
+                                sourceNs,
+                                targetNs,
+                                FullyQualifiedName(
+                                    ObjectType(it.targetClass),
+                                    NameAndDescriptor(
+                                        UnqualifiedName.unchecked(it.memberName!!),
+                                        FieldOrMethodDescriptor(it.fixedDesc())
+                                    )
+                                )
+                            )
+                            val (name, desc) = mappedMethod.getParts().second!!.getParts()
+                            ATReader.ATData(
+                                it.access,
+                                it.final,
+                                mappedClass,
+                                name.toString(),
+                                desc?.toString()
+                            )
+                        } else {
+                            val mappedField = context.map(
+                                sourceNs,
+                                targetNs,
+                                FullyQualifiedName(
+                                    ObjectType(it.targetClass),
+                                    NameAndDescriptor(
+                                        UnqualifiedName.unchecked(it.memberName!!),
+                                        it.memberDesc?.let { FieldOrMethodDescriptor.unchecked(it) })
+                                )
+                            )
+                            val (name, desc) = mappedField.getParts().second!!.getParts()
+                            ATReader.ATData(
+                                it.access,
+                                it.final,
+                                mappedClass,
+                                name.toString(),
+                                desc?.toString()
+                            )
+                        }
                     }
                 }
+            } else {
+                it
             }
         }
 
-    fun assembleAts(finalizer: (List<ATReader.ATData>) -> Unit): MappingVisitor {
+    fun assembleAts(finalizer: (List<ATReader.ATItem>) -> Unit): MappingVisitor {
         var ns: Namespace? = null
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null
@@ -334,24 +357,35 @@ object ATWriter : FormatWriter {
         })
     }
 
-    fun writeData(mappings: List<ATReader.ATData>, append: (String) -> Unit) {
-        for (data in mappings) {
-            append(data.access?.toString()?.lowercase() ?: "default")
-            when (data.final) {
-                ATReader.TriState.ADD -> append("+f")
-                ATReader.TriState.REMOVE -> append("-f")
-                ATReader.TriState.LEAVE -> {}
-            }
-            append(" ")
-            append(data.targetClass.toString().replace('/', '.'))
-            if (data.memberName != null) {
-                append(" ")
-                append(data.memberName)
-                if (data.memberDesc != null) {
-                    append(data.memberDesc)
+    fun writeData(mappings: List<ATReader.ATItem>, append: (String) -> Unit) {
+        for ((i, data) in mappings.withIndex()) {
+            when (data) {
+                is ATReader.ATData -> {
+                    if (i != 0) append("\n")
+                    append(data.access?.toString()?.lowercase() ?: "default")
+                    when (data.final) {
+                        ATReader.TriState.ADD -> append("+f")
+                        ATReader.TriState.REMOVE -> append("-f")
+                        ATReader.TriState.LEAVE -> {}
+                    }
+                    append(" ")
+                    append(data.targetClass.toString().replace('/', '.'))
+                    if (data.memberName != null) {
+                        append(" ")
+                        append(data.memberName)
+                        if (data.memberDesc != null) {
+                            append(data.memberDesc)
+                        }
+                    }
+                }
+                is ATReader.ATComment -> {
+                    if (i != 0) append(if (data.newline) "\n" else " ")
+                    append(data.comment)
+                }
+                is ATReader.ATNewline -> {
+                    append("\n")
                 }
             }
-            append("\n")
         }
     }
 

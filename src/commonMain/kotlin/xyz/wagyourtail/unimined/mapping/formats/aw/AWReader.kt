@@ -30,14 +30,23 @@ object AWReader: FormatReader {
         return input.peek().readUtf8Line()?.startsWith("accessWidener") ?: false
     }
 
+    sealed interface AWItem
+
     data class AWData(
         val access: String,
         val target: FullyQualifiedName
-    )
+    ) : AWItem
+
+    data class AWComment(
+        val comment: String,
+        val newline: Boolean
+    ) : AWItem
+
+    object AWNewline : AWItem
 
     data class AWMappings(
         val namespace: Namespace,
-        val targets: Set<AWData>
+        val targets: List<AWItem>
     )
 
     override suspend fun read(
@@ -54,7 +63,7 @@ object AWReader: FormatReader {
             into.visitHeader(nsMapping[namespace.name] ?: namespace.name)
             val ns = nsMapping[namespace.name]?.let { Namespace(it) } ?: namespace
 
-            for ((access, target) in targets) {
+            for ((access, target) in targets.filterIsInstance<AWData>()) {
                 val addAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
                 val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
 
@@ -160,7 +169,7 @@ object AWReader: FormatReader {
         val aw = input.takeNextLiteral { it.isWhitespace() }
         val version = input.takeNextLiteral { it.isWhitespace() }
         val namespace = input.takeNextLiteral { it.isWhitespace() }!!
-        val targets: MutableSet<AWData> = mutableSetOf()
+        val targets = mutableListOf<AWItem>()
 
         if (aw != "accessWidener") {
             throw IllegalArgumentException("Invalid access widener file")
@@ -170,17 +179,29 @@ object AWReader: FormatReader {
         }
 
         val remain = input.takeLine().trimStart()
-        if (remain.isNotEmpty() && remain.first() != '#') {
-            throw IllegalArgumentException("Expected newline or comment, found $remain")
+        if (remain.isNotEmpty()) {
+            if (remain.first() != '#') {
+                throw IllegalArgumentException("Expected newline or comment, found $remain")
+            }
+            targets.add(AWComment(remain, false))
+        }
+
+        if (input.peek() == '\n') {
+            input.take()
         }
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
                 input.take()
+                targets.add(AWNewline)
                 continue
             }
             if (input.peek() == '#') {
-                input.takeLine()
+                targets.add(AWComment(input.takeLine(), true))
+
+                if (input.peek() == '\n') {
+                    input.take()
+                }
                 continue
             }
             if (input.peek()?.isWhitespace() == true) {
@@ -190,11 +211,9 @@ object AWReader: FormatReader {
             val access = input.takeNextLiteral { it.isWhitespace() }!!
             val target = input.takeNextLiteral { it.isWhitespace() }!!
 
-            if (!access.startsWith("transitive-")) {
-                if (!allowNonTransitive) {
-                    input.takeLine()
-                    continue
-                }
+            if (!access.startsWith("transitive-") && !allowNonTransitive) {
+                input.takeLine()
+                continue
             }
 
             when (target) {
@@ -239,8 +258,15 @@ object AWReader: FormatReader {
             }
 
             val lineComment = input.takeLine().trimStart()
-            if (lineComment.isNotEmpty() && lineComment.first() != '#') {
-                throw IllegalArgumentException("Expected newline or comment, found $lineComment")
+            if (lineComment.isNotEmpty()) {
+                if (lineComment.first() != '#') {
+                    throw IllegalArgumentException("Expected newline or comment, found $lineComment")
+                }
+                targets.add(AWComment(lineComment, false))
+            }
+
+            if (input.peek() == '\n') {
+                input.take()
             }
         }
         return AWMappings(Namespace(namespace), targets)

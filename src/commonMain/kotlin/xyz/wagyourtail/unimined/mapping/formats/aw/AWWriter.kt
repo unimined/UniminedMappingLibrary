@@ -244,33 +244,50 @@ object AWWriter : FormatWriter {
                 writeData(AWReader.AWMappings(ns!!, mappings.values.map { map ->
                     map.sortedBy {
                         listOf(it.target.toString(), it.access).comparable()
-                } }.flatten().toSet()), append)
+                } }.flatten()), append)
             }
         })
     }
 
     fun remapMappings(mappings: AWReader.AWMappings, context: AbstractMappingTree, targetNs: Namespace): AWReader.AWMappings {
         return AWReader.AWMappings(targetNs, mappings.targets.map {
-            AWReader.AWData(it.access, context.map(mappings.namespace, targetNs, it.target))
-        }.toSet())
+            if (it is AWReader.AWData) {
+                AWReader.AWData(it.access, context.map(mappings.namespace, targetNs, it.target))
+            } else {
+                it
+            }
+        })
     }
 
     fun writeData(mappings: AWReader.AWMappings, append: (String) -> Unit) {
         append("accessWidener\tv2\t${mappings.namespace.name}\n")
-        for (target in mappings.targets) {
-            append("${target.access}\t")
-            val (cls, member) = target.target.getParts()
-            if (member == null) {
-                append("class\t${cls.getInternalName()}\n")
-            } else {
-                val (name, desc) = member.getParts()
-                if (desc!!.isMethodDescriptor()) {
-                    append("method\t${cls.getInternalName()}\t$name\t$desc\n")
-                } else {
-                    append("field\t${cls.getInternalName()}\t$name\t$desc\n")
+        for ((i, target) in mappings.targets.withIndex()) {
+            when (target) {
+                is AWReader.AWData -> {
+                    if (i != 0) append("\n")
+                    append("${target.access}\t")
+                    val (cls, member) = target.target.getParts()
+                    if (member == null) {
+                        append("class\t${cls.getInternalName()}")
+                    } else {
+                        val (name, desc) = member.getParts()
+                        if (desc!!.isMethodDescriptor()) {
+                            append("method\t${cls.getInternalName()}\t$name\t$desc")
+                        } else {
+                            append("field\t${cls.getInternalName()}\t$name\t$desc")
+                        }
+                    }
+                }
+                is AWReader.AWComment -> {
+                    append(if (target.newline && i != 0) "\n" else " ")
+                    append(target.comment)
+                }
+                is AWReader.AWNewline -> {
+                    append("\n")
                 }
             }
         }
+        append("\n")
     }
 
 }

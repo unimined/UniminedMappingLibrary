@@ -20,8 +20,12 @@ import kotlin.test.assertEquals
 class AWReadWriteTest {
     val awText = """
         accessWidener v2 intermediary
-        accessible class net/minecraft/class_3720
+        accessible class net/minecraft/class_3720 # end of line comment
+        
+        # this is a comment
         accessible method net/minecraft/class_3721 method_31659 (Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+        
+        # second comment
         extendable method net/minecraft/class_3721 method_31659 (Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         mutable field net/minecraft/class_3721 field_19158 I
     """.trimIndent()
@@ -92,7 +96,7 @@ c	net/minecraft/class_3721
     fun testDirect() {
         val betterRead = AWReader.readData(StringCharReader(awText))
         val betterWrite = buildString { AWWriter.writeData(betterRead, ::append) }
-        assertEquals(awText.replace(" ", "\t"), betterWrite.trimEnd())
+        assertEquals(awText, betterWrite.trimEnd().replace("\t", " "))
     }
 
     @Test
@@ -106,12 +110,16 @@ c	net/minecraft/class_3721
         val betterWrite = buildString { AWWriter.writeData(remapped, ::append) }
 
         assertEquals("""
-        accessWidener v2 named
-        accessible	class	net/minecraft/block/entity/BlastFurnaceBlockEntity
+        accessWidener	v2	named
+        accessible	class	net/minecraft/block/entity/BlastFurnaceBlockEntity # end of line comment
+        
+        # this is a comment
         accessible	method	net/minecraft/block/entity/BellBlockEntity	serverTick	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/block/entity/BellBlockEntity;)V
+        
+        # second comment
         extendable	method	net/minecraft/block/entity/BellBlockEntity	serverTick	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/block/entity/BellBlockEntity;)V
         mutable	field	net/minecraft/block/entity/BellBlockEntity	resonateTime	I
-        """.trimIndent().replace(" ", "\t"), betterWrite.trimEnd())
+        """.trimIndent().replace("\t", " "), betterWrite.trimEnd().replace("\t", " "))
     }
 
     @Test

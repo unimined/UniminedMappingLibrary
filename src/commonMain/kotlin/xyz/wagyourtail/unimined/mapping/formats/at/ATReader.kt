@@ -63,13 +63,22 @@ object ATReader : FormatReader {
         }
     }
 
+    sealed interface ATItem
+
+    data class ATComment(
+        val comment: String,
+        val newline: Boolean
+    ) : ATItem
+
+    object ATNewline : ATItem
+
     data class ATData(
         val access: AccessFlag?,
         val final: TriState,
         val targetClass: InternalName,
         val memberName: String?,
         val memberDesc: String?
-    ) {
+    ) : ATItem {
         fun isClass() = memberName == null && memberDesc == null
         fun isMethod() = memberName != null && memberDesc != null
         fun isField() = memberName != null && memberDesc == null
@@ -105,19 +114,26 @@ object ATReader : FormatReader {
         applyData(data, into, ns)
     }
 
-    fun readData(input: CharReader<*>): List<ATData> {
-        val data = mutableListOf<ATData>()
+    fun readData(input: CharReader<*>): List<ATItem> {
+        val data = mutableListOf<ATItem>()
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
                 input.take()
+                data.add(ATNewline)
                 continue
             }
-            if (input.peek() == '#') {
-                input.takeLine()
-                continue
-            }
+
             if (input.peek()?.isWhitespace() == true) {
                 input.takeWhitespace()
+                continue
+            }
+
+            if (input.peek() == '#') {
+                data.add(ATComment(input.takeLine(), true))
+
+                if (input.peek() == '\n') {
+                    input.take()
+                }
                 continue
             }
 
@@ -128,21 +144,29 @@ object ATReader : FormatReader {
             val memberName = if (input.peek() == '#') null else input.takeUntil { it.isWhitespace() || it == '(' }.ifEmpty { null }
             val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifEmpty { null }?.replace(".", "/")
 
+            data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
+
             val remaining = input.takeLine().trimStart()
-            if (remaining.isNotEmpty() && remaining.first() != '#') {
-                throw IllegalArgumentException("Expected newline or comment, found $remaining")
+            if (remaining.isNotEmpty()) {
+                if (remaining.first() != '#') {
+                    throw IllegalArgumentException("Expected newline or comment, found $remaining")
+                }
+                data.add(ATComment(remaining, false))
             }
 
-            data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
+            if (input.peek() == '\n') {
+                input.take()
+            }
         }
         return data
     }
 
-    fun applyData(data: List<ATData>, into: MappingVisitor, ns: Namespace) {
+    fun applyData(data: List<ATItem>, into: MappingVisitor, ns: Namespace) {
         val nsSet = setOf(ns)
         into.use {
             visitHeader(ns.name)
             for (at in data) {
+                if (at !is ATData) continue
                 visitClass(mapOf(ns to at.targetClass))?.use {
                     if (at.isClass()) {
                         applyAccess(at.access, at.final, nsSet)

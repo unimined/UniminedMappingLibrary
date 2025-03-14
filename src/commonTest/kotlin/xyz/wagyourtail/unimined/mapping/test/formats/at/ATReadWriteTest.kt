@@ -24,6 +24,7 @@ class ATReadWriteTest {
         public+f net.minecraft.class_3720 # class
         public-f net.minecraft.class_3720 * # all fields
         public net.minecraft.class_3720 *() # all methods
+        
         # other class
         protected-f net.minecraft.class_3721
         public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
@@ -34,6 +35,7 @@ class ATReadWriteTest {
         public+f net/minecraft/class_3720 # class
         public-f net/minecraft/class_3720.* # all fields
         public net/minecraft/class_3720.*() # all methods
+        
         # other class
         protected-f net/minecraft/class_3721
         public-f net/minecraft/class_3721.method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
@@ -139,28 +141,28 @@ class ATReadWriteTest {
     fun testDirect() = runTest {
         val betterRead = ATReader.readData(StringCharReader(atText))
         val betterWrite = buildString { ATWriter.writeData(betterRead, ::append) }
-        assertEquals("""
-            public+f net.minecraft.class_3720
-            public-f net.minecraft.class_3720 *
-            public net.minecraft.class_3720 *()
-            protected-f net.minecraft.class_3721
-            public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
-            private net.minecraft.class_3721 field_19158
-        """.trimIndent(), betterWrite.trimEnd())
+        assertEquals(atText, betterWrite.trimEnd())
     }
 
     @Test
     fun testLegacyDirect() = runTest {
         val betterRead = LegacyATReader.readData(StringCharReader(legacyAtText))
         val betterWrite = buildString { LegacyATWriter.writeData(betterRead, ::append) }
-        assertEquals("""
-            public+f net/minecraft/class_3720
-            public-f net/minecraft/class_3720.*
-            public net/minecraft/class_3720.*()
-            protected-f net/minecraft/class_3721
-            public-f net/minecraft/class_3721.method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
-            private net/minecraft/class_3721.field_19158
-        """.trimIndent(), betterWrite.trimEnd())
+        assertEquals(legacyAtText, betterWrite.trimEnd())
+    }
+
+    @Test
+    fun testLegacyToModernDirect() = runTest {
+        val betterRead = LegacyATReader.readData(StringCharReader(legacyAtText))
+        val betterWrite = buildString { ATWriter.writeData(betterRead, ::append) }
+        assertEquals(atText, betterWrite.trimEnd())
+    }
+
+    @Test
+    fun testModernToLegacyDirect() = runTest {
+        val betterRead = ATReader.readData(StringCharReader(atText))
+        val betterWrite = buildString { LegacyATWriter.writeData(betterRead, ::append) }
+        assertEquals(legacyAtText, betterWrite.trimEnd())
     }
 
     @Test
@@ -173,12 +175,14 @@ class ATReadWriteTest {
         val remapped = ATWriter.remapMappings(betterRead, m, Namespace("intermediary"), Namespace("named"))
         val betterWrite = buildString { ATWriter.writeData(remapped, ::append) }
         assertEquals("""
-           public+f net.minecraft.block.entity.BlastFurnaceBlockEntity
-           public-f net.minecraft.block.entity.BlastFurnaceBlockEntity *
-           public net.minecraft.block.entity.BlastFurnaceBlockEntity *()
-           protected-f net.minecraft.block.entity.BellBlockEntity
-           public-f net.minecraft.block.entity.BellBlockEntity serverTick(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/block/entity/BellBlockEntity;)V
-           private net.minecraft.block.entity.BellBlockEntity resonateTime
+            public+f net.minecraft.block.entity.BlastFurnaceBlockEntity # class
+            public-f net.minecraft.block.entity.BlastFurnaceBlockEntity * # all fields
+            public net.minecraft.block.entity.BlastFurnaceBlockEntity *() # all methods
+
+            # other class
+            protected-f net.minecraft.block.entity.BellBlockEntity
+            public-f net.minecraft.block.entity.BellBlockEntity serverTick(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/block/entity/BellBlockEntity;)V
+            private net.minecraft.block.entity.BellBlockEntity resonateTime
         """.trimIndent(), betterWrite.trimEnd())
     }
 

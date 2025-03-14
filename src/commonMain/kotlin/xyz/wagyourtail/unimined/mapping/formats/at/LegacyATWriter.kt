@@ -11,24 +11,35 @@ object LegacyATWriter : FormatWriter {
         }
     }
 
-    fun writeData(mappings: List<ATReader.ATData>, append: (String) -> Unit) {
-        for (data in mappings) {
-            append(data.access?.toString()?.lowercase() ?: "default")
-            when (data.final) {
-                ATReader.TriState.ADD -> append("+f")
-                ATReader.TriState.REMOVE -> append("-f")
-                ATReader.TriState.LEAVE -> {}
-            }
-            append(" ")
-            append(data.targetClass.toString())
-            if (data.memberName != null) {
-                append(".")
-                append(data.memberName)
-                if (data.memberDesc != null) {
-                    append(data.memberDesc)
+    fun writeData(mappings: List<ATReader.ATItem>, append: (String) -> Unit) {
+        for ((i, data) in mappings.withIndex()) {
+            when (data) {
+                is ATReader.ATData -> {
+                    if (i != 0) append("\n")
+                    append(data.access?.toString()?.lowercase() ?: "default")
+                    when (data.final) {
+                        ATReader.TriState.ADD -> append("+f")
+                        ATReader.TriState.REMOVE -> append("-f")
+                        ATReader.TriState.LEAVE -> {}
+                    }
+                    append(" ")
+                    append(data.targetClass.toString())
+                    if (data.memberName != null) {
+                        append(".")
+                        append(data.memberName)
+                        if (data.memberDesc != null) {
+                            append(data.memberDesc)
+                        }
+                    }
+                }
+                is ATReader.ATComment -> {
+                    if (i != 0) append(if (data.newline) "\n" else " ")
+                    append(data.comment)
+                }
+                is ATReader.ATNewline -> {
+                    append("\n")
                 }
             }
-            append("\n")
         }
     }
 }

@@ -34,19 +34,26 @@ object LegacyATReader : FormatReader {
         ATReader.applyData(data, into, ns)
     }
 
-    fun readData(input: CharReader<*>): List<ATData> {
-        val data = mutableListOf<ATData>()
+    fun readData(input: CharReader<*>): List<ATReader.ATItem> {
+        val data = mutableListOf<ATReader.ATItem>()
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
                 input.take()
+                data.add(ATReader.ATNewline)
                 continue
             }
-            if (input.peek() == '#') {
-                input.takeLine()
-                continue
-            }
+
             if (input.peek()?.isWhitespace() == true) {
                 input.takeWhitespace()
+                continue
+            }
+
+            if (input.peek() == '#') {
+                data.add(ATReader.ATComment(input.takeLine(), true))
+
+                if (input.peek() == '\n') {
+                    input.take()
+                }
                 continue
             }
 
@@ -58,12 +65,19 @@ object LegacyATReader : FormatReader {
             }.substring(1)
             val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifEmpty { null }
 
+            data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
+
             val remaining = input.takeLine().trimStart()
-            if (remaining.isNotEmpty() && remaining.first() != '#') {
-                throw IllegalArgumentException("Expected newline or comment, found $remaining")
+            if (remaining.isNotEmpty()) {
+                if (remaining.first() != '#') {
+                    throw IllegalArgumentException("Expected newline or comment, found $remaining")
+                }
+                data.add(ATReader.ATComment(remaining, false))
             }
 
-            data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
+            if (input.peek() == '\n') {
+                input.take()
+            }
         }
         return data
     }
