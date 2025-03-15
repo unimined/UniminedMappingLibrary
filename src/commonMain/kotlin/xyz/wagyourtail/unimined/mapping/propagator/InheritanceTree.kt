@@ -82,7 +82,7 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
         }
     }
 
-    fun filtered(output: AbstractMappingTree) {
+    fun filtered(output: MappingVisitor) {
 
         tree.accept(output.delegator(object : Delegator() {
 

@@ -1,6 +1,9 @@
 package xyz.wagyourtail.unimined.mapping.resolver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okio.Buffer
@@ -12,6 +15,7 @@ import xyz.wagyourtail.commonskt.collection.finalizable.finalizableSetOf
 import xyz.wagyourtail.commonskt.properties.FinalizeOnRead
 import xyz.wagyourtail.commonskt.properties.LazyMutable
 import xyz.wagyourtail.commonskt.utils.associateWithNonNull
+import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
@@ -139,6 +143,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         return resolveLock.withLock {
             if (::resolved.isInitialized) return@withLock resolved
             finalize()
+            LOGGER.info { "Resolving mappings $name..." }
+
             val values = _entries.values
             val resolvedEntries = mutableSetOf<MappingEntry>()
 
@@ -203,7 +209,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     }
                 }
 
+                LOGGER.info { "Propagating..." }
+
                 resolved = propogator(resolved)
+
+                LOGGER.info { "Post processing..." }
 
                 afterLoad(resolved)
 
@@ -216,8 +226,27 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     }
                 }
 
+                LOGGER.info { "Resolving fields and methods..." }
+
+                // parallel resolve fields and methods
+                resolved.classes.parallelMap {
+                    coroutineScope {
+                        listOf(async {
+                            it.fields.resolve()
+                        }, async {
+                            it.methods.resolve()
+                        }).awaitAll()
+                    }
+                }
+
+                LOGGER.info { "Writing to cache" }
+
                 writeCache(cacheKey, resolved)
+            } else {
+                LOGGER.info { "Loaded from cache" }
             }
+
+            LOGGER.info { "Resolving complete" }
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
             this.resolved = resolved

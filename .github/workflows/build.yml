@@ -17,6 +17,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Build
+        run: ./gradlew build
+
       - name: Publish
         run: ./gradlew publish -Pmvn.user=${{ secrets.MAVEN_USER }} -Pmvn.key=${{ secrets.MAVEN_TOKEN }}
 
