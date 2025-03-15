@@ -14,11 +14,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.MultiMethodVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
 abstract class InheritanceTree(val tree: AbstractMappingTree) {
@@ -35,36 +33,52 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
         }
 
         // write class mappings
-        for (clazz in classes.values) {
+        if (tree is MemoryMappingTree) {
+            val classLock = Mutex()
 
-            tree.visitClass(fns to clazz.name)?.use {
-                for (field in clazz.fields) {
-                    visitField(
-                        mapOf(fns to (field.name to field.descriptor))
-                    )?.visitEnd()
+            classes.values.parallelMap { clazz ->
+                classLock.withLock {
+                    tree.visitClass(fns to clazz.name)
+                }?.use {
+                    writePropData(clazz)
                 }
+            }
 
-                for (method in clazz.methods) {
-                    visitMethod(
-                        mapOf(fns to (method.name to method.descriptor))
-                    )?.use {
-                        var lvtIdx = if (method.access.contains(AccessFlag.STATIC)) 0 else 1
-                        for ((i, param) in method.descriptor.getParts().second.withIndex()) {
-                            visitParameter(i, lvtIdx, emptyMap())?.visitEnd()
-                            lvtIdx += param.value.getWidth()
-                        }
-                    }
-                }
+        } else {
+            for (clazz in classes.values) {
 
-                for ((method, names) in clazz.methodData) {
-                    visitMethod(
-                        (names.mapValues { it.value to null }.toMap()) +
-                        mapOf(fns to (method.name to method.descriptor))
-                    )?.visitEnd()
+                tree.visitClass(fns to clazz.name)?.use {
+                    writePropData(clazz)
                 }
 
             }
+        }
+    }
 
+    private fun ClassVisitor.writePropData(classInfo: ClassInfo) {
+        for (field in classInfo.fields) {
+            visitField(
+                mapOf(fns to (field.name to field.descriptor))
+            )?.visitEnd()
+        }
+
+        for (method in classInfo.methods) {
+            visitMethod(
+                mapOf(fns to (method.name to method.descriptor))
+            )?.use {
+                var lvtIdx = if (method.access.contains(AccessFlag.STATIC)) 0 else 1
+                for ((i, param) in method.descriptor.getParts().second.withIndex()) {
+                    visitParameter(i, lvtIdx, emptyMap())?.visitEnd()
+                    lvtIdx += param.value.getWidth()
+                }
+            }
+        }
+
+        for ((method, names) in classInfo.methodData) {
+            visitMethod(
+                (names.mapValues { it.value to null }.toMap()) +
+                        mapOf(fns to (method.name to method.descriptor))
+            )?.visitEnd()
         }
     }
 
