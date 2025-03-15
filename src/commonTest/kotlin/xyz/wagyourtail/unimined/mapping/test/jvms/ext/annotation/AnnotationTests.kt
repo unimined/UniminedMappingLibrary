@@ -95,7 +95,7 @@ class AnnotationTests {
         assertEquals("value", annotation8.getParts().second!!.getParts()[0].getParts().first.value.unescape())
         assertEquals("Lcom/example/test2;.\"enum\"", annotation8.getParts().second!!.getParts()[0].getParts().second.toString())
         assertEquals("Lcom/example/test2;", annotation8.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().first.toString())
-        assertEquals("enum", annotation8.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().second.toString())
+        assertEquals("enum", annotation8.getParts().second!!.getParts()[0].getParts().second.getEnumConstant().getParts().second.unescape())
 
         // class constant
         val annotation9 = Annotation.read("@Lcom/example/test;(value=Lcom/example/test2;)")

@@ -24,9 +24,9 @@ value class AccessConditions private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            val peek = reader.take()
+            val peek = reader.peek()
             if (peek == '*') {
-                append(peek)
+                append(reader.take()!!)
                 return
             }
             while (AccessCondition.shouldRead(reader.copy())) {

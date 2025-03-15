@@ -7,9 +7,10 @@ import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
 
 /**
- * AccessConditions:
- *   *
- *   {[AccessCondition]}
+ * Access:
+ *   Public
+ *   Private
+ *   etc.
  */
 @JvmInline
 value class Access private constructor(val value: String) : Type {
@@ -22,9 +23,6 @@ value class Access private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            if (reader.peek() == '*') {
-                append("*")
-            }
             val accessName = reader.takeWhile { it.isLetter() }
             if (accessName.lowercase() !in flags) {
                 throw IllegalArgumentException("Invalid access flag: $accessName")

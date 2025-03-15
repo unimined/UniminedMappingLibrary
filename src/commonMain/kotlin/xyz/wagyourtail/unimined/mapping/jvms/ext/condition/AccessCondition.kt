@@ -16,7 +16,7 @@ value class AccessCondition private constructor(val value: String) : Type {
     companion object : TypeCompanion<AccessCondition> {
 
         override fun shouldRead(reader: CharReader<*>): Boolean {
-            val peek = reader.peek()
+            val peek = reader.take()
             return peek == '+' || peek == '-'
         }
 

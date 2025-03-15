@@ -22,7 +22,7 @@ value class ThrowsSignature private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append('^')
+            append(reader.expect('^'))
             if (ClassTypeSignature.shouldRead(reader.copy())) {
                 append(ClassTypeSignature.read(reader))
             } else {

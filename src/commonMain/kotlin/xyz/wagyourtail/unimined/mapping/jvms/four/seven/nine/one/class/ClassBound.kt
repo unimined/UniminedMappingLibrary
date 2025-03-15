@@ -20,7 +20,7 @@ value class ClassBound private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append(':')
+            append(reader.expect(':'))
             if (ReferenceTypeSignature.shouldRead(reader.copy())) {
                 append(ReferenceTypeSignature.read(reader))
             }

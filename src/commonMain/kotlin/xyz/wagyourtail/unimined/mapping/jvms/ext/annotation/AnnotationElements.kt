@@ -22,8 +22,7 @@ value class AnnotationElements private constructor(val value: String) : Type {
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             append(AnnotationElement.read(reader))
             while (reader.peek() == ',') {
-                reader.take()
-                append(',')
+                append(reader.take()!!)
                 append(AnnotationElement.read(reader))
             }
         }

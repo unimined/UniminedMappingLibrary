@@ -21,7 +21,7 @@ value class TypeVariableSignature private constructor(val value: String) : Type 
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append('T')
+            append(reader.expect('T'))
             append(Identifier.read(reader))
             append(reader.expect(';'))
         }

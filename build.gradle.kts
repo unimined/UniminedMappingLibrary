@@ -37,6 +37,10 @@ kotlin {
     js {
         browser {
             useCommonJs()
+
+            testTask {
+                enabled = false
+            }
         }
         nodejs {
             useCommonJs()

@@ -22,8 +22,7 @@ value class ArrayElements private constructor(val value: String) : Type {
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             append(AnnotationElementValue.read(reader))
             while (reader.peek() == ',') {
-                reader.take()
-                append(',')
+                append(reader.take()!!)
                 append(AnnotationElementValue.read(reader))
             }
         }

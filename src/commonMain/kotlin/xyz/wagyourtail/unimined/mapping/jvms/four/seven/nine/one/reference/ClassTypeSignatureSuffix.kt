@@ -19,7 +19,7 @@ value class ClassTypeSignatureSuffix private constructor(val value: String) : Ty
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append('.')
+            append(reader.expect('.'))
             append(SimpleClassTypeSignature.read(reader))
         }
 

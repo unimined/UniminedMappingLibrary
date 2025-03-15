@@ -21,25 +21,13 @@ value class Annotation private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            val at = reader.take()
-            if (at != '@') {
-                throw IllegalArgumentException("Invalid annotation, expected @, found $at")
-            }
-            append('@')
+            append(reader.expect('@'))
             append(ObjectType.read(reader))
-            val next = reader.take()
-            if (next != '(') {
-                throw IllegalArgumentException("Invalid annotation, expected (, found $next")
-            }
-            append('(')
+            append(reader.expect('('))
             if (AnnotationElements.shouldRead(reader.copy())) {
                 append(AnnotationElements.read(reader))
             }
-            val end = reader.take()
-            if (end != ')') {
-                throw IllegalArgumentException("Invalid annotation, expected ), found $end")
-            }
-            append(')')
+            append(reader.expect(')'))
             if (Invisible.shouldRead(reader.copy())) {
                 append(Invisible.read(reader))
             }

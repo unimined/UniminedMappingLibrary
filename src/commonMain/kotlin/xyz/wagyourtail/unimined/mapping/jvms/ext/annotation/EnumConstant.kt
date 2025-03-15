@@ -30,11 +30,7 @@ value class EnumConstant private constructor(val value: String) : Type {
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             append(ObjectType.read(reader))
-            val next = reader.take()
-            if (next != '.') {
-                throw IllegalArgumentException("Invalid enum constant, expected ., found $next")
-            }
-            append('.')
+            append(reader.expect('.'))
             append(AnnotationIdentifier.read(reader))
         }
 

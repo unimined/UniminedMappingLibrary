@@ -20,7 +20,7 @@ value class ClassTypeSignature private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append('L')
+            append(reader.expect('L'))
             // optional package specifier
             if (PackageSpecifier.shouldRead(reader.copy())) {
                 append(PackageSpecifier.read(reader))

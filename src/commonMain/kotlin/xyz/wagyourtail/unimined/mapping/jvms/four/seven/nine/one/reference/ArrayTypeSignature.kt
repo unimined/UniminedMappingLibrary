@@ -20,7 +20,7 @@ value class ArrayTypeSignature private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append('[')
+            append(reader.expect('['))
             append(JavaTypeSignature.read(reader))
         }
 

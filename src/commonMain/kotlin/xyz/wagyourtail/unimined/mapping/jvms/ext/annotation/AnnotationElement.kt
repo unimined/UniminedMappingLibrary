@@ -21,11 +21,7 @@ value class AnnotationElement private constructor(val value: String) : Type {
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             append(AnnotationElementName.read(reader))
-            val next = reader.take()
-            if (next != '=') {
-                throw IllegalArgumentException("Invalid annotation element, expected =, found $next")
-            }
-            append('=')
+            append(reader.expect('='))
             append(AnnotationElementValue.read(reader))
         }
 
