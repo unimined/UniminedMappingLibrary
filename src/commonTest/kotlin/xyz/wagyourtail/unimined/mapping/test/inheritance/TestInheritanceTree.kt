@@ -8,6 +8,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.propagator.CachedInheritanceTree
+import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -50,7 +51,7 @@ class TestInheritanceTree {
          private methodC ()V
         """.trimIndent()
 
-    val MAPPINGS = """
+    val UNPROP_MAPPINGS = """
         umf 1 0
         intermediary named
         c clsA Parent
@@ -58,6 +59,7 @@ class TestInheritanceTree {
          f fieldB;I field2
          m methodA;()V cAmethod1
          m methodB;()V cAmethod2
+         m methodC;()V cAmethod5
          m methodD;()V cAmethod3
          m methodE;()V cAmethod4
          
@@ -84,7 +86,46 @@ class TestInheritanceTree {
          m methodC;()V iCmethod2
         """.trimIndent()
 
-    val EXPECTED_MAPPINGS = """
+    val PROP_MAPPINGS = """
+        umf 1 0
+        intermediary named
+        c clsA Parent
+         f fieldA;I field1
+         f fieldB;I field2
+         m methodA;()V cAmethod1
+         m methodB;()V cAmethod2
+         m methodC;()V iAmethod1
+         m methodD;()V cAmethod3
+         m methodE;()V cAmethod4
+        c clsB Child
+         f fieldA;I field3
+         f fieldB;I field4
+         m methodA;()V cAmethod1
+         m methodB;()V cBmethod2
+         m methodC;()V iAmethod1
+         m methodD;()V cAmethod3
+         m methodE;()V cAmethod4
+        c clsD Child3
+         m methodE;()V cAmethod4
+         m methodA;()V cAmethod1
+         m methodC;()V iAmethod1
+         m methodD;()V cAmethod3
+        c intfA _
+         f fieldA;I field5
+         m methodC;()V iAmethod1
+        c intfB _
+         m methodC;()V iAmethod1
+        c intfC _
+         m methodD;()V cAmethod3
+         m methodC;()V iCmethod2
+        c clsC _
+         m methodE;()V cAmethod4
+         m methodA;()V cAmethod1
+         m methodC;()V iAmethod1
+         m methodD;()V cAmethod3
+        """.trimIndent()
+
+    val FILTERED_MAPPINGS = """
         umf 1 0
         intermediary named
         c clsA Parent
@@ -118,7 +159,7 @@ class TestInheritanceTree {
     @Test
     fun testInheritanceTree() = runTest {
         val mappings = Buffer().use { input ->
-            input.writeUtf8(MAPPINGS)
+            input.writeUtf8(UNPROP_MAPPINGS)
             UMFReader.read(input)
         }
 
@@ -130,6 +171,25 @@ class TestInheritanceTree {
             output.readUtf8()
         }
 
-        assertEquals(EXPECTED_MAPPINGS.trimEnd().replace(" ", "\t"), output.trimEnd())
+        assertEquals(PROP_MAPPINGS.trimEnd().replace(" ", "\t"), output.trimEnd())
+    }
+
+    @Test
+    fun testFilter() = runTest {
+        val mappings = Buffer().use { input ->
+            input.writeUtf8(PROP_MAPPINGS)
+            UMFReader.read(input)
+        }
+
+        val filtered = MemoryMappingTree()
+        val tree = CachedInheritanceTree(mappings, StringCharReader(INHERITANCE_TREE))
+        tree.filtered(filtered)
+
+        val output = Buffer().use { output ->
+            filtered.accept(UMFWriter.write(output, true))
+            output.readUtf8()
+        }
+        assertEquals(FILTERED_MAPPINGS.trimEnd().replace(" ", "\t"), output.trimEnd())
+
     }
 }

@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
+import kotlinx.coroutines.sync.Mutex
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.commonskt.utils.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.Namespace

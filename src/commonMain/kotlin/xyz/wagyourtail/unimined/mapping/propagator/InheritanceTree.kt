@@ -14,11 +14,12 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
+import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.MultiMethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
 abstract class InheritanceTree(val tree: AbstractMappingTree) {
     val LOGGER = KotlinLogging.logger {  }
@@ -27,22 +28,94 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
 
     abstract val classes: Map<InternalName, ClassInfo>
 
-    suspend fun propagate(targets: Set<Namespace>, output: MappingVisitor = tree) = coroutineScope {
+    suspend fun propagate(targets: Set<Namespace>) = coroutineScope {
         // write classes
         classes.values.parallelMap {
-            it.propagate(targets, output)
+            it.propagate(targets)
         }
 
-        // copy non-class mappings
-        if (output != tree) {
-            tree.accept(DelegateMappingVisitor(output, object: Delegator() {
+        // write class mappings
+        for (clazz in classes.values) {
 
-                override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
-                    return null
+            tree.visitClass(fns to clazz.name)?.use {
+                for (field in clazz.fields) {
+                    visitField(
+                        mapOf(fns to (field.name to field.descriptor))
+                    )?.visitEnd()
                 }
 
-            }))
+                for (method in clazz.methods) {
+                    visitMethod(
+                        mapOf(fns to (method.name to method.descriptor))
+                    )?.use {
+                        var lvtIdx = if (method.access.contains(AccessFlag.STATIC)) 0 else 1
+                        for ((i, param) in method.descriptor.getParts().second.withIndex()) {
+                            visitParameter(i, lvtIdx, emptyMap())?.visitEnd()
+                            lvtIdx += param.value.getWidth()
+                        }
+                    }
+                }
+
+                for ((method, names) in clazz.methodData) {
+                    visitMethod(
+                        (names.mapValues { it.value to null }.toMap()) +
+                        mapOf(fns to (method.name to method.descriptor))
+                    )?.visitEnd()
+                }
+
+            }
+
         }
+    }
+
+    fun filtered(output: AbstractMappingTree) {
+
+        tree.accept(output.delegator(object : Delegator() {
+
+            var currentClass: InternalName? = null
+
+            override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+                currentClass = names[fns] ?: return null
+                if (currentClass !in classes) return null
+                return super.visitClass(delegate, names)
+            }
+
+            override fun visitMethod(
+                delegate: ClassVisitor,
+                names: Map<Namespace, Pair<String, MethodDescriptor?>>
+            ): MethodVisitor? {
+                val (name, desc) = names[fns] ?: return null
+                if (desc == null) {
+                    if (classes[currentClass]!!.methods.any { it.name == name }) {
+                        return super.visitMethod(delegate, names)
+                    }
+                } else {
+                    if (classes[currentClass]!!.methods.any { it.name == name && it.descriptor == desc }) {
+                        return super.visitMethod(delegate, names)
+                    }
+                }
+                return null
+            }
+
+            override fun visitField(
+                delegate: ClassVisitor,
+                names: Map<Namespace, Pair<String, FieldDescriptor?>>
+            ): FieldVisitor? {
+                val (name, desc) = names[fns] ?: return null
+                if (desc == null) {
+                    if (classes[currentClass]!!.fields.any { it.name == name }) {
+                        return super.visitField(delegate, names)
+                    }
+                } else {
+                    if (classes[currentClass]!!.fields.any { it.name == name && it.descriptor == desc }) {
+                        return super.visitField(delegate, names)
+                    }
+                }
+                return null
+            }
+
+        }))
+
     }
 
     inner class ClassInfo(
@@ -70,37 +143,15 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
         val methodData = mutableMapOf<MethodInfo, MutableMap<Namespace, String>>()
         private val visitedNs = mutableSetOf(fns)
 
-        suspend fun propagate(targets: Set<Namespace>, output: MappingVisitor): Unit = coroutineScope {
+        suspend fun propagate(targets: Set<Namespace>): Unit = coroutineScope {
             val targets = targets - visitedNs
             if (targets.isEmpty()) return@coroutineScope
             propagateLock.withLock {
                 val targets = targets - visitedNs
                 if (targets.isEmpty()) return@withLock
 
-                superClass?.propagate(targets, output)
-                interfaceClasses.parallelMap { it.propagate(targets, output) }
-
-                if (visitedNs.isEmpty()) {
-                    tree.visitClass(fns to name)?.visitEnd()
-
-                    for (field in fields) {
-                        tree.visitClass(fns to name)?.use {
-                            visitField(mapOf(fns to (field.name to field.descriptor)))?.visitEnd()
-                        }
-                    }
-
-                    for (method in methods) {
-                        tree.visitClass(fns to name)?.use {
-                            visitMethod(mapOf(fns to (method.name to method.descriptor)))?.use {
-                                var lvOrd = if (AccessFlag.STATIC in method.access) 0 else 1
-                                method.descriptor.getParts().second.forEachIndexed { i, p ->
-                                    visitParameter(i, lvOrd, emptyMap())?.visitEnd()
-                                    lvOrd += p.value.getWidth()
-                                }
-                            }
-                        }
-                    }
-                }
+                superClass?.propagate(targets)
+                interfaceClasses.parallelMap { it.propagate(targets) }
 
                 val initialMethods = methods.filter { md ->
                     // modify access
@@ -113,14 +164,14 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
                 }.toMutableList()
 
                 for (method in superClass?.methodData?.keys ?: emptySet()) {
-                    if (method !in methods) {
+                    if (method !in initialMethods) {
                         initialMethods.add(method)
                     }
                 }
 
                 for (intf in interfaceClasses) {
                     for (method in intf.methodData.keys) {
-                        if (method !in methods) {
+                        if (method !in initialMethods) {
                             initialMethods.add(method)
                         }
                     }
@@ -173,8 +224,6 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
                         overwriteParentMethodNames(md, toOverwrite)
                     }
 
-                    setMethodNames(md, names)
-
                     names[fns] = md.name
                     md to names
                 }.associate { it }.toMutableMap()
@@ -186,21 +235,10 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
             }
         }
 
-        private fun setMethodNames(md: MethodInfo, names: Map<Namespace, String>) {
-            if (md in methods) {
-                tree.visitClass(fns to name)?.use {
-                    visitMethod(
-                        names.mapValues { it.value to null } +
-                                mapOf(fns to (md.name to md.descriptor))
-                    )?.visitEnd()
-                }
-            }
-        }
 
         private fun overwriteMethodNames(md: MethodInfo, names: Map<Namespace, String>) {
             if (md in methodData) {
                 methodData[md]!!.putAll(names)
-                setMethodNames(md, names)
                 overwriteParentMethodNames(md, names)
             }
         }
