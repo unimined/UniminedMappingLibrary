@@ -8,10 +8,10 @@ import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.TargetVisitor
 
-class TargetNode(parent: ConstantGroupNode, val baseNs: Namespace, val target: FullyQualifiedName, val paramIdx: Int?) : BaseNode<TargetVisitor, ConstantGroupVisitor>(parent),
+class TargetNode(parent: ConstantGroupNode, val baseNs: Namespace, val target: FullyQualifiedName?, val paramIdx: Int?) : BaseNode<TargetVisitor, ConstantGroupVisitor>(parent),
     TargetVisitor {
     override fun acceptOuter(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>): TargetVisitor? {
-        if (baseNs !in nsFilter) {
+        if (baseNs !in nsFilter && target != null) {
             val ns = nsFilter.filter { it in (parent as ConstantGroupNode).namespaces }.toSet()
             if (ns.isEmpty()) return null
             val first = ns.first()

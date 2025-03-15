@@ -16,7 +16,7 @@ import java.nio.file.Path
 import kotlin.streams.asSequence
 import kotlin.streams.asStream
 
-class Propagator(tree: AbstractMappingTree, fns: Namespace, jars: Set<Path>): InheritanceTree(tree, fns) {
+class Propagator(tree: AbstractMappingTree, override val fns: Namespace, jars: Set<Path>): InheritanceTree(tree) {
 
     override val classes: Map<InternalName, ClassInfo> by lazy {
         runBlocking {

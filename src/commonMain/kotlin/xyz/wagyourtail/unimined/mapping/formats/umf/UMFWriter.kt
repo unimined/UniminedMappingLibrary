@@ -10,6 +10,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -122,7 +124,7 @@ object UMFWriter : FormatWriter {
             into.writeNamespaced(if (minimize) {
                 val map = mutableMapOf<Namespace, String>()
                 var hasDesc = false
-                for ((ns, entry) in names) {
+                for ((ns, entry) in names.entries.sortedBy { namespaces.indexOf(it.key) }) {
                     val (name, desc) = entry
                     if (desc != null && !hasDesc) {
                         hasDesc = true
@@ -149,7 +151,7 @@ object UMFWriter : FormatWriter {
             into.writeNamespaced(if (minimize) {
                 val map = mutableMapOf<Namespace, String>()
                 var hasDesc = false
-                for ((ns, entry) in names) {
+                for ((ns, entry) in names.entries.sortedBy { namespaces.indexOf(it.key) }) {
                     val (name, desc) = entry
                     if (desc != null && !hasDesc) {
                         hasDesc = true
@@ -179,7 +181,7 @@ object UMFWriter : FormatWriter {
                 WildcardNode.WildcardType.METHOD -> "m"
             })
             into("\t")
-            into.writeNamespaced((if (minimize && descs.isNotEmpty()) descs.firstAsMap() else descs).mapValues { it.value.value })
+            into.writeNamespaced((if (minimize && descs.isNotEmpty()) mapOf(descs.entries.sortedBy { namespaces.indexOf(it.key) }.first().toPair()) else descs).mapValues { it.value.value })
             into("\n")
             indent += "\t"
             return super.visitWildcard(delegate, type, descs)
@@ -200,7 +202,7 @@ object UMFWriter : FormatWriter {
             into.writeNamespaced(if (minimize) {
                 val map = mutableMapOf<Namespace, String>()
                 var hasDesc = false
-                for ((ns, entry) in names) {
+                for ((ns, entry) in names.entries.sortedBy { namespaces.indexOf(it.key) }) {
                     val (name, desc) = entry
                     if (desc != null && !hasDesc) {
                         hasDesc = true
@@ -477,17 +479,34 @@ object UMFWriter : FormatWriter {
 
         override fun visitTarget(
             delegate: ConstantGroupVisitor,
-            target: FullyQualifiedName,
+            target: FullyQualifiedName?,
             paramIdx: Int?
         ): TargetVisitor? {
             into(indent)
             into("${UMFReader.EntryType.CONSTANT_TARGET.key}\t")
-            into(target.value.maybeEscape())
+            if (target != null) {
+                into(target.value.maybeEscape())
+            }
             into("\t")
             into(paramIdx?.toString().maybeEscape())
             into("\n")
             indent += "\t"
             return super.visitTarget(delegate, target, paramIdx)
+        }
+
+        override fun visitExpression(
+            delegate: ConstantGroupVisitor,
+            value: Constant,
+            expression: Expression
+        ): ExpressionVisitor? {
+            into(indent)
+            into("${UMFReader.EntryType.CONSTANT_EXPRESSION.key}\t")
+            into(value.value.maybeEscape())
+            into("\t")
+            into(expression.toString().maybeEscape())
+            into("\n")
+            indent += "\t"
+            return super.visitExpression(delegate, value, expression)
         }
 
     }

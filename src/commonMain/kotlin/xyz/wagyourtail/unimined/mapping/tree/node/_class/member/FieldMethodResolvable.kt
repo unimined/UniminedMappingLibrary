@@ -18,7 +18,7 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
             return descs[namespace]
         }
         val fromNs = descs.keys.first()
-        return mapDescriptor(fromNs, namespace, descs[fromNs]!!)
+        return map(fromNs, namespace, descs[fromNs]!!)
     }
 
     @Suppress("UNCHECKED_CAST")

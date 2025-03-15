@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.test.jvms.ext.expression
 
-import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.NumberConstant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.AdditiveExpression
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.MultiplicativeExpression

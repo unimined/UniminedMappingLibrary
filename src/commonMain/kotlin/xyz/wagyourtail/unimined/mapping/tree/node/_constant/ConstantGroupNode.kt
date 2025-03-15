@@ -3,6 +3,8 @@ package xyz.wagyourtail.unimined.mapping.tree.node._constant
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
@@ -15,11 +17,13 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
 
     private val _constants = mutableSetOf<ConstantNode>()
     private val _targets = mutableSetOf<TargetNode>()
+    private val _expressions = mutableSetOf<ExpressionNode>()
 
     val namespaces: Set<Namespace> get() = _namespaces
 
     val constants: Set<ConstantNode> get() = _constants
     val targets: Set<TargetNode> get() = _targets
+    val expressions: Set<ExpressionNode> get() = _expressions
 
     fun addNamespaces(namespace: Set<Namespace>) {
         root.mergeNs(namespace)
@@ -41,9 +45,15 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
         return node
     }
 
-    override fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor {
+    override fun visitTarget(target: FullyQualifiedName?, paramIdx: Int?): TargetVisitor {
         val node = TargetNode(this, baseNs, target, paramIdx)
         _targets.add(node)
+        return node
+    }
+
+    override fun visitExpression(value: Constant, expression: Expression): ExpressionVisitor? {
+        val node = ExpressionNode(this, baseNs, value, expression)
+        _expressions.add(node)
         return node
     }
 
@@ -65,6 +75,9 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
         }
         for (t in _targets) {
             t.accept(visitor, nsFilter)
+        }
+        for (e in _expressions) {
+            e.accept(visitor, nsFilter)
         }
     }
 

@@ -113,6 +113,4 @@ see [Constant Serialization Format](constant-serialization-format.md)
 &nbsp;&nbsp;&nbsp;&nbsp; boolean
 <br>
 &nbsp;&nbsp;&nbsp;&nbsp; String
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp; Class
 

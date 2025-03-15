@@ -23,7 +23,7 @@ value class HexConstant private constructor(val value: String): Type {
             if (first?.isDigit() != true) {
                 throw IllegalArgumentException("Invalid hex constant, cannot start with ${first ?: "null"}")
             }
-            reader.takeWhile { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+            append(reader.takeWhile { it.isDigit() || it.lowercaseChar() in 'a'..'f' })
         }
 
         override fun unchecked(value: String): HexConstant {

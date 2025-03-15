@@ -16,14 +16,13 @@ import kotlin.jvm.JvmInline
  *   "short"
  *   "boolean"
  *   "String"
- *   "Class"
  */
 @JvmInline
 value class DataType(val value: String) : Type {
 
     companion object : TypeCompanion<DataType> {
 
-        val types = setOf("byte", "char", "double", "float", "int", "long", "short", "boolean", "String", "Class").associateBy { it.first() }
+        val types = setOf("byte", "char", "double", "float", "int", "long", "short", "boolean", "String").associateBy { it.first() }
 
         override fun shouldRead(reader: CharReader<*>): Boolean {
             return types.containsKey(reader.take())

@@ -34,7 +34,7 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
             return descs[namespace]
         }
         val fromNs = descs.keys.first()
-        return root.mapDescriptor(fromNs, namespace, descs[fromNs]!!)
+        return root.map(fromNs, namespace, descs[fromNs]!!)
     }
 
     fun setDescriptors(descs: Map<Namespace, FieldOrMethodDescriptor>) {

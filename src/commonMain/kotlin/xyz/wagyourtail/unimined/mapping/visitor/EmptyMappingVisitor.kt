@@ -5,6 +5,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -217,13 +219,19 @@ open class EmptyConstantGroupVisitor : EmptyBaseVisitor<ConstantGroupVisitor>(),
         return EmptyConstantVisitor()
     }
 
-    override fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor? {
+    override fun visitTarget(target: FullyQualifiedName?, paramIdx: Int?): TargetVisitor? {
         return EmptyTargetVisitor()
+    }
+
+    override fun visitExpression(value: Constant, expression: Expression): ExpressionVisitor? {
+        return EmptyExpressionVisitor()
     }
 
 }
 
 open class EmptyConstantVisitor : EmptyBaseVisitor<ConstantVisitor>(), ConstantVisitor
+
+open class EmptyExpressionVisitor : EmptyBaseVisitor<ExpressionVisitor>(), ExpressionVisitor
 
 open class EmptyTargetVisitor : EmptyBaseVisitor<TargetVisitor>(), TargetVisitor
 

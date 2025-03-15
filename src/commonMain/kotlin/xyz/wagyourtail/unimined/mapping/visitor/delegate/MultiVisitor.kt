@@ -5,6 +5,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -256,10 +258,16 @@ open class MultiConstantGroupVisitor(visitors: List<ConstantGroupVisitor>): Mult
         return MultiConstantVisitor(visitors)
     }
 
-    override fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor? {
+    override fun visitTarget(target: FullyQualifiedName?, paramIdx: Int?): TargetVisitor? {
         val visitors = visitors.mapNotNull { it.visitTarget(target, paramIdx) }
         if (visitors.isEmpty()) return null
         return MultiTargetVisitor(visitors)
+    }
+
+    override fun visitExpression(value: Constant, expression: Expression): ExpressionVisitor? {
+        val visitors = visitors.mapNotNull { it.visitExpression(value, expression) }
+        if (visitors.isEmpty()) return null
+        return MultiExpressionVisitor(visitors)
     }
 
 }
@@ -268,8 +276,11 @@ open class MultiConstantVisitor(visitors: List<ConstantVisitor>): MultiBaseVisit
 
 open class MultiTargetVisitor(visitors: List<TargetVisitor>): MultiBaseVisitor<TargetVisitor>(visitors), TargetVisitor
 
+open class MultiExpressionVisitor(visitors: List<ExpressionVisitor>): MultiBaseVisitor<ExpressionVisitor>(visitors), ExpressionVisitor
+
 open class MultiInnerClassVisitor(visitors: List<InnerClassVisitor>): MultiAccessParentVisitor<InnerClassVisitor>(visitors), InnerClassVisitor
 
 open class MultiSealVisitor(visitors: List<SealVisitor>): MultiBaseVisitor<SealVisitor>(visitors), SealVisitor
 
 open class MultiInterfaceVisitor(visitors: List<InterfaceVisitor>): MultiBaseVisitor<InterfaceVisitor>(visitors), InterfaceVisitor
+

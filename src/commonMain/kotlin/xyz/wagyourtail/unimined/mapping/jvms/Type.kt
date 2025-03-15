@@ -27,7 +27,7 @@ interface TypeCompanion<T: Type> {
             readVal
         }
     } catch (e: Exception) {
-        throw IllegalArgumentException("Invalid type: $value", e)
+        throw IllegalArgumentException("Invalid type: $value, reading \"${value.escape()}\"", e)
     }
 
     fun read(reader: CharReader<*>, append: (Any) -> Unit)

@@ -5,6 +5,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -310,11 +312,19 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitTarget(delegate: ConstantGroupVisitor, target: FullyQualifiedName, paramIdx: Int?): TargetVisitor? {
+    open fun visitTarget(delegate: ConstantGroupVisitor, target: FullyQualifiedName?, paramIdx: Int?): TargetVisitor? {
         return delegate.visitTarget(target, paramIdx)?.let { DelegateTargetVisitor(it, delegator) }
     }
 
     open fun visitTargetEnd(delegate: TargetVisitor) {
+        visitEnd(delegate)
+    }
+
+    open fun visitExpression(delegate: ConstantGroupVisitor, value: Constant, expression: Expression): ExpressionVisitor? {
+        return delegate.visitExpression(value, expression)?.let { DelegateExpressionVisitor(it, delegator) }
+    }
+
+    open fun visitExpressionEnd(delegate: ExpressionVisitor) {
         visitEnd(delegate)
     }
 
@@ -667,8 +677,12 @@ open class DelegateConstantGroupVisitor(delegate: ConstantGroupVisitor, delegato
         return delegator.visitConstant(delegate, fieldClass, fieldName, fieldDesc)
     }
 
-    override fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor? {
+    override fun visitTarget(target: FullyQualifiedName?, paramIdx: Int?): TargetVisitor? {
         return delegator.visitTarget(delegate, target, paramIdx)
+    }
+
+    override fun visitExpression(value: Constant, expression: Expression): ExpressionVisitor? {
+        return delegator.visitExpression(delegate, value, expression)
     }
 
     override fun visitEnd() {
@@ -687,6 +701,14 @@ open class DelegateTargetVisitor(delegate: TargetVisitor, delegator: Delegator) 
     override fun visitEnd() {
         delegator.visitTargetEnd(delegate)
     }
+}
+
+open class DelegateExpressionVisitor(delegate: ExpressionVisitor, delegator: Delegator) : DelegateBaseVisitor<ExpressionVisitor>(delegate, delegator), ExpressionVisitor {
+
+    override fun visitEnd() {
+        delegator.visitExpressionEnd(delegate)
+    }
+
 }
 
 open class DelegateInnerClassVisitor(delegate: InnerClassVisitor, delegator: Delegator) : DelegateBaseVisitor<InnerClassVisitor>(delegate, delegator), InnerClassVisitor {

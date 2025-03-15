@@ -5,6 +5,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -130,9 +132,17 @@ open class NullDelegator : Delegator() {
 
     override fun visitTarget(
         delegate: ConstantGroupVisitor,
-        target: FullyQualifiedName,
+        target: FullyQualifiedName?,
         paramIdx: Int?
     ): TargetVisitor? {
+        return null
+    }
+
+    override fun visitExpression(
+        delegate: ConstantGroupVisitor,
+        value: Constant,
+        expression: Expression
+    ): ExpressionVisitor? {
         return null
     }
 

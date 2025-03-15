@@ -21,7 +21,7 @@ abstract class AbstractFieldMethodNode<T: MemberVisitor<T>>(parent: ClassNode) :
             return descs[namespace]
         }
         val fromNs = descs.keys.first()
-        return root.mapDescriptor(fromNs, namespace, descs[fromNs]!!)
+        return root.map(fromNs, namespace, descs[fromNs]!!)
     }
 
     fun getName(namespace: Namespace) = names[namespace]

@@ -18,6 +18,8 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.filterNotNullValues
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
 /**
@@ -45,13 +47,13 @@ object UMFReader : FormatReader {
         return count
     }
 
-    private fun CharReader<*>.takeRemainingFixedOnLine() = buildList {
+    fun CharReader<*>.takeRemainingFixedOnLine() = buildList {
         while (peek() != null && peek() != '\n') {
             add(takeNextFixed())
         }
     }
 
-    private fun CharReader<*>.takeNextFixed(): String? {
+    fun CharReader<*>.takeNextFixed(): String? {
         val isString = peek() == '"'
         if (isString) {
             val str = takeString()
@@ -61,8 +63,8 @@ object UMFReader : FormatReader {
             }
             return str
         }
-        val literal = takeNextLiteral()
-        if (!literal!!.startsWith('_')) {
+        val literal = takeNextLiteral() ?: return null
+        if (!literal.startsWith('_')) {
             return literal
         }
         val count = literal.count { it == '_' }
@@ -342,10 +344,16 @@ object UMFReader : FormatReader {
                     last?.visitConstant(cls, fd.first, fd.second?.getFieldDescriptor())
                 }
                 EntryType.CONSTANT_TARGET -> {
-                    val target = input.takeNextFixed()!!.let { if (unchecked) FullyQualifiedName.unchecked(it) else FullyQualifiedName.read(it) }
+                    val target = input.takeNextFixed()!!.let { if (it.isEmpty()) null else if (unchecked) FullyQualifiedName.unchecked(it) else FullyQualifiedName.read(it) }
                     val paramIdx = input.takeNextFixed()?.toIntOrNull()
                     last as ConstantGroupVisitor?
                     last?.visitTarget(target, paramIdx)
+                }
+                EntryType.CONSTANT_EXPRESSION -> {
+                    val constant = input.takeNextFixed()!!.let { if (unchecked) Constant.unchecked(it) else Constant.read(it) }
+                    val expression = input.takeNextFixed()!!.let { if (unchecked) Expression.unchecked(it) else Expression.read(it) }
+                    last as ConstantGroupVisitor?
+                    last?.visitExpression(constant, expression)
                 }
                 EntryType.SIGNATURE -> {
                     val sig = input.takeNextFixed()!!
@@ -380,6 +388,7 @@ object UMFReader : FormatReader {
         CONSTANT_GROUP('u'),
         CONSTANT('n'),
         CONSTANT_TARGET('t'),
+        CONSTANT_EXPRESSION('e'),
         COMMENT('#'),
         INTERFACE('j'),
         SEAL('s')

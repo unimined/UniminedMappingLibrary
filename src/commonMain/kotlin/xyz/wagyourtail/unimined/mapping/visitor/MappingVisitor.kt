@@ -5,6 +5,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
+import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
+import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -146,9 +148,15 @@ interface ConstantGroupVisitor : BaseVisitor<ConstantGroupVisitor> {
 
     fun visitConstant(fieldClass: InternalName, fieldName: UnqualifiedName, fieldDesc: FieldDescriptor?): ConstantVisitor?
 
-    fun visitTarget(target: FullyQualifiedName, paramIdx: Int?): TargetVisitor?
+    /**
+     * @param target null means global
+     */
+    fun visitTarget(target: FullyQualifiedName?, paramIdx: Int?): TargetVisitor?
 
+    fun visitExpression(value: Constant, expression: Expression): ExpressionVisitor?
 }
+
+interface ExpressionVisitor : BaseVisitor<ExpressionVisitor>
 
 interface ConstantVisitor : BaseVisitor<ConstantVisitor>
 

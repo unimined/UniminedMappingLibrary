@@ -51,13 +51,15 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
 
     abstract fun getClass(namespace: Namespace, name: InternalName): ClassNode?
 
+    fun visitClass(vararg names: Pair<Namespace, InternalName>) = visitClass(names.toMap())
+
     fun checkNamespace(ns: Namespace) {
         if (ns !in namespaces) {
             throw IllegalArgumentException("Invalid namespace $ns, expected one of: $namespaces")
         }
     }
 
-    fun mapDescriptor(fromNs: Namespace, toNs: Namespace, descriptor: FieldOrMethodDescriptor): FieldOrMethodDescriptor {
+    fun map(fromNs: Namespace, toNs: Namespace, descriptor: FieldOrMethodDescriptor): FieldOrMethodDescriptor {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return descriptor
@@ -66,7 +68,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         })
     }
 
-    fun mapDescriptor(fromNs: Namespace, toNs: Namespace, descriptor: FieldDescriptor): FieldDescriptor {
+    fun map(fromNs: Namespace, toNs: Namespace, descriptor: FieldDescriptor): FieldDescriptor {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return descriptor
@@ -75,7 +77,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         })
     }
 
-    fun mapDescriptor(fromNs: Namespace, toNs: Namespace, descriptor: MethodDescriptor): MethodDescriptor {
+    fun map(fromNs: Namespace, toNs: Namespace, descriptor: MethodDescriptor): MethodDescriptor {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return descriptor
@@ -170,11 +172,20 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
             val mappedDesc = if (mParts.second == null) {
                 null
             } else {
-                mapDescriptor(fromNs, toNs, mParts.second!!)
+                map(fromNs, toNs, mParts.second!!)
             }
             return FullyQualifiedName(ObjectType(mappedCls), NameAndDescriptor(UnqualifiedName.unchecked(mappedName), mappedDesc))
         }
         return FullyQualifiedName(ObjectType(mappedCls), null)
+    }
+
+    fun map(fromNs: Namespace, toNs: Namespace, objectType: ObjectType): ObjectType {
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
+        if (fromNs == toNs) return objectType
+        return ObjectType.unchecked(buildString {
+            objectType.accept(descRemapAcceptor(fromNs, toNs))
+        })
     }
 
     // TODO: test
@@ -271,7 +282,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                 }
                 is AnnotationElementName -> {
                     if (cls != null) {
-                        val md = cls.getMethods(fromNs, obj.value.unescape(), null).map { it.getName(toNs) }.toSet()
+                        val md = cls.getMethods(fromNs, obj.value.unescape(), null).map { it.getName(toNs) }
                         if (md.isNotEmpty()) {
                             val mappedName = md.first()!!
                             append(mappedName.maybeEscape())
@@ -296,7 +307,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                     }
                     append(".")
                     val second = parts.second
-                    val fd = eCls?.getFields(fromNs, second.unescape(), null)?.map { it.getName(toNs) }?.toSet()
+                    val fd = eCls?.getFields(fromNs, second.unescape(), null)?.map { it.getName(toNs) }
                     if (!fd.isNullOrEmpty()) {
                         val mappedName = fd.first()!!
                         if (AnnotationIdentifier.annotationIdentifierIllegalCharacters.any { it in mappedName }) {
