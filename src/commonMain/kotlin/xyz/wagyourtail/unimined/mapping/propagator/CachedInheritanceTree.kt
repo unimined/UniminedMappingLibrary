@@ -29,7 +29,8 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
 
                 for (field in cls.fields) {
                     append("\t")
-                    append(AccessFlag.of(ElementType.METHOD, field.access).joinToString("|") { it.toString() })
+                    val access = AccessFlag.of(ElementType.METHOD, field.access).joinToString("|") { it.toString() }
+                    append(access.maybeEscape())
                     append("\t")
                     append(field.name.maybeEscape())
                     append("\t")
@@ -39,7 +40,8 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
 
                 for (method in cls.methods) {
                     append("\t")
-                    append(AccessFlag.of(ElementType.METHOD, method.access).joinToString("|") { it.toString() })
+                    val access = AccessFlag.of(ElementType.METHOD, method.access).joinToString("|") { it.toString() }
+                    append(access.maybeEscape())
                     append("\t")
                     append(method.name.maybeEscape())
                     append("\t")
