@@ -209,6 +209,10 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     }
                 }
 
+                LOGGER.info { "Resolving fields and methods..." }
+
+                resolved.resolveLazyResolvables()
+
                 LOGGER.info { "Propagating..." }
 
                 resolved = propogator(resolved)
@@ -217,7 +221,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
                 afterLoad(resolved)
 
-                LOGGER.info { "Resolving fields and methods..." }
+                LOGGER.info { "Re-resolving fields and methods..." }
 
                 resolved.resolveLazyResolvables()
 
