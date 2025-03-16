@@ -217,6 +217,13 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
                 afterLoad(resolved)
 
+                LOGGER.info { "Resolving fields and methods..." }
+
+                resolved.resolveLazyResolvables()
+
+                LOGGER.info { "Filling in missing names..." }
+
+                // fill in missing names from dependent namespaces
                 val filled = unmappedNs.toMutableSet()
                 for (entry in sorted) {
                     val toFill = entry.provides.map { it.first }.toSet() - filled
@@ -226,18 +233,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     }
                 }
 
-                LOGGER.info { "Resolving fields and methods..." }
+                LOGGER.info { "Re-resolving fields and methods..." }
 
-                // parallel resolve fields and methods
-                resolved.classes.parallelMap {
-                    coroutineScope {
-                        listOf(async {
-                            it.fields.resolve()
-                        }, async {
-                            it.methods.resolve()
-                        }).awaitAll()
-                    }
-                }
+                resolved.resolveLazyResolvables()
 
                 LOGGER.info { "Writing to cache" }
 

@@ -1,6 +1,10 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
+import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
 import xyz.wagyourtail.commonskt.utils.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -130,6 +134,27 @@ class MemoryMappingTree : AbstractMappingTree() {
         node.addNamespaces(namespaces)
         _constantGroups.add(node)
         return node
+    }
+
+    /**
+     * function to make [LazyResolvables] resolve in parallel
+     */
+    suspend fun resolveLazyResolvables() {
+        classes.parallelMap {
+            coroutineScope {
+                listOf(
+                    async {
+                        it.fields.resolve()
+                    },
+                    async {
+                        it.methods.resolve()
+                    },
+                    async {
+                        it.wildcards.resolve()
+                    }
+                ).awaitAll()
+            }
+        }
     }
 
 }

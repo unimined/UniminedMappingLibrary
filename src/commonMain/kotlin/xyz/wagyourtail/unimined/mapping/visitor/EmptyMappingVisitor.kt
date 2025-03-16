@@ -1,3 +1,5 @@
+@file:Suppress("DELEGATED_MEMBER_HIDES_SUPERTYPE_OVERRIDE")
+
 package xyz.wagyourtail.unimined.mapping.visitor
 
 import xyz.wagyourtail.unimined.mapping.Namespace
