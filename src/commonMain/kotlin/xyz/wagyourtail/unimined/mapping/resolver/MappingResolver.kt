@@ -1,9 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.resolver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okio.Buffer
@@ -25,7 +22,8 @@ import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.NameCopyDelegate
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.jvm.JvmOverloads
 
@@ -229,13 +227,15 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
                 // fill in missing names from dependent namespaces
                 val filled = unmappedNs.toMutableSet()
+                val toFill = mutableListOf<Pair<Namespace, Set<Namespace>>>()
                 for (entry in sorted) {
-                    val toFill = entry.provides.map { it.first }.toSet() - filled
-                    if (toFill.isNotEmpty()) {
-                        resolved.accept(resolved.copyTo(entry.requires, toFill))
-                        filled.addAll(toFill)
+                    val targets = entry.provides.map { it.first }.toSet() - filled
+                    if (targets.isNotEmpty()) {
+                        filled.addAll(targets)
+                        toFill.add(entry.requires to targets)
                     }
                 }
+                resolved.fillMissingNames(*toFill.toTypedArray())
 
                 LOGGER.info { "Re-resolving fields and methods..." }
 

@@ -19,11 +19,9 @@ import kotlin.streams.asStream
 class Propagator(tree: AbstractMappingTree, override val fns: Namespace, jars: Set<Path>): InheritanceTree(tree) {
 
     override val classes: Map<InternalName, ClassInfo> by lazy {
-        runBlocking {
-            jars.parallelStream().flatMap {
-                scanJar(it).asStream()
-            }.asSequence().toMap()
-        }
+        jars.parallelStream().flatMap {
+            scanJar(it).asStream()
+        }.asSequence().toMap()
     }
 
     private fun scanJar(jar: Path): Sequence<Pair<InternalName, ClassInfo>> {

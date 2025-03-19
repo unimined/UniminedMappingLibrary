@@ -18,7 +18,7 @@ import xyz.wagyourtail.unimined.mapping.cli.Main.Companion.LOGGER
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.propogator.Propagator
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyTo
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyNames
 import kotlin.time.measureTime
 
 fun main(vararg args: String) {
@@ -72,7 +72,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
         for ((from, to) in copyMissingMap) {
             LOGGER.info { "Copying missing names from $from to ${to.joinToString(", ")}" }
             val t = measureTime {
-                mappings.accept(mappings.copyTo(Namespace(from), to.map { Namespace(it) }.toSet()))
+                mappings.accept(mappings.copyNames(Namespace(from), to.map { Namespace(it) }.toSet()))
             }
             LOGGER.info { "Copied missing names in ${t.inWholeMilliseconds}ms" }
         }
