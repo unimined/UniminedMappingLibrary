@@ -26,6 +26,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NameCopyDelegate
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.jvm.JvmOverloads
+import kotlin.time.measureTime
 
 @Scoped
 abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
@@ -146,39 +147,43 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             val values = _entries.values
             val resolvedEntries = mutableSetOf<MappingEntry>()
 
-            for (entry in values) {
-                resolvedEntries.addAll(entry.expand())
-            }
-
             val sorted = mutableListOf<MappingEntry>()
             val sortedNs = unmappedNs.toMutableSet()
 
-            while (resolvedEntries.isNotEmpty()) {
-                val toRemove = mutableSetOf<MappingEntry>()
-                for (entry in resolvedEntries) {
-                    if (entry.requires.let { sortedNs.contains(it) }) {
-                        toRemove.add(entry)
-                    }
-                }
-                if (toRemove.isEmpty()) {
-                    //TODO: better logging, determine case
-                    LOGGER.error { "UnmappedNs: $unmappedNs" }
-                    for (entry in sorted) {
-                        LOGGER.error { "Resolved: ${entry.id}" }
-                        LOGGER.error { "    requires: ${entry.requires}" }
-                        LOGGER.error { "    provides: ${entry.provides.map { it.first }}" }
-                    }
-                    for (entry in resolvedEntries) {
-                        LOGGER.error { "Unresolved: ${entry.id}" }
-                        LOGGER.error { "    requires: ${entry.requires}" }
-                        LOGGER.error { "    provides: ${entry.provides.map { it.first }}" }
-                    }
-                    throw IllegalStateException("Circular dependency detected, or missing required ns, remaining: ${resolvedEntries.map { it.id }}")
+            measureTime {
+                for (entry in values) {
+                    resolvedEntries.addAll(entry.expand())
                 }
 
-                resolvedEntries.removeAll(toRemove)
-                sorted.addAll(toRemove.sortedBy { FormatRegistry.formats.indexOf(it.provider) })
-                sortedNs.addAll(toRemove.flatMap { it.provides.map { it.first } })
+                while (resolvedEntries.isNotEmpty()) {
+                    val toRemove = mutableSetOf<MappingEntry>()
+                    for (entry in resolvedEntries) {
+                        if (entry.requires.let { sortedNs.contains(it) }) {
+                            toRemove.add(entry)
+                        }
+                    }
+                    if (toRemove.isEmpty()) {
+                        //TODO: better logging, determine case
+                        LOGGER.error { "UnmappedNs: $unmappedNs" }
+                        for (entry in sorted) {
+                            LOGGER.error { "Resolved: ${entry.id}" }
+                            LOGGER.error { "    requires: ${entry.requires}" }
+                            LOGGER.error { "    provides: ${entry.provides.map { it.first }}" }
+                        }
+                        for (entry in resolvedEntries) {
+                            LOGGER.error { "Unresolved: ${entry.id}" }
+                            LOGGER.error { "    requires: ${entry.requires}" }
+                            LOGGER.error { "    provides: ${entry.provides.map { it.first }}" }
+                        }
+                        throw IllegalStateException("Circular dependency detected, or missing required ns, remaining: ${resolvedEntries.map { it.id }}")
+                    }
+
+                    resolvedEntries.removeAll(toRemove)
+                    sorted.addAll(toRemove.sortedBy { FormatRegistry.formats.indexOf(it.provider) })
+                    sortedNs.addAll(toRemove.flatMap { it.provides.map { it.first } })
+                }
+            }.also {
+                LOGGER.info { "Resolved ${sorted.size} entries in $it" }
             }
 
             val cacheKey = "$envType-${combinedNames()}"
@@ -188,62 +193,90 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 resolved = MemoryMappingTree()
                 resolved.visitHeader(*unmappedNs.map { it.name }.toTypedArray())
 
-                for (entry in sorted) {
-                    LOGGER.info { "Reading: $entry" }
-                    val visitor =
-                        entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
-                            it(acc)
+                measureTime {
+                    for (entry in sorted) {
+                        LOGGER.info { "Reading: $entry" }
+                        val visitor =
+                            entry.insertInto.fold(resolved!!.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
+                                it(acc)
+                            }
+                        try {
+                            entry.provider.read(
+                                entry.content.content(),
+                                resolved,
+                                visitor,
+                                envType,
+                                entry.mapNs.map { it.key.name to it.value.name }.toMap()
+                            )
+                        } catch (e: Throwable) {
+                            throw IllegalStateException("Error reading $entry", e)
                         }
-                    try {
-                        entry.provider.read(
-                            entry.content.content(),
-                            resolved,
-                            visitor,
-                            envType,
-                            entry.mapNs.map { it.key.name to it.value.name }.toMap()
-                        )
-                    } catch (e: Throwable) {
-                        throw IllegalStateException("Error reading $entry", e)
                     }
+                } .also {
+                    LOGGER.info { "Read ${sorted.size} entries in $it" }
                 }
 
                 LOGGER.info { "Resolving fields and methods..." }
 
-                resolved.resolveLazyResolvables()
+                measureTime {
+                    resolved!!.resolveLazyResolvables()
+                }.also {
+                    LOGGER.info { "Resolved lazy resolvables in $it" }
+                }
 
                 LOGGER.info { "Propagating..." }
 
-                resolved = propogator(resolved)
+                measureTime {
+                    resolved = propogator(resolved!!)
+                }.also {
+                    LOGGER.info { "Propagated in $it" }
+                }
 
                 LOGGER.info { "Post processing..." }
 
-                afterLoad(resolved)
+                measureTime {
+                    afterLoad(resolved!!)
+                }.also {
+                    LOGGER.info { "Post processed in $it" }
+                }
 
                 LOGGER.info { "Re-resolving fields and methods..." }
 
-                resolved.resolveLazyResolvables()
+                measureTime {
+                    resolved!!.resolveLazyResolvables()
+                }.also {
+                    LOGGER.info { "Re-resolved lazy resolvables in $it" }
+                }
 
                 LOGGER.info { "Filling in missing names..." }
 
-                // fill in missing names from dependent namespaces
-                val filled = unmappedNs.toMutableSet()
-                val toFill = mutableListOf<Pair<Namespace, Set<Namespace>>>()
-                for (entry in sorted) {
-                    val targets = entry.provides.map { it.first }.toSet() - filled
-                    if (targets.isNotEmpty()) {
-                        filled.addAll(targets)
-                        toFill.add(entry.requires to targets)
+                measureTime {
+                    // fill in missing names from dependent namespaces
+                    val filled = unmappedNs.toMutableSet()
+                    val toFill = mutableListOf<Pair<Namespace, Set<Namespace>>>()
+                    for (entry in sorted) {
+                        val targets = entry.provides.map { it.first }.toSet() - filled
+                        if (targets.isNotEmpty()) {
+                            filled.addAll(targets)
+                            toFill.add(entry.requires to targets)
+                        }
                     }
+                    resolved!!.fillMissingNames(*toFill.toTypedArray())
+                }.also {
+                    LOGGER.info { "Filled in missing names in $it" }
                 }
-                resolved.fillMissingNames(*toFill.toTypedArray())
 
                 LOGGER.info { "Re-resolving fields and methods..." }
 
-                resolved.resolveLazyResolvables()
+                measureTime {
+                    resolved!!.resolveLazyResolvables()
+                }.also {
+                    LOGGER.info { "Re-resolved lazy resolvables in $it" }
+                }
 
                 LOGGER.info { "Writing to cache" }
 
-                writeCache(cacheKey, resolved)
+                writeCache(cacheKey, resolved!!)
             } else {
                 LOGGER.info { "Loaded from cache" }
             }
@@ -251,8 +284,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             LOGGER.info { "Resolving complete" }
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
-            this.resolved = resolved
-            resolved
+            this.resolved = resolved!!
+            resolved!!
         }
     }
 
