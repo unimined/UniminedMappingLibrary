@@ -27,6 +27,9 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
     abstract val classes: Map<InternalName, ClassInfo>
 
     suspend fun propagate(targets: Set<Namespace>) = coroutineScope {
+
+        val classes = classes.filterValues { it.inMappings }
+
         // write classes
         classes.values.parallelMap {
             it.propagate(targets)
@@ -147,6 +150,27 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
 
         val interfaceClasses by lazy {
             interfaces.mapNotNull { this@InheritanceTree.classes[it] }
+        }
+
+        val allParents: List<ClassInfo> by lazy {
+            buildList {
+                if (superClass != null) {
+                    add(superClass!!)
+                    addAll(superClass!!.allParents)
+                }
+                for (interfaceClass in interfaceClasses) {
+                    add(interfaceClass)
+                    addAll(interfaceClass.allParents)
+                }
+            }
+        }
+
+        val inMappings: Boolean by lazy {
+            if (tree.getClass(fns, name) != null) {
+                true
+            } else {
+                allParents.any { it.inMappings }
+            }
         }
 
         private val propagateLock = Mutex()

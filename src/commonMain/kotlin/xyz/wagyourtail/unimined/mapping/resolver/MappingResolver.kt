@@ -102,7 +102,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     abstract fun createForPostProcess(key: String): T
 
     @JvmOverloads
-    fun postProcessDependency(key: String, intern: T.() -> Unit, postProcess: MappingEntry.() -> Unit = {}) {
+    fun postProcessDependency(key: String, intern: @Scoped T.() -> Unit, postProcess: MappingEntry.() -> Unit = {}) {
         val resolver = createForPostProcess(key)
         resolver.intern()
 
