@@ -49,11 +49,11 @@ object UMFReader : FormatReader {
 
     fun CharReader<*>.takeRemainingFixedOnLine() = buildList {
         while (peek() != null && peek() != '\n') {
-            add(takeNextFixed())
+            add(takeNextUMF())
         }
     }
 
-    fun CharReader<*>.takeNextFixed(): String? {
+    fun CharReader<*>.takeNextUMF(): String? {
         val isString = peek() == '"'
         if (isString) {
             val str = takeString()
@@ -185,8 +185,8 @@ object UMFReader : FormatReader {
                     last?.visitMethod(names)
                 }
                 EntryType.PARAMETER -> {
-                    val index = input.takeNextFixed()?.toIntOrNull()
-                    val lvOrd = input.takeNextFixed()?.toIntOrNull()
+                    val index = input.takeNextUMF()?.toIntOrNull()
+                    val lvOrd = input.takeNextUMF()?.toIntOrNull()
                     if (index == null && lvOrd == null) {
                         throw IllegalArgumentException("Invalid parameter entry, no index or lvOrd on line $line")
                     }
@@ -197,8 +197,8 @@ object UMFReader : FormatReader {
                     last?.visitParameter(index, lvOrd, names)
                 }
                 EntryType.LOCAL_VARIABLE -> {
-                    val lvOrd = input.takeNextFixed()!!.toInt()
-                    val startOp = input.takeNextFixed()?.toIntOrNull()
+                    val lvOrd = input.takeNextUMF()!!.toInt()
+                    val startOp = input.takeNextUMF()?.toIntOrNull()
                     val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
                         getNamespace(idx) to name
                     }
@@ -206,14 +206,14 @@ object UMFReader : FormatReader {
                     last?.visitLocalVariable(lvOrd, startOp, names)
                 }
                 EntryType.EXCEPTION -> {
-                    val type = input.takeNextFixed()!!.let {
+                    val type = input.takeNextUMF()!!.let {
                         when (it) {
                             "+" -> ExceptionType.ADD
                             "-" -> ExceptionType.REMOVE
                             else -> throw IllegalArgumentException("Invalid exception type $it")
                         }
                     }
-                    val exception = input.takeNextFixed()!!.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
+                    val exception = input.takeNextUMF()!!.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
                     last as MethodVisitor?
                     last?.visitException(type, exception, names.next(), names.asSequence().toSet())
@@ -228,7 +228,7 @@ object UMFReader : FormatReader {
                 }
                 EntryType.WILDCARD -> {
                     last as ClassVisitor?
-                    val type = input.takeNextFixed()!!.let {
+                    val type = input.takeNextUMF()!!.let {
                         when (it) {
                             "f" -> WildcardNode.WildcardType.FIELD
                             "m" -> WildcardNode.WildcardType.METHOD
@@ -241,7 +241,7 @@ object UMFReader : FormatReader {
                     last?.visitWildcard(type, descs)
                 }
                 EntryType.INNER_CLASS -> {
-                    val type = input.takeNextFixed()!!.let {
+                    val type = input.takeNextUMF()!!.let {
                         when (it) {
                             "i" -> InnerClassNode.InnerType.INNER
                             "a" -> InnerClassNode.InnerType.ANONYMOUS
@@ -262,7 +262,7 @@ object UMFReader : FormatReader {
                     last?.visitInnerClass(type, names)
                 }
                 EntryType.SEAL -> {
-                    val type = input.takeNextFixed()!!.let {
+                    val type = input.takeNextUMF()!!.let {
                         when (it) {
                             "+" -> SealedType.ADD
                             "-" -> SealedType.REMOVE
@@ -271,7 +271,7 @@ object UMFReader : FormatReader {
                         }
                     }
                     val name = if (type != SealedType.CLEAR) {
-                        input.takeNextFixed()?.let {
+                        input.takeNextUMF()?.let {
                             if (unchecked) InternalName.unchecked(it) else InternalName.read(it)
                         }
                     } else null
@@ -280,14 +280,14 @@ object UMFReader : FormatReader {
                     last?.visitSeal(type, name, names.next(), names.asSequence().toSet())
                 }
                 EntryType.INTERFACE -> {
-                    val type = input.takeNextFixed()!!.let {
+                    val type = input.takeNextUMF()!!.let {
                         when (it) {
                             "+" -> InterfacesType.ADD
                             "-" -> InterfacesType.REMOVE
                             else -> throw IllegalArgumentException("Invalid interface type $it")
                         }
                     }
-                    val name = input.takeNextFixed()!!.let {
+                    val name = input.takeNextUMF()!!.let {
                         if (unchecked) InternalName.unchecked(it) else InternalName.read(it)
                     }
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
@@ -295,13 +295,13 @@ object UMFReader : FormatReader {
                     last?.visitInterface(type, name, names.next(), names.asSequence().toSet())
                 }
                 EntryType.JAVADOC -> {
-                    val comment = input.takeNextFixed()!!
+                    val comment = input.takeNextUMF()!!
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }
                     last as MemberVisitor<*>?
                     last?.visitJavadoc(comment, names.toSet())
                 }
                 EntryType.ANNOTATION -> {
-                    val type = input.takeNextFixed()!!.let {
+                    val type = input.takeNextUMF()!!.let {
                         when (it) {
                             "+" -> AnnotationType.ADD
                             "-" -> AnnotationType.REMOVE
@@ -309,54 +309,54 @@ object UMFReader : FormatReader {
                             else -> throw IllegalArgumentException("Invalid annotation type $it")
                         }
                     }
-                    val key = input.takeNextFixed()
-                    val value = input.takeNextFixed() ?: "()"
+                    val key = input.takeNextUMF()
+                    val value = input.takeNextUMF() ?: "()"
                     val annotation = if (unchecked) Annotation.unchecked("@$key$value") else Annotation.read("@$key$value")
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
                     last as MemberVisitor<*>?
                     last?.visitAnnotation(type, names.next(), annotation, names.asSequence().toSet())
                 }
                 EntryType.ACCESS -> {
-                    val type = input.takeNextFixed()!!.let {
+                    val type = input.takeNextUMF()!!.let {
                         when (it) {
                             "+" -> AccessType.ADD
                             "-" -> AccessType.REMOVE
                             else -> throw IllegalArgumentException("Invalid access type $it")
                         }
                     }
-                    val value = AccessFlag.valueOf(input.takeNextFixed()!!.uppercase())
-                    val conditions = input.takeNextFixed()!!.let { if (unchecked) AccessConditions.unchecked(it) else AccessConditions.read(it) }
+                    val value = AccessFlag.valueOf(input.takeNextUMF()!!.uppercase())
+                    val conditions = input.takeNextUMF()!!.let { if (unchecked) AccessConditions.unchecked(it) else AccessConditions.read(it) }
                     val accNs = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.toSet()
                     last as MemberVisitor<*>?
                     last?.visitAccess(type, value, conditions, accNs)
                 }
                 EntryType.CONSTANT_GROUP -> {
-                    val type = ConstantGroupNode.InlineType.valueOf(input.takeNextFixed()!!.uppercase())
-                    val name = input.takeNextFixed()
+                    val type = ConstantGroupNode.InlineType.valueOf(input.takeNextUMF()!!.uppercase())
+                    val name = input.takeNextUMF()
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
                     last as MappingVisitor?
                     last?.visitConstantGroup(type, name, names.next(), names.asSequence().toSet())
                 }
                 EntryType.CONSTANT -> {
-                    val cls = input.takeNextFixed()!!.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
-                    val fd = input.takeNextFixed()!!.let { if (unchecked) NameAndDescriptor.unchecked(it) else NameAndDescriptor.read(it) }.getParts()
+                    val cls = input.takeNextUMF()!!.let { if (unchecked) InternalName.unchecked(it) else InternalName.read(it) }
+                    val fd = input.takeNextUMF()!!.let { if (unchecked) NameAndDescriptor.unchecked(it) else NameAndDescriptor.read(it) }.getParts()
                     last as ConstantGroupVisitor?
                     last?.visitConstant(cls, fd.first, fd.second?.getFieldDescriptor())
                 }
                 EntryType.CONSTANT_TARGET -> {
-                    val target = input.takeNextFixed()!!.let { if (it.isEmpty()) null else if (unchecked) FullyQualifiedName.unchecked(it) else FullyQualifiedName.read(it) }
-                    val paramIdx = input.takeNextFixed()?.toIntOrNull()
+                    val target = input.takeNextUMF()!!.let { if (it.isEmpty()) null else if (unchecked) FullyQualifiedName.unchecked(it) else FullyQualifiedName.read(it) }
+                    val paramIdx = input.takeNextUMF()?.toIntOrNull()
                     last as ConstantGroupVisitor?
                     last?.visitTarget(target, paramIdx)
                 }
                 EntryType.CONSTANT_EXPRESSION -> {
-                    val constant = input.takeNextFixed()!!.let { if (unchecked) Constant.unchecked(it) else Constant.read(it) }
-                    val expression = input.takeNextFixed()!!.let { if (unchecked) Expression.unchecked(it) else Expression.read(it) }
+                    val constant = input.takeNextUMF()!!.let { if (unchecked) Constant.unchecked(it) else Constant.read(it) }
+                    val expression = input.takeNextUMF()!!.let { if (unchecked) Expression.unchecked(it) else Expression.read(it) }
                     last as ConstantGroupVisitor?
                     last?.visitExpression(constant, expression)
                 }
                 EntryType.SIGNATURE -> {
-                    val sig = input.takeNextFixed()!!
+                    val sig = input.takeNextUMF()!!
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
                     last as SignatureParentVisitor<*>?
                     last?.visitSignature(sig, names.next(), names.asSequence().toSet())

@@ -31,6 +31,7 @@ class NameCopyDelegate(vararg val from: Pair<Namespace, Set<Namespace>>, val onl
                 }
             }
         }
+
     }
 
     override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {

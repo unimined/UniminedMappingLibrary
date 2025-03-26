@@ -60,7 +60,7 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
         val contentMask = content.map { it.access }.reduce { acc, i -> acc or i }
 
         fun of(type: ElementType, access: Int) = entries.filter { it.elements.contains(type) && it.access and access != 0 }.toSet()
-
+        
         fun visibilityOf(access: Int): AccessFlag? {
             val acc = visibility.filter { it.access and access != 0 }
             if (acc.size > 1) throw IllegalArgumentException("Multiple visibility flags found")

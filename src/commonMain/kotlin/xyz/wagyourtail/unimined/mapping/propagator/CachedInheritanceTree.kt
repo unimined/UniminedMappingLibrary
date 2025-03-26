@@ -2,7 +2,7 @@ package xyz.wagyourtail.unimined.mapping.propagator
 
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader.takeNextFixed
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader.takeNextUMF
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader.takeRemainingFixedOnLine
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter.maybeEscape
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
@@ -93,15 +93,15 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
                 throw IllegalArgumentException("expected method, found double indent")
             }
             if (indent == 0) {
-                val cls = data.takeNextFixed()!!
-                val sup = data.takeNextFixed()?.ifEmpty { null }
+                val cls = data.takeNextUMF()!!
+                val sup = data.takeNextUMF()?.ifEmpty { null }
                 val intf = data.takeRemainingFixedOnLine().map { InternalName.read(it!!) }
                 ci = ClassInfo(InternalName.read(cls), sup?.let { InternalName.read(it) }, intf)
                 classes[ci!!.name] = ci!!
             } else {
-                val acc = data.takeNextFixed()!!.split("|").map { AccessFlag.valueOf(it.uppercase()) }
-                val name = data.takeNextFixed()!!
-                val desc = FieldOrMethodDescriptor.read(data.takeNextFixed()!!)
+                val acc = data.takeNextUMF()!!.split("|").map { AccessFlag.valueOf(it.uppercase()) }
+                val name = data.takeNextUMF()!!
+                val desc = FieldOrMethodDescriptor.read(data.takeNextUMF()!!)
 
                 if (desc.isMethodDescriptor()) {
                     ci!!.methods.add(

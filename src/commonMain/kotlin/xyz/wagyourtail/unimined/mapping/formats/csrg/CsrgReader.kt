@@ -68,10 +68,15 @@ object CsrgReader : FormatReader {
 
             while (!input.exhausted()) {
                 input.takeWhitespace()
+                if (input.peek() == '\n') {
+                    input.take()
+                    continue
+                }
                 if (input.peek() == '#') {
                     input.takeLine()
                     continue
                 }
+
                 val parts = input.takeRemainingLiteralOnLine()
                 when (parts.size) {
                     CLASS_MAPPING -> {
