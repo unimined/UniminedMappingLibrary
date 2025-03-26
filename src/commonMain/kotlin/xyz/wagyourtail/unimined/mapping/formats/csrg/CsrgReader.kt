@@ -67,7 +67,7 @@ object CsrgReader : FormatReader {
             visitHeader(srcNs.name, dstNs.name)
 
             while (!input.exhausted()) {
-                input.takeWhitespace()
+                input.takeNonNewlineWhitespace()
                 if (input.peek() == '\n') {
                     input.take()
                     continue
