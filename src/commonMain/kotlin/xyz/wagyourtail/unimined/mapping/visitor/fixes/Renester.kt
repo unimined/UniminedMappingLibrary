@@ -47,7 +47,6 @@ fun AbstractMappingTree.renest(srcNs: Namespace, namespaces: Set<Namespace>, fix
             fixNest(cls.second(), srcNs, namespace)
         }
     }
-
 }
 
 fun AbstractMappingTree.renest(srcNs: String, vararg namespaces: String, fixInner: Boolean = true) {

@@ -6,25 +6,24 @@ import kotlinx.coroutines.sync.withLock
 import okio.Buffer
 import okio.BufferedSource
 import okio.use
-import xyz.wagyourtail.commonskt.collection.finalizable.finalizableListOf
+import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.commonskt.collection.finalizable.finalizableMapOf
 import xyz.wagyourtail.commonskt.collection.finalizable.finalizableSetOf
 import xyz.wagyourtail.commonskt.properties.FinalizeOnRead
 import xyz.wagyourtail.commonskt.properties.LazyMutable
 import xyz.wagyourtail.commonskt.utils.associateWithNonNull
-import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.NameCopyDelegate
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
+import xyz.wagyourtail.unimined.mapping.visitor.fixes.renest
 import kotlin.jvm.JvmOverloads
 import kotlin.time.measureTime
 
@@ -41,8 +40,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
     private val _entries = finalizableMapOf<String, MappingEntry>()
     val entries: Map<String, MappingEntry> get() = _entries
-
-    val afterLoad = finalizableListOf<MemoryMappingTree.() -> Unit>()
 
     lateinit var namespaces: Map<Namespace, Boolean>
         private set
@@ -89,7 +86,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         finalized = true
         _entries.finalize()
         _entries.values.forEach { it.finalize() }
-        afterLoad.finalize()
     }
 
     fun addDependency(key: String, dependency: MappingEntry) {
@@ -99,11 +95,14 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         _entries[key] = dependency
     }
 
-    abstract fun createForPostProcess(key: String): T
+    abstract fun createForPostProcess(key: String, process: MemoryMappingTree.() -> Unit): T
 
     @JvmOverloads
-    fun postProcessDependency(key: String, intern: @Scoped T.() -> Unit, postProcess: MappingEntry.() -> Unit = {}) {
-        val resolver = createForPostProcess(key)
+    fun postProcessDependency(key: String,
+        intern: @Scoped T.() -> Unit,
+        process: MemoryMappingTree.() -> Unit,
+        postProcess: MappingEntry.() -> Unit) {
+        val resolver = createForPostProcess(key, process)
         resolver.intern()
 
         addDependency(key, MappingEntry(object : ContentProvider {
@@ -132,10 +131,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     open suspend fun fromCache(key: String): MemoryMappingTree? = null
 
     open suspend fun writeCache(key: String, tree: MemoryMappingTree) {}
-
-    open suspend fun afterLoad(tree: MemoryMappingTree) {
-        afterLoad.forEach { it(tree) }
-    }
 
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
@@ -201,13 +196,25 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                                 it(acc)
                             }
                         try {
+                            val target = if (entry.preProcess.isNotEmpty()) {
+                                MemoryMappingTree()
+                            } else {
+                                visitor
+                            }
                             entry.provider.read(
                                 entry.content.content(),
                                 resolved,
-                                visitor,
+                                target,
                                 envType,
                                 entry.mapNs.map { it.key.name to it.value.name }.toMap()
                             )
+                            if (target != visitor) {
+                                target as MemoryMappingTree
+                                for (it in entry.preProcess) {
+                                    it(target)
+                                }
+                                target.accept(visitor)
+                            }
                         } catch (e: Throwable) {
                             throw IllegalStateException("Error reading $entry", e)
                         }
@@ -232,12 +239,16 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     LOGGER.info { "Propagated in $it" }
                 }
 
-                LOGGER.info { "Post processing..." }
+                LOGGER.info { "Renesting inner classes..." }
 
-                measureTime {
-                    afterLoad(resolved!!)
-                }.also {
-                    LOGGER.info { "Post processed in $it" }
+                val renest = defaultedMapOf<Namespace, MutableSet<Namespace>> { mutableSetOf() }
+                for (entry in sorted) {
+                    renest[entry.requires].addAll(entry.renest)
+                }
+                for ((key, value) in renest) {
+                    if (value.isNotEmpty()) {
+                        resolved!!.renest(key, value)
+                    }
                 }
 
                 LOGGER.info { "Re-resolving fields and methods..." }
@@ -336,10 +347,12 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         var requires: Namespace by FinalizeOnRead(Namespace("official"))
         val provides = finalizableSetOf<Pair<Namespace, Boolean>>()
         val mapNs = finalizableMapOf<Namespace, Namespace>()
+        val renest = finalizableSetOf<Namespace>()
 
         var skip by FinalizeOnRead(false)
 
         val insertInto = finalizableSetOf<(MappingVisitor) -> MappingVisitor>()
+        val preProcess = finalizableSetOf<(AbstractMappingTree) -> Unit>()
 
         var provider by FinalizeOnRead(LazyMutable {
             val format = FormatRegistry.autodetectFormat(envType, content.fileName(), content.content())
@@ -366,6 +379,14 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             mapNs.putAll(ns.map { Namespace(it.first) to Namespace(it.second) })
         }
 
+        fun renest() {
+            renest.addAll(provides.map { it.first })
+        }
+
+        fun renest(vararg ns: String) {
+            renest.addAll(ns.map { Namespace(it) })
+        }
+
         fun combineWith(other: MappingConfig) {
             requires = other.requires
             provides.addAll(other.provides)
@@ -378,6 +399,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             requires.name
             provides.finalize()
             insertInto.finalize()
+            mapNs.finalize()
+            renest.finalize()
+            preProcess.finalize()
         }
 
     }
