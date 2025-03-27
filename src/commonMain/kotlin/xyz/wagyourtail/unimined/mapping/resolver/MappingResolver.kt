@@ -89,7 +89,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         _entries.values.forEach { it.finalize() }
     }
 
-    fun addDependency(key: String, dependency: MappingResolver<T>.MappingEntry) {
+    fun addDependency(key: String, dependency: MappingEntry) {
         if (_entries.containsKey(key)) {
             LOGGER.warn { "Overwriting dependency $key" }
         }
