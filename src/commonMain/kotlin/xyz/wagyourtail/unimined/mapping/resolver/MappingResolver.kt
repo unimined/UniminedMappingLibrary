@@ -89,7 +89,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         _entries.values.forEach { it.finalize() }
     }
 
-    fun addDependency(key: String, dependency: MappingEntry) {
+    fun addDependency(key: String, dependency: MappingResolver<T>.MappingEntry) {
         if (_entries.containsKey(key)) {
             LOGGER.warn { "Overwriting dependency $key" }
         }
@@ -132,6 +132,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
     open suspend fun fromCache(key: String): MemoryMappingTree? = null
 
     open suspend fun writeCache(key: String, tree: MemoryMappingTree) {}
+
+    open suspend fun afterLoad(tree: MemoryMappingTree) {}
 
     open suspend fun resolve(): MemoryMappingTree {
         if (::resolved.isInitialized) return resolved
@@ -193,7 +195,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     for (entry in sorted) {
                         LOGGER.info { "Reading: $entry" }
                         val visitor =
-                            entry.insertInto.fold(resolved!!.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
+                            entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
                                 it(acc)
                             }
                         try {
@@ -224,10 +226,12 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     LOGGER.info { "Read ${sorted.size} entries in $it" }
                 }
 
+                afterLoad(resolved)
+
                 LOGGER.info { "Resolving fields and methods..." }
 
                 measureTime {
-                    resolved!!.resolveLazyResolvables()
+                    resolved.resolveLazyResolvables()
                 }.also {
                     LOGGER.info { "Resolved lazy resolvables in $it" }
                 }
@@ -235,7 +239,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 LOGGER.info { "Propagating..." }
 
                 measureTime {
-                    resolved = propogator(resolved!!)
+                    resolved = propogator(resolved)
                 }.also {
                     LOGGER.info { "Propagated in $it" }
                 }
