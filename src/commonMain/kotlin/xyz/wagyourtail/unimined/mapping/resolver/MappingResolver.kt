@@ -24,6 +24,7 @@ import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import xyz.wagyourtail.unimined.mapping.visitor.fixes.renest
+import kotlin.js.JsName
 import kotlin.jvm.JvmOverloads
 import kotlin.time.measureTime
 
@@ -347,6 +348,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         var requires: Namespace by FinalizeOnRead(Namespace("official"))
         val provides = finalizableSetOf<Pair<Namespace, Boolean>>()
         val mapNs = finalizableMapOf<Namespace, Namespace>()
+        @JsName("_renest")
         val renest = finalizableSetOf<Namespace>()
 
         var skip by FinalizeOnRead(false)
