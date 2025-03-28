@@ -26,9 +26,15 @@ value class PackageSpecifier private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            while (shouldRead(reader.copy())) {
-                append(Identifier.read(reader))
-                append(reader.expect('/'))
+            while (true) {
+                reader.mark()
+                val id = Identifier.read(reader)
+                if (reader.take() != '/') {
+                    reader.reset()
+                    break
+                }
+                append(id)
+                append('/')
             }
         }
 

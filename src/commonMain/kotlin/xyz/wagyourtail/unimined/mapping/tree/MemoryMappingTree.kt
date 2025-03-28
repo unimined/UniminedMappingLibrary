@@ -32,19 +32,7 @@ class MemoryMappingTree : AbstractMappingTree() {
     private val byNamespace = defaultedMapOf<Namespace, MutableMap<InternalName, ClassNode>> { mutableMapOf() }
 
     override fun getClass(namespace: Namespace, name: InternalName): ClassNode? {
-        val cacheHit = byNamespace[namespace][name]
-        if (cacheHit != null) {
-            if (cacheHit.getName(namespace) == name) {
-                return cacheHit
-            } else {
-                byNamespace[namespace].remove(name)
-            }
-        }
-        val cacheMiss = classes.firstOrNull { it.getName(namespace) == name }
-        if (cacheMiss != null) {
-            byNamespace[namespace][name] = cacheMiss
-        }
-        return cacheMiss
+        return byNamespace[namespace][name]
     }
 
     override fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassNode>> = _classes.iterator().asSequence().map {
@@ -115,13 +103,22 @@ class MemoryMappingTree : AbstractMappingTree() {
             // check if exists
             val existing = getClass(ns, names[ns]!!)
             if (existing != null) {
+                for ((ns, name) in existing.names.filter { it.key in names && it.value != names[it.key] }) {
+                    byNamespace[ns].remove(name)
+                }
                 // add other names
                 existing.setNames(names)
+                for ((ns, name) in names) {
+                    byNamespace[ns].put(name, existing)
+                }
                 return existing
             }
         }
         val node = ClassNode(this)
         node.setNames(names)
+        for ((ns, name) in names) {
+            byNamespace[ns].put(name, node)
+        }
         _classes.add(node)
         return node
     }

@@ -212,10 +212,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                                 entry.mapNs.map { it.key.name to it.value.name }.toMap()
                             )
                             if (target != visitor) {
-                                target as MemoryMappingTree
-                                for (it in entry.preProcess) {
-                                    it(target)
-                                }
+                                entry.preProcess(target as MemoryMappingTree)
                                 target.accept(visitor)
                             }
                         } catch (e: Throwable) {
@@ -227,14 +224,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 }
 
                 afterLoad(resolved)
-
-                LOGGER.info { "Resolving fields and methods..." }
-
-                measureTime {
-                    resolved.resolveLazyResolvables()
-                }.also {
-                    LOGGER.info { "Resolved lazy resolvables in $it" }
-                }
 
                 LOGGER.info { "Propagating..." }
 
@@ -252,16 +241,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 }
                 for ((key, value) in renest) {
                     if (value.isNotEmpty()) {
+                        LOGGER.info { "Renesting $key -> ${value.joinToString(", ")}" }
                         resolved!!.renest(key, value)
                     }
-                }
-
-                LOGGER.info { "Re-resolving fields and methods..." }
-
-                measureTime {
-                    resolved!!.resolveLazyResolvables()
-                }.also {
-                    LOGGER.info { "Re-resolved lazy resolvables in $it" }
                 }
 
                 LOGGER.info { "Filling in missing names..." }
@@ -282,12 +264,12 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     LOGGER.info { "Filled in missing names in $it" }
                 }
 
-                LOGGER.info { "Re-resolving fields and methods..." }
+                LOGGER.info { "Resolving fields and methods..." }
 
                 measureTime {
                     resolved!!.resolveLazyResolvables()
                 }.also {
-                    LOGGER.info { "Re-resolved lazy resolvables in $it" }
+                    LOGGER.info { "Resolved lazy resolvables in $it" }
                 }
 
                 LOGGER.info { "Writing to cache" }
@@ -358,7 +340,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         var skip by FinalizeOnRead(false)
 
         val insertInto = finalizableSetOf<(MappingVisitor) -> MappingVisitor>()
-        val preProcess = finalizableSetOf<(AbstractMappingTree) -> Unit>()
+        val preProcess = finalizableSetOf<(AbstractMappingTree, FormatProvider, ContentProvider) -> Unit>()
 
         var provider by FinalizeOnRead(LazyMutable {
             val format = FormatRegistry.autodetectFormat(envType, content.fileName(), content.content())
@@ -393,12 +375,20 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             renest.addAll(ns.map { Namespace(it) })
         }
 
+        internal fun preProcess(mappings: AbstractMappingTree) {
+            for (pre in preProcess) {
+                pre(mappings, provider, content)
+            }
+        }
+
         fun combineWith(other: MappingConfig) {
             requires = other.requires
             provides.addAll(other.provides)
             mapNs.putAll(other.mapNs)
             skip = other.skip
             insertInto.addAll(other.insertInto)
+            preProcess.addAll(other.preProcess)
+            renest.addAll(other.renest)
         }
 
         open suspend fun finalize() {

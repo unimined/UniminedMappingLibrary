@@ -99,7 +99,7 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
                 ci = ClassInfo(InternalName.read(cls), sup?.let { InternalName.read(it) }, intf)
                 classes[ci!!.name] = ci!!
             } else {
-                val acc = data.takeNextUMF()!!.split("|").map { AccessFlag.valueOf(it.uppercase()) }
+                val acc = data.takeNextUMF()!!.split("|").filter { it.isNotBlank() }.map { AccessFlag.valueOf(it.uppercase()) }
                 val name = data.takeNextUMF()!!
                 val desc = FieldOrMethodDescriptor.read(data.takeNextUMF()!!)
 

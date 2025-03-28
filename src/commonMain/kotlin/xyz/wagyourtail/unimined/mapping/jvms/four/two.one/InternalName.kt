@@ -20,8 +20,16 @@ value class InternalName private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append(PackageName.read(reader))
-            append(UnqualifiedName.read(reader))
+            val cname = reader.takeUntil { it in JVMS.unqualifiedNameIllegalChars && it != '/' }
+            if (cname.isEmpty() || cname.contains("//")) {
+                throw IllegalArgumentException("Invalid internal name")
+            }
+            if (!cname.contains("/")) {
+                append(UnqualifiedName.unchecked(cname))
+            } else {
+                append(PackageName.unchecked(cname.substringBeforeLast("/") + "/"))
+                append(UnqualifiedName.unchecked(cname.substringAfterLast("/")))
+            }
         }
 
         override fun unchecked(value: String) = InternalName(value)
