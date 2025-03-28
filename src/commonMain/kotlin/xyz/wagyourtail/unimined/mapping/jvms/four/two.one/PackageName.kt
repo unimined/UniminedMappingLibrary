@@ -22,9 +22,15 @@ value class PackageName private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            while (shouldRead(reader.copy())) {
-                append(UnqualifiedName.read(reader))
-                append(reader.expect('/'))
+            while (true) {
+                reader.mark()
+                val id = UnqualifiedName.read(reader)
+                if (reader.take() != '/') {
+                    reader.reset()
+                    break
+                }
+                append(id)
+                append('/')
             }
         }
 
