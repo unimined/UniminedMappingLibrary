@@ -3,7 +3,8 @@ import java.net.URI
 plugins {
     kotlin("multiplatform") version libs.versions.kotlin.asProvider()
     kotlin("plugin.serialization") version libs.versions.kotlin.asProvider()
-    id("xyz.wagyourtail.commons-gradle") version libs.versions.commons
+    alias(libs.plugins.commons)
+    alias(libs.plugins.kotlinx.atomicfu)
     `maven-publish`
 }
 
