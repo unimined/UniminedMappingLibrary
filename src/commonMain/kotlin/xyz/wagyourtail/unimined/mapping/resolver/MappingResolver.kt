@@ -375,6 +375,10 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
             renest.addAll(ns.map { Namespace(it) })
         }
 
+        fun preProcess(pre: (AbstractMappingTree, FormatProvider, ContentProvider) -> Unit) {
+            preProcess.add(pre)
+        }
+
         internal fun preProcess(mappings: AbstractMappingTree) {
             for (pre in preProcess) {
                 pre(mappings, provider, content)
