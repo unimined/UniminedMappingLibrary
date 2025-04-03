@@ -30,6 +30,6 @@ class LocalNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val lvOrd: Int, 
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitLocalVariable(EmptyMethodVisitor(), lvOrd, startOp, names)
-        if (inner) acceptInner(DelegateLocalVariableVisitor(EmptyLocalVariableVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateLocalVariableVisitor(EmptyLocalVariableVisitor(), delegator), root.namespaces, true)
     }
 }

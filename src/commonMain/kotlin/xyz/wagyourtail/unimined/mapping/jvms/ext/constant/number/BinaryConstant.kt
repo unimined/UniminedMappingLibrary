@@ -20,7 +20,7 @@ value class BinaryConstant private constructor(val value: String): Type {
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val first = reader.peek()
-            if (first?.isDigit() != true) {
+            if (first !in '0' .. '1') {
                 throw IllegalArgumentException("Invalid binary constant, cannot start with ${first ?: "null"}")
             }
             append(reader.takeWhile { it in '0' .. '1' })

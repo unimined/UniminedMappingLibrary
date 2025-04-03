@@ -34,14 +34,14 @@ abstract class MemberNode<T: MemberVisitor<T>, U: BaseVisitor<U>>(parent: BaseNo
         return node
     }
 
-    override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>) {
-        for (annotation in annotations.sortedBy { it.toString() }) {
-            annotation.accept(visitor, nsFilter)
+    override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>, sort: Boolean) {
+        for (annotation in if (sort) annotations.sortedBy { it.toString() } else annotations) {
+            annotation.accept(visitor, nsFilter, sort)
         }
-        for (comment in comments.sortedBy { it.toString() }) {
-            comment.accept(visitor, nsFilter)
+        for (comment in if (sort) comments.sortedBy { it.toString() } else comments) {
+            comment.accept(visitor, nsFilter, sort)
         }
-        super.acceptInner(visitor, nsFilter)
+        super.acceptInner(visitor, nsFilter, sort)
     }
 
 }

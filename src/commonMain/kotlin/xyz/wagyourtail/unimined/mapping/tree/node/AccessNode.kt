@@ -43,7 +43,7 @@ class AccessNode<U: AccessParentVisitor<U>>(parent: BaseNode<U, *>, val accessTy
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitAccess(EmptyAccessParentVisitor(), accessType, accessFlag, conditions, namespaces)
-        if (inner) acceptInner(DelegateAccessVisitor(EmptyAccessVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateAccessVisitor(EmptyAccessVisitor(), delegator), root.namespaces, true)
     }
 
 }

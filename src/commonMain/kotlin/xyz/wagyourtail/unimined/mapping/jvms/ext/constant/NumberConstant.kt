@@ -30,7 +30,7 @@ value class NumberConstant private constructor(val value: String) : Type {
 
         override fun shouldRead(reader: CharReader<*>): Boolean {
             val first = reader.take()
-            return first == '-' || first?.isDigit() == true || first == 'N' || first == 'I'
+            return first == '-' || first?.isDigit() == true || first == 'N' || first == 'I' || first == '.'
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {

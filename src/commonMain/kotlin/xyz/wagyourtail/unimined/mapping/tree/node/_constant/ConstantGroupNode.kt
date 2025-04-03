@@ -69,16 +69,16 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
         }
     }
 
-    override fun acceptInner(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>) {
-        super.acceptInner(visitor, nsFilter)
-        for (c in _constants.sortedBy { it.toString() }) {
-            c.accept(visitor, nsFilter)
+    override fun acceptInner(visitor: ConstantGroupVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
+        super.acceptInner(visitor, nsFilter, sort)
+        for (c in if (sort) constants.sortedBy { it.toString() } else constants) {
+            c.accept(visitor, nsFilter, sort)
         }
-        for (t in _targets.sortedBy { it.toString() }) {
-            t.accept(visitor, nsFilter)
+        for (t in if (sort) targets.sortedBy { it.toString() } else targets) {
+            t.accept(visitor, nsFilter, sort)
         }
-        for (e in _expressions.sortedBy { it.toString() }) {
-            e.accept(visitor, nsFilter)
+        for (e in if (sort) expressions.sortedBy { it.toString() } else expressions) {
+            e.accept(visitor, nsFilter, sort)
         }
     }
 
@@ -86,7 +86,7 @@ class ConstantGroupNode(parent: AbstractMappingTree, val type: InlineType, val n
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitConstantGroup(EmptyMappingVisitor(), type, name, baseNs, namespaces)
-        if (inner) acceptInner(DelegateConstantGroupVisitor(EmptyConstantGroupVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateConstantGroupVisitor(EmptyConstantGroupVisitor(), delegator), root.namespaces, true)
     }
 
 }

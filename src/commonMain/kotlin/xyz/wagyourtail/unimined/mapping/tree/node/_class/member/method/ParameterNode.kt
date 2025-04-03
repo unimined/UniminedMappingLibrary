@@ -41,7 +41,7 @@ class ParameterNode<T: InvokableVisitor<T>>(
 
     fun doMerge(target: ParameterNode<T>) {
         target.setNames(names)
-        acceptInner(target, root.namespaces)
+        acceptInner(target, root.namespaces, false)
     }
 
     override fun merge(element: ParameterNode<T>): Boolean {
@@ -78,7 +78,7 @@ class ParameterNode<T: InvokableVisitor<T>>(
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitParameter(EmptyMethodVisitor(), index, lvOrd, names)
-        if (inner) acceptInner(DelegateParameterVisitor(EmptyParameterVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateParameterVisitor(EmptyParameterVisitor(), delegator), root.namespaces, true)
     }
 
 }

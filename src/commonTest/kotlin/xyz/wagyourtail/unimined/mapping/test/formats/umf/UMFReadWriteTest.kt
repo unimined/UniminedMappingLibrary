@@ -67,7 +67,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, false))
+            mappings.accept(UMFWriter.write(output, false), sort = true)
             output.readUtf8()
         }
         val testOutput = """
@@ -140,7 +140,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true))
+            mappings.accept(UMFWriter.write(output, true), sort = true)
             output.readUtf8()
         }
         val testOutput = """

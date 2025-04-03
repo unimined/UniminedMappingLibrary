@@ -20,10 +20,11 @@ value class HexConstant private constructor(val value: String): Type {
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val first = reader.peek()
-            if (first?.isDigit() != true) {
+            if (first?.isDigit() == true || first?.lowercaseChar() in 'a'..'f') {
+                append(reader.takeWhile { it.isDigit() || it.lowercaseChar() in 'a'..'f' })
+            } else {
                 throw IllegalArgumentException("Invalid hex constant, cannot start with ${first ?: "null"}")
             }
-            append(reader.takeWhile { it.isDigit() || it.lowercaseChar() in 'a'..'f' })
         }
 
         override fun unchecked(value: String): HexConstant {

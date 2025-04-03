@@ -78,7 +78,7 @@ class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>, val va
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitSignature(EmptySignatureParentVisitor(), value, baseNs, namespaces)
-        if (inner) acceptInner(DelegateSignatureVisitor(EmptySignatureVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateSignatureVisitor(EmptySignatureVisitor(), delegator), root.namespaces, true)
     }
 
 }

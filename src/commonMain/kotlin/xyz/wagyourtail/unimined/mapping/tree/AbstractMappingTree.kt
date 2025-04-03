@@ -355,8 +355,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         mergeNs(namespaces.map { Namespace(it) }.toSet())
     }
 
-    fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces) {
-        acceptInner(visitor, nsFilter)
+    fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, sort: Boolean = false) {
+        acceptInner(visitor, nsFilter, sort)
         visitor.visitEnd()
     }
 
@@ -364,22 +364,25 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         return null
     }
 
-    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
+    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
         visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
-        super.acceptInner(visitor, nsFilter)
-        for (pkg in packagesIter().asSequence().map { it.second() }.sortedBy { it.toString() }) {
-            pkg.accept(visitor, nsFilter)
+        super.acceptInner(visitor, nsFilter, sort)
+        val packageIter = packagesIter().asSequence().map { it.second() }
+        for (pkg in if (sort) packageIter.sortedBy { it.toString() } else packageIter) {
+            pkg.accept(visitor, nsFilter, sort)
         }
-        for (cls in classesIter().asSequence().map { it.second() }.sortedBy { it.toString() }) {
-            cls.accept(visitor, nsFilter)
+        val clsIter = classesIter().asSequence().map { it.second() }
+        for (cls in if (sort) clsIter.sortedBy { it.toString() } else clsIter) {
+            cls.accept(visitor, nsFilter, sort)
         }
-        for (group in constantGroupsIter().asSequence().map { it.second() }.sortedBy { it.toString() }) {
-            group.accept(visitor, nsFilter)
+        val cgIter = constantGroupsIter().asSequence().map { it.second() }
+        for (group in if (sort) cgIter.sortedBy { it.toString() } else cgIter) {
+            group.accept(visitor, nsFilter, sort)
         }
     }
 
     override fun toUMF(inner: Boolean) = buildString {
-        acceptInner(UMFWriter.write(::append, false), namespaces)
+        acceptInner(UMFWriter.write(::append, false), namespaces, true)
     }
 
 }

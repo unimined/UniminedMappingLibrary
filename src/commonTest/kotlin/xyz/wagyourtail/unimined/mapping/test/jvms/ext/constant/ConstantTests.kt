@@ -20,6 +20,7 @@ class ConstantTests {
         Constant.read("0xFFFF10")
         Constant.read("-100")
         Constant.read("-InfinityF")
+        Constant.read("-.2f")
     }
 
     @Test
@@ -88,7 +89,7 @@ class ConstantTests {
         assertTrue(c.isNull())
 
         val c1 = Constant.read("true")
-        assertTrue(c1.getBoolean())
+        assertTrue(c1.getBoolean()!!.value)
 
         val c2 = Constant.read("10e+24")
         assertEquals(10e24, c2.getNumber()!!.asNumber())

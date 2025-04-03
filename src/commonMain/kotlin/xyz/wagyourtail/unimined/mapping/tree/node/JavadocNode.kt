@@ -25,7 +25,7 @@ class JavadocNode<T: JavadocParentNode<T>>(parent: BaseNode<T, *>, val value: St
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitJavadoc(EmptyJavadocParentVisitor(), value, namespaces)
-        if (inner) acceptInner(DelegateJavadocVisitor(EmptyJavadocVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateJavadocVisitor(EmptyJavadocVisitor(), delegator), root.namespaces, true)
     }
 
 }

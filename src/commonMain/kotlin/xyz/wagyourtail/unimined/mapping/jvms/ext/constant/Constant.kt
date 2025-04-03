@@ -60,9 +60,17 @@ value class Constant private constructor(val value: String) : Type {
 
     fun getString() = if (isString()) StringConstant.unchecked(value) else null
 
-    fun getBoolean() = value.first() == 't'
+    fun getBoolean() = if (isBoolean()) BooleanConstant.unchecked(value) else null
 
     fun getNumber() = if (isNumber()) NumberConstant.unchecked(value) else null
+
+    fun getValue(): Any? = when {
+        isNull() -> null
+        isString() -> getString()!!.unescape()
+        isBoolean() -> getBoolean()!!.value
+        isNumber() -> getNumber()!!.asNumber()
+        else -> throw IllegalStateException()
+    }
 
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {

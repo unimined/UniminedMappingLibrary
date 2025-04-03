@@ -36,7 +36,7 @@ class ExceptionNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val type: Ex
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitException(EmptyMethodVisitor(), type, exception, baseNs, namespaces)
-        if (inner) acceptInner(DelegateExceptionVisitor(EmptyExceptionVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateExceptionVisitor(EmptyExceptionVisitor(), delegator), root.namespaces, true)
     }
 
 }

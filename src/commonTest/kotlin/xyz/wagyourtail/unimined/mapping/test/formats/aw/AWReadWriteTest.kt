@@ -38,7 +38,7 @@ class AWReadWriteTest {
         }
 
         val umfOut = Buffer().use {
-            aw.accept(UMFWriter.write(it, EnvType.JOINED))
+            aw.accept(UMFWriter.write(it, EnvType.JOINED), sort = true)
             it.readUtf8()
         }
 

@@ -179,28 +179,28 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         return visitor.visitClass(names)
     }
 
-    override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>) {
-        super.acceptInner(visitor, nsFilter)
-        for (signature in signatures.sortedBy { it.toString() }) {
-            signature.accept(visitor, nsFilter)
+    override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
+        super.acceptInner(visitor, nsFilter, sort)
+        for (signature in if (sort) signatures.sortedBy { it.toString() } else signatures) {
+            signature.accept(visitor, nsFilter, sort)
         }
-        for (inner in inners.values.sortedBy { it.toString() }) {
-            inner.accept(visitor, nsFilter)
+        for (inner in if (sort) inners.values.sortedBy { it.toString() } else inners.values) {
+            inner.accept(visitor, nsFilter, sort)
         }
-        for (seal in seals.sortedBy { it.toString() }) {
-            seal.accept(visitor, nsFilter)
+        for (seal in if (sort) seals.sortedBy { it.toString() } else seals) {
+            seal.accept(visitor, nsFilter, sort)
         }
-        for (intf in interfaces.sortedBy { it.toString() }) {
-            intf.accept(visitor, nsFilter)
+        for (intf in if (sort) interfaces.sortedBy { it.toString() } else interfaces) {
+            intf.accept(visitor, nsFilter, sort)
         }
-        for (wildcard in wildcards.resolve().sortedBy { it.toString() }) {
-            wildcard.accept(visitor, nsFilter)
+        for (wildcard in if (sort) wildcards.resolve().sortedBy { it.toString() } else wildcards.resolve()) {
+            wildcard.accept(visitor, nsFilter, sort)
         }
-        for (field in fields.resolve().sortedBy { it.toString() }) {
-            field.accept(visitor, nsFilter)
+        for (field in if (sort) fields.resolve().sortedBy { it.toString() } else fields.resolve()) {
+            field.accept(visitor, nsFilter, sort)
         }
-        for (method in methods.resolve().sortedBy { it.toString() }) {
-            method.accept(visitor, nsFilter)
+        for (method in if (sort) methods.resolve().sortedBy { it.toString() } else methods.resolve()) {
+            method.accept(visitor, nsFilter, sort)
         }
     }
 
@@ -208,7 +208,7 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitClass(EmptyMappingVisitor(), names.filterNotNullValues())
-        if (inner) acceptInner(DelegateClassVisitor(EmptyClassVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateClassVisitor(EmptyClassVisitor(), delegator), root.namespaces, true)
     }
 
 }

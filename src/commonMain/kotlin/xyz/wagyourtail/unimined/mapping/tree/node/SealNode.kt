@@ -27,7 +27,7 @@ class SealNode(parent: BaseNode<ClassVisitor, *>?, val type: SealedType, val nam
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitSeal(EmptyClassVisitor(), type, name, baseNs, namespaces)
-        if (inner) acceptInner(DelegateSealVisitor(EmptySealVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateSealVisitor(EmptySealVisitor(), delegator), root.namespaces, true)
     }
 
 }

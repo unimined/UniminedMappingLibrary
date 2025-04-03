@@ -33,11 +33,11 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         return visitor.visitPackage(names)
     }
 
-    override fun acceptInner(visitor: PackageVisitor, nsFilter: Collection<Namespace>) {
-        for (annotation in annotations.sortedBy { it.toString() }) {
-            annotation.accept(visitor, nsFilter)
+    override fun acceptInner(visitor: PackageVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
+        for (annotation in if (sort) annotations.sortedBy { it.toString() } else annotations) {
+            annotation.accept(visitor, nsFilter, sort)
         }
-        super.acceptInner(visitor, nsFilter)
+        super.acceptInner(visitor, nsFilter, sort)
     }
 
     override fun visitAnnotation(
@@ -64,7 +64,7 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitPackage(EmptyMappingVisitor(), names)
-        if (inner) acceptInner(DelegatePackageVisitor(EmptyPackageVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegatePackageVisitor(EmptyPackageVisitor(), delegator), root.namespaces, true)
     }
 
 }

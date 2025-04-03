@@ -20,7 +20,7 @@ value class OctalConstant private constructor(val value: String): Type {
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
             val first = reader.peek()
-            if (first?.isDigit() != true) {
+            if (first !in '0' .. '7') {
                 throw IllegalArgumentException("Invalid octal constant, cannot start with ${first ?: "null"}")
             }
             append(reader.takeWhile { it.isDigit() && it != '8' && it != '9' })

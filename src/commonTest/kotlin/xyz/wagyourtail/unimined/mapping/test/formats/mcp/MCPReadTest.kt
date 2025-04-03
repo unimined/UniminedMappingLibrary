@@ -105,7 +105,7 @@ c	b	net/minecraft/src/World	_
         val tree = readMCPClasses()
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(it, EnvType.CLIENT))
+            tree.accept(UMFWriter.write(it, EnvType.CLIENT), sort = true)
             it.readUtf8()
         }
 

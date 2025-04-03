@@ -167,7 +167,7 @@ class TestInheritanceTree {
         tree.propagate(setOf(Namespace("named")))
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true))
+            mappings.accept(UMFWriter.write(output, true), sort = true)
             output.readUtf8()
         }
 
@@ -186,7 +186,7 @@ class TestInheritanceTree {
         tree.filtered(filtered)
 
         val output = Buffer().use { output ->
-            filtered.accept(UMFWriter.write(output, true))
+            filtered.accept(UMFWriter.write(output, true), sort = true)
             output.readUtf8()
         }
         assertEquals(FILTERED_MAPPINGS.trimEnd().replace(" ", "\t"), output.trimEnd())

@@ -43,7 +43,7 @@ class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constCl
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitConstant(EmptyConstantGroupVisitor(), constClass, constName, fieldDesc)
-        if (inner) acceptInner(DelegateConstantVisitor(EmptyConstantVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateConstantVisitor(EmptyConstantVisitor(), delegator), root.namespaces, true)
     }
 
 }

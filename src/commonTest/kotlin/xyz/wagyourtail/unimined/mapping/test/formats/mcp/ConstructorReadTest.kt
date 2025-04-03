@@ -33,7 +33,7 @@ class ConstructorReadTest {
         }
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(EnvType.CLIENT, it, true))
+            tree.accept(UMFWriter.write(EnvType.CLIENT, it, true), sort = true)
             it.readUtf8()
         }
 

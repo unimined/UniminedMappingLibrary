@@ -27,7 +27,7 @@ class TargetNode(parent: ConstantGroupNode, val baseNs: Namespace, val target: F
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitTarget(EmptyConstantGroupVisitor(), target, paramIdx)
-        if (inner) acceptInner(DelegateTargetVisitor(EmptyTargetVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateTargetVisitor(EmptyTargetVisitor(), delegator), root.namespaces, true)
     }
 
 }

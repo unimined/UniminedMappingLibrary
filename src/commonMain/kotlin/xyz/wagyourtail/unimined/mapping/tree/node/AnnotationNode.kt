@@ -35,7 +35,7 @@ class AnnotationNode<U: AnnotationParentVisitor<U>>(parent: BaseNode<U, *>, val 
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitAnnotation(EmptyAnnotationParentVisitor(), type, baseNs, annotation, namespaces)
-        if (inner) acceptInner(DelegateAnnotationVisitor(EmptyAnnotationVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateAnnotationVisitor(EmptyAnnotationVisitor(), delegator), root.namespaces, true)
     }
 
 }

@@ -94,20 +94,20 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
         return visitor.visitWildcard(type, nsFilter.associateWith { getDescriptor(it)!! })
     }
 
-    override fun acceptInner(visitor: WildcardVisitor, nsFilter: Collection<Namespace>) {
-        super.acceptInner(visitor, nsFilter)
-        for (signature in signatures.sortedBy { it.toString() }) {
-            signature.accept(visitor, nsFilter)
+    override fun acceptInner(visitor: WildcardVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
+        super.acceptInner(visitor, nsFilter, sort)
+        for (signature in if (sort) signatures.sortedBy { it.toString() } else signatures) {
+            signature.accept(visitor, nsFilter, sort)
         }
-        for (exception in exceptions.sortedBy { it.toString() }) {
-            exception.accept(visitor, nsFilter)
+        for (exception in if (sort) exceptions.sortedBy { it.toString() } else exceptions) {
+            exception.accept(visitor, nsFilter, sort)
         }
-        for (param in params.resolve().sortedBy { it.toString() }) {
+        for (param in if (sort) params.resolve().sortedBy { it.toString() } else params.resolve()) {
             if (param.names.isEmpty()) continue
-            param.accept(visitor, nsFilter)
+            param.accept(visitor, nsFilter, sort)
         }
-        for (local in locals.sortedBy { it.toString() }) {
-            local.accept(visitor, nsFilter)
+        for (local in if (sort) locals.sortedBy { it.toString() } else locals) {
+            local.accept(visitor, nsFilter, sort)
         }
     }
 
@@ -125,7 +125,7 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
     }
 
     fun doMerge(target: WildcardNode) {
-        acceptInner(target, root.namespaces)
+        acceptInner(target, root.namespaces, false)
     }
 
     override fun merge(element: WildcardNode): Boolean {
@@ -149,7 +149,7 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitWildcard(EmptyClassVisitor(), type, descs)
-        if (inner) acceptInner(DelegateWildcardVisitor(EmptyWildcardVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateWildcardVisitor(EmptyWildcardVisitor(), delegator), root.namespaces, true)
     }
 
 }

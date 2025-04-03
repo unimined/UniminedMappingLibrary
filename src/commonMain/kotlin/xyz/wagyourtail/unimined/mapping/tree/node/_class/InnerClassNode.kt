@@ -49,7 +49,7 @@ class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParent
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitInnerClass(EmptyClassVisitor(), innerType, names.mapValues { it.value to getTarget(it.key) })
-        if (inner) acceptInner(DelegateInnerClassVisitor(EmptyInnerClassVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateInnerClassVisitor(EmptyInnerClassVisitor(), delegator), root.namespaces, true)
     }
 
 }

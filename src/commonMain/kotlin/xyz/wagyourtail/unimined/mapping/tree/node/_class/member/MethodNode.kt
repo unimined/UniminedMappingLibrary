@@ -26,8 +26,22 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
     val locals: List<LocalNode<MethodVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<MethodVisitor>> get() = _exceptions
 
+    val isClinit by lazy {
+        names.values.any { it == "<clinit>" }
+    }
+
+    val isInit by lazy {
+        names.values.any { it == "<init>" }
+    }
+
     override fun setNames(names: Map<Namespace, String>) {
         super.setNames(names)
+        if (isClinit && names.values.any { it != "<clinit>" }) {
+            throw IllegalStateException("clinit method name must be <clinit>")
+        }
+        if (isInit && names.values.any { it != "<init>" }) {
+            throw IllegalStateException("init method name must be <init>")
+        }
         if (names.values.any { it.isEmpty() }) {
             throw IllegalStateException("empty name in $names")
         }
@@ -85,28 +99,25 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         return visitor.visitMethod(names)
     }
 
-    override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>) {
-        super.acceptInner(visitor, nsFilter)
-        for (signature in _signatures.sortedBy { it.toString() }) {
-            signature.accept(visitor, nsFilter)
+    override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
+        super.acceptInner(visitor, nsFilter, sort)
+        for (signature in if (sort) signatures.sortedBy { it.toString() } else signatures) {
+            signature.accept(visitor, nsFilter, sort)
         }
-        for (exception in exceptions.sortedBy { it.toString() }) {
-            exception.accept(visitor, nsFilter)
+        for (exception in if (sort) exceptions.sortedBy { it.toString() } else exceptions) {
+            exception.accept(visitor, nsFilter, sort)
         }
-        for (param in params.resolve().sortedBy { it.toString() }) {
-            param.accept(visitor, nsFilter)
+        for (param in if (sort) params.resolve().sortedBy { it.toString() } else params.resolve()) {
+            param.accept(visitor, nsFilter, sort)
         }
-        for (local in locals.sortedBy { it.toString() }) {
-            local.accept(visitor, nsFilter)
+        for (local in if (sort) locals.sortedBy { it.toString() } else locals) {
+            local.accept(visitor, nsFilter, sort)
         }
     }
 
-    override fun namesMatch(element: MethodNode): Pair<Boolean, Boolean> {
-        val other = element.names.values.first()
-        val self = names.values.first()
-        if (other in arrayOf("<init>", "<clinit>") && other == self) {
-            return true to false
-        }
+    override fun namesMatch(element: MethodNode): NameMatch {
+        if (element.isClinit && isClinit) return NameMatch.FULL
+        if (element.isInit && isInit) return NameMatch.FULL
         return super.namesMatch(element)
     }
 
@@ -114,7 +125,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitMethod(EmptyClassVisitor(), names.mapValues { it.value to getMethodDesc(it.key) })
-        if (inner) acceptInner(DelegateMethodVisitor(EmptyMethodVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateMethodVisitor(EmptyMethodVisitor(), delegator), root.namespaces, true)
     }
 
 }

@@ -84,7 +84,7 @@ class ExpressionNode(parent: ConstantGroupNode, val baseNs: Namespace, val value
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitExpression(EmptyConstantGroupVisitor(), value, expression)
-        if (inner) acceptInner(DelegateExpressionVisitor(EmptyExpressionVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateExpressionVisitor(EmptyExpressionVisitor(), delegator), root.namespaces, true)
     }
 
 }

@@ -27,7 +27,7 @@ class InterfaceNode(parent: BaseNode<ClassVisitor, *>?, val type: InterfacesType
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitInterface(EmptyClassVisitor(), type, name, baseNs, namespaces)
-        if (inner) acceptInner(DelegateInterfaceVisitor(EmptyInterfaceVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateInterfaceVisitor(EmptyInterfaceVisitor(), delegator), root.namespaces, true)
     }
 
 }

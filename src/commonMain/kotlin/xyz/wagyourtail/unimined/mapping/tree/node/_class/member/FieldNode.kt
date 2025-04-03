@@ -39,10 +39,10 @@ class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisito
         return visitor.visitField(names)
     }
 
-    override fun acceptInner(visitor: FieldVisitor, nsFilter: Collection<Namespace>) {
-        super.acceptInner(visitor, nsFilter)
+    override fun acceptInner(visitor: FieldVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
+        super.acceptInner(visitor, nsFilter, sort)
         for (signature in _signatures.sortedBy { it.toString() }) {
-            signature.accept(visitor, nsFilter)
+            signature.accept(visitor, nsFilter, sort)
         }
     }
 
@@ -50,7 +50,7 @@ class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisito
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitField(EmptyClassVisitor(), names.mapValues { it.value to getFieldDesc(it.key) })
-        if (inner) acceptInner(DelegateFieldVisitor(EmptyFieldVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateFieldVisitor(EmptyFieldVisitor(), delegator), root.namespaces, true)
     }
 
 }

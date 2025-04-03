@@ -43,7 +43,7 @@ class UnpickReadTest {
         }
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output))
+            mappings.accept(UMFWriter.write(output), sort = true)
             output.readUtf8()
         }
 

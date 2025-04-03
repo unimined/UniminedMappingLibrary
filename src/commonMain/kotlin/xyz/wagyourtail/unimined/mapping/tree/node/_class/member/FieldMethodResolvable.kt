@@ -23,10 +23,10 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
 
     @Suppress("UNCHECKED_CAST")
     fun doMerge(target: T) {
-        acceptInner(target as U, root.namespaces)
+        acceptInner(target as U, root.namespaces, false)
     }
 
-    open fun namesMatch(element: T): Pair<Boolean, Boolean> {
+    open fun namesMatch(element: T): NameMatch {
         var namesMatched = false
         var differentNames = false
         for ((ns, nameVal) in names) {
@@ -37,13 +37,13 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                 differentNames = true
             }
         }
-        return namesMatched to differentNames
+        return if (!namesMatched) NameMatch.NONE else if (differentNames) NameMatch.PARTIAL else NameMatch.FULL
     }
 
     override fun merge(element: T): Boolean {
-        val (namesMatched, differentNames) = namesMatch(element)
+        val namesMatched = namesMatch(element)
 
-        if (!namesMatched) {
+        if (namesMatched == NameMatch.NONE) {
             return false
         }
 
@@ -55,7 +55,7 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                     // same descriptor, merge
 
                     // warn if a method name is getting implicitly overridden
-                    if (differentNames) {
+                    if (namesMatched == NameMatch.PARTIAL) {
                         LOGGER.info {
                             """
                                 Joining different names, second will take priority
@@ -84,7 +84,7 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                 // merge
 
                 // warn if a method name is getting implicitly overridden
-                if (differentNames) {
+                if (namesMatched == NameMatch.PARTIAL) {
                     LOGGER.info {
                         """
                             Joining different names, second will take priority
@@ -108,6 +108,12 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
 //            noDesc.setNames(noDesc.names)
             noDesc.doMerge(hasDesc)
         }
+    }
+
+    enum class NameMatch {
+        NONE,
+        FULL,
+        PARTIAL
     }
 
 }

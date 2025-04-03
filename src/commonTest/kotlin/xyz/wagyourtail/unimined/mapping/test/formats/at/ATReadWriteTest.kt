@@ -71,7 +71,7 @@ class ATReadWriteTest {
         }
 
         val umfOut = Buffer().use {
-            at.accept(UMFWriter.write(it, EnvType.JOINED))
+            at.accept(UMFWriter.write(it, EnvType.JOINED), sort = true)
             it.readUtf8()
         }
 
@@ -86,7 +86,7 @@ class ATReadWriteTest {
         }
 
         val umfOut = Buffer().use {
-            at.accept(UMFWriter.write(it, EnvType.JOINED))
+            at.accept(UMFWriter.write(it, EnvType.JOINED), sort = true)
             it.readUtf8()
         }
 
