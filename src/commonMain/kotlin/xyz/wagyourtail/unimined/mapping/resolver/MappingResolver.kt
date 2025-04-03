@@ -264,14 +264,6 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                     LOGGER.info { "Filled in missing names in $it" }
                 }
 
-                LOGGER.info { "Resolving fields and methods..." }
-
-                measureTime {
-                    resolved!!.resolveLazyResolvables()
-                }.also {
-                    LOGGER.info { "Resolved lazy resolvables in $it" }
-                }
-
                 LOGGER.info { "Writing to cache" }
 
                 writeCache(cacheKey, resolved!!)

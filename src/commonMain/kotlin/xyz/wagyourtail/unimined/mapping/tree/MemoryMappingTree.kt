@@ -135,27 +135,6 @@ class MemoryMappingTree : AbstractMappingTree() {
     }
 
     /**
-     * function to make [LazyResolvables] resolve in parallel
-     */
-    suspend fun resolveLazyResolvables() {
-        classes.parallelMap {
-            coroutineScope {
-                listOf(
-                    async {
-                        it.fields.resolve()
-                    },
-                    async {
-                        it.methods.resolve()
-                    },
-                    async {
-                        it.wildcards.resolve()
-                    }
-                ).awaitAll()
-            }
-        }
-    }
-
-    /**
      * function to fill missing names
      */
     suspend fun fillMissingNames(vararg toFill: Pair<Namespace, Set<Namespace>>) {
@@ -173,12 +152,34 @@ class MemoryMappingTree : AbstractMappingTree() {
                         val nameMap = it.names.toMutableMap()
                         NameCopyDelegate.fillAllNames(toFill, nameMap)
                         it.setNames(nameMap)
+                        listOf(
+                            async {
+                                it.fields.resolve()
+                            },
+                            async {
+                                it.methods.resolve()
+                            },
+                            async {
+                                it.wildcards.resolve()
+                            }
+                        ).awaitAll()
                         for (fill in toFill) {
                             it.acceptInner(
                                 DelegateClassVisitor(it, NameCopyDelegate(fill)),
                                 namespaces,
                                 false
                             )
+                            listOf(
+                                async {
+                                    it.fields.resolve()
+                                },
+                                async {
+                                    it.methods.resolve()
+                                },
+                                async {
+                                    it.wildcards.resolve()
+                                }
+                            ).awaitAll()
                         }
                     }
                 }
