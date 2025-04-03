@@ -115,6 +115,11 @@ class ConstantTests {
         val c9 = Constant.read("1")
         assertEquals(1, c9.getNumber()!!.asNumber())
 
+        val c10 = Constant.read("-110")
+        assertEquals(-110, c10.getNumber()!!.asNumber())
+
+        val c11 = Constant.read("-0x109L")
+        assertEquals(-0x109L, c11.getNumber()!!.asNumber())
     }
 
 }

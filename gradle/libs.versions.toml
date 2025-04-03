@@ -3,7 +3,7 @@ asm = "9.7.1"
 okio = "3.7.0"
 kotlin = "2.1.20"
 
-commons = "1.0.0"
+commons = "1.0.2"
 
 jb_annotations = "24.1.0"
 

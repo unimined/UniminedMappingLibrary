@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.ext.constant
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.commonskt.utils.escape
+import xyz.wagyourtail.commonskt.utils.unaryMinus
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.number.*
@@ -180,7 +181,7 @@ value class NumberConstant private constructor(val value: String) : Type {
 
     fun isLong() = value.last().lowercaseChar() == 'l'
 
-    fun isDouble(): Boolean{
+    fun isDouble(): Boolean {
         val positive = asPositive()
         // infinity or nan
         if (positive.startsWith("I") || positive.startsWith("N")) {
@@ -196,7 +197,7 @@ value class NumberConstant private constructor(val value: String) : Type {
 
     fun asNumber(): Number {
         if (isNegative()) {
-            return unchecked(asPositive()).asNumber()
+            return -unchecked(asPositive()).asNumber()
         }
         return if (isHex()) {
             if (isLong()) {
