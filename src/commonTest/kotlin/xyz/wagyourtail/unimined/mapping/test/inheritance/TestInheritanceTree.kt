@@ -105,23 +105,23 @@ class TestInheritanceTree {
          m methodC;()V iAmethod1
          m methodD;()V cAmethod3
          m methodE;()V cAmethod4
-        c clsD Child3
-         m methodE;()V cAmethod4
+        c clsC _
          m methodA;()V cAmethod1
          m methodC;()V iAmethod1
          m methodD;()V cAmethod3
+         m methodE;()V cAmethod4
+        c clsD Child3
+         m methodA;()V cAmethod1
+         m methodC;()V iAmethod1
+         m methodD;()V cAmethod3
+         m methodE;()V cAmethod4
         c intfA _
          f fieldA;I field5
          m methodC;()V iAmethod1
         c intfB _
          m methodC;()V iAmethod1
         c intfC _
-         m methodD;()V cAmethod3
          m methodC;()V iCmethod2
-        c clsC _
-         m methodE;()V cAmethod4
-         m methodA;()V cAmethod1
-         m methodC;()V iAmethod1
          m methodD;()V cAmethod3
         """.trimIndent()
 
@@ -142,6 +142,8 @@ class TestInheritanceTree {
          m methodB;()V cBmethod2
          m methodC;()V iAmethod1
          m methodD;()V cAmethod3
+        c clsC _
+         m methodE;()V cAmethod4
         c clsD Child3
          m methodE;()V cAmethod4
         c intfA _
@@ -150,10 +152,8 @@ class TestInheritanceTree {
         c intfB _
          m methodC;()V iAmethod1
         c intfC _
-         m methodD;()V cAmethod3
          m methodC;()V iCmethod2
-        c clsC _
-         m methodE;()V cAmethod4
+         m methodD;()V cAmethod3
         """.trimIndent()
 
     @Test

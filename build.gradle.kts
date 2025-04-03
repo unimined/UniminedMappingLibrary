@@ -28,11 +28,8 @@ allprojects {
 kotlin {
     jvmToolchain(8)
     jvm {
-        withJava()
-        compilations.all {
-            kotlinOptions {
-                freeCompilerArgs = listOf("-Xjsr305=strict")
-            }
+        compilerOptions {
+            freeCompilerArgs = listOf("-Xjsr305=strict")
         }
     }
     js {

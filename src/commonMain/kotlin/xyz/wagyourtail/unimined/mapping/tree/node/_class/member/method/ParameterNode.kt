@@ -8,9 +8,11 @@ import xyz.wagyourtail.unimined.mapping.tree.node.LazyResolvableEntry
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyMethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyParameterVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ParameterVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.WildcardVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateParameterVisitor
 
 class ParameterNode<T: InvokableVisitor<T>>(
     parent: BaseNode<T, *>,
@@ -37,24 +39,17 @@ class ParameterNode<T: InvokableVisitor<T>>(
         return visitor.visitParameter(index, lvOrd, names)
     }
 
-    override fun toString() = buildString {
-        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
-        delegator.namespaces = root.namespaces
-        delegator.visitParameter(EmptyMethodVisitor(), index, lvOrd, names)
-//        acceptInner(DelegateParameterVisitor(EmptyParameterVisitor(), delegator), root.namespaces)
-    }
-
     fun doMerge(target: ParameterNode<T>) {
         target.setNames(names)
         acceptInner(target, root.namespaces)
     }
 
-    override fun merge(element: ParameterNode<T>): ParameterNode<T>? {
+    override fun merge(element: ParameterNode<T>): Boolean {
         if (element.index == null && element.lvOrd == null) {
             element.index = index
             element.lvOrd = lvOrd
             doMerge(element)
-            return element
+            return true
         }
         if (element.index != null && element.index == index) {
             if (element.lvOrd != null && lvOrd != null && lvOrd != element.lvOrd) {
@@ -65,18 +60,25 @@ class ParameterNode<T: InvokableVisitor<T>>(
                         $this
                     """.trimIndent()
                 }
-                return null
+                return false
             }
             if (lvOrd != null) element.lvOrd = lvOrd
             doMerge(element)
-            return element
+            return true
         }
         if (element.lvOrd != null && element.lvOrd == lvOrd) {
             if (index != null) element.index = index
             doMerge(element)
-            return element
+            return true
         }
-        return null
+        return false
+    }
+
+    override fun toUMF(inner: Boolean) = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitParameter(EmptyMethodVisitor(), index, lvOrd, names)
+        if (inner) acceptInner(DelegateParameterVisitor(EmptyParameterVisitor(), delegator), root.namespaces)
     }
 
 }

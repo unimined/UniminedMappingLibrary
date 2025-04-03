@@ -12,6 +12,8 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.Exception
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMethodVisitor
 
 class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVisitor>(parent, ::MethodNode), MethodVisitor {
 
@@ -20,9 +22,7 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
     private val _exceptions: MutableList<ExceptionNode<MethodVisitor>> = mutableListOf()
 
     val signatures: Set<SignatureNode<MethodVisitor>> get() = _signatures
-    val params = LazyResolvables<ParameterVisitor, ParameterNode<MethodVisitor>>(root) {
-        ParameterNode(this, null, null)
-    }
+    val params = LazyResolvables<ParameterVisitor, ParameterNode<MethodVisitor>>(root)
     val locals: List<LocalNode<MethodVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<MethodVisitor>> get() = _exceptions
 
@@ -87,67 +87,34 @@ class MethodNode(parent: ClassNode) : FieldMethodResolvable<MethodNode, MethodVi
 
     override fun acceptInner(visitor: MethodVisitor, nsFilter: Collection<Namespace>) {
         super.acceptInner(visitor, nsFilter)
-        for (signature in _signatures) {
+        for (signature in _signatures.sortedBy { it.toString() }) {
             signature.accept(visitor, nsFilter)
         }
-        for (exception in exceptions) {
+        for (exception in exceptions.sortedBy { it.toString() }) {
             exception.accept(visitor, nsFilter)
         }
-        for (param in params.resolve()) {
+        for (param in params.resolve().sortedBy { it.toString() }) {
             param.accept(visitor, nsFilter)
         }
-        for (local in locals) {
+        for (local in locals.sortedBy { it.toString() }) {
             local.accept(visitor, nsFilter)
         }
     }
 
-    override fun merge(element: MethodNode): MethodNode? {
-        val merged = super.merge(element)
-        // override to merge disperate constructor methods
-        val name = names.values.first()
-        if (merged == null && (name == "<init>" || name == "<clinit>") && name == element.names.values.first()) {
-
-            // test desc
-            return if (element.hasDescriptor()) {
-                if (hasDescriptor()) {
-                    val descNs = descs.keys.first()
-                    if (getMethodDesc(descNs) == element.getMethodDesc(descNs)) {
-                        // merge
-                        element.setNames(names)
-                        doMerge(element)
-                        element
-                    } else {
-                        // dont merge
-                        null
-                    }
-                } else {
-                    element.setNames(names.filter { it.key !in element.names })
-                    setNames(element.names.filter { it.key !in names })
-                    doMerge(element)
-                    null
-                }
-            } else {
-                if (element.hasDescriptor()) {
-                    element.setNames(names.filter { it.key !in element.names })
-                    setNames(element.names.filter { it.key !in names })
-                    element.doMerge(this)
-                    null
-                } else {
-                    // merge
-                    element.setNames(names)
-                    doMerge(element)
-                    element
-                }
-            }
+    override fun namesMatch(element: MethodNode): Pair<Boolean, Boolean> {
+        val other = element.names.values.first()
+        val self = names.values.first()
+        if (other in arrayOf("<init>", "<clinit>") && other == self) {
+            return true to false
         }
-        return merged
+        return super.namesMatch(element)
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitMethod(EmptyClassVisitor(), names.mapValues { it.value to getMethodDesc(it.key) })
-//        acceptInner(DelegateMethodVisitor(EmptyMethodVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateMethodVisitor(EmptyMethodVisitor(), delegator), root.namespaces)
     }
 
 }

@@ -4,10 +4,12 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyExceptionVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyMethodVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionVisitor
 
 class ExceptionNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val type: ExceptionType, val exception: InternalName, val baseNs: Namespace) : BaseNode<ExceptionVisitor, T>(parent), ExceptionVisitor {
     private val _namespaces: MutableSet<Namespace> = mutableSetOf()
@@ -30,11 +32,11 @@ class ExceptionNode<T: InvokableVisitor<T>>(parent: BaseNode<T, *>, val type: Ex
         }
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitException(EmptyMethodVisitor(), type, exception, baseNs, namespaces)
-//        acceptInner(DelegateExceptionVisitor(EmptyExceptionVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateExceptionVisitor(EmptyExceptionVisitor(), delegator), root.namespaces)
     }
 
 }

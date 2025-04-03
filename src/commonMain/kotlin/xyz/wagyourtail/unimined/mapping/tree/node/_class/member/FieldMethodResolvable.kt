@@ -26,39 +26,36 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
         acceptInner(target as U, root.namespaces)
     }
 
-    override fun merge(element: T): T? {
-        // newly created, always merge
-        if (element.names.isEmpty()) {
-            element.setNames(names)
-            element.setDescriptors(descs)
-            doMerge(element)
-            return element
-        }
-
-        var matched = false
-        var notMatched = false
+    open fun namesMatch(element: T): Pair<Boolean, Boolean> {
+        var namesMatched = false
+        var differentNames = false
         for ((ns, nameVal) in names) {
             val elementNameVal = element.names[ns] ?: continue
             if (elementNameVal == nameVal) {
-                matched = true
+                namesMatched = true
             } else {
-                notMatched = true
+                differentNames = true
             }
         }
+        return namesMatched to differentNames
+    }
 
-        if (!matched) {
-            // dont merge
-            return null
+    override fun merge(element: T): Boolean {
+        val (namesMatched, differentNames) = namesMatch(element)
+
+        if (!namesMatched) {
+            return false
         }
 
-        return if (element.hasDescriptor()) {
+        if (element.hasDescriptor()) {
             if (descs.isNotEmpty()) {
-                val descNs = descs.keys.first()
+                // Both have descriptors
+                val descNs = element.descs.keys.intersect(descs.keys).firstOrNull() ?: descs.keys.first()
                 if (element.getDescriptor(descNs) == descs[descNs]) {
                     // same descriptor, merge
 
                     // warn if a method name is getting implicitly overridden
-                    if (notMatched) {
+                    if (differentNames) {
                         LOGGER.info {
                             """
                                 Joining different names, second will take priority
@@ -71,30 +68,23 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
                     element.setNames(names)
                     element.setDescriptors(descs)
                     doMerge(element)
-                    element
+                    return true
                 } else {
-                    // dont merge
-                    null
+                    return false
                 }
             } else {
-                element.setNames(names.filter { it.key !in element.names })
-                setNames(element.names.filter { it.key !in names })
-                doMerge(element)
-                // return null when desc/nodesc match is found
-                null
+                mergeDescMismatch(element, this as T)
+                return false
             }
         } else {
             if (descs.isNotEmpty()) {
-                element.setNames(names.filter { it.key !in element.names })
-                setNames(element.names.filter { it.key !in names })
-                element.doMerge(this as T)
-                // return null when desc/nodesc match is found
-                null
+                mergeDescMismatch(this as T, element)
+                return false
             } else {
                 // merge
 
                 // warn if a method name is getting implicitly overridden
-                if (notMatched) {
+                if (differentNames) {
                     LOGGER.info {
                         """
                             Joining different names, second will take priority
@@ -106,8 +96,17 @@ abstract class FieldMethodResolvable<T: FieldMethodResolvable<T, U>, U: MemberVi
 
                 element.setNames(names)
                 doMerge(element)
-                element
+                return true
             }
+        }
+    }
+
+    companion object {
+        fun <T: FieldMethodResolvable<T, U>, U: MemberVisitor<U>> mergeDescMismatch(hasDesc: T, noDesc: T) {
+            hasDesc.setNames(noDesc.names.filter { it.key !in hasDesc.names })
+            noDesc.setNames(hasDesc.names.filter { it.key !in noDesc.names })
+//            noDesc.setNames(noDesc.names)
+            noDesc.doMerge(hasDesc)
         }
     }
 

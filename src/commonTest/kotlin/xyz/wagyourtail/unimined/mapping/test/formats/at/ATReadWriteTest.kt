@@ -46,8 +46,8 @@ class ATReadWriteTest {
         umf	1	0
         source
         c	net/minecraft/class_3720
-        	a	+	public	*	source
         	a	+	final	*	source
+        	a	+	public	*	source
         	w	f	_
         		a	+	public	*	source
         		a	-	final	*	source

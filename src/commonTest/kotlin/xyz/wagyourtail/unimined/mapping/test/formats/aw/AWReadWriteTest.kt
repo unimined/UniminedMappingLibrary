@@ -52,9 +52,9 @@ c	net/minecraft/class_3721
 	f	field_19158;I
 		a	-	final	*	intermediary
 	m	method_31659;(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
-		a	+	public	*	intermediary
 		a	+	final	+PRIVATE	intermediary
 		a	+	protected	-PUBLIC	intermediary
+		a	+	public	*	intermediary
 		a	-	final	*	intermediary
 """.trimStart(), umfOut)
     }

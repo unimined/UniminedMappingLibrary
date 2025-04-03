@@ -57,10 +57,14 @@ object UMFWriter : FormatWriter {
         return write(envType, into::writeUtf8, minimize)
     }
 
+    fun write(into: (String) -> Unit, minimize: Boolean): MappingVisitor {
+        into(EMPTY)
+        return EmptyMappingVisitor().delegator(UMFWriterDelegator(into, minimize))
+    }
+
     fun write(envType: EnvType, into: (String) -> Unit, minimize: Boolean): MappingVisitor {
         into(EMPTY)
         return EmptyMappingVisitor().delegator(UMFWriterDelegator(into, minimize))
-
     }
 
     class UMFWriterDelegator(

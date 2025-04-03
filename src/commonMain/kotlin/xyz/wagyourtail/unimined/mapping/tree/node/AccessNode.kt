@@ -11,6 +11,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.AccessParentVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.AccessVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyAccessParentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyAccessVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateAccessVisitor
 
 class AccessNode<U: AccessParentVisitor<U>>(parent: BaseNode<U, *>, val accessType: AccessType, val accessFlag: AccessFlag, val conditions: AccessConditions) : BaseNode<AccessVisitor, U>(parent), AccessVisitor {
     private val _namespaces: MutableSet<Namespace> = mutableSetOf()
@@ -27,13 +29,6 @@ class AccessNode<U: AccessParentVisitor<U>>(parent: BaseNode<U, *>, val accessTy
         return visitor.visitAccess(accessType, accessFlag, conditions, ns)
     }
 
-    override fun toString() = buildString {
-        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
-        delegator.namespaces = root.namespaces
-        delegator.visitAccess(EmptyAccessParentVisitor(), accessType, accessFlag, conditions, namespaces)
-//        acceptInner(DelegateAccessVisitor(EmptyAccessVisitor(), delegator), root.namespaces)
-    }
-
     fun apply(set: MutableSet<AccessFlag>) {
         if (conditions.check(set)) {
             if (accessType == AccessType.ADD) {
@@ -42,6 +37,13 @@ class AccessNode<U: AccessParentVisitor<U>>(parent: BaseNode<U, *>, val accessTy
                 set.remove(accessFlag)
             }
         }
+    }
+
+    override fun toUMF(inner: Boolean) = buildString {
+        val delegator = UMFWriter.UMFWriterDelegator(::append, true)
+        delegator.namespaces = root.namespaces
+        delegator.visitAccess(EmptyAccessParentVisitor(), accessType, accessFlag, conditions, namespaces)
+        if (inner) acceptInner(DelegateAccessVisitor(EmptyAccessVisitor(), delegator), root.namespaces)
     }
 
 }

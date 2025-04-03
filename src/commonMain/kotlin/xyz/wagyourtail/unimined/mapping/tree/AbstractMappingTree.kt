@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.tree
 import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.commonskt.utils.maybeEscape
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
@@ -366,14 +367,19 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
     override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>) {
         visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
         super.acceptInner(visitor, nsFilter)
-        for (pkg in packagesIter()) {
-            pkg.second().accept(visitor, nsFilter)
+        for (pkg in packagesIter().asSequence().map { it.second() }.sortedBy { it.toString() }) {
+            pkg.accept(visitor, nsFilter)
         }
-        for (cls in classesIter()) {
-            cls.second().accept(visitor, nsFilter)
+        for (cls in classesIter().asSequence().map { it.second() }.sortedBy { it.toString() }) {
+            cls.accept(visitor, nsFilter)
         }
-        for (group in constantGroupsIter()) {
-            group.second().accept(visitor, nsFilter)
+        for (group in constantGroupsIter().asSequence().map { it.second() }.sortedBy { it.toString() }) {
+            group.accept(visitor, nsFilter)
         }
     }
+
+    override fun toUMF(inner: Boolean) = buildString {
+        acceptInner(UMFWriter.write(::append, false), namespaces)
+    }
+
 }

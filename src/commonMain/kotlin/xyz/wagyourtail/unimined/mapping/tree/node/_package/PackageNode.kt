@@ -9,6 +9,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node.AnnotationNode
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.tree.node.JavadocNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
 
 class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, MappingVisitor>(parent), PackageVisitor {
     private val _names: MutableMap<Namespace, PackageName> = mutableMapOf()
@@ -33,7 +34,7 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
     }
 
     override fun acceptInner(visitor: PackageVisitor, nsFilter: Collection<Namespace>) {
-        for (annotation in annotations) {
+        for (annotation in annotations.sortedBy { it.toString() }) {
             annotation.accept(visitor, nsFilter)
         }
         super.acceptInner(visitor, nsFilter)
@@ -59,11 +60,11 @@ class PackageNode(parent: AbstractMappingTree) : BaseNode<PackageVisitor, Mappin
         return node
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitPackage(EmptyMappingVisitor(), names)
-//        acceptInner(DelegatePackageVisitor(EmptyPackageVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegatePackageVisitor(EmptyPackageVisitor(), delegator), root.namespaces)
     }
 
 }

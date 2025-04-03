@@ -13,6 +13,8 @@ import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ConstantVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyConstantGroupVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyConstantVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantVisitor
 
 class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constClass: InternalName, val constName: UnqualifiedName, val fieldDesc: FieldDescriptor?) : BaseNode<ConstantVisitor, ConstantGroupVisitor>(parent),
     ConstantVisitor {
@@ -37,11 +39,11 @@ class ConstantNode(parent: ConstantGroupNode, val baseNs: Namespace, val constCl
         return visitor.visitConstant(constClass, constName, fieldDesc)
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitConstant(EmptyConstantGroupVisitor(), constClass, constName, fieldDesc)
-//        acceptInner(DelegateConstantVisitor(EmptyConstantVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateConstantVisitor(EmptyConstantVisitor(), delegator), root.namespaces)
     }
 
 }

@@ -31,7 +31,7 @@ object UMFReader : FormatReader {
     var uncheckedReading = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
-        return input.peek().readUtf8Line()?.lowercase()?.startsWith("umf") ?: false
+        return input.peek().readUtf8Line()?.lowercase()?.startsWith("umf") == true
     }
 
     fun String.indentCount(): Int {

@@ -19,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MemberNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 
 class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingVisitor>(parent), ClassVisitor {
     private val _names = mutableMapOf<Namespace, InternalName?>()
@@ -31,15 +32,9 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
 
     val names: Map<Namespace, InternalName?> get() = _names
 
-    val wildcards = LazyResolvables<WildcardVisitor, WildcardNode>(parent) {
-        WildcardNode(this, it.type, it.descs)
-    }
-    val fields = LazyResolvables<FieldVisitor, FieldNode>(parent) {
-        FieldNode(this)
-    }
-    val methods = LazyResolvables<MethodVisitor, MethodNode>(parent) {
-        MethodNode(this)
-    }
+    val wildcards = LazyResolvables<WildcardVisitor, WildcardNode>(parent)
+    val fields = LazyResolvables<FieldVisitor, FieldNode>(parent)
+    val methods = LazyResolvables<MethodVisitor, MethodNode>(parent)
 
     val inners: Map<InnerClassNode.InnerType, InnerClassNode> get() = _inners
 
@@ -98,6 +93,23 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
             }
         }
         return methods
+    }
+
+    fun getWildcards(type: WildcardNode.WildcardType, namespace: Namespace, desc: FieldOrMethodDescriptor?): List<WildcardNode> {
+        val wildcards = mutableListOf<WildcardNode>()
+        for (wildcard in this.wildcards.resolve()) {
+            if (wildcard.type == type) {
+                if (desc == null || wildcard.hasDescriptor() || wildcard.getDescriptor(namespace) == desc) {
+                    // ensure best match first
+                    if ((desc == null) xor wildcard.hasDescriptor()) {
+                        wildcards.add(0, wildcard)
+                    } else {
+                        wildcards.add(wildcard)
+                    }
+                }
+            }
+        }
+        return wildcards
     }
 
     override fun visitSignature(value: String, baseNs: Namespace, namespaces: Set<Namespace>): SignatureVisitor {
@@ -169,34 +181,34 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
 
     override fun acceptInner(visitor: ClassVisitor, nsFilter: Collection<Namespace>) {
         super.acceptInner(visitor, nsFilter)
-        for (signature in signatures) {
+        for (signature in signatures.sortedBy { it.toString() }) {
             signature.accept(visitor, nsFilter)
         }
-        for (inner in inners.values) {
+        for (inner in inners.values.sortedBy { it.toString() }) {
             inner.accept(visitor, nsFilter)
         }
-        for (seal in seals) {
+        for (seal in seals.sortedBy { it.toString() }) {
             seal.accept(visitor, nsFilter)
         }
-        for (intf in interfaces) {
+        for (intf in interfaces.sortedBy { it.toString() }) {
             intf.accept(visitor, nsFilter)
         }
-        for (wildcard in wildcards.resolve()) {
+        for (wildcard in wildcards.resolve().sortedBy { it.toString() }) {
             wildcard.accept(visitor, nsFilter)
         }
-        for (field in fields.resolve()) {
+        for (field in fields.resolve().sortedBy { it.toString() }) {
             field.accept(visitor, nsFilter)
         }
-        for (method in methods.resolve()) {
+        for (method in methods.resolve().sortedBy { it.toString() }) {
             method.accept(visitor, nsFilter)
         }
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitClass(EmptyMappingVisitor(), names.filterNotNullValues())
-//        acceptInner(DelegateClassVisitor(EmptyClassVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateClassVisitor(EmptyClassVisitor(), delegator), root.namespaces)
     }
 
 }

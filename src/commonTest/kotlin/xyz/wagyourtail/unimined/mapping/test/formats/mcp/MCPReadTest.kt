@@ -112,12 +112,12 @@ c	b	net/minecraft/src/World	_
         assertEquals("""
                 umf	1	0
                 notch	searge
-                c	dw	net/minecraft/src/GuiConnectFailed
-                c	dv	net/minecraft/src/GuiConnecting
-                c	du	net/minecraft/src/GuiDownloadTerrain
-                c	dt	net/minecraft/src/GuiErrorScreen
-                c	dq	net/minecraft/src/WorldClient
                 c	dp	net/minecraft/src/World
+                c	dq	net/minecraft/src/WorldClient
+                c	dt	net/minecraft/src/GuiErrorScreen
+                c	du	net/minecraft/src/GuiDownloadTerrain
+                c	dv	net/minecraft/src/GuiConnecting
+                c	dw	net/minecraft/src/GuiConnectFailed
             """.trimIndent(), out.trimEnd()
         )
 

@@ -10,8 +10,10 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.FieldNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.MethodNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.EmptySignatureParentVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptySignatureVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureParentVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateSignatureVisitor
 
 class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>, val value: String, val baseNs: Namespace) : BaseNode<SignatureVisitor, T>(parent), SignatureVisitor {
     val _namespaces: MutableSet<Namespace> = mutableSetOf()
@@ -72,11 +74,11 @@ class SignatureNode<T: SignatureParentVisitor<T>>(parent: BaseNode<T, *>, val va
         }
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitSignature(EmptySignatureParentVisitor(), value, baseNs, namespaces)
-//        acceptInner(DelegateSignatureVisitor(EmptySignatureVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateSignatureVisitor(EmptySignatureVisitor(), delegator), root.namespaces)
     }
 
 }

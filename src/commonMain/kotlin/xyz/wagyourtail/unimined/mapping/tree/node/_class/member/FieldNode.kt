@@ -8,8 +8,10 @@ import xyz.wagyourtail.unimined.mapping.tree.node.SignatureNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyFieldVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SignatureVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateFieldVisitor
 
 class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisitor>(parent, ::FieldNode), FieldVisitor {
     private val _signatures = mutableSetOf<SignatureNode<FieldVisitor>>()
@@ -39,16 +41,16 @@ class FieldNode(parent: ClassNode): FieldMethodResolvable<FieldNode, FieldVisito
 
     override fun acceptInner(visitor: FieldVisitor, nsFilter: Collection<Namespace>) {
         super.acceptInner(visitor, nsFilter)
-        for (signature in _signatures) {
+        for (signature in _signatures.sortedBy { it.toString() }) {
             signature.accept(visitor, nsFilter)
         }
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitField(EmptyClassVisitor(), names.mapValues { it.value to getFieldDesc(it.key) })
-//        acceptInner(DelegateFieldVisitor(EmptyFieldVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateFieldVisitor(EmptyFieldVisitor(), delegator), root.namespaces)
     }
 
 }

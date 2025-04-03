@@ -1,51 +1,41 @@
 package xyz.wagyourtail.unimined.mapping.tree.node
 
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.BaseVisitor
 
-class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: AbstractMappingTree, val elementCreator: (U) -> U) where U: LazyResolvableEntry<U, T>, U: BaseNode<T, *> {
+class LazyResolvables<T: BaseVisitor<T>, U>(val mappings: AbstractMappingTree) where U: LazyResolvableEntry<U, T>, U: BaseNode<T, *> {
     private val unresolved = mutableListOf<U>()
-    private var resolved: List<U>? = null
+    private val resolved = mutableListOf<U>()
+
+    val lock = SynchronizedObject()
 
     fun resolve(): List<U> {
-        if (resolved != null) return resolved as List<U>
-        val resolved = mutableListOf<U>()
-        val unresolved = unresolved.toMutableList()
-        var lastSize = -1
-        while (lastSize != resolved.size) {
-            resolved.clear()
-            for (element in unresolved) {
-                var resolvedElement: U? = null
-                for (existing in resolved.toList()) {
-                    val res = element.merge(existing) as U?
-                    if (res != null) {
-                        if (res != existing) {
-                            resolved.add(res)
-                        }
-                        resolvedElement = res
+        if (unresolved.isEmpty()) return resolved
+        synchronized(lock) {
+            if (unresolved.isEmpty()) return resolved
+            while (unresolved.isNotEmpty()) {
+                val u = unresolved.removeFirst()
+                var merged = false
+                for (entry in resolved) {
+                    if (u.merge(entry)) {
+                        merged = true
+                        unresolved.add(0, entry)
+                        resolved.remove(entry)
+                        break
                     }
                 }
-                if (resolvedElement == null) {
-                    resolvedElement = element.merge(elementCreator(element))
-                    if (resolvedElement != null) {
-                        resolved.add(resolvedElement)
-                    } else {
-                        throw IllegalStateException("Expected to be able to merge with newly created element")
-                    }
+                if (!merged) {
+                    resolved.add(u)
                 }
             }
-            lastSize = resolved.size
             unresolved.clear()
-            unresolved.addAll(resolved)
         }
-        this.unresolved.clear()
-        this.unresolved.addAll(resolved)
-        this.resolved = unresolved
         return resolved
     }
 
     fun addUnresolved(element: U) {
-        resolved = null
         unresolved.add(element)
     }
 

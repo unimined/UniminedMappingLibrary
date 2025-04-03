@@ -22,7 +22,7 @@ value class PackageName private constructor(val value: String) : Type {
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            while (true) {
+            while (!reader.exhausted()) {
                 reader.mark()
                 val id = UnqualifiedName.read(reader)
                 if (reader.take() != '/') {
@@ -38,7 +38,7 @@ value class PackageName private constructor(val value: String) : Type {
     }
 
     fun getParts(): List<UnqualifiedName> {
-        return value.split("/").map { UnqualifiedName.unchecked(it) }
+        return value.split("/").dropLast(1).map { UnqualifiedName.unchecked(it) }
     }
 
     override fun accept(visitor: (Any) -> Boolean) {
@@ -46,9 +46,7 @@ value class PackageName private constructor(val value: String) : Type {
             val parts = getParts()
             for (i in parts.indices) {
                 parts[i].accept(visitor)
-                if (i != parts.lastIndex) {
-                    visitor("/")
-                }
+                visitor("/")
             }
         }
     }

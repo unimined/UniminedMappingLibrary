@@ -35,10 +35,10 @@ abstract class MemberNode<T: MemberVisitor<T>, U: BaseVisitor<U>>(parent: BaseNo
     }
 
     override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>) {
-        for (annotation in annotations) {
+        for (annotation in annotations.sortedBy { it.toString() }) {
             annotation.accept(visitor, nsFilter)
         }
-        for (comment in comments) {
+        for (comment in comments.sortedBy { it.toString() }) {
             comment.accept(visitor, nsFilter)
         }
         super.acceptInner(visitor, nsFilter)

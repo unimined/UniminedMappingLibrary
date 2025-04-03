@@ -21,4 +21,8 @@ abstract class BaseNode<T: BaseVisitor<T>, U: BaseVisitor<U>>(val parent: BaseNo
 
     override fun visitEnd() {}
 
+    final override fun toString(): String = toUMF()
+
+    abstract fun toUMF(inner: Boolean = false): String
+
 }

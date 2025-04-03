@@ -9,7 +9,9 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
 import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyConstantGroupVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyExpressionVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ExpressionVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExpressionVisitor
 
 class ExpressionNode(parent: ConstantGroupNode, val baseNs: Namespace, val value: Constant, val expression: Expression): BaseNode<ExpressionVisitor, ConstantGroupVisitor>(parent), ExpressionVisitor {
 
@@ -78,11 +80,11 @@ class ExpressionNode(parent: ConstantGroupNode, val baseNs: Namespace, val value
         }
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitExpression(EmptyConstantGroupVisitor(), value, expression)
-        // acceptInner(DelegateExpressionVisitor(EmptyExpressionVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateExpressionVisitor(EmptyExpressionVisitor(), delegator), root.namespaces)
     }
 
 }

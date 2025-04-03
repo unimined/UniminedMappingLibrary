@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.Exception
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.LocalNode
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.method.ParameterNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateWildcardVisitor
 
 class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>) : MemberNode<WildcardVisitor, ClassVisitor>(parent), WildcardVisitor, LazyResolvableEntry<WildcardNode, WildcardVisitor> {
     private val _descs = descs.toMutableMap()
@@ -22,11 +23,11 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
 
     val descs: Map<Namespace, FieldOrMethodDescriptor> get() = _descs
     val signatures: Set<SignatureNode<WildcardVisitor>> get() = _signatures
-    val params = LazyResolvables<ParameterVisitor, ParameterNode<WildcardVisitor>>(root) {
-        ParameterNode(this, null, null)
-    }
+    val params = LazyResolvables<ParameterVisitor, ParameterNode<WildcardVisitor>>(root)
     val locals: List<LocalNode<WildcardVisitor>> get() = _locals
     val exceptions: List<ExceptionNode<WildcardVisitor>> get() = _exceptions
+
+    fun hasDescriptor() = descs.isNotEmpty()
 
     fun getDescriptor(namespace: Namespace): FieldOrMethodDescriptor? {
         if (descs.isEmpty()) return null
@@ -95,17 +96,17 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
 
     override fun acceptInner(visitor: WildcardVisitor, nsFilter: Collection<Namespace>) {
         super.acceptInner(visitor, nsFilter)
-        for (signature in signatures) {
+        for (signature in signatures.sortedBy { it.toString() }) {
             signature.accept(visitor, nsFilter)
         }
-        for (exception in exceptions) {
+        for (exception in exceptions.sortedBy { it.toString() }) {
             exception.accept(visitor, nsFilter)
         }
-        for (param in params.resolve()) {
+        for (param in params.resolve().sortedBy { it.toString() }) {
             if (param.names.isEmpty()) continue
             param.accept(visitor, nsFilter)
         }
-        for (local in locals) {
+        for (local in locals.sortedBy { it.toString() }) {
             local.accept(visitor, nsFilter)
         }
     }
@@ -127,28 +128,28 @@ class WildcardNode(parent: ClassNode, val type: WildcardType, descs: Map<Namespa
         acceptInner(target, root.namespaces)
     }
 
-    override fun merge(element: WildcardNode): WildcardNode? {
-        if (element.type != type) return null
+    override fun merge(element: WildcardNode): Boolean {
+        if (element.type != type) return false
         if (element.descs.isEmpty() && descs.isEmpty()) {
             doMerge(element)
-            return element
+            return true
         }
         if (element.descs.isNotEmpty() && descs.isNotEmpty()) {
-            val descKey = descs.keys.first()
-            if (element.getDescriptor(descKey) == getDescriptor(descKey)) {
+            val descKey = element.descs.keys.intersect(descs.keys).firstOrNull() ?: descs.keys.first()
+            if (element.getDescriptor(descKey) == descs[descKey]) {
                 element.setDescriptors(descs)
                 doMerge(element)
-                return element
+                return true
             }
         }
-        return null
+        return false
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitWildcard(EmptyClassVisitor(), type, descs)
-//        acceptInner(DelegateWildcardVisitor(EmptyWildcardVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateWildcardVisitor(EmptyWildcardVisitor(), delegator), root.namespaces)
     }
 
 }

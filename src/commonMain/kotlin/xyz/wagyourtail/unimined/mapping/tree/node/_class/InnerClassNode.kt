@@ -6,7 +6,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.node.AccessParentNode
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.EmptyInnerClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.InnerClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateInnerClassVisitor
 
 class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParentNode<InnerClassVisitor, ClassVisitor>(parent), InnerClassVisitor {
     private val _names: MutableMap<Namespace, String> = mutableMapOf()
@@ -43,11 +45,11 @@ class InnerClassNode(parent: ClassNode, val innerType: InnerType) : AccessParent
         return visitor.visitInnerClass(innerType, names.mapValues { it.value to getTarget(it.key) })
     }
 
-    override fun toString() = buildString {
+    override fun toUMF(inner: Boolean) = buildString {
         val delegator = UMFWriter.UMFWriterDelegator(::append, true)
         delegator.namespaces = root.namespaces
         delegator.visitInnerClass(EmptyClassVisitor(), innerType, names.mapValues { it.value to getTarget(it.key) })
-//        acceptInner(DelegateInnerClassVisitor(EmptyInnerClassVisitor(), delegator), root.namespaces)
+        if (inner) acceptInner(DelegateInnerClassVisitor(EmptyInnerClassVisitor(), delegator), root.namespaces)
     }
 
 }

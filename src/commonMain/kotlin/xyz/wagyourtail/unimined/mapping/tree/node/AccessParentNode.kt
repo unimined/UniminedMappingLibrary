@@ -14,7 +14,7 @@ abstract class AccessParentNode<T: AccessParentVisitor<T>, U: BaseVisitor<U>>(pa
     val access: List<AccessNode<T>> get() = _access
 
     override fun acceptInner(visitor: T, nsFilter: Collection<Namespace>) {
-        for (access in access) {
+        for (access in access.sortedBy { it.toString() }) {
             access.accept(visitor, nsFilter)
         }
         super.acceptInner(visitor, nsFilter)

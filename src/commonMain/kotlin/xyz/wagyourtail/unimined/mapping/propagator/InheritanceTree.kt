@@ -7,6 +7,7 @@ import kotlinx.coroutines.sync.withLock
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.contains
@@ -15,6 +16,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
@@ -194,8 +196,13 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
                 val initialMethods = methods.filter { md ->
                     // modify access
                     val acc = AccessFlag.of(ElementType.METHOD, md.access).toMutableSet()
-                    val methods = tree.getClass(fns, name)?.getMethods(fns, md.name, md.descriptor)
+                    val cls = tree.getClass(fns, name)
+                    val methods = cls?.getMethods(fns, md.name, md.descriptor)
                     methods?.flatMap { it.access }?.forEach {
+                        it.apply(acc)
+                    }
+                    val wildcards = cls?.getWildcards(WildcardNode.WildcardType.METHOD, fns, FieldOrMethodDescriptor(md.descriptor))
+                    wildcards?.flatMap { it.access }?.forEach {
                         it.apply(acc)
                     }
                     AccessFlag.isInheritable(acc) && !md.name.startsWith("<")
