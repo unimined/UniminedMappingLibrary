@@ -11,11 +11,11 @@ fun MappingVisitor.copyNames(from: Namespace, to: Set<Namespace>, onlyMissing: B
     return DelegateMappingVisitor(this, NameCopyDelegate(from to to, onlyMissing = onlyMissing))
 }
 
-fun MappingVisitor.copyNames(vararg from: Pair<Namespace, Set<Namespace>>, onlyMissing: Boolean = true): MappingVisitor {
-    return DelegateMappingVisitor(this, NameCopyDelegate(*from, onlyMissing = onlyMissing))
+fun MappingVisitor.copyNames(from: Pair<Namespace, Set<Namespace>>, onlyMissing: Boolean = true): MappingVisitor {
+    return DelegateMappingVisitor(this, NameCopyDelegate(from, onlyMissing = onlyMissing))
 }
 
-class NameCopyDelegate(vararg val from: Pair<Namespace, Set<Namespace>>, val onlyMissing: Boolean = true) : NullDelegator() {
+class NameCopyDelegate(val from: Pair<Namespace, Set<Namespace>>, val onlyMissing: Boolean = true) : NullDelegator() {
 
     companion object {
 
@@ -23,7 +23,7 @@ class NameCopyDelegate(vararg val from: Pair<Namespace, Set<Namespace>>, val onl
             return if (onlyMissing) to - this else to
         }
 
-        fun <T> fillAllNames(toFill: Array<out Pair<Namespace, Set<Namespace>>>, names: MutableMap<Namespace, T>, onlyMissing: Boolean = true, fillWith: (T) -> T = { it }) {
+        inline fun <T> fillAllNames(toFill: Array<out Pair<Namespace, Set<Namespace>>>, names: MutableMap<Namespace, T>, onlyMissing: Boolean = true, fillWith: (T) -> T = { it }) {
             for ((from, to) in toFill) {
                 val name = names[from] ?: continue
                 for (namespace in names.keys.ifOnlyMissing(to, onlyMissing)) {
@@ -32,7 +32,7 @@ class NameCopyDelegate(vararg val from: Pair<Namespace, Set<Namespace>>, val onl
             }
         }
 
-        fun <T, U> fillNames(toFill: Pair<Namespace, Set<Namespace>>, names: Map<Namespace, T>, onlyMissing: Boolean = true, fillWith: (T) -> T = { it }, write: (Map<Namespace, T>) -> U): U? {
+        inline fun <T, U> fillNames(toFill: Pair<Namespace, Set<Namespace>>, names: Map<Namespace, T>, onlyMissing: Boolean = true, fillWith: (T) -> T = { it }, write: (Map<Namespace, T>) -> U): U? {
             val (from, to) = toFill
             val names = names.toMutableMap()
             val name = names[from] ?: return null
@@ -45,53 +45,33 @@ class NameCopyDelegate(vararg val from: Pair<Namespace, Set<Namespace>>, val onl
     }
 
     override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
-        var visitor: ClassVisitor? = null
-        for (pair in from) {
-            visitor?.visitEnd()
-            visitor = fillNames(pair, names, onlyMissing) {
-                default.visitClass(delegate, names)
-            }
+        return fillNames(from, names, onlyMissing) {
+            default.visitClass(delegate, it)
         }
-        return visitor ?: default.visitClass(delegate, names)
     }
 
     override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
-        var visitor: PackageVisitor? = null
-        for (pair in from) {
-            visitor?.visitEnd()
-            visitor = fillNames(pair, names, onlyMissing) {
-                default.visitPackage(delegate, names)
-            }
+        return fillNames(from, names, onlyMissing) {
+            default.visitPackage(delegate, it)
         }
-        return visitor ?: default.visitPackage(delegate, names)
     }
 
     override fun visitField(
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, FieldDescriptor?>>
     ): FieldVisitor? {
-        var visitor: FieldVisitor? = null
-        for (pair in from) {
-            visitor?.visitEnd()
-            visitor = fillNames(pair, names, onlyMissing, { it.first to null }) {
-                default.visitField(delegate, names)
-            }
+        return fillNames(from, names, onlyMissing, { it.first to null }) {
+            default.visitField(delegate, it)
         }
-        return visitor ?: default.visitField(delegate, names)
     }
 
     override fun visitMethod(
         delegate: ClassVisitor,
         names: Map<Namespace, Pair<String, MethodDescriptor?>>
     ): MethodVisitor? {
-        var visitor: MethodVisitor? = null
-        for (pair in from) {
-            visitor?.visitEnd()
-            visitor = fillNames(pair, names, onlyMissing, { it.first to null }) {
-                default.visitMethod(delegate, names)
-            }
+        return fillNames(from, names, onlyMissing, { it.first to null }) {
+            default.visitMethod(delegate, it)
         }
-        return visitor ?: default.visitMethod(delegate, names)
     }
 
     override fun visitParameter(
@@ -100,14 +80,9 @@ class NameCopyDelegate(vararg val from: Pair<Namespace, Set<Namespace>>, val onl
         lvOrd: Int?,
         names: Map<Namespace, String>
     ): ParameterVisitor? {
-        var visitor: ParameterVisitor? = null
-        for (pair in from) {
-            visitor?.visitEnd()
-            visitor = fillNames(pair, names, onlyMissing) {
-                default.visitParameter(delegate, index, lvOrd, names)
-            }
+        return fillNames(from, names, onlyMissing) {
+            default.visitParameter(delegate, index, lvOrd, it)
         }
-        return visitor ?: default.visitParameter(delegate, index, lvOrd, names)
     }
 
     override fun visitLocalVariable(
@@ -116,14 +91,9 @@ class NameCopyDelegate(vararg val from: Pair<Namespace, Set<Namespace>>, val onl
         startOp: Int?,
         names: Map<Namespace, String>
     ): LocalVariableVisitor? {
-        var visitor: LocalVariableVisitor? = null
-        for (pair in from) {
-            visitor?.visitEnd()
-            visitor = fillNames(pair, names, onlyMissing) {
-                default.visitLocalVariable(delegate, lvOrd, startOp, names)
-            }
+        return fillNames(from, names, onlyMissing) {
+            default.visitLocalVariable(delegate, lvOrd, startOp, it)
         }
-        return visitor ?: default.visitLocalVariable(delegate, lvOrd, startOp, names)
     }
 
 }

@@ -39,8 +39,10 @@ class NameCopyTest {
             UMFReader.read(input)
         }
 
+        mappings.accept(mappings.copyNames(Namespace("intermediary") to setOf(Namespace("named"))))
+
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true).copyNames(Namespace("intermediary") to setOf(Namespace("named")), Namespace("named") to setOf(Namespace("extra"))))
+            mappings.accept(UMFWriter.write(output, true).copyNames(Namespace("named") to setOf(Namespace("extra"))))
             output.readUtf8()
         }
 

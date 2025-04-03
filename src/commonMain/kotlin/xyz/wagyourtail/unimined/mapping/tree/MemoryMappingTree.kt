@@ -173,11 +173,13 @@ class MemoryMappingTree : AbstractMappingTree() {
                         val nameMap = it.names.toMutableMap()
                         NameCopyDelegate.fillAllNames(toFill, nameMap)
                         it.setNames(nameMap)
-                        it.acceptInner(
-                            DelegateClassVisitor(it, NameCopyDelegate(*toFill)),
-                            namespaces,
-                            false
-                        )
+                        for (fill in toFill) {
+                            it.acceptInner(
+                                DelegateClassVisitor(it, NameCopyDelegate(fill)),
+                                namespaces,
+                                false
+                            )
+                        }
                     }
                 }
             ).awaitAll()
