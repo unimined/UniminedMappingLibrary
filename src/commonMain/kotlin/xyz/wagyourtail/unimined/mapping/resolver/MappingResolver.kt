@@ -259,9 +259,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                             toFill.add(entry.requires to targets)
                         }
                     }
-                    toFill.forEach {
-                        resolved!!.fillMissingNames(it)
-                    }
+                    resolved!!.fillMissingNames(*toFill.toTypedArray())
                 }.also {
                     LOGGER.info { "Filled in missing names in $it" }
                 }

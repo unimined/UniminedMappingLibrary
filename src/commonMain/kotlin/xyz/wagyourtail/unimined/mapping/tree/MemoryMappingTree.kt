@@ -12,7 +12,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.PackageVisitor
@@ -165,14 +164,14 @@ class MemoryMappingTree : AbstractMappingTree() {
                 async {
                     packages.parallelMap {
                         val nameMap = it.names.toMutableMap()
-                        NameCopyDelegate.fillNames(toFill, nameMap)
+                        NameCopyDelegate.fillAllNames(toFill, nameMap)
                         it.setNames(nameMap)
                     }
                 },
                 async {
                     classes.parallelMap {
                         val nameMap = it.names.toMutableMap()
-                        NameCopyDelegate.fillNames(toFill, nameMap)
+                        NameCopyDelegate.fillAllNames(toFill, nameMap)
                         it.setNames(nameMap)
                         it.acceptInner(
                             DelegateClassVisitor(it, NameCopyDelegate(*toFill)),
