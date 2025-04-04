@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertTrue
+import xyz.wagyourtail.commonskt.utils.unaryMinus
 
 class ConstantTests {
 
@@ -94,7 +95,7 @@ class ConstantTests {
         val c2 = Constant.read("10e+24")
         assertEquals(10e24, c2.getNumber()!!.asNumber())
 
-        val c3 = Constant.read("-NaND")
+        val c3 = Constant.read("NaND")
         val c3n = c3.getNumber()!!.asNumber()
         assertTrue(c3n is Double && c3n.isNaN())
 
