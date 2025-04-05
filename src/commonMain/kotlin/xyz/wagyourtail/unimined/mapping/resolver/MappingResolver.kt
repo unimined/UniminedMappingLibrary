@@ -231,6 +231,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 measureTime {
                     applyInheritanceTree(resolved) { pt ->
                         for (namespace in sortedNs) {
+                            if (namespace in unmappedNs) continue
+                            if (namespace == pt.fns) continue
                             pt.propagate(setOf(namespace))
                         }
                     }
