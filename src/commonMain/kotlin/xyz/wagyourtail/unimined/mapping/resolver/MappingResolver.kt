@@ -18,6 +18,7 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
+import xyz.wagyourtail.unimined.mapping.propagator.InheritanceTree
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
@@ -55,7 +56,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         return entries.entries.sortedBy { it.key }.joinToString("-") { it.value.id }
     }
 
-    open suspend fun propogator(tree: MemoryMappingTree): MemoryMappingTree = tree
+    open suspend fun applyInheritanceTree(tree: MemoryMappingTree, apply: suspend (InheritanceTree) -> Unit) {}
 
     fun checkedNsOrNull(name: String): Namespace? {
         val ns = Namespace(name)
@@ -228,7 +229,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                 LOGGER.info { "Propagating..." }
 
                 measureTime {
-                    resolved = propogator(resolved)
+                    applyInheritanceTree(resolved) { pt ->
+                        for (namespace in sortedNs) {
+                            pt.propagate(setOf(namespace))
+                        }
+                    }
                 }.also {
                     LOGGER.info { "Propagated in $it" }
                 }
