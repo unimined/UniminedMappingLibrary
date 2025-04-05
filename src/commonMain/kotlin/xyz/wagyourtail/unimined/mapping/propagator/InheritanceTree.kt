@@ -20,6 +20,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
+import kotlin.collections.filterValues
 
 abstract class InheritanceTree(val tree: AbstractMappingTree) {
     val LOGGER = KotlinLogging.logger {  }
@@ -29,7 +30,6 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
     abstract val classes: Map<InternalName, ClassInfo>
 
     suspend fun propagate(targets: Set<Namespace>) = coroutineScope {
-
         val classes = classes.filterValues { it.inMappings }
 
         // write classes
@@ -154,6 +154,10 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
             interfaces.mapNotNull { this@InheritanceTree.classes[it] }
         }
 
+        val children: List<ClassInfo> by lazy {
+            classes.values.filter { it.superClass == this || it.interfaceClasses.contains(this) }
+        }
+
         val allParents: List<ClassInfo> by lazy {
             buildList {
                 if (superClass != null) {
@@ -266,7 +270,7 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
                     val toOverwrite = names.filterKeys { it in needsOverwrite }
                     if (toOverwrite.isNotEmpty()) {
                         LOGGER.trace { "overwriting ${name}.${md} $toOverwrite" }
-                        overwriteParentMethodNames(md, toOverwrite)
+                        overwriteParentMethodNames(md, toOverwrite, mutableSetOf(name))
                     }
 
                     names[fns] = md.name
@@ -281,17 +285,28 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
         }
 
 
-        private fun overwriteMethodNames(md: MethodInfo, names: Map<Namespace, String>) {
+        private suspend fun overwriteMethodNames(md: MethodInfo, names: Map<Namespace, String>, visited: MutableSet<InternalName>) {
+            if (name in visited) return
+            visited += name
             if (md in methodData) {
-                methodData[md]!!.putAll(names)
-                overwriteParentMethodNames(md, names)
+                propagateLock.withLock {
+                    methodData[md]!!.putAll(names)
+                    overwriteParentMethodNames(md, names, visited)
+                    overwriteChildMethodNames(md, names, visited)
+                }
             }
         }
 
-        private fun overwriteParentMethodNames(md: MethodInfo, names: Map<Namespace, String>) {
-            superClass?.overwriteMethodNames(md, names)
+        private suspend fun overwriteParentMethodNames(md: MethodInfo, names: Map<Namespace, String>, visited: MutableSet<InternalName>) {
+            superClass?.overwriteMethodNames(md, names, visited)
             for (interfaceClass in interfaceClasses) {
-                interfaceClass.overwriteMethodNames(md, names)
+                interfaceClass.overwriteMethodNames(md, names, visited)
+            }
+        }
+
+        private suspend fun overwriteChildMethodNames(md: MethodInfo, names: Map<Namespace, String>, visited: MutableSet<InternalName>) {
+            for (child in children) {
+                child.overwriteMethodNames(md, names, visited)
             }
         }
 
