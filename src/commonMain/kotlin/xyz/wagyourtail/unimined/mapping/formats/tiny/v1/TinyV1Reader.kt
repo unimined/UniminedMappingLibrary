@@ -28,7 +28,7 @@ object TinyV1Reader : FormatReader {
     ) {
         val v = input.takeNextLiteral()
         if (v != "v1") throw IllegalArgumentException("Invalid tinyv1 file")
-        val namespaces = input.takeRemainingOnLine().map { Namespace(it) }
+        val namespaces = input.takeRemainingOnLine().map { Namespace(nsMapping[it] ?: it) }
 
         into.use {
             visitHeader(*namespaces.map { it.name }.toTypedArray())
