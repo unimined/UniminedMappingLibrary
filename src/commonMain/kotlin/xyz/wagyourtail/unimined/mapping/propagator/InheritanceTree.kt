@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.propagator
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.atomicfu.locks.ReentrantLock
+import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -179,7 +181,7 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
             }
         }
 
-        private val propagateLock = Mutex()
+        private val propagateLock = ReentrantLock()
 
         /**
          * map of inheritable methods to their names
