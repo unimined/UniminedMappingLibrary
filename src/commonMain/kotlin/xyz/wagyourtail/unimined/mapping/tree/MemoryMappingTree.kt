@@ -152,12 +152,34 @@ class MemoryMappingTree : AbstractMappingTree() {
                         val nameMap = it.names.toMutableMap()
                         NameCopyDelegate.fillAllNames(toFill, nameMap)
                         it.setNames(nameMap)
+                        listOf(
+                            async {
+                                it.fields.resolve()
+                            },
+                            async {
+                                it.methods.resolve()
+                            },
+                            async {
+                                it.wildcards.resolve()
+                            }
+                        ).awaitAll()
                         for (fill in toFill) {
                             it.acceptInner(
                                 DelegateClassVisitor(it, NameCopyDelegate(fill)),
                                 namespaces,
                                 false
                             )
+                            listOf(
+                                async {
+                                    it.fields.resolve()
+                                },
+                                async {
+                                    it.methods.resolve()
+                                },
+                                async {
+                                    it.wildcards.resolve()
+                                }
+                            ).awaitAll()
                         }
                     }
                 }
