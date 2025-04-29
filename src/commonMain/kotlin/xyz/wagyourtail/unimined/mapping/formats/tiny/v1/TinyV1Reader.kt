@@ -54,7 +54,11 @@ object TinyV1Reader : FormatReader {
                         val srcName = InternalName.read(namesIter.next())
                         nameMap[nsIter.next()] = srcName
                         while (namesIter.hasNext()) {
-                            nameMap[nsIter.next()] = InternalName.read(namesIter.next())
+                            val ns = nsIter.next()
+                            val name = namesIter.next()
+                            if (name.isNotEmpty()) {
+                                nameMap[ns] = InternalName.read(name)
+                            }
                         }
                         currentCls?.second?.visitEnd()
                         currentCls = srcName to visitClass(nameMap)
@@ -70,7 +74,11 @@ object TinyV1Reader : FormatReader {
                         val nameMap = mutableMapOf<Namespace, Pair<String, FieldDescriptor?>>()
                         nameMap[nsIter.next()] = srcName to srcDesc
                         while (namesIter.hasNext()) {
-                            nameMap[nsIter.next()] = namesIter.next() to null
+                            val ns = nsIter.next()
+                            val name = namesIter.next()
+                            if (name.isNotEmpty()) {
+                                nameMap[ns] = name to null
+                            }
                         }
                         if (currentCls?.first != srcClass) {
                             currentCls?.second?.visitEnd()
@@ -89,7 +97,11 @@ object TinyV1Reader : FormatReader {
                         val nameMap = mutableMapOf<Namespace, Pair<String, MethodDescriptor?>>()
                         nameMap[nsIter.next()] = srcName to srcDesc
                         while (namesIter.hasNext()) {
-                            nameMap[nsIter.next()] = namesIter.next() to null
+                            val ns = nsIter.next()
+                            val name = namesIter.next()
+                            if (name.isNotEmpty()) {
+                                nameMap[ns] = name to null
+                            }
                         }
                         if (currentCls?.first != srcClass) {
                             currentCls?.second?.visitEnd()
