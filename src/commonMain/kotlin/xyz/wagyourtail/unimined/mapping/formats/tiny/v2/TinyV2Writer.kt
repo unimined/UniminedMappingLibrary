@@ -25,7 +25,7 @@ object TinyV2Writer : FormatWriter {
 
     private fun String.escape(): String {
         if (this.isEmpty()) return this
-        return buildString {
+        return buildString(this.length) {
             for (c in this@escape) {
                 when (c) {
                     '\t' -> append("\\t")

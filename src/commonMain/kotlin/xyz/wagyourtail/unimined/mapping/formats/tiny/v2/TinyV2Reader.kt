@@ -24,7 +24,8 @@ object TinyV2Reader : FormatReader {
         if (this.isEmpty() || !this.contains("\\")) {
             return this
         }
-        return buildString {
+
+        return buildString(this.length) {
             var i = 0
             while (i < this@translateEscapes.length) {
                 val c = this@translateEscapes[i++]
