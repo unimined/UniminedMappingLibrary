@@ -90,7 +90,7 @@ object ATReader : FormatReader {
             } else {
                 memberDesc
             }
-        } else if (!memberDesc!!.endsWith(";") && memberDesc.substringAfterLast("(").startsWith("L")) {
+        } else if (!memberDesc!!.endsWith(";") && memberDesc.substringAfterLast(")").startsWith("L")) {
             "$memberDesc;"
         } else {
             memberDesc
