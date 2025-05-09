@@ -24,12 +24,27 @@ object LegacyATWriter : FormatWriter {
                     }
                     append(" ")
                     append(data.targetClass.toString())
-                    if (data.memberName != null) {
-                        append(".")
-                        append(data.memberName)
-                        if (data.memberDesc != null) {
-                            append(data.memberDesc)
+                    when (data) {
+                        is ATReader.ATDataClass -> {}
+                        is ATReader.ATDataField -> {
+                            append(".")
+                            append(data.memberName.toString())
                         }
+                        is ATReader.ATDataMethod -> {
+                            append(".")
+                            append(data.memberName.toString())
+                            append(data.memberDesc.toString())
+                        }
+                        is ATReader.ATDataFieldWildcard -> {
+                            append(".")
+                            append("*")
+                        }
+                        is ATReader.ATDataMethodWildcard -> {
+                            append(".")
+                            append("*")
+                            append(data.memberDesc?.toString() ?: "()")
+                        }
+                        else -> error("Unknown ATData type $data")
                     }
                 }
                 is ATReader.ATComment -> {

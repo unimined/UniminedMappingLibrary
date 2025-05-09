@@ -36,65 +36,82 @@ object ATWriter : FormatWriter {
         mappings.map {
             if (it is ATReader.ATData) {
                 val mappedClass = context.map(sourceNs, targetNs, it.targetClass)
-                if (it.isClass()) {
-                    ATReader.ATData(
-                        it.access,
-                        it.final,
-                        mappedClass,
-                        null,
-                        null
-                    )
-                } else {
-                    if (it.isWildcard()) {
-                        ATReader.ATData(
+                when (it) {
+                    is ATReader.ATDataClass -> {
+                        ATReader.ATDataClass(
+                            it.access,
+                            it.final,
+                            mappedClass
+                        )
+                    }
+
+                    is ATReader.ATDataField -> {
+                        val mappedField = context.map(
+                            sourceNs,
+                            targetNs,
+                            FullyQualifiedName(
+                                ObjectType(it.targetClass),
+                                NameAndDescriptor(
+                                    it.memberName,
+                                    null
+                                )
+                            )
+                        )
+                        val (name, desc) = mappedField.getParts().second!!.getParts()
+                        ATReader.ATDataField(
                             it.access,
                             it.final,
                             mappedClass,
-                            "*",
-                            it.memberDesc
+                            name
                         )
-                    } else {
-                        if (it.isMethod()) {
-                            val mappedMethod = context.map(
-                                sourceNs,
-                                targetNs,
-                                FullyQualifiedName(
-                                    ObjectType(it.targetClass),
-                                    NameAndDescriptor(
-                                        UnqualifiedName.unchecked(it.memberName!!),
-                                        FieldOrMethodDescriptor(it.fixedDesc())
-                                    )
+                    }
+
+                    is ATReader.ATDataMethod -> {
+                        val mappedMethod = context.map(
+                            sourceNs,
+                            targetNs,
+                            FullyQualifiedName(
+                                ObjectType(it.targetClass),
+                                NameAndDescriptor(
+                                    it.memberName,
+                                    FieldOrMethodDescriptor(it.memberDesc)
                                 )
                             )
-                            val (name, desc) = mappedMethod.getParts().second!!.getParts()
-                            ATReader.ATData(
-                                it.access,
-                                it.final,
-                                mappedClass,
-                                name.toString(),
-                                desc?.toString()
-                            )
-                        } else {
-                            val mappedField = context.map(
+                        )
+                        val (name, desc) = mappedMethod.getParts().second!!.getParts()
+                        ATReader.ATDataMethod(
+                            it.access,
+                            it.final,
+                            mappedClass,
+                            name,
+                            desc!!.getMethodDescriptor()
+                        )
+                    }
+
+                    is ATReader.ATDataMethodWildcard -> {
+                        val mappedDesc = it.memberDesc?.let {
+                            context.map(
                                 sourceNs,
                                 targetNs,
-                                FullyQualifiedName(
-                                    ObjectType(it.targetClass),
-                                    NameAndDescriptor(
-                                        UnqualifiedName.unchecked(it.memberName!!),
-                                        it.memberDesc?.let { FieldOrMethodDescriptor.unchecked(it) })
-                                )
-                            )
-                            val (name, desc) = mappedField.getParts().second!!.getParts()
-                            ATReader.ATData(
-                                it.access,
-                                it.final,
-                                mappedClass,
-                                name.toString(),
-                                desc?.toString()
+                                it
                             )
                         }
+                        ATReader.ATDataMethodWildcard(
+                            it.access,
+                            it.final,
+                            mappedClass,
+                            mappedDesc
+                        )
                     }
+
+                    is ATReader.ATDataFieldWildcard -> {
+                        ATReader.ATDataFieldWildcard(
+                            it.access,
+                            it.final,
+                            mappedClass
+                        )
+                    }
+                    else -> error("Unknown ATData type")
                 }
             } else {
                 it
@@ -341,15 +358,31 @@ object ATWriter : FormatWriter {
             }
 
             override fun visitFooter(delegate: MappingVisitor) {
-                finalizer(mappings.values.map { it.sortedBy {
+                finalizer(mappings.values.map { members ->
+                    members.sortedBy {
                     buildString {
                         append(it.targetClass.toString())
-                        if (it.memberName != null) {
-                            append('.')
-                            append(it.memberName)
-                            if (it.memberDesc != null) {
+                        when (it) {
+                            is ATReader.ATDataClass -> {}
+                            is ATReader.ATDataField -> {
+                                append('.')
+                                append(it.memberName)
+                            }
+                            is ATReader.ATDataMethod -> {
+                                append('.')
+                                append(it.memberName)
                                 append(it.memberDesc)
                             }
+                            is ATReader.ATDataFieldWildcard -> {
+                                append('.')
+                                append('*')
+                            }
+                            is ATReader.ATDataMethodWildcard -> {
+                                append('.')
+                                append('*')
+                                append(it.memberDesc ?: "()")
+                            }
+                            else -> error("Unknown ATData type $it")
                         }
                     }
                 } }.flatten())
@@ -370,12 +403,25 @@ object ATWriter : FormatWriter {
                     }
                     append(" ")
                     append(data.targetClass.toString().replace('/', '.'))
-                    if (data.memberName != null) {
-                        append(" ")
-                        append(data.memberName)
-                        if (data.memberDesc != null) {
-                            append(data.memberDesc)
+                    when (data) {
+                        is ATReader.ATDataClass -> {}
+                        is ATReader.ATDataField -> {
+                            append(" ")
+                            append(data.memberName.toString())
                         }
+                        is ATReader.ATDataMethod -> {
+                            append(" ")
+                            append(data.memberName.toString())
+                            append(data.memberDesc.toString())
+                        }
+                        is ATReader.ATDataFieldWildcard -> {
+                            append(" *")
+                        }
+                        is ATReader.ATDataMethodWildcard -> {
+                            append(" *")
+                            append(data.memberDesc?.toString() ?: "()")
+                        }
+                        else -> error("Unknown ATData type $data")
                     }
                 }
                 is ATReader.ATComment -> {

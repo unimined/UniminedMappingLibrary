@@ -5,10 +5,12 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.AccessParentVisitor
@@ -72,13 +74,11 @@ object ATReader : FormatReader {
 
     object ATNewline : ATItem
 
-    data class ATData private constructor(
-        val access: AccessFlag?,
-        val final: TriState,
-        val targetClass: InternalName,
-        val memberName: String?,
-        val memberDesc: String?
-    ) : ATItem {
+    interface ATData : ATItem {
+
+        val access: AccessFlag?
+        val final: TriState
+        val targetClass: InternalName
 
         companion object {
             fun fixDesc(memberName: String, memberDesc: String): String {
@@ -101,18 +101,61 @@ object ATReader : FormatReader {
                 targetClass: InternalName,
                 memberName: String?,
                 memberDesc: String?
-            ) = ATData(access, final, targetClass, memberName,
-                if (memberName != null && memberDesc != null) fixDesc(memberName, memberDesc) else memberDesc
-            )
+            ) =
+                if (memberName == null && memberDesc == null) {
+                    ATDataClass(access, final, targetClass)
+                } else if (memberName == "*") {
+                    if (memberDesc != null) {
+                        ATDataMethodWildcard(
+                            access, final, targetClass,
+                            if (memberDesc == "()") null else MethodDescriptor.read(fixDesc(memberName, memberDesc))
+                        )
+                    } else {
+                        ATDataFieldWildcard(access, final, targetClass)
+                    }
+                } else if (memberDesc == null) {
+                    ATDataField(access, final, targetClass, UnqualifiedName.read(memberName!!))
+                } else {
+                    ATDataMethod(access, final, targetClass, UnqualifiedName.read(memberName!!), MethodDescriptor.read(fixDesc(memberName, memberDesc)))
+                }
         }
-
-        fun isClass() = memberName == null && memberDesc == null
-        fun isMethod() = memberName != null && memberDesc != null
-        fun isField() = memberName != null && memberDesc == null
-        fun isWildcard() = memberName == "*"
-
-        fun fixedDesc() = MethodDescriptor.read(memberDesc!!)
     }
+
+    data class ATDataClass(
+        override val access: AccessFlag?,
+        override val final: TriState,
+        override val targetClass: InternalName,
+    ) : ATData
+
+    data class ATDataMethod(
+        override val access: AccessFlag?,
+        override val final: TriState,
+        override val targetClass: InternalName,
+        val memberName: UnqualifiedName,
+        val memberDesc: MethodDescriptor
+    ) : ATData
+
+    data class ATDataField(
+        override val access: AccessFlag?,
+        override val final: TriState,
+        override val targetClass: InternalName,
+        val memberName: UnqualifiedName
+    ) : ATData
+
+    interface ATDataWildcard : ATData
+
+    data class ATDataFieldWildcard(
+        override val access: AccessFlag?,
+        override val final: TriState,
+        override val targetClass: InternalName
+    ) : ATDataWildcard
+
+    data class ATDataMethodWildcard(
+        override val access: AccessFlag?,
+        override val final: TriState,
+        override val targetClass: InternalName,
+        val memberDesc: MethodDescriptor?
+    ) : ATDataWildcard
 
     enum class TriState {
         ADD,
@@ -186,12 +229,17 @@ object ATReader : FormatReader {
             for (at in data) {
                 if (at !is ATData) continue
                 visitClass(mapOf(ns to at.targetClass))?.use {
-                    if (at.isClass()) {
+                    if (at is ATDataClass) {
                         applyAccess(at.access, at.final, nsSet)
                     } else {
-                        if (at.isWildcard()) {
-                            if (at.isMethod()) {
-                                visitWildcard(WildcardNode.WildcardType.METHOD, emptyMap())?.use {
+                        if (at is ATDataWildcard) {
+                            if (at is ATDataMethodWildcard) {
+                                val map = if (at.memberDesc != null) {
+                                    mapOf(ns to FieldOrMethodDescriptor(at.memberDesc))
+                                } else {
+                                    emptyMap()
+                                }
+                                visitWildcard(WildcardNode.WildcardType.METHOD, map)?.use {
                                     applyAccess(at.access, at.final, nsSet)
                                 }
                             } else {
@@ -200,13 +248,14 @@ object ATReader : FormatReader {
                                 }
                             }
                         } else {
-                            if (at.isMethod()) {
-                                visitMethod(mapOf(ns to (at.memberName!! to at.fixedDesc())))?.use {
+                            if (at is ATDataMethod) {
+                                visitMethod(mapOf(ns to (at.memberName.toString() to at.memberDesc)))?.use {
                                     applyAccess(at.access, at.final, nsSet)
                                     visitEnd()
                                 }
                             } else {
-                                visitField(mapOf(ns to (at.memberName!! to null)))?.use {
+                                if (at !is ATDataField) error("unknown ATData type $at")
+                                visitField(mapOf(ns to (at.memberName.toString() to null)))?.use {
                                     applyAccess(at.access, at.final, nsSet)
                                 }
                             }
