@@ -72,30 +72,46 @@ object ATReader : FormatReader {
 
     object ATNewline : ATItem
 
-    data class ATData(
+    data class ATData private constructor(
         val access: AccessFlag?,
         val final: TriState,
         val targetClass: InternalName,
         val memberName: String?,
         val memberDesc: String?
     ) : ATItem {
+
+        companion object {
+            fun fixDesc(memberName: String, memberDesc: String): String {
+                return if (memberName == "<init>") {
+                    if (memberDesc.endsWith(")")) {
+                        memberDesc + "V"
+                    } else {
+                        memberDesc
+                    }
+                } else if (!memberDesc.endsWith(";") && memberDesc.substringAfterLast(")").startsWith("L")) {
+                    "$memberDesc;"
+                } else {
+                    memberDesc
+                }
+            }
+
+            operator fun invoke(
+                access: AccessFlag?,
+                final: TriState,
+                targetClass: InternalName,
+                memberName: String?,
+                memberDesc: String?
+            ) = ATData(access, final, targetClass, memberName,
+                if (memberName != null && memberDesc != null) fixDesc(memberName, memberDesc) else memberDesc
+            )
+        }
+
         fun isClass() = memberName == null && memberDesc == null
         fun isMethod() = memberName != null && memberDesc != null
         fun isField() = memberName != null && memberDesc == null
         fun isWildcard() = memberName == "*"
 
-        fun fixedDesc() = MethodDescriptor.read(if (memberName == "<init>") {
-            if (memberDesc!!.endsWith(")")) {
-                memberDesc + "V"
-            } else {
-                memberDesc
-            }
-        } else if (!memberDesc!!.endsWith(";") && memberDesc.substringAfterLast("(").startsWith("L")) {
-            "$memberDesc;"
-        } else {
-            memberDesc
-        })
-
+        fun fixedDesc() = MethodDescriptor.read(memberDesc!!)
     }
 
     enum class TriState {
