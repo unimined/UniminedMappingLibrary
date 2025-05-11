@@ -217,6 +217,7 @@ class ATReadWriteTest {
     @Test
     fun testBadlyFormattedLegacyAt() = runTest {
         Buffer().use {
+            LegacyATReader.leinient = true
             val data = LegacyATReader.readData(StringCharReader("""
                 public+f net/minecraft/class_3720.<init>() # missing return type
                 public-f net/minecraft/class_3720.method_10(Lnet/minecraft/class1830;III)Lnet/minecraft/class_2338 # missing ; on return

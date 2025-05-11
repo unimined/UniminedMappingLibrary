@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.formats.at
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
@@ -22,6 +23,9 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
  * This reads AT files written in the format found in forge 1.7-current
  */
 object ATReader : FormatReader {
+    private val logger = KotlinLogging.logger {  }
+
+    var leinient = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         val cfg = fileName.substringAfterLast('.') in setOf("at", "cfg")
@@ -82,14 +86,8 @@ object ATReader : FormatReader {
 
         companion object {
             fun fixDesc(memberName: String, memberDesc: String): String {
-                return if (memberName == "<init>") {
-                    if (memberDesc.endsWith(")")) {
-                        memberDesc + "V"
-                    } else {
-                        memberDesc
-                    }
-                } else if (!memberDesc.endsWith(";") && memberDesc.substringAfterLast(")").startsWith("L")) {
-                    "$memberDesc;"
+                return if (memberName == "<init>" && memberDesc.endsWith(")")) {
+                    memberDesc + "V"
                 } else {
                     memberDesc
                 }
@@ -198,6 +196,7 @@ object ATReader : FormatReader {
                 continue
             }
 
+            input.mark()
             val access = input.takeNextLiteral { it.isWhitespace() }!!.parseAccess()
 
             val targetClass = InternalName.read(input.takeUntil { it.isWhitespace() }.replace(".", "/"))
@@ -205,7 +204,19 @@ object ATReader : FormatReader {
             val memberName = if (input.peek() == '#') null else input.takeUntil { it.isWhitespace() || it == '(' }.ifEmpty { null }
             val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifEmpty { null }?.replace(".", "/")
 
-            data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
+            try {
+                data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
+            } catch (e: Exception) {
+                if (leinient) {
+                    logger.warn(e) {
+                        input.reset()
+                        val line = input.takeLine()
+                        "Failed to parse at line (skipping): ${line}"
+                    }
+                } else {
+                    throw e
+                }
+            }
 
             val remaining = input.takeLine().trimStart()
             if (remaining.isNotEmpty()) {
