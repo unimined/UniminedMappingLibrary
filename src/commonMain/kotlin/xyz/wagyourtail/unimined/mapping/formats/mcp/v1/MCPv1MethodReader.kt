@@ -106,10 +106,10 @@ object MCPv1MethodReader : FormatReader {
                     delegate: ClassVisitor,
                     names: Map<Namespace, Pair<String, MethodDescriptor?>>
                 ): MethodVisitor? {
-                    val ns = names[srcNs] ?: return super.visitMethod(delegate, names)
-                    val mData = data[ns.first] ?: (ns.first to null)
+                    val ns = names[srcNs] ?: return null
+                    val mData = data[ns.first] ?: return null
                     val nameMap = names.toMutableMap()
-                    nameMap[dstNs] = mData.first to ns.second
+                    nameMap[dstNs] = mData.first to null
                     val visitor = default.visitMethod(delegate, nameMap)
                     if (mData.second != null) {
                         visitor?.visitJavadoc(mData.second!!, setOf(dstNs))?.visitEnd()

@@ -80,9 +80,9 @@ object MCPv6FieldReader : FormatReader {
                     names: Map<Namespace, Pair<String, FieldDescriptor?>>
                 ): FieldVisitor? {
                     val ns = names[srcNs] ?: return super.visitField(delegate, names)
-                    val fdata = data[ns.first] ?: (ns.first to null)
+                    val fdata = data[ns.first] ?: return super.visitField(delegate, names)
                     val nameMap = names.toMutableMap()
-                    nameMap[dstNs] = fdata.first to ns.second
+                    nameMap[dstNs] = fdata.first to null
                     val visitor = default.visitField(delegate, nameMap)
                     if (fdata.second != null) {
                         visitor?.visitJavadoc(fdata.second!!, setOf(dstNs))?.visitEnd()
