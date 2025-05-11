@@ -22,12 +22,12 @@ interface TypeCompanion<T: Type> {
         StringCharReader(value).let { buf ->
             val readVal = read(buf)
             if (!buf.exhausted()) {
-                throw IllegalArgumentException("Invalid type: \"${value.escape()}\", not fully read, remaining: \"${buf.takeRemaining().let { if (it.length > 100) it.substring(0, 100) + "..." else it }.escape()}\"")
+                throw IllegalArgumentException("Invalid ${unchecked("null")::class.simpleName}: \"${value.escape()}\", not fully read, remaining: \"${buf.takeRemaining().let { if (it.length > 100) it.substring(0, 100) + "..." else it }.escape()}\"")
             }
             readVal
         }
     } catch (e: Exception) {
-        throw IllegalArgumentException("Invalid type: $value, reading \"${value.escape()}\"", e)
+        throw IllegalArgumentException("${e.message}, reading \"${value.escape()}\"", e)
     }
 
     fun read(reader: CharReader<*>, append: (Any) -> Unit)
@@ -37,7 +37,7 @@ interface TypeCompanion<T: Type> {
             read(reader) { append(it) }
         })
     } catch (e: Exception) {
-        throw IllegalArgumentException("Invalid type ${unchecked("null")::class.simpleName}", e)
+        throw IllegalArgumentException("Invalid ${unchecked("null")::class.simpleName}", e)
     }
 
     fun unchecked(value: String): T
