@@ -46,11 +46,11 @@ object ATReader : FormatReader {
             }
             return AccessFlag.valueOf(accessStr) to TriState.LEAVE
         }
-        val accessStr = this.substring(0, this.length - 2)
+        val accessStr = this.substring(0, this.length - 2).uppercase()
         val access = if (accessStr == "DEFAULT") {
             null
         } else {
-            AccessFlag.valueOf(accessStr.uppercase())
+            AccessFlag.valueOf(accessStr)
         }
         if (access !in AccessFlag.visibility) {
             throw IllegalArgumentException("Unexpected access flag $access")
