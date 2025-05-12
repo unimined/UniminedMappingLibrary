@@ -21,13 +21,14 @@ import xyz.wagyourtail.commonskt.utils.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import kotlin.jvm.JvmStatic
 
 /**
  * Our format to represent everything.
  */
 object UMFReader : FormatReader {
 
-    @Suppress("MemberVisibilityCanBePrivate")
+    @JvmStatic
     var uncheckedReading = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {

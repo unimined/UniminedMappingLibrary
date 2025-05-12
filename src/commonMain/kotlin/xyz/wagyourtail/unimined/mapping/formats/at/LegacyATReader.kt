@@ -11,6 +11,7 @@ import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.parseAccess
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import kotlin.jvm.JvmStatic
 
 /**
  * This reads AT files written in the format found in forge 1.3-1.6.4
@@ -18,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object LegacyATReader : FormatReader {
     private val logger = KotlinLogging.logger {  }
 
+    @JvmStatic
     var leinient = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
