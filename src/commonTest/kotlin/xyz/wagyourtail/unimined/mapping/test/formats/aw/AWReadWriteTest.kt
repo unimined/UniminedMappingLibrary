@@ -168,4 +168,11 @@ c	net/minecraft/class_3721
 
     }
 
+    @Test
+    fun testWithExtraSpaces() = runTest {
+        val betterRead = AWReader.readData(StringCharReader(awText.replace(" ", "    ")))
+        val betterWrite = buildString { AWWriter.writeData(betterRead, ::append) }
+        assertEquals(awText, betterWrite.trimEnd().replace("\t", " ").replace("    ", " "))
+    }
+
 }
