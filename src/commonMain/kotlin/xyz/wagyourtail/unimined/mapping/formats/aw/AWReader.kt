@@ -174,7 +174,9 @@ object AWReader: FormatReader {
 
     fun readData(input: CharReader<*>): AWMappings {
         val aw = input.takeNextLiteral { it.isWhitespace() }
+        input.takeWhitespace()
         val version = input.takeNextLiteral { it.isWhitespace() }
+        input.takeWhitespace()
         val namespace = input.takeNextLiteral { it.isWhitespace() }!!
         val targets = mutableListOf<AWItem>()
 
@@ -216,7 +218,9 @@ object AWReader: FormatReader {
             }
 
             val access = input.takeNextLiteral { it.isWhitespace() }!!
+            input.takeWhitespace()
             val target = input.takeNextLiteral { it.isWhitespace() }!!
+            input.takeWhitespace()
 
             if (!access.startsWith("transitive-") && !allowNonTransitive) {
                 input.takeLine()
@@ -231,7 +235,9 @@ object AWReader: FormatReader {
 
                 "method" -> {
                     val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    input.takeWhitespace()
                     val method = input.takeNextLiteral { it.isWhitespace() }!!
+                    input.takeWhitespace()
                     val desc = MethodDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
                     targets.add(
                         AWData(
@@ -246,7 +252,9 @@ object AWReader: FormatReader {
 
                 "field" -> {
                     val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    input.takeWhitespace()
                     val field = input.takeNextLiteral { it.isWhitespace() }!!
+                    input.takeWhitespace()
                     val desc = FieldDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
                     targets.add(
                         AWData(
