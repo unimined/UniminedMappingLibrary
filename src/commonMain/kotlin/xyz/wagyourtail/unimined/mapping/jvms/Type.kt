@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.commonskt.utils.escape
+import kotlin.jvm.JvmOverloads
 
 interface Type {
 
@@ -18,13 +19,22 @@ interface TypeCompanion<T: Type> {
 
     fun shouldRead(reader: CharReader<*>): Boolean
 
-    fun read(value: String) = try {
-        StringCharReader(value).let { buf ->
-            val readVal = read(buf)
-            if (!buf.exhausted()) {
-                throw IllegalArgumentException("Invalid ${unchecked("null")::class.simpleName}: \"${value.escape()}\", not fully read, remaining: \"${buf.takeRemaining().let { if (it.length > 100) it.substring(0, 100) + "..." else it }.escape()}\"")
+    fun read(value: String, unchecked: Boolean = false) = try {
+        if (unchecked) {
+            unchecked(value)
+        } else {
+            StringCharReader(value).let { buf ->
+                val readVal = read(buf)
+                if (!buf.exhausted()) {
+                    throw IllegalArgumentException(
+                        "Invalid ${unchecked("null")::class.simpleName}: \"${value.escape()}\", not fully read, remaining: \"${
+                            buf.takeRemaining().let { if (it.length > 100) it.substring(0, 100) + "..." else it }
+                                .escape()
+                        }\""
+                    )
+                }
+                readVal
             }
-            readVal
         }
     } catch (e: Exception) {
         throw IllegalArgumentException("${e.message}, reading \"${value.escape()}\"", e)

@@ -12,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
 object SrgWriter : FormatWriter {
+
     override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
 
         return EmptyMappingVisitor().delegator(object : NullDelegator() {

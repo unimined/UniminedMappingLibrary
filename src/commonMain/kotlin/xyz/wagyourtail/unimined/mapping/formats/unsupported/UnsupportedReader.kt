@@ -4,10 +4,17 @@ import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object UnsupportedReader : FormatReader {
+
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
+
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return false
     }
@@ -17,7 +24,8 @@ object UnsupportedReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         throw UnsupportedOperationException("Unsupported format")
     }
@@ -27,7 +35,8 @@ object UnsupportedReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         throw UnsupportedOperationException("Unsupported format")
     }

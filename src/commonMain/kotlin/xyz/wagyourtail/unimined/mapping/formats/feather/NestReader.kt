@@ -5,6 +5,7 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
@@ -27,6 +28,12 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
  */
 object NestReader : FormatReader {
 
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
+
+
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return fileName.endsWith(".nest")
     }
@@ -36,7 +43,8 @@ object NestReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         val ns = Namespace(nsMapping["source"] ?: "source")
 

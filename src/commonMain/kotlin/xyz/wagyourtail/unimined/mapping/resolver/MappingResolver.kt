@@ -15,6 +15,7 @@ import xyz.wagyourtail.commonskt.utils.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
@@ -30,10 +31,13 @@ import kotlin.jvm.JvmOverloads
 import kotlin.time.measureTime
 
 @Scoped
-abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
+abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : FormatReaderSettings {
     companion object {
         private val LOGGER = KotlinLogging.logger {}
     }
+
+    override var unchecked: Boolean by FinalizeOnRead(false)
+    override var leinient: Boolean by FinalizeOnRead(false)
 
     var finalized = false
         private set
@@ -151,7 +155,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
             measureTime {
                 for (entry in values) {
-                    resolvedEntries.addAll(entry.expand())
+                    resolvedEntries.addAll(entry.expand().filter { !it.skip })
                 }
 
                 while (resolvedEntries.isNotEmpty()) {
@@ -210,7 +214,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
                                 resolved,
                                 target,
                                 envType,
-                                entry.mapNs.map { it.key.name to it.value.name }.toMap()
+                                entry.mapNs.map { it.key.name to it.value.name }.toMap(),
+                                entry as FormatReaderSettings,
                             )
                             if (target != visitor) {
                                 entry.preProcess(target as MemoryMappingTree)
@@ -329,7 +334,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
         }
     }
 
-    open inner class MappingConfig(val content: ContentProvider) {
+    open inner class MappingConfig(val content: ContentProvider) : FormatReaderSettings {
+
+        override var unchecked: Boolean by FinalizeOnRead(LazyMutable { this@MappingResolver.unchecked })
+        override var leinient: Boolean by FinalizeOnRead(LazyMutable { this@MappingResolver.leinient })
+
         var requires: Namespace by FinalizeOnRead(Namespace("official"))
         val provides = finalizableSetOf<Pair<Namespace, Boolean>>()
         val mapNs = finalizableMapOf<Namespace, Namespace>()
@@ -386,6 +395,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) {
 
         fun combineWith(other: MappingConfig) {
             requires = other.requires
+            leinient = leinient || other.leinient
+            unchecked = unchecked || other.unchecked
             provides.addAll(other.provides)
             mapNs.putAll(other.mapNs)
             skip = other.skip

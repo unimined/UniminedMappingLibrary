@@ -6,12 +6,12 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.ATData
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.parseAccess
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import kotlin.jvm.JvmStatic
 
 /**
  * This reads AT files written in the format found in forge 1.3-1.6.4
@@ -19,8 +19,11 @@ import kotlin.jvm.JvmStatic
 object LegacyATReader : FormatReader {
     private val logger = KotlinLogging.logger {  }
 
-    @JvmStatic
-    var leinient = false
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         val cfg = fileName.substringAfterLast('.') == "cfg"
@@ -33,14 +36,15 @@ object LegacyATReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         val ns = Namespace(nsMapping["source"] ?: "source")
-        val data = readData(input)
+        val data = readData(input, settings.leinient || leinient)
         ATReader.applyData(data, into, ns)
     }
 
-    fun readData(input: CharReader<*>): List<ATReader.ATItem> {
+    fun readData(input: CharReader<*>, leinient: Boolean = LegacyATReader.leinient): List<ATReader.ATItem> {
         val data = mutableListOf<ATReader.ATItem>()
         while (!input.exhausted()) {
             if (input.peek() == '\n') {

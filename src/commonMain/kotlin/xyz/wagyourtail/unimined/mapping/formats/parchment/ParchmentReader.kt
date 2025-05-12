@@ -6,6 +6,7 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -15,6 +16,11 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object ParchmentReader : FormatReader {
+
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         if (fileName.substringAfterLast('/') != "parchment.json") return false
@@ -26,7 +32,8 @@ object ParchmentReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         val srcNs = Namespace(nsMapping["source"] ?: "source")
 

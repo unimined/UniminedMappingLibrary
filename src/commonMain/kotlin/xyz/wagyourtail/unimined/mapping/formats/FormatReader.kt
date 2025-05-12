@@ -8,7 +8,13 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
-interface FormatReader {
+interface FormatReader : FormatReaderSettings {
+
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean
+
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean
 
     val name: String
         get() = this::class.simpleName!!.removeSuffix("Reader").lowercase()
@@ -20,18 +26,20 @@ interface FormatReader {
     suspend fun read(
         content: String,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     ): MemoryMappingTree = MemoryMappingTree().also {
-        read(StringCharReader(content.replace("\r", "")), null, it, envType, nsMapping)
+        read(StringCharReader(content.replace("\r", "")), null, it, envType, nsMapping, settings)
     }
 
     suspend fun read(
         content: String,
         into: AbstractMappingTree,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     ) {
-        read(StringCharReader(content.replace("\r", "")), into, into, envType, nsMapping)
+        read(StringCharReader(content.replace("\r", "")), into, into, envType, nsMapping, settings)
     }
 
     suspend fun read(
@@ -39,24 +47,27 @@ interface FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
-    ) = read(StringCharReader(content.replace("\r", "")), context, into, envType, nsMapping)
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
+    ) = read(StringCharReader(content.replace("\r", "")), context, into, envType, nsMapping, settings)
 
     suspend fun read(
         input: BufferedSource,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     ): MemoryMappingTree = MemoryMappingTree().also {
-        read(input, null, it, envType, nsMapping)
+        read(input, null, it, envType, nsMapping, settings)
     }
 
     suspend fun read(
         input: BufferedSource,
         into: AbstractMappingTree,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     ) {
-        read(StringCharReader(input.readUtf8().replace("\r", "")), into, into, envType, nsMapping)
+        read(StringCharReader(input.readUtf8().replace("\r", "")), into, into, envType, nsMapping, settings)
     }
 
     suspend fun read(
@@ -64,26 +75,29 @@ interface FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     ) {
-        read(StringCharReader(input.readUtf8().replace("\r", "")), context, into, envType, nsMapping)
+        read(StringCharReader(input.readUtf8().replace("\r", "")), context, into, envType, nsMapping, settings)
     }
 
     suspend fun read(
         input: CharReader<*>,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     ): MemoryMappingTree = MemoryMappingTree().also {
-        read(input, null, it, envType, nsMapping)
+        read(input, null, it, envType, nsMapping, settings)
     }
 
     suspend fun read(
         input: CharReader<*>,
         into: AbstractMappingTree,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     ) {
-        read(input, into, into, envType, nsMapping)
+        read(input, into, into, envType, nsMapping, settings)
     }
 
     suspend fun read(
@@ -91,7 +105,8 @@ interface FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType = EnvType.JOINED,
-        nsMapping: Map<String, String> = mapOf()
+        nsMapping: Map<String, String> = mapOf(),
+        settings: FormatReaderSettings = this,
     )
 
 }

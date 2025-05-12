@@ -7,11 +7,17 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 object ZipReader : FormatReader {
+
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         input.peek().use {
@@ -29,7 +35,8 @@ object ZipReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         ZipFS(input).use { zip ->
             val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
@@ -40,7 +47,9 @@ object ZipReader : FormatReader {
                     context,
                     into,
                     envType,
-                    nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") })
+                    nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") },
+                    settings or this,
+                )
             }
         }
     }
@@ -50,7 +59,8 @@ object ZipReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings,
     ) {
         throw UnsupportedOperationException("ZipReader does not support CharReader")
     }

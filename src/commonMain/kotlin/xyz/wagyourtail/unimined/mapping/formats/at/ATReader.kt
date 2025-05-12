@@ -6,6 +6,7 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
@@ -18,7 +19,6 @@ import xyz.wagyourtail.unimined.mapping.visitor.AccessParentVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
-import kotlin.jvm.JvmStatic
 
 /**
  * This reads AT files written in the format found in forge 1.7-current
@@ -26,8 +26,11 @@ import kotlin.jvm.JvmStatic
 object ATReader : FormatReader {
     private val logger = KotlinLogging.logger {  }
 
-    @JvmStatic
-    var leinient = false
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         val cfg = fileName.substringAfterLast('.') in setOf("at", "cfg")
@@ -168,14 +171,15 @@ object ATReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         val ns = Namespace(nsMapping["source"] ?: "source")
-        val data = readData(input)
+        val data = readData(input, settings.leinient || leinient)
         applyData(data, into, ns)
     }
 
-    fun readData(input: CharReader<*>): List<ATItem> {
+    fun readData(input: CharReader<*>, leinient: Boolean = ATReader.leinient): List<ATItem> {
         val data = mutableListOf<ATItem>()
         while (!input.exhausted()) {
             if (input.peek() == '\n') {

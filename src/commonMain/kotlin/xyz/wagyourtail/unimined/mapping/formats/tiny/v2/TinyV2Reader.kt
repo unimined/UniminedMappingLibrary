@@ -6,6 +6,7 @@ import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -16,6 +17,11 @@ import xyz.wagyourtail.unimined.mapping.visitor.*
  * FabricMC's tinyv2 format.
  */
 object TinyV2Reader : FormatReader {
+
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
 
     /**
      * translate escapes function that only does the ones actually allowed by tinyv2
@@ -59,7 +65,8 @@ object TinyV2Reader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
         val v = input.takeNextLiteral()
         if (v != "tiny") throw IllegalArgumentException("Invalid tinyv2 file")

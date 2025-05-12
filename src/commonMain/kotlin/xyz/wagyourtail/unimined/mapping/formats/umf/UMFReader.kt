@@ -18,6 +18,7 @@ import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.filterNotNullValues
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.visitor.*
@@ -28,8 +29,18 @@ import kotlin.jvm.JvmStatic
  */
 object UMFReader : FormatReader {
 
+    @Deprecated("set within the settings argument instead")
+    override var unchecked: Boolean = false
+    @Deprecated("set within the settings argument instead")
+    override var leinient: Boolean = false
+
     @JvmStatic
-    var uncheckedReading = false
+    @Deprecated("set within the settings argument instead")
+    var uncheckedReading
+        get() = unchecked
+        set(value) {
+            unchecked = value
+        }
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         return input.peek().readUtf8Line()?.lowercase()?.startsWith("umf") == true
@@ -83,12 +94,20 @@ object UMFReader : FormatReader {
         context: AbstractMappingTree?,
         into: MappingVisitor,
         envType: EnvType,
-        nsMapping: Map<String, String>
+        nsMapping: Map<String, String>,
+        settings: FormatReaderSettings
     ) {
-        readNonBlocking(envType, input, context, into, nsMapping)
+        readNonBlocking(settings, envType, input, context, into, nsMapping)
     }
 
-    fun readNonBlocking(envType: EnvType, input: CharReader<*>, context: AbstractMappingTree?, into: MappingVisitor, nsMapping: Map<String, String>) {
+    fun readNonBlocking(
+        settings: FormatReaderSettings = this,
+        envType: EnvType,
+        input: CharReader<*>,
+        context: AbstractMappingTree?,
+        into: MappingVisitor,
+        nsMapping: Map<String, String>
+    ) {
         var token = input.takeNext()!!
         if (token.lowercase() != "umf") {
             throw IllegalArgumentException("Invalid UMF file, expected UMF header found ${token}")
@@ -122,7 +141,7 @@ object UMFReader : FormatReader {
 
             val visitStack = mutableListOf<BaseVisitor<*>?>(into)
             val indentStack = mutableListOf(-1)
-            readWithStack(envType, input, context, into, nsMapping, visitStack, indentStack, ::getNamespace)
+            readWithStack(envType, input, context, into, nsMapping, visitStack, indentStack, ::getNamespace, settings)
         }
     }
 
@@ -134,9 +153,10 @@ object UMFReader : FormatReader {
         nsMapping: Map<String, String>,
         visitStack: MutableList<BaseVisitor<*>?>,
         indentStack: MutableList<Int>,
-        getNamespace: (Int) -> Namespace
+        getNamespace: (Int) -> Namespace,
+        settings: FormatReaderSettings = this
     ) {
-        val unchecked = uncheckedReading
+        val unchecked = uncheckedReading || settings.unchecked
         val initialSize = visitStack.size
         var line = 2
         lateinit var token: String
