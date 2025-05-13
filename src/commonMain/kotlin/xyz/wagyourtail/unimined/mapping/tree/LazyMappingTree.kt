@@ -171,6 +171,14 @@ class LazyMappingTree : AbstractMappingTree() {
         return node.visitConstantGroup(type, name, baseNs, namespaces)
     }
 
+    fun nonLazyAccept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, sort: Boolean = false) {
+        return super.accept(visitor, nsFilter, sort)
+    }
+
+    override fun accept(visitor: MappingVisitor, nsFilter: List<Namespace>, sort: Boolean) {
+        return lazyAccept(visitor, nsFilter)
+    }
+
     fun lazyAccept(visitor: MappingVisitor, nsFilter: Collection<Namespace> = namespaces) {
         visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
         for (pkg in _packages) {

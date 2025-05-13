@@ -355,7 +355,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         mergeNs(namespaces.map { Namespace(it) }.toSet())
     }
 
-    fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, sort: Boolean = false) {
+    open fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, sort: Boolean = false) {
         acceptInner(visitor, nsFilter, sort)
         visitor.visitEnd()
     }

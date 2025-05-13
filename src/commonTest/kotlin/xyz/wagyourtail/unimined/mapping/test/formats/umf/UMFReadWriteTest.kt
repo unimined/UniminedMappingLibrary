@@ -176,7 +176,7 @@ c	net/minecraft/class_310	_	net/minecraft/Minecraft
             }
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, false))
+            mappings.nonLazyAccept(UMFWriter.write(output, false))
             output.readUtf8()
         }
 

@@ -288,7 +288,13 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
 
-            this.resolved = resolved
+            this.resolved = if (resolved is LazyMappingTree) {
+                resolved
+            } else {
+                val lazy = LazyMappingTree()
+                resolved.accept(lazy, sort = true)
+                lazy
+            }
 
             LOGGER.info { "Resolved to lazy tree" }
             this.resolved
