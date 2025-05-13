@@ -29,6 +29,9 @@ class ATReadWriteTest {
         protected-f net.minecraft.class_3721
         public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         private net.minecraft.class_3721 field_19158
+        
+        # default
+        default-f net.minecraft.class_3722
     """.trimIndent()
 
     val legacyAtText = """
@@ -40,6 +43,9 @@ class ATReadWriteTest {
         protected-f net/minecraft/class_3721
         public-f net/minecraft/class_3721.method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         private net/minecraft/class_3721.field_19158
+        
+        # default
+        default-f net/minecraft/class_3722
     """.trimIndent()
 
     val umfText = """
@@ -61,6 +67,8 @@ class ATReadWriteTest {
         	m	method_31659;(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         		a	+	public	*	source
         		a	-	final	*	source
+        c	net/minecraft/class_3722
+        	a	-	final	*	source
     """.trimIndent()
 
     @Test
@@ -112,6 +120,7 @@ class ATReadWriteTest {
             protected-f net.minecraft.class_3721
             private net.minecraft.class_3721 field_19158
             public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+            default-f net.minecraft.class_3722
         """.trimIndent(), out.trimEnd())
     }
 
@@ -134,6 +143,7 @@ class ATReadWriteTest {
             protected-f net/minecraft/class_3721
             private net/minecraft/class_3721.field_19158
             public-f net/minecraft/class_3721.method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+            default-f net/minecraft/class_3722
         """.trimIndent(), out.trimEnd())
     }
 
@@ -183,6 +193,9 @@ class ATReadWriteTest {
             protected-f net.minecraft.block.entity.BellBlockEntity
             public-f net.minecraft.block.entity.BellBlockEntity serverTick(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/block/entity/BellBlockEntity;)V
             private net.minecraft.block.entity.BellBlockEntity resonateTime
+            
+            # default
+            default-f net.minecraft.block.entity.LecternBlockEntity
         """.trimIndent(), betterWrite.trimEnd())
     }
 
@@ -210,6 +223,7 @@ class ATReadWriteTest {
             extendable	class	net/minecraft/class_3721
             accessible	method	net/minecraft/class_3721	method_31659	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
             extendable	method	net/minecraft/class_3721	method_31659	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+            extendable	class	net/minecraft/class_3722
         """.trimIndent(), aw.trimEnd())
 
     }

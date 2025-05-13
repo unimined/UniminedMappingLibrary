@@ -52,7 +52,7 @@ object ATReader : FormatReader {
         } else {
             AccessFlag.valueOf(accessStr)
         }
-        if (access !in AccessFlag.visibility) {
+        if (access != null && access !in AccessFlag.visibility) {
             throw IllegalArgumentException("Unexpected access flag $access")
         }
         val final = when (this.substring(this.length - 2).lowercase()) {
