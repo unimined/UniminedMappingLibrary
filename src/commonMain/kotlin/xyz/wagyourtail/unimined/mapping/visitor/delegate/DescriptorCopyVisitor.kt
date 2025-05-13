@@ -4,7 +4,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
-import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
@@ -12,7 +12,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.WildcardVisitor
 
-class DescriptorCopyDelegator(val context: MemoryMappingTree) : Delegator() {
+class DescriptorCopyDelegator(val context: AbstractMappingTree) : Delegator() {
 
     override fun visitMethod(
         delegate: ClassVisitor,
@@ -86,6 +86,6 @@ class DescriptorCopyDelegator(val context: MemoryMappingTree) : Delegator() {
 
 }
 
-fun MappingVisitor.copyDescriptors(context: MemoryMappingTree): MappingVisitor {
+fun MappingVisitor.copyDescriptors(context: AbstractMappingTree): MappingVisitor {
     return delegator(DescriptorCopyDelegator(context))
 }
