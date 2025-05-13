@@ -21,6 +21,7 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
 import xyz.wagyourtail.unimined.mapping.propagator.InheritanceTree
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.LazyMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
@@ -47,10 +48,10 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
     private val _entries = finalizableMapOf<String, MappingEntry>()
     val entries: Map<String, MappingEntry> get() = _entries
 
-    lateinit var namespaces: Map<Namespace, Boolean>
+    protected lateinit var namespaces: Map<Namespace, Boolean>
         private set
 
-    lateinit var resolved: MemoryMappingTree
+    protected lateinit var resolved: LazyMappingTree
         private set
 
     open val unmappedNs = setOf(Namespace("official"))
@@ -140,7 +141,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
     open suspend fun afterLoad(tree: MemoryMappingTree) {}
 
-    open suspend fun resolve(): MemoryMappingTree {
+    open suspend fun resolve(): AbstractMappingTree {
         if (::resolved.isInitialized) return resolved
         return resolveLock.withLock {
             if (::resolved.isInitialized) return@withLock resolved
@@ -286,8 +287,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
             LOGGER.info { "Resolving complete" }
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
-            this.resolved = resolved!!
-            resolved!!
+
+            val lazy = LazyMappingTree()
+            resolved.accept(lazy)
+            this.resolved = lazy
+            lazy
         }
     }
 
