@@ -135,9 +135,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
     private val resolveLock = Mutex()
 
-    open suspend fun fromCache(key: String): MemoryMappingTree? = null
+    open suspend fun fromCache(key: String): AbstractMappingTree? = null
 
-    open suspend fun writeCache(key: String, tree: MemoryMappingTree) {}
+    open suspend fun writeCache(key: String, tree: AbstractMappingTree) {}
 
     open suspend fun afterLoad(tree: MemoryMappingTree) {}
 
@@ -255,7 +255,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                 for ((key, value) in renest) {
                     if (value.isNotEmpty()) {
                         LOGGER.info { "Renesting $key -> ${value.joinToString(", ")}" }
-                        resolved!!.renest(key, value)
+                        resolved.renest(key, value)
                     }
                 }
 
@@ -272,14 +272,14 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                             toFill.add(entry.requires to targets)
                         }
                     }
-                    resolved!!.fillMissingNames(*toFill.toTypedArray())
+                    resolved.fillMissingNames(*toFill.toTypedArray())
                 }.also {
                     LOGGER.info { "Filled in missing names in $it" }
                 }
 
                 LOGGER.info { "Writing to cache" }
 
-                writeCache(cacheKey, resolved!!)
+                writeCache(cacheKey, resolved)
             } else {
                 LOGGER.info { "Loaded from cache" }
             }
@@ -288,10 +288,14 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
 
-            val lazy = LazyMappingTree()
-            resolved.accept(lazy)
-            this.resolved = lazy
-            lazy
+            this.resolved = if (resolved is LazyMappingTree) {
+                resolved
+            } else {
+                val lazy = LazyMappingTree()
+                resolved.accept(lazy)
+                lazy
+            }
+            this.resolved
         }
     }
 
