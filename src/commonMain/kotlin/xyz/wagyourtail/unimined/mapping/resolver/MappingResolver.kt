@@ -395,8 +395,8 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
         fun combineWith(other: MappingConfig) {
             requires = other.requires
-            leinient = leinient || other.leinient
-            unchecked = unchecked || other.unchecked
+            leinient = other.leinient
+            unchecked = other.unchecked
             provides.addAll(other.provides)
             mapNs.putAll(other.mapNs)
             skip = other.skip
