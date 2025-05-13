@@ -7,11 +7,11 @@ import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-fun MappingVisitor.copyMetadata(from: Namespace, to: Set<Namespace>, context: MemoryMappingTree): MappingVisitor {
-    return DelegateMappingVisitor(this, MetadataCopyVisitor(from, to, context))
+fun MappingVisitor.copyMetadata(from: Namespace, to: Set<Namespace>): MappingVisitor {
+    return DelegateMappingVisitor(this, MetadataCopyVisitor(from, to))
 }
 
-private class MetadataCopyVisitor(val from: Namespace, val to: Set<Namespace>, val context: MemoryMappingTree) : Delegator() {
+private class MetadataCopyVisitor(val from: Namespace, val to: Set<Namespace>) : Delegator() {
 
     override fun visitAnnotation(
         delegate: AnnotationParentVisitor<*>,
