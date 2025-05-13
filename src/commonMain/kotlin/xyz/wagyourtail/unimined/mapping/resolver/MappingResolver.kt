@@ -292,9 +292,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                 resolved
             } else {
                 val lazy = LazyMappingTree()
-                resolved.accept(lazy)
+                resolved.accept(lazy, sort = true)
                 lazy
             }
+
+            LOGGER.info { "Resolved to lazy tree" }
             this.resolved
         }
     }

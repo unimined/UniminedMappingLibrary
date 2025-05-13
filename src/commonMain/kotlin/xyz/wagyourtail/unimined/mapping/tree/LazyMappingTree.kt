@@ -1,5 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
+import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
@@ -25,14 +26,10 @@ class LazyMappingTree : AbstractMappingTree() {
     private val _classes = mutableListOf<LazyClassNode>()
     private val _constantGroups = mutableListOf<LazyConstantGroupNode>()
 
-    val byNamespace = mutableMapOf<Namespace, MutableMap<InternalName, LazyClassNode>>()
+    val byNamespace = defaultedMapOf<Namespace, MutableMap<InternalName, LazyClassNode>> { mutableMapOf() }
 
     fun getLazyClass(namespace: Namespace, name: InternalName): LazyClassNode? {
-        return (byNamespace.getOrPut(namespace) {
-            val map = mutableMapOf<InternalName, LazyClassNode>()
-            _classes.forEach { c -> c.names[namespace]?.let { map[it] = c } }
-            map
-        })[name]
+        return byNamespace[namespace][name]
     }
 
     override fun getClass(namespace: Namespace, name: InternalName): ClassNode? {
@@ -142,21 +139,23 @@ class LazyMappingTree : AbstractMappingTree() {
             // check if exists
             val existing = getLazyClass(ns, names[ns]!!)
             if (existing != null) {
-                // add other names
-                for (ns in names.keys) {
-                    byNamespace[ns]?.remove(existing.names[ns])
-                    byNamespace[ns]?.put(names[ns]!!, existing)
+                for ((ns, name) in existing.names.filter { it.key in names && it.value != names[it.key] }) {
+                    byNamespace[ns].remove(name)
                 }
-                mergeNs(names.keys)
+                // add other names
+                existing.setNames(names)
+                for ((ns, name) in names) {
+                    byNamespace[ns].put(name, existing)
+                }
                 return existing.visitClass(names)
             }
         }
         val node = LazyClassNode(this)
-        for (ns in names.keys) {
-            byNamespace[ns]?.put(names[ns]!!, node)
+        node.setNames(names)
+        for ((ns, name) in names) {
+            byNamespace[ns].put(name, node)
         }
         _classes.add(node)
-        mergeNs(names.keys)
         return node.visitClass(names)
     }
 
@@ -193,6 +192,11 @@ class LazyMappingTree : AbstractMappingTree() {
 
         fun append(value: String) {
             this.value += value
+        }
+
+        fun setNames(names: Map<Namespace, InternalName>) {
+            tree.mergeNs(names.keys)
+            this._names.putAll(names)
         }
 
         fun visitClass(names: Map<Namespace, InternalName>): ClassVisitor {
