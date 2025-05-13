@@ -51,7 +51,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
     protected lateinit var namespaces: Map<Namespace, Boolean>
         private set
 
-    protected lateinit var resolved: LazyMappingTree
+    protected lateinit var resolved: AbstractMappingTree
         private set
 
     open val unmappedNs = setOf(Namespace("official"))
@@ -288,13 +288,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
 
-            this.resolved = if (resolved is LazyMappingTree) {
-                resolved
-            } else {
-                val lazy = LazyMappingTree()
-                resolved.accept(lazy, sort = true)
-                lazy
-            }
+            this.resolved = resolved
 
             LOGGER.info { "Resolved to lazy tree" }
             this.resolved
