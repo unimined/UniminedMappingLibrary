@@ -16,6 +16,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NamespaceRecordingDelegate
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyDescriptors
 import kotlin.js.JsName
 import kotlin.jvm.JvmName
 
@@ -178,7 +179,7 @@ class LazyMappingTree : AbstractMappingTree() {
     }
 
     override fun accept(visitor: MappingVisitor, nsFilter: List<Namespace>, sort: Boolean) {
-        return lazyAccept(visitor, nsFilter)
+        return lazyAccept(visitor.copyDescriptors(this), nsFilter)
     }
 
     fun lazyAccept(visitor: MappingVisitor, nsFilter: Collection<Namespace> = namespaces) {
