@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.tree
 import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.commonskt.utils.maybeEscape
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.csrg.CsrgReader.mapPackage
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
@@ -25,6 +26,8 @@ import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
 import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.NullVisitor
+import kotlin.js.JsName
+import kotlin.jvm.JvmName
 
 abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor {
     private val _namespaces = mutableListOf<Namespace>()
@@ -123,7 +126,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         })
     }
 
-    fun map(fromNs: Namespace, toNs: Namespace, internalName: InternalName): InternalName {
+    open fun map(fromNs: Namespace, toNs: Namespace, internalName: InternalName): InternalName {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return internalName
@@ -132,11 +135,11 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
             return cls.getName(toNs) ?: internalName
         }
         val parts = internalName.getParts()
-        val pkg = mapPackage(fromNs, toNs, parts.first)
+        val pkg = map(fromNs, toNs, parts.first)
         return InternalName(pkg, parts.second)
     }
 
-    fun mapPackage(fromNs: Namespace, toNs: Namespace, packageName: PackageName): PackageName {
+    open fun map(fromNs: Namespace, toNs: Namespace, packageName: PackageName): PackageName {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return packageName
@@ -156,7 +159,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         val cls = getClass(fromNs, parts.first.getInternalName())
         if (cls == null) {
             val objParts = parts.first.getInternalName().getParts()
-            val pkg = mapPackage(fromNs, toNs, objParts.first)
+            val pkg = map(fromNs, toNs, objParts.first)
             return FullyQualifiedName(ObjectType(InternalName(pkg, objParts.second)), parts.second)
         }
         val mappedCls = cls.getName(toNs) ?: parts.first.getInternalName()
@@ -180,13 +183,10 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         return FullyQualifiedName(ObjectType(mappedCls), null)
     }
 
+    @JsName("mapObjectType")
+    @JvmName("mapObjectType")
     fun map(fromNs: Namespace, toNs: Namespace, objectType: ObjectType): ObjectType {
-        checkNamespace(fromNs)
-        checkNamespace(toNs)
-        if (fromNs == toNs) return objectType
-        return ObjectType.unchecked(buildString {
-            objectType.accept(descRemapAcceptor(fromNs, toNs))
-        })
+        return ObjectType(map(fromNs, toNs, objectType.getInternalName()))
     }
 
     // TODO: test
@@ -194,12 +194,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         return { obj, leaf ->
             when (obj) {
                 is InternalName -> {
-                    val mapped = getClass(fromNs, obj)?.getName(toNs)
-                    if (mapped != null) {
-                        append(mapped)
-                    } else {
-                        append(obj)
-                    }
+                    append(map(fromNs, toNs, obj))
                     false
                 }
                 else -> {
@@ -235,16 +230,16 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                     clsNameBuilder.append(name)
 
                     val mappedBuilder = StringBuilder()
-                    val mappedOuter = getClass(fromNs, InternalName.read(clsNameBuilder.toString()))?.getName(toNs) ?: clsNameBuilder.toString()
+                    val mappedOuter = map(fromNs, toNs, InternalName.read(clsNameBuilder.toString()))
                     mappedBuilder.append(mappedOuter)
                     append(mappedOuter)
                     types?.accept(signatureRemapAcceptor(fromNs, toNs))
                     for (suf in sufs) {
                         val (innerName, innerTypes) = suf.getParts().getParts()
                         clsNameBuilder.append("$").append(innerName)
-                        val mappedInner = getClass(fromNs, InternalName.read(clsNameBuilder.toString()))?.getName(toNs)?.toString() ?: clsNameBuilder.toString()
+                        val mappedInner = map(fromNs, toNs, InternalName.read(clsNameBuilder.toString()))
                         mappedBuilder.append("$")
-                        val innerNameMapped = mappedInner.substring(mappedBuilder.length)
+                        val innerNameMapped = mappedInner.toString().substring(mappedBuilder.length)
                         mappedBuilder.append(innerNameMapped)
                         append(".")
                         append(innerNameMapped)
@@ -273,12 +268,8 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                     false
                 }
                 is InternalName -> {
-                    val mapped = getClass(fromNs, obj)?.getName(toNs)
-                    if (mapped != null) {
-                        append(mapped)
-                    } else {
-                        append(obj)
-                    }
+                    val mapped = map(fromNs,  toNs, obj)
+                    append(mapped)
                     false
                 }
                 is AnnotationElementName -> {
@@ -295,33 +286,6 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                         append(obj)
                         false
                     }
-                }
-                is EnumConstant -> {
-                    val parts = obj.getParts()
-                    val first = parts.first
-                    val eCls = getClass(fromNs, first.getInternalName())
-                    val mapped = eCls?.getName(toNs)
-                    if (mapped != null) {
-                        append("L$mapped;")
-                    } else {
-                        append(first)
-                    }
-                    append(".")
-                    val second = parts.second
-                    val fd = eCls?.getFields(fromNs, second.unescape(), null)?.map { it.getName(toNs) }
-                    if (!fd.isNullOrEmpty()) {
-                        val mappedName = fd.first()!!
-                        if (AnnotationIdentifier.annotationIdentifierIllegalCharacters.any { it in mappedName }) {
-                            append("\"")
-                            append(mappedName.escape(true))
-                            append("\"")
-                        } else {
-                            append(mappedName)
-                        }
-                    } else {
-                        append(second)
-                    }
-                    false
                 }
                 else -> {
                     if (leaf) {

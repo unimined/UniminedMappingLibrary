@@ -27,7 +27,7 @@ object CsrgReader : FormatReader {
     fun AbstractMappingTree?.mapPackage(srcNs: Namespace, dstNs: Namespace, name: InternalName): InternalName {
         if (this == null) return name
         val parts = name.getParts()
-        val mappedPkg = mapPackage(srcNs, dstNs, parts.first)
+        val mappedPkg = map(srcNs, dstNs, parts.first)
         return InternalName(mappedPkg, parts.second)
     }
 
@@ -42,7 +42,7 @@ object CsrgReader : FormatReader {
         return { obj, leaf ->
             when (obj) {
                 is PackageName -> {
-                    append(tree.mapPackage(fromNs, toNs, obj))
+                    append(tree.map(fromNs, toNs, obj))
                     false
                 }
                 else -> {

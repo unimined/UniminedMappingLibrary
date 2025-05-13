@@ -16,6 +16,8 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateClassVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateConstantGroupVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegatePackageVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NamespaceRecordingDelegate
+import kotlin.js.JsName
+import kotlin.jvm.JvmName
 
 /**
  * for memory limited environments
@@ -191,6 +193,19 @@ class LazyMappingTree : AbstractMappingTree() {
             group.accept(visitor, nsFilter)
         }
         visitor.visitEnd()
+    }
+
+    override fun map(fromNs: Namespace, toNs: Namespace, internalName: InternalName): InternalName {
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
+        if (fromNs == toNs) return internalName
+        val cls = getLazyClass(fromNs, internalName)
+        if (cls != null) {
+            return cls.names[toNs] ?: internalName
+        }
+        val parts = internalName.getParts()
+        val pkg = map(fromNs, toNs, parts.first)
+        return InternalName(pkg, parts.second)
     }
 
     class LazyClassNode(val tree: LazyMappingTree) {
