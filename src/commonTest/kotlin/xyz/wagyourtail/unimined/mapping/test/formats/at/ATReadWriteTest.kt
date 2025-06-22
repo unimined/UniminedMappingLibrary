@@ -13,7 +13,6 @@ import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
 import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
-import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.test.Test
@@ -68,6 +67,7 @@ class ATReadWriteTest {
         		a	+	public	*	source
         		a	-	final	*	source
         c	net/minecraft/class_3722
+        	a	+	default	*	source
         	a	-	final	*	source
     """.trimIndent()
 

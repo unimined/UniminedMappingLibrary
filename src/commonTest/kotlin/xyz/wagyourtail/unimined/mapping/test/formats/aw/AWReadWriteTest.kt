@@ -138,8 +138,8 @@ c	net/minecraft/class_3721
 
         assertEquals("""
             public net.minecraft.class_3720
-            default-f net.minecraft.class_3721
-            default-f net.minecraft.class_3721 field_19158
+            public-f net.minecraft.class_3721
+            public-f net.minecraft.class_3721 field_19158
             public-f net.minecraft.class_3721 method_31659(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         """.trimIndent(), aw.trimEnd())
 

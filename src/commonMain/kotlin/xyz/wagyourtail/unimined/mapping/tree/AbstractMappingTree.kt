@@ -122,7 +122,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         checkNamespace(toNs)
         if (fromNs == toNs) return annotation
         return Annotation.unchecked(buildString {
-            annotation.accept(annotationRemapAcceptor(fromNs, toNs, annotation))
+            annotation.accept(annotationRemapAcceptor(fromNs , toNs, annotation))
         })
     }
 

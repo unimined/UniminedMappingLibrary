@@ -15,6 +15,7 @@ val PARAMETER = ElementType.PARAMETER
 val INNER_CLASS = ElementType.INNER_CLASS
 
 enum class AccessFlag(val access: Int, vararg e: ElementType) {
+    DEFAULT(0, CLASS, FIELD, METHOD),
     PUBLIC(0x1, CLASS, FIELD, METHOD),
     PRIVATE(0x2, INNER_CLASS, FIELD, METHOD),
     PROTECTED(0x4, INNER_CLASS, FIELD, METHOD),
@@ -53,7 +54,7 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
     }
 
     companion object {
-        val visibility = setOf(PUBLIC, PRIVATE, PROTECTED)
+        val visibility = setOf(DEFAULT, PUBLIC, PRIVATE, PROTECTED)
         val visibilityMask = visibility.map { it.access }.reduce { acc, i -> acc or i }
 
         val content = setOf(NATIVE, ABSTRACT)
@@ -61,8 +62,14 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
 
         fun of(type: ElementType, access: Int) = entries.filter { it.elements.contains(type) && it.access and access != 0 }.toSet()
         
-        fun visibilityOf(access: Int): AccessFlag? {
+        fun visibilityOf(access: Int): AccessFlag {
             val acc = visibility.filter { it.access and access != 0 }
+            if (acc.size > 1) throw IllegalArgumentException("Multiple visibility flags found")
+            return acc.firstOrNull() ?: DEFAULT
+        }
+
+        fun visibilityOf(set: Iterable<AccessFlag>): AccessFlag? {
+            val acc = visibility.intersect(set)
             if (acc.size > 1) throw IllegalArgumentException("Multiple visibility flags found")
             return acc.firstOrNull()
         }
@@ -96,7 +103,7 @@ operator fun Int.plus(flag: AccessFlag): Int {
     // some are mutually exclusive so we must respect that
 
     // public/protected/private
-    if (flag.access and AccessFlag.visibilityMask != 0) {
+    if (flag.access and AccessFlag.visibilityMask != 0 || flag.access == 0) {
         return this and AccessFlag.visibilityMask.inv() or flag.access
     }
 

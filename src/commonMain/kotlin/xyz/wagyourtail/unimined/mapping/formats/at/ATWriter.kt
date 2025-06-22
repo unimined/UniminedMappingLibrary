@@ -123,11 +123,11 @@ object ATWriter : FormatWriter {
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null
 
-        var memberAccessesAdd = 0
-        var memberAccessesRemove = 0
+        val memberAccessesAdd = mutableListOf<AccessFlag>()
+        val memberAccessesRemove = mutableListOf<AccessFlag>()
 
-        var classAccessAdd = 0
-        var classAccessRemove = 0
+        val classAccessAdd = mutableListOf<AccessFlag>()
+        val classAccessRemove = mutableListOf<AccessFlag>()
 
         val mappings = defaultedMapOf<InternalName, MutableList<ATReader.ATData>> { mutableListOf() }
 
@@ -259,17 +259,17 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
+                            if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
                             null,
                             null
                         ))
                 }
-                classAccessAdd = 0
-                classAccessRemove = 0
-                memberAccessesAdd = 0
-                memberAccessesRemove = 0
+                classAccessAdd.clear()
+                classAccessRemove.clear()
+                memberAccessesAdd.clear()
+                memberAccessesRemove.clear()
                 cls = null
                 member = null
             }
@@ -285,7 +285,7 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
+                            if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
                             name.toString(),
@@ -293,8 +293,8 @@ object ATWriter : FormatWriter {
                         ))
                 }
 
-                memberAccessesAdd = 0
-                memberAccessesRemove = 0
+                memberAccessesAdd.clear()
+                memberAccessesRemove.clear()
                 member = null
             }
 
@@ -309,15 +309,15 @@ object ATWriter : FormatWriter {
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
                         ATReader.ATData(
-                            access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
+                            if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
                             name.toString(),
                             desc?.toString() ?: error("Method descriptor not found")
                         ))
                 }
-                memberAccessesAdd = 0
-                memberAccessesRemove = 0
+                memberAccessesAdd.clear()
+                memberAccessesRemove.clear()
                 member = null
             }
 
@@ -333,7 +333,7 @@ object ATWriter : FormatWriter {
                     if (desc != null) {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
+                                if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                                 final,
                                 cls!!,
                                 name.toString(),
@@ -343,7 +343,7 @@ object ATWriter : FormatWriter {
                     } else {
                         mappings[cls]!!.add(
                             ATReader.ATData(
-                                access ?: if (defaultToPublic) AccessFlag.PUBLIC else null,
+                                if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                                 final,
                                 cls!!,
                                 name.toString(),
@@ -352,8 +352,8 @@ object ATWriter : FormatWriter {
                         )
                     }
                 }
-                memberAccessesAdd = 0
-                memberAccessesRemove = 0
+                memberAccessesAdd.clear()
+                memberAccessesRemove.clear()
                 member = null
             }
 

@@ -38,21 +38,15 @@ object ATReader : FormatReader {
         return (cfg && name.endsWith("_at") || name.startsWith("accesstransformer"))
     }
 
-    fun String.parseAccess(): Pair<AccessFlag?, TriState> {
+    fun String.parseAccess(): Pair<AccessFlag, TriState> {
         if (!this.contains(Regex("[+-]"))) {
             val accessStr = this.uppercase()
-            if (accessStr == "DEFAULT") {
-                return null to TriState.LEAVE
-            }
             return AccessFlag.valueOf(accessStr) to TriState.LEAVE
         }
         val accessStr = this.substring(0, this.length - 2).uppercase()
-        val access = if (accessStr == "DEFAULT") {
-            null
-        } else {
-            AccessFlag.valueOf(accessStr)
-        }
-        if (access != null && access !in AccessFlag.visibility) {
+        val access = AccessFlag.valueOf(accessStr)
+
+        if (access !in AccessFlag.visibility) {
             throw IllegalArgumentException("Unexpected access flag $access")
         }
         val final = when (this.substring(this.length - 2).lowercase()) {
@@ -63,10 +57,8 @@ object ATReader : FormatReader {
         return access to final
     }
 
-    private fun <T: AccessParentVisitor<T>> AccessParentVisitor<T>.applyAccess(access: AccessFlag?, final: TriState, ns: Set<Namespace>) {
-        if (access != null) {
-            this.visitAccess(AccessType.ADD, access, AccessConditions.ALL, ns)?.visitEnd()
-        }
+    private fun <T: AccessParentVisitor<T>> AccessParentVisitor<T>.applyAccess(access: AccessFlag, final: TriState, ns: Set<Namespace>) {
+        this.visitAccess(AccessType.ADD, access, AccessConditions.ALL, ns)?.visitEnd()
         when (final) {
             TriState.ADD -> this.visitAccess(AccessType.ADD, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
             TriState.REMOVE -> this.visitAccess(AccessType.REMOVE, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
@@ -85,7 +77,7 @@ object ATReader : FormatReader {
 
     interface ATData : ATItem {
 
-        val access: AccessFlag?
+        val access: AccessFlag
         val final: TriState
         val targetClass: InternalName
 
@@ -99,7 +91,7 @@ object ATReader : FormatReader {
             }
 
             operator fun invoke(
-                access: AccessFlag?,
+                access: AccessFlag,
                 final: TriState,
                 targetClass: InternalName,
                 memberName: String?,
@@ -125,13 +117,13 @@ object ATReader : FormatReader {
     }
 
     data class ATDataClass(
-        override val access: AccessFlag?,
+        override val access: AccessFlag,
         override val final: TriState,
         override val targetClass: InternalName,
     ) : ATData
 
     data class ATDataMethod(
-        override val access: AccessFlag?,
+        override val access: AccessFlag,
         override val final: TriState,
         override val targetClass: InternalName,
         val memberName: UnqualifiedName,
@@ -139,7 +131,7 @@ object ATReader : FormatReader {
     ) : ATData
 
     data class ATDataField(
-        override val access: AccessFlag?,
+        override val access: AccessFlag,
         override val final: TriState,
         override val targetClass: InternalName,
         val memberName: UnqualifiedName
@@ -148,13 +140,13 @@ object ATReader : FormatReader {
     interface ATDataWildcard : ATData
 
     data class ATDataFieldWildcard(
-        override val access: AccessFlag?,
+        override val access: AccessFlag,
         override val final: TriState,
         override val targetClass: InternalName
     ) : ATDataWildcard
 
     data class ATDataMethodWildcard(
-        override val access: AccessFlag?,
+        override val access: AccessFlag,
         override val final: TriState,
         override val targetClass: InternalName,
         val memberDesc: MethodDescriptor?

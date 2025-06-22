@@ -64,7 +64,7 @@ value class AccessConditions private constructor(val value: String) : Type {
 
     override fun toString() = value
 
-    fun check(access: Set<AccessFlag>): Boolean {
+    fun check(access: Set<AccessFlag?>): Boolean {
         val parts = getParts()
         for (part in parts) {
             val (req, flag) = part.getParts()
