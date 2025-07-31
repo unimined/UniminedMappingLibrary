@@ -8,6 +8,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -61,7 +62,7 @@ open class NullDelegator : Delegator() {
     override fun visitInterface(
         delegate: ClassVisitor,
         type: InterfacesType,
-        name: InternalName,
+        name: ClassTypeSignature,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): InterfaceVisitor? {

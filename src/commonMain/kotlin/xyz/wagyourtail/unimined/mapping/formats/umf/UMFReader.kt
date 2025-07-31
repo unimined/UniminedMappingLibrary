@@ -21,6 +21,7 @@ import xyz.wagyourtail.commonskt.utils.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import kotlin.jvm.JvmStatic
 
@@ -309,7 +310,7 @@ object UMFReader : FormatReader {
                         }
                     }
                     val name = input.takeNextUMF()!!.let {
-                        if (unchecked) InternalName.unchecked(it) else InternalName.read(it)
+                        if (unchecked) ClassTypeSignature.unchecked(it) else ClassTypeSignature.read(it)
                     }
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
                     last as ClassVisitor?

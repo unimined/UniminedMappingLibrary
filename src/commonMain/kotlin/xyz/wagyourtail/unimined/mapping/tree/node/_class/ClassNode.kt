@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -147,7 +148,7 @@ class ClassNode(parent: AbstractMappingTree) : MemberNode<ClassVisitor, MappingV
 
     override fun visitInterface(
         type: InterfacesType,
-        name: InternalName,
+        name: ClassTypeSignature,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): InterfaceVisitor? {

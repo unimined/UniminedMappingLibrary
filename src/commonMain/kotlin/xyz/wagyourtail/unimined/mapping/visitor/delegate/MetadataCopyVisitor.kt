@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
@@ -65,7 +66,7 @@ private class MetadataCopyVisitor(val from: Namespace, val to: Set<Namespace>) :
     override fun visitInterface(
         delegate: ClassVisitor,
         type: InterfacesType,
-        name: InternalName,
+        name: ClassTypeSignature,
         baseNs: Namespace,
         namespaces: Set<Namespace>
     ): InterfaceVisitor? {
