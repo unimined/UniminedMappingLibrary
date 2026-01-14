@@ -11,7 +11,6 @@ import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
 import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
-import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.test.Test
@@ -43,7 +42,7 @@ class AWReadWriteTest {
         }
 
         assertEquals("""
-umf	1	0
+umf	1	1
 intermediary
 c	net/minecraft/class_3720
 	a	+	public	*	intermediary
@@ -85,10 +84,10 @@ c	net/minecraft/class_3721
         assertEquals("""
         accessWidener v2 intermediary
         accessible class net/minecraft/class_3720
-        extendable	class	net/minecraft/class_3721
-        mutable field net/minecraft/class_3721 field_19158 I
         accessible method net/minecraft/class_3721 method_31659 (Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+        extendable	class	net/minecraft/class_3721
         extendable method net/minecraft/class_3721 method_31659 (Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+        mutable field net/minecraft/class_3721 field_19158 I
         """.trimIndent().replace(" ", "\t"), out.trimEnd())
     }
 

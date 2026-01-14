@@ -4,6 +4,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Signature
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   [ReferenceTypeSignature]
  */
 @JvmInline
-value class FieldSignature private constructor(val value: ReferenceTypeSignature) : Type {
+value class FieldSignature private constructor(val value: ReferenceTypeSignature) : Signature {
 
     companion object: TypeCompanion<FieldSignature> {
         override fun shouldRead(reader: CharReader<*>) = ReferenceTypeSignature.shouldRead(reader)

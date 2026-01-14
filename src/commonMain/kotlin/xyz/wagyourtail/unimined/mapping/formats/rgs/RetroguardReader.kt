@@ -9,8 +9,9 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
@@ -47,7 +48,7 @@ object RetroguardReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -75,12 +76,12 @@ object RetroguardReader : FormatReader {
 
                     ".field_map" -> {
                         val srcName = input.takeNextLiteral(' ')!!
-                        val dstFd = input.takeNextLiteral(' ')!!
+                        val dstFd = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
                         val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
-                        val srcFd = srcName.substringAfterLast('/')
+                        val srcFd = UnqualifiedName.read(srcName.substringAfterLast('/'))
                         into.visitClass(mapOf(srcNs to srcCls))?.use {
                             visitField(
-                                mapOf(srcNs to (srcFd to null), dstNs to (dstFd to null))
+                                mapOf(srcNs to srcFd.withFieldDesc(null), dstNs to dstFd.withFieldDesc(null))
                             )?.visitEnd()
                         }
                     }
@@ -88,13 +89,13 @@ object RetroguardReader : FormatReader {
                     ".method_map" -> {
                         val srcName = input.takeNextLiteral(' ')!!
                         val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
-                        val dstMd = input.takeNextLiteral(' ')!!
+                        val dstMd = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
                         val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
-                        val srcMd = srcName.substringAfterLast('/')
+                        val srcMd = UnqualifiedName.read(srcName.substringAfterLast('/'))
 
                         into.visitClass(mapOf(srcNs to srcCls))?.use {
                             visitMethod(
-                                mapOf(srcNs to (srcMd to srcDesc), dstNs to (dstMd to null))
+                                mapOf(srcNs to srcMd.withMethodDesc(srcDesc), dstNs to dstMd.withMethodDesc(null))
                             )?.visitEnd()
                         }
                     }

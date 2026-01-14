@@ -7,12 +7,17 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.ClassSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object SignatureReader : FormatReader {
@@ -29,7 +34,7 @@ object SignatureReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -39,7 +44,7 @@ object SignatureReader : FormatReader {
         into.use {
             visitHeader(ns.name)
 
-            var cls: ClassVisitor? = null
+            var cls: ClassMappingVisitor? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -53,22 +58,22 @@ object SignatureReader : FormatReader {
                     cls = visitClass(mapOf(ns to name))
                     val sig = input.takeNextLiteral()
                     if (sig != null) {
-                        cls?.visitSignature(sig.translateEscapes(), ns, emptySet())
+                        cls?.visitSignature(ClassSignature.read(sig.translateEscapes()), ns)
                     }
                 } else {
                     if (whitespace.length != 1) {
                         throw IllegalArgumentException("invalid line: $whitespace")
                     }
-                    val mName = input.takeNextLiteral()!!.translateEscapes()
+                    val mName = UnqualifiedName.read(input.takeNextLiteral()!!.translateEscapes())
                     val desc = FieldOrMethodDescriptor.read(input.takeNextLiteral()!!.translateEscapes())
                     val sig = input.takeNextLiteral()!!.translateEscapes()
                     if (desc.isMethodDescriptor()) {
-                        cls?.visitMethod(mapOf(ns to (mName to desc.getMethodDescriptor())))?.use {
-                            visitSignature(sig, ns, emptySet())
+                        cls?.visitMethod(mapOf(ns to MethodNameAndDescriptor(mName, desc.getMethodDescriptor())))?.use {
+                            visitSignature(MethodSignature.read(sig), ns)
                         }
                     } else {
-                        cls?.visitField(mapOf(ns to (mName to desc.getFieldDescriptor())))?.use {
-                            visitSignature(sig, ns, emptySet())
+                        cls?.visitField(mapOf(ns to FieldNameAndDescriptor(mName, desc.getFieldDescriptor())))?.use {
+                            visitSignature(FieldSignature.read(sig), ns)
                         }
                     }
                 }

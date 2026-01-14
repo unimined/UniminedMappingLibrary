@@ -6,7 +6,7 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 
 object UnsupportedReader : FormatReader {
 
@@ -22,7 +22,7 @@ object UnsupportedReader : FormatReader {
     override suspend fun read(
         input: BufferedSource,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -33,7 +33,7 @@ object UnsupportedReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings

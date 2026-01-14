@@ -17,10 +17,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.visitor.*
 
 /**
  * Ornithe's mapping format for adding inner class information to classes.
@@ -41,7 +38,7 @@ object NestReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -65,11 +62,11 @@ object NestReader : FormatReader {
 
 
                 val type = if (innerName.value.toIntOrNull() != null) {
-                    InnerClassNode.InnerType.ANONYMOUS
+                    InnerType.ANONYMOUS
                 } else if (outerMethodName == null) {
-                    InnerClassNode.InnerType.INNER
+                    InnerType.INNER
                 } else {
-                    InnerClassNode.InnerType.LOCAL
+                    InnerType.LOCAL
                 }
                 val fqn = FullyQualifiedName(
                     ObjectType(outerClassName),
@@ -84,7 +81,7 @@ object NestReader : FormatReader {
                     visitInnerClass(type, mapOf(ns to (innerName.value to fqn)))?.use {
                         for (acc in AccessFlag.of(ElementType.INNER_CLASS, access)) {
                             if (acc.elements.contains(ElementType.CLASS)) continue
-                            visitAccess(AccessType.ADD, acc, AccessConditions.ALL, setOf(ns))?.visitEnd()
+                            visitAccess(AccessType.ADD, acc, AccessConditions.ALL)?.visitEnd()
                         }
                     }
 

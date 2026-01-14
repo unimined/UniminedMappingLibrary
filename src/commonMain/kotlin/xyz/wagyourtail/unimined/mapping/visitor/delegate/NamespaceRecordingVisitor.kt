@@ -1,184 +1,162 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
-import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Signature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-fun MappingVisitor.recordNamespaces(recorder: (Set<Namespace>) -> Unit): MappingVisitor {
-    return DelegateMappingVisitor(this, NamespaceRecordingDelegate(recorder))
+fun RootMappingVisitor.recordNamespaces(recorder: (Set<Namespace>) -> Unit): RootMappingVisitor {
+    return DelegateMappingRootMappingVisitor(this, NamespaceRecordingDelegate(recorder))
 }
 class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Delegator() {
 
-    override fun nextUnnamedNs(delegate: MappingVisitor): Namespace {
-        val ns = super.nextUnnamedNs(delegate)
-        recorder(setOf(ns))
-        return ns
+    fun recorder(vararg namespaces: Namespace) {
+        recorder(namespaces.toSet())
     }
 
-    override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
-        recorder(namespaces.map { Namespace(it) }.toSet())
+    override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
+        recorder(*namespaces)
         super.visitHeader(delegate, *namespaces)
     }
 
-    override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
+    override fun visitPackage(delegate: RootMappingVisitor, names: Map<Namespace, PackageName>): PackageMappingVisitor? {
         recorder(names.keys)
         return super.visitPackage(delegate, names)
     }
 
-    override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+    override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
         recorder(names.keys)
         return super.visitClass(delegate, names)
     }
 
     override fun visitField(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, FieldDescriptor?>>
-    ): FieldVisitor? {
+        delegate: ClassMappingVisitor,
+        names: Map<Namespace, FieldNameAndDescriptor>
+    ): FieldMappingVisitor? {
         recorder(names.keys)
         return super.visitField(delegate, names)
     }
 
     override fun visitMethod(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, MethodDescriptor?>>
-    ): MethodVisitor? {
+        delegate: ClassMappingVisitor,
+        names: Map<Namespace, MethodNameAndDescriptor>
+    ): MethodMappingVisitor? {
         recorder(names.keys)
         return super.visitMethod(delegate, names)
     }
 
     override fun visitWildcard(
-        delegate: ClassVisitor,
-        type: WildcardNode.WildcardType,
+        delegate: ClassMappingVisitor,
+        type: WildcardType,
         descs: Map<Namespace, FieldOrMethodDescriptor>
-    ): WildcardVisitor? {
+    ): WildcardMappingVisitor? {
         recorder(descs.keys)
         return super.visitWildcard(delegate, type, descs)
     }
 
     override fun visitInnerClass(
-        delegate: ClassVisitor,
-        type: InnerClassNode.InnerType,
+        delegate: ClassMappingVisitor,
+        type: InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
-    ): InnerClassVisitor? {
+    ): InnerClassMappingVisitor? {
         recorder(names.keys)
         return super.visitInnerClass(delegate, type, names)
     }
 
     override fun visitSeal(
-        delegate: ClassVisitor,
+        delegate: ClassMappingVisitor,
         type: SealedType,
         name: InternalName?,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): SealVisitor? {
-        recorder(namespaces + baseNs)
-        return super.visitSeal(delegate, type, name, baseNs, namespaces)
+    ): SealMappingVisitor? {
+        recorder(baseNs)
+        return super.visitSeal(delegate, type, name, baseNs)
     }
 
     override fun visitInterface(
-        delegate: ClassVisitor,
+        delegate: ClassMappingVisitor,
         type: InterfacesType,
         name: ClassTypeSignature,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): InterfaceVisitor? {
-        recorder(namespaces + baseNs)
-        return super.visitInterface(delegate, type, name, baseNs, namespaces)
+    ): InterfaceMappingVisitor? {
+        recorder(baseNs)
+        return super.visitInterface(delegate, type, name, baseNs)
     }
 
     override fun visitParameter(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         index: Int?,
         lvOrd: Int?,
-        names: Map<Namespace, String>
-    ): ParameterVisitor? {
+        names: Map<Namespace, UnqualifiedName>
+    ): ParameterMappingVisitor? {
         recorder(names.keys)
         return super.visitParameter(delegate, index, lvOrd, names)
     }
 
     override fun visitLocalVariable(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         lvOrd: Int,
         startOp: Int?,
-        names: Map<Namespace, String>
-    ): LocalVariableVisitor? {
+        names: Map<Namespace, UnqualifiedName>
+    ): LocalVariableMappingVisitor? {
         recorder(names.keys)
         return super.visitLocalVariable(delegate, lvOrd, startOp, names)
     }
 
     override fun visitException(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         type: ExceptionType,
         exception: InternalName,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): ExceptionVisitor? {
-        recorder(namespaces + baseNs)
-        return super.visitException(delegate, type, exception, baseNs, namespaces)
-    }
-
-    override fun visitAccess(
-        delegate: AccessParentVisitor<*>,
-        type: AccessType,
-        value: AccessFlag,
-        conditions: AccessConditions,
-        namespaces: Set<Namespace>
-    ): AccessVisitor? {
-        recorder(namespaces)
-        return super.visitAccess(delegate, type, value, conditions, namespaces)
+    ): ExceptionMappingVisitor? {
+        recorder(baseNs)
+        return super.visitException(delegate, type, exception, baseNs)
     }
 
     override fun visitJavadoc(
-        delegate: JavadocParentNode<*>,
+        delegate: JavadocParentMappingVisitor,
         value: String,
-        namespaces: Set<Namespace>
-    ): JavadocVisitor? {
-        recorder(namespaces)
-        return super.visitJavadoc(delegate, value, namespaces)
+        baseNs: Namespace
+    ): JavadocMappingVisitor? {
+        recorder(baseNs)
+        return super.visitJavadoc(delegate, value, baseNs)
     }
 
-    override fun visitSignature(
-        delegate: SignatureParentVisitor<*>,
-        value: String,
-        baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): SignatureVisitor? {
-        recorder(namespaces + baseNs)
-        return super.visitSignature(delegate, value, baseNs, namespaces)
+    override fun <T: Signature> visitSignature(
+        delegate: SignatureParentMappingVisitor<T>,
+        value: T,
+        baseNs: Namespace
+    ): SignatureMappingVisitor? {
+        recorder(baseNs)
+        return super.visitSignature(delegate, value, baseNs)
     }
 
     override fun visitAnnotation(
-        delegate: AnnotationParentVisitor<*>,
+        delegate: AnnotationParentMappingVisitor,
         type: AnnotationType,
         baseNs: Namespace,
         annotation: Annotation,
-        namespaces: Set<Namespace>
-    ): AnnotationVisitor? {
-        recorder(namespaces + baseNs)
-        return super.visitAnnotation(delegate, type, baseNs, annotation, namespaces)
+    ): AnnotationMappingVisitor? {
+        recorder(baseNs)
+        return super.visitAnnotation(delegate, type, baseNs, annotation)
     }
 
     override fun visitConstantGroup(
-        delegate: MappingVisitor,
-        type: ConstantGroupNode.InlineType,
+        delegate: RootMappingVisitor,
+        type: InlineType,
         name: String?,
-        baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): ConstantGroupVisitor? {
-        recorder(namespaces + baseNs)
-        return super.visitConstantGroup(delegate, type, name, baseNs, namespaces)
+        baseNs: Namespace
+    ): ConstantGroupMappingVisitor? {
+        recorder(baseNs)
+        return super.visitConstantGroup(delegate, type, name, baseNs)
     }
 
 }

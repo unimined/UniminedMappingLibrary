@@ -5,6 +5,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSign
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 
 object JVMS {
 
@@ -43,6 +44,14 @@ object JVMS {
         }
         if (value.contains('<') || value.contains('>')) {
             if (value != "<init>" && value != "<clinit>") {
+                throw IllegalArgumentException("Invalid method name, found illegal character")
+            }
+        }
+    }
+
+    fun checkMethodName(value: UnqualifiedName) {
+        if (value.value.contains('<') || value.value.contains('>')) {
+            if (value.value != "<init>" && value.value != "<clinit>") {
                 throw IllegalArgumentException("Invalid method name, found illegal character")
             }
         }

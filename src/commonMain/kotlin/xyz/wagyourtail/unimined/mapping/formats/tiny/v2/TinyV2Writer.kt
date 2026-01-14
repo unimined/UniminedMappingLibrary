@@ -4,20 +4,11 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter.minus
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
-import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
@@ -39,8 +30,8 @@ object TinyV2Writer : FormatWriter {
         }
     }
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
-        return EmptyMappingVisitor().delegator(TinyV2WriterDelegator(append))
+    override fun write(append: (String) -> Unit, envType: EnvType): RootMappingVisitor {
+        return EmptyRootMappingVisitor().delegator(TinyV2WriterDelegator(append))
     }
 
     class TinyV2WriterDelegator(
@@ -59,18 +50,18 @@ object TinyV2Writer : FormatWriter {
             }
         }
 
-        override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+        override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
             into("tiny\t2\t0\t")
-            this.namespaces = namespaces.map { Namespace(it) }
+            this.namespaces = namespaces.toList()
             into(this.namespaces.joinToString("\t") { it.name })
             into("\n\tescaped-names\n")
         }
 
-        override fun visitEnd(delegate: BaseVisitor<*>) {
+        override fun visitEnd(delegate: BaseMappingVisitor) {
             indent -= "\t"
         }
 
-        override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+        override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
             if (namespaces.first() !in names) return null
             into("c\t")
             into.writeNamespaced(names.mapValues { it.value.toString() })
@@ -80,42 +71,39 @@ object TinyV2Writer : FormatWriter {
         }
 
         override fun visitMethod(
-            delegate: ClassVisitor,
-            names: Map<Namespace, Pair<String, MethodDescriptor?>>
-        ): MethodVisitor? {
+            delegate: ClassMappingVisitor,
+            names: Map<Namespace, MethodNameAndDescriptor>
+        ): MethodMappingVisitor? {
             if (namespaces.first() !in names) return null
-            val srcDesc = names[namespaces.first()]?.second ?: return null
+            val srcDesc = names[namespaces.first()]?.descriptor ?: return null
             into(indent)
             into("m\t")
             into(srcDesc.toString().escape())
             into("\t")
-            into.writeNamespaced(names.mapValues { it.value.first })
+            into.writeNamespaced(names.mapValues { it.value.name.value })
             into("\n")
             indent += "\t"
             return default.visitMethod(delegate, names)
         }
 
-        override fun visitField(
-            delegate: ClassVisitor,
-            names: Map<Namespace, Pair<String, FieldDescriptor?>>
-        ): FieldVisitor? {
+        override fun visitField(delegate: ClassMappingVisitor, names: Map<Namespace, FieldNameAndDescriptor>): FieldMappingVisitor? {
             if (namespaces.first() !in names) return null
-            val srcDesc = names[namespaces.first()]?.second ?: return null
+            val srcDesc = names[namespaces.first()]?.descriptor ?: return null
             into(indent)
             into("f\t")
             into(srcDesc.toString().escape())
             into("\t")
-            into.writeNamespaced(names.mapValues { it.value.first })
+            into.writeNamespaced(names.mapValues { it.value.name.value })
             into("\n")
             indent += "\t"
             return default.visitField(delegate, names)
         }
 
         override fun visitJavadoc(
-            delegate: JavadocParentNode<*>,
+            delegate: JavadocParentMappingVisitor,
             value: String,
-            namespaces: Set<Namespace>
-        ): JavadocVisitor? {
+            baseNs: Namespace
+        ): JavadocMappingVisitor? {
             if (indent.isEmpty()) throw IllegalStateException("Top level javadoc?")
             into(indent)
             into("c\t")
@@ -125,35 +113,35 @@ object TinyV2Writer : FormatWriter {
         }
 
         override fun visitParameter(
-            delegate: InvokableVisitor<*>,
+            delegate: InvokableMappingVisitor,
             index: Int?,
             lvOrd: Int?,
-            names: Map<Namespace, String>
-        ): ParameterVisitor? {
+            names: Map<Namespace, UnqualifiedName>
+        ): ParameterMappingVisitor? {
             if (lvOrd == null) return null
             into(indent)
             into("p\t")
             into(lvOrd.toString())
             into("\t")
-            into.writeNamespaced(names)
+            into.writeNamespaced(names.mapValues { it.value.value })
             into("\n")
             indent += "\t"
             return default.visitParameter(delegate, index, lvOrd, names)
         }
 
         override fun visitLocalVariable(
-            delegate: InvokableVisitor<*>,
+            delegate: InvokableMappingVisitor,
             lvOrd: Int,
             startOp: Int?,
-            names: Map<Namespace, String>
-        ): LocalVariableVisitor? {
+            names: Map<Namespace, UnqualifiedName>
+        ): LocalVariableMappingVisitor? {
             into(indent)
             into("v\t")
             into(lvOrd.toString())
             into("\t")
             into(startOp?.toString() ?: "")
             into("\t\t") // skip lvt-idx
-            into.writeNamespaced(names)
+            into.writeNamespaced(names.mapValues { it.value.value })
             into("\n")
             return null
         }

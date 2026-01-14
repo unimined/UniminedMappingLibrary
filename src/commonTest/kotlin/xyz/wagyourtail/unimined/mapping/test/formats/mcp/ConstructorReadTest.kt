@@ -38,7 +38,7 @@ class ConstructorReadTest {
         }
 
         assertEquals("""
-umf	1	0
+umf	1	1
 searge
 c	net/minecraft/client/LoadingScreenRenderer
 	m	<init>;(Lnet/minecraft/client/Minecraft;)V

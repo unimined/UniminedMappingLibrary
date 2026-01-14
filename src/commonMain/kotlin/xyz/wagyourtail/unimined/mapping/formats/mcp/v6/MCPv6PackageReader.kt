@@ -8,7 +8,7 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object MCPv6PackageReader : FormatReader {
@@ -26,7 +26,7 @@ object MCPv6PackageReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings

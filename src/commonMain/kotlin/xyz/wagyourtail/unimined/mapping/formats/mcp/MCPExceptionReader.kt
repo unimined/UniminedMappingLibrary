@@ -6,14 +6,16 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object MCPExceptionReader : FormatReader {
@@ -46,13 +48,13 @@ object MCPExceptionReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
 
-        val data = mutableMapOf<Pair<InternalName, Pair<String, MethodDescriptor>>, Triple<List<InternalName>, List<String>, String?>>()
+        val data = mutableMapOf<Pair<InternalName, MethodNameAndDescriptor>, Triple<List<InternalName>, List<UnqualifiedName>, String?>>()
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
@@ -72,17 +74,17 @@ object MCPExceptionReader : FormatReader {
                 val cls = InternalName.read(clsName.substringBeforeLast("/"))
                 val methodName = clsName.substringAfterLast("/")
                 input.take() // space
-                cls to methodName
+                cls to UnqualifiedName.read(methodName)
             } else {
                 input.take() // .
                 val cls = InternalName.read(clsName)
                 val methodName = input.takeUntil { it == '(' }
-                cls to methodName
+                cls to UnqualifiedName.read(methodName)
             }
             val methodDesc = MethodDescriptor.read(input.takeUntil { it in split || it == ' ' })
             var i = input.take() // =
             val exceptions = mutableListOf<InternalName>()
-            val params = mutableListOf<String>()
+            val params = mutableListOf<UnqualifiedName>()
             var access: String? = null
             do {
                 when (i) {
@@ -101,7 +103,7 @@ object MCPExceptionReader : FormatReader {
                             if (input.peek() == ',') input.take()
                             val param = input.takeUntil { it == ',' || it in split }
                             if (param.isNotEmpty()) {
-                                params.add(param)
+                                params.add(UnqualifiedName.read(param))
                             }
                         } while (input.peek() == ',')
                         i = input.take()
@@ -123,7 +125,7 @@ object MCPExceptionReader : FormatReader {
                     }
                 }
             } while (i != '\n' && !input.exhausted())
-            data[cls to (methodName to methodDesc)] = Triple(exceptions, params, access)
+            data[cls to MethodNameAndDescriptor(methodName, methodDesc)] = Triple(exceptions, params, access)
         }
 
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
@@ -139,9 +141,9 @@ object MCPExceptionReader : FormatReader {
                 val access = excParam.third
 
                 visitClass(mapOf(srcNs to cls))?.use {
-                    visitMethod(mapOf(srcNs to (method.first to method.second)))?.use {
+                    visitMethod(mapOf(srcNs to method))?.use {
                         for (ex in exc) {
-                            visitException(ExceptionType.ADD, ex, srcNs, setOf())?.visitEnd()
+                            visitException(ExceptionType.ADD, ex, srcNs)?.visitEnd()
                         }
                         for (i in param.indices) {
                             visitParameter(i, null, mapOf(srcNs to param[i]))?.visitEnd()
@@ -151,7 +153,6 @@ object MCPExceptionReader : FormatReader {
                                 AccessType.ADD,
                                 AccessFlag.valueOf(access),
                                 AccessConditions.ALL,
-                                setOf(srcNs)
                             )?.visitEnd()
                         }
                     }

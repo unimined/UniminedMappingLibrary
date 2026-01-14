@@ -6,12 +6,14 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object ExceptionReader : FormatReader {
@@ -28,7 +30,7 @@ object ExceptionReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -38,7 +40,7 @@ object ExceptionReader : FormatReader {
         into.use {
             visitHeader(ns.name)
 
-            var cls: ClassVisitor? = null
+            var cls: ClassMappingVisitor? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -54,15 +56,15 @@ object ExceptionReader : FormatReader {
                     if (whitespace.length != 1) {
                         throw IllegalArgumentException("invalid line: $whitespace")
                     }
-                    val mName = input.takeNextLiteral()!!
+                    val mName = UnqualifiedName.read(input.takeNextLiteral()!!)
                     val desc = MethodDescriptor.read(input.takeNextLiteral()!!)
                     val exceptions = mutableListOf<String>()
                     while (true) {
                         exceptions.add(input.takeNextLiteral() ?: break)
                     }
-                    cls?.visitMethod(mapOf(ns to (mName to desc)))?.use {
+                    cls?.visitMethod(mapOf(ns to MethodNameAndDescriptor(   mName, desc)))?.use {
                         for (exc in exceptions) {
-                            visitException(ExceptionType.ADD, InternalName.read(exc), ns, setOf())?.visitEnd()
+                            visitException(ExceptionType.ADD, InternalName.read(exc), ns)?.visitEnd()
                         }
                     }
                 }

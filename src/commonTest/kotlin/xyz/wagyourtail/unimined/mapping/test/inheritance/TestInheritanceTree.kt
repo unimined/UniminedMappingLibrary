@@ -7,12 +7,11 @@ import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.propagator.CachedInheritanceTree
-import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest.Companion.mappings
-import xyz.wagyourtail.unimined.mapping.test.formats.zip.getResource
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ParameterVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.InvokableMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ParameterMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 import kotlin.test.Test
@@ -59,7 +58,7 @@ class TestInheritanceTree {
         """.trimIndent()
 
     val UNPROP_MAPPINGS = """
-        umf 1 0
+        umf 1 1
         intermediary named
         c clsA Parent
          f fieldA;I field1
@@ -94,7 +93,7 @@ class TestInheritanceTree {
         """.trimIndent()
 
     val PROP_MAPPINGS = """
-        umf 1 0
+        umf 1 1
         intermediary named
         c clsA Parent
          f fieldA;I field1
@@ -133,7 +132,7 @@ class TestInheritanceTree {
         """.trimIndent()
 
     val FILTERED_MAPPINGS = """
-        umf 1 0
+        umf 1 1
         intermediary named
         c clsA Parent
          f fieldA;I field1
@@ -202,7 +201,7 @@ class TestInheritanceTree {
     }
 
     val PREPROP_CHILD = """
-umf	1	0
+umf	1	1
 official	intermediary	yarn
 c	tx	net/minecraft/class_2479	net/minecraft/nbt/NbtByteArray
 c	tz	net/minecraft/class_2483	net/minecraft/nbt/AbstractNbtList
@@ -230,7 +229,7 @@ uh	java/lang/Object	tz
     """.trimIndent()
 
     val POSTPROP_CHILD = """
-umf	1	0
+umf	1	1
 official	intermediary	yarn
 c	tx	net/minecraft/class_2479	net/minecraft/nbt/NbtByteArray
 	m	c;(I)Lva;	method_10534	get
@@ -258,11 +257,11 @@ c	va	net/minecraft/class_2520	net/minecraft/nbt/NbtElement
         val outputText = Buffer().use { output ->
             mappings.accept(UMFWriter.write(output, true).delegator(object : Delegator() {
                 override fun visitParameter(
-                    delegate: InvokableVisitor<*>,
+                    delegate: InvokableMappingVisitor,
                     index: Int?,
                     lvOrd: Int?,
-                    names: Map<Namespace, String>
-                ): ParameterVisitor? {
+                    names: Map<Namespace, UnqualifiedName>
+                ): ParameterMappingVisitor? {
                     return null
                 }
             }), sort = true)

@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.TypePar
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Signature
 import kotlin.jvm.JvmInline
 
 /**
@@ -13,7 +14,7 @@ import kotlin.jvm.JvmInline
  *   [[TypeParameters]] ( {[JavaTypeSignature]} ) [Result] {[ThrowsSignature]}
  */
 @JvmInline
-value class MethodSignature private constructor(val value: String) : Type {
+value class MethodSignature private constructor(val value: String) : Signature {
 
     companion object: TypeCompanion<MethodSignature> {
 

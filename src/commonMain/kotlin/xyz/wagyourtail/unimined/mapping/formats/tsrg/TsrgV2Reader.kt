@@ -7,13 +7,15 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.MethodMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object TsrgV2Reader : FormatReader {
@@ -31,7 +33,7 @@ object TsrgV2Reader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -48,8 +50,8 @@ object TsrgV2Reader : FormatReader {
         into.use {
             into.visitHeader(*ns.map { it.name }.toTypedArray())
 
-            var cls: ClassVisitor? = null
-            var md: MethodVisitor? = null
+            var cls: ClassMappingVisitor? = null
+            var md: MethodMappingVisitor? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -70,30 +72,30 @@ object TsrgV2Reader : FormatReader {
                     cls = into.visitClass(names.withIndex().associate { ns[it.index] to it.value })
                 } else if (whitespace.length == 1) {
                     // method
-                    val srcName = input.takeNextLiteral(' ')!!
+                    val srcName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
                     input.takeWhitespace()
                     if (input.peek() == '(') {
                         // method
                         val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
-                        val names = mutableListOf<Pair<String, MethodDescriptor?>>()
+                        val names = mutableListOf<MethodNameAndDescriptor>()
                         while (true) {
-                            val name = input.takeNextLiteral(' ') ?: break
-                            names.add(name to null)
+                            val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
+                            names.add(name.withMethodDesc(null))
                         }
                         md?.visitEnd()
                         md = cls?.visitMethod(
                             names.withIndex()
-                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to srcDesc)))
+                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withMethodDesc(srcDesc)))
                     } else {
                         // field
-                        val names = mutableListOf<Pair<String, FieldDescriptor?>>()
+                        val names = mutableListOf<FieldNameAndDescriptor>()
                         while (true) {
-                            val name = input.takeNextLiteral(' ') ?: break
-                            names.add(name to null)
+                            val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
+                            names.add(name.withFieldDesc(null))
                         }
                         cls?.visitField(
                             names.withIndex()
-                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to (srcName to null)))
+                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withFieldDesc(null)))
                             ?.visitEnd()
                         md = null
                     }
@@ -101,9 +103,9 @@ object TsrgV2Reader : FormatReader {
                     // param
                     val index = input.takeNextLiteral(' ')!!
                     if (index.toIntOrNull() != null) {
-                        val names = mutableListOf<String>()
+                        val names = mutableListOf<UnqualifiedName>()
                         while (true) {
-                            val name = input.takeNextLiteral(' ') ?: break
+                            val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
                             names.add(name)
                         }
                         md?.visitParameter(

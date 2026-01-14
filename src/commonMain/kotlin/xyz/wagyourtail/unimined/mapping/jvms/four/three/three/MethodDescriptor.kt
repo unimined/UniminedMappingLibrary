@@ -4,6 +4,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import kotlin.jvm.JvmInline
 
 /**
@@ -11,7 +12,7 @@ import kotlin.jvm.JvmInline
  *   ( {[ParameterDescriptor]} ) [ReturnDescriptor]
  */
 @JvmInline
-value class MethodDescriptor private constructor(val value: String) : Type {
+value class MethodDescriptor private constructor(val value: String) : Type, FieldOrMethodDescriptor {
 
     companion object: TypeCompanion<MethodDescriptor> {
 

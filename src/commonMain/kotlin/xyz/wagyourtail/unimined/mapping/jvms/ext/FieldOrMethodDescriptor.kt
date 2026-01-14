@@ -5,7 +5,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
-import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
 
 /**
@@ -13,39 +12,40 @@ import kotlin.jvm.JvmName
  *   [FieldDescriptor]
  *   [MethodDescriptor]
  */
-@JvmInline
-value class FieldOrMethodDescriptor private constructor(val value: String) : Type {
+interface FieldOrMethodDescriptor : Type {
 
     companion object : TypeCompanion<FieldOrMethodDescriptor> {
-        val innterTypes = setOf(
+        val innerTypes = setOf(
             FieldDescriptor,
             MethodDescriptor
         )
 
         override fun shouldRead(reader: CharReader<*>): Boolean {
-            return innterTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
+            return innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true
         }
 
         override fun read(reader: CharReader<*>, append: (Any) -> Unit) {
-            append(innterTypes.first { it.shouldRead(reader.copy()) }.read(reader))
+            append(innerTypes.first { it.shouldRead(reader.copy()) }.read(reader))
         }
 
         @JvmName("ofField")
-        operator fun invoke(descriptor: FieldDescriptor) = FieldOrMethodDescriptor(descriptor.toString())
+        @Deprecated("use FieldDescriptor")
+        operator fun invoke(descriptor: FieldDescriptor) = descriptor
 
         @JvmName("ofMethod")
-        operator fun invoke(descriptor: MethodDescriptor) = FieldOrMethodDescriptor(descriptor.toString())
+        @Deprecated("use MethodDescriptor")
+        operator fun invoke(descriptor: MethodDescriptor) = descriptor
 
-        override fun unchecked(value: String) = FieldOrMethodDescriptor(value)
+        override fun unchecked(value: String) = if (value[0] == '(') { MethodDescriptor.unchecked(value) } else { FieldDescriptor.unchecked(value) }
     }
 
-    fun isMethodDescriptor() = value[0] == '('
+    fun isMethodDescriptor() = this is MethodDescriptor
 
-    fun isFieldDescriptor() = !isMethodDescriptor()
+    fun isFieldDescriptor() = this is FieldDescriptor
 
-    fun getFieldDescriptor() = if (isFieldDescriptor()) { FieldDescriptor.unchecked(value) } else { error("expected field desc") }
+    fun getFieldDescriptor() = if (isFieldDescriptor()) { this as FieldDescriptor } else { error("expected field desc") }
 
-    fun getMethodDescriptor() = if (isMethodDescriptor()) { MethodDescriptor.unchecked(value) } else { error("expected method desc") }
+    fun getMethodDescriptor() = if (isMethodDescriptor()) { this as MethodDescriptor } else { error("expected method desc") }
 
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {
@@ -56,7 +56,5 @@ value class FieldOrMethodDescriptor private constructor(val value: String) : Typ
             }
         }
     }
-
-    override fun toString() = value
 
 }

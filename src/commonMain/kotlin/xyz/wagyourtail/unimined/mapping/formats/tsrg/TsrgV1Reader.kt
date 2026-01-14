@@ -8,9 +8,10 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object TsrgV1Reader : FormatReader {
@@ -28,7 +29,7 @@ object TsrgV1Reader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -39,7 +40,7 @@ object TsrgV1Reader : FormatReader {
         into.use {
             visitHeader(srcNs.name, dstNs.name)
 
-            var cls: ClassVisitor? = null
+            var cls: ClassMappingVisitor? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -58,18 +59,18 @@ object TsrgV1Reader : FormatReader {
                     cls?.visitEnd()
                     cls = visitClass(mapOf(srcNs to InternalName.read(srcName), dstNs to InternalName.read(dstName)))
                 } else {
-                    val srcName = input.takeNextLiteral(' ')!!
+                    val srcName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
                     val dst = input.takeNextLiteral(' ')!!
                     if (dst.startsWith('(')) {
-                        val dstName = input.takeNextLiteral(' ')!!
+                        val dstName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
                         cls?.visitMethod(
                             mapOf(
-                                srcNs to (srcName to MethodDescriptor.read(dst)),
-                                dstNs to (dstName to null)
+                                srcNs to srcName.withMethodDesc(MethodDescriptor.read(dst)),
+                                dstNs to dstName.withMethodDesc(null)
                             )
                         )?.visitEnd()
                     } else {
-                        cls?.visitField(mapOf(srcNs to (srcName to null), dstNs to (dst to null)))?.visitEnd()
+                        cls?.visitField(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to UnqualifiedName.read(dst).withFieldDesc(null)))?.visitEnd()
                     }
                 }
             }

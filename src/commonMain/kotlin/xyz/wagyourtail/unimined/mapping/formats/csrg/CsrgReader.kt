@@ -6,11 +6,14 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object CsrgReader : FormatReader {
@@ -62,7 +65,7 @@ object CsrgReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -94,20 +97,20 @@ object CsrgReader : FormatReader {
 
                     FIELD_MAPPING -> {
                         val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0]))
-                        val srcName = parts[1]
-                        val dstName = parts[2]
+                        val srcName = UnqualifiedName.read(parts[1])
+                        val dstName = UnqualifiedName.read(parts[2])
                         visitClass(mapOf(dstNs to dstCls))?.use {
-                            visitField(mapOf(srcNs to (srcName to null), dstNs to (dstName to null)))?.visitEnd()
+                            visitField(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to FieldNameAndDescriptor(dstName, null)))?.visitEnd()
                         }
                     }
 
                     METHOD_MAPPING -> {
                         val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0]))
-                        val srcName = parts[1]
+                        val srcName = UnqualifiedName.read(parts[1])
                         val dstDesc = context.mapDescPackages(srcNs, dstNs, MethodDescriptor.read(parts[2]))
-                        val dstName = parts[3]
+                        val dstName = UnqualifiedName.read(parts[3])
                         into.visitClass(mapOf(dstNs to dstCls))?.use {
-                            visitMethod(mapOf(srcNs to (srcName to null), dstNs to (dstName to dstDesc)))?.visitEnd()
+                            visitMethod(mapOf(srcNs to srcName.withMethodDesc(null), dstNs to MethodNameAndDescriptor(dstName, dstDesc)))?.visitEnd()
                         }
                     }
 

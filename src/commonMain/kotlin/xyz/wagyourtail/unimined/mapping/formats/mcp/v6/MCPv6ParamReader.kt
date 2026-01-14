@@ -6,8 +6,9 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
@@ -34,7 +35,7 @@ object MCPv6ParamReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -44,23 +45,23 @@ object MCPv6ParamReader : FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        val data = mutableMapOf<String, String>()
-        val paramsByNumber = mutableMapOf<Int, MutableMap<String, String>>()
+        val data = mutableMapOf<UnqualifiedName, UnqualifiedName>()
+        val paramsByNumber = mutableMapOf<Int, MutableMap<UnqualifiedName, UnqualifiedName>>()
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
                 input.take()
                 continue
             }
-            val searge = input.takeCol()!!
-            val name = input.takeCol()!!
+            val searge = UnqualifiedName.read(input.takeCol()!!)
+            val name = UnqualifiedName.read(input.takeCol()!!)
             val side = input.takeCol()!!
 
             if (side == "2" || side.toInt() == envType.ordinal || envType == EnvType.JOINED) {
                 data[searge] = name
 
-                if (searge.matches(Regex("p_\\d+_\\d+_"))) {
-                    val mid = searge.split('_')[1].toInt()
+                if (searge.value.matches(Regex("p_\\d+_\\d+_"))) {
+                    val mid = searge.value.split('_')[1].toInt()
                     paramsByNumber.getOrPut(mid) { mutableMapOf() }[searge] = name
                 }
             }
@@ -73,25 +74,25 @@ object MCPv6ParamReader : FormatReader {
         context?.accept(
             into.delegator(object : NullDelegator() {
 
-                override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
-                    val ns = setOf(*namespaces, srcNs.name, dstNs.name)
+                override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
+                    val ns = setOf(*namespaces, srcNs, dstNs)
                     super.visitHeader(delegate, *ns.toTypedArray())
                 }
 
-                override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+                override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
                     return default.visitClass(delegate, names)
                 }
 
                 override fun visitMethod(
-                    delegate: ClassVisitor,
-                    names: Map<Namespace, Pair<String, MethodDescriptor?>>
-                ): MethodVisitor? {
+                    delegate: ClassMappingVisitor,
+                    names: Map<Namespace, MethodNameAndDescriptor>
+                ): MethodMappingVisitor? {
                     return default.visitMethod(delegate, names)?.also { mv ->
-                        if (names[srcNs]?.first?.matches(Regex("func_\\d+_.+")) == true) {
-                            val mid = names[srcNs]?.first?.split('_')?.get(1)?.toInt()
+                        if (names[srcNs]?.name?.value?.matches(Regex("func_\\d+_.+")) == true) {
+                            val mid = names[srcNs]?.name?.value?.split('_')?.get(1)?.toInt()
                             if (mid != null) {
                                 for ((searge, name) in paramsByNumber[mid] ?: emptyMap()) {
-                                    val lvOrd = searge.split('_')[2].toInt()
+                                    val lvOrd = searge.value.split('_')[2].toInt()
                                     mv.visitParameter(
                                         null,
                                         lvOrd,
@@ -104,11 +105,11 @@ object MCPv6ParamReader : FormatReader {
                 }
 
                 override fun visitParameter(
-                    delegate: InvokableVisitor<*>,
+                    delegate: InvokableMappingVisitor,
                     index: Int?,
                     lvOrd: Int?,
-                    names: Map<Namespace, String>
-                ): ParameterVisitor? {
+                    names: Map<Namespace, UnqualifiedName>
+                ): ParameterMappingVisitor? {
                     val searge = names[srcNs] ?: return null
                     val name = data[searge] ?: return null
                     return default.visitParameter(delegate, index, lvOrd, mapOf(dstNs to name))

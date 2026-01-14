@@ -40,7 +40,7 @@ class RetroguardReadTest {
         }
 
         assertEquals("""
-umf	1	0
+umf	1	1
 source	target
 k	""	net/minecraft/src/
 c	a	net/minecraft/src/Minecraft

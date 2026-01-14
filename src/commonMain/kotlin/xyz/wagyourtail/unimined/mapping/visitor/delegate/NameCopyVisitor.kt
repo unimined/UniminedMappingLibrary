@@ -1,18 +1,19 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-fun MappingVisitor.copyNames(from: Namespace, to: Set<Namespace>, onlyMissing: Boolean = true): MappingVisitor {
-    return DelegateMappingVisitor(this, NameCopyDelegate(from to to, onlyMissing = onlyMissing))
+fun RootMappingVisitor.copyNames(from: Namespace, to: Set<Namespace>, onlyMissing: Boolean = true): RootMappingVisitor {
+    return DelegateMappingRootMappingVisitor(this, NameCopyDelegate(from to to, onlyMissing = onlyMissing))
 }
 
-fun MappingVisitor.copyNames(from: Pair<Namespace, Set<Namespace>>, onlyMissing: Boolean = true): MappingVisitor {
-    return DelegateMappingVisitor(this, NameCopyDelegate(from, onlyMissing = onlyMissing))
+fun RootMappingVisitor.copyNames(from: Pair<Namespace, Set<Namespace>>, onlyMissing: Boolean = true): RootMappingVisitor {
+    return DelegateMappingRootMappingVisitor(this, NameCopyDelegate(from, onlyMissing = onlyMissing))
 }
 
 class NameCopyDelegate(val from: Pair<Namespace, Set<Namespace>>, val onlyMissing: Boolean = true) : NullDelegator() {
@@ -44,53 +45,47 @@ class NameCopyDelegate(val from: Pair<Namespace, Set<Namespace>>, val onlyMissin
 
     }
 
-    override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+    override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
         return fillNames(from, names, onlyMissing) {
             default.visitClass(delegate, it)
         }
     }
 
-    override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
+    override fun visitPackage(delegate: RootMappingVisitor, names: Map<Namespace, PackageName>): PackageMappingVisitor? {
         return fillNames(from, names, onlyMissing) {
             default.visitPackage(delegate, it)
         }
     }
 
-    override fun visitField(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, FieldDescriptor?>>
-    ): FieldVisitor? {
-        return fillNames(from, names, onlyMissing, { it.first to null }) {
+    override fun visitField(delegate: ClassMappingVisitor, names: Map<Namespace, FieldNameAndDescriptor>): FieldMappingVisitor? {
+        return fillNames(from, names, onlyMissing, { it }) {
             default.visitField(delegate, it)
         }
     }
 
-    override fun visitMethod(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, MethodDescriptor?>>
-    ): MethodVisitor? {
-        return fillNames(from, names, onlyMissing, { it.first to null }) {
+    override fun visitMethod(delegate: ClassMappingVisitor, names: Map<Namespace, MethodNameAndDescriptor>): MethodMappingVisitor? {
+        return fillNames(from, names, onlyMissing, { it }) {
             default.visitMethod(delegate, it)
         }
     }
 
     override fun visitParameter(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         index: Int?,
         lvOrd: Int?,
-        names: Map<Namespace, String>
-    ): ParameterVisitor? {
+        names: Map<Namespace, UnqualifiedName>
+    ): ParameterMappingVisitor? {
         return fillNames(from, names, onlyMissing) {
             default.visitParameter(delegate, index, lvOrd, it)
         }
     }
 
     override fun visitLocalVariable(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         lvOrd: Int,
         startOp: Int?,
-        names: Map<Namespace, String>
-    ): LocalVariableVisitor? {
+        names: Map<Namespace, UnqualifiedName>
+    ): LocalVariableMappingVisitor? {
         return fillNames(from, names, onlyMissing) {
             default.visitLocalVariable(delegate, lvOrd, startOp, it)
         }

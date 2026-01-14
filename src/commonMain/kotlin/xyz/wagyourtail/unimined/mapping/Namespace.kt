@@ -6,8 +6,8 @@ import kotlinx.atomicfu.locks.synchronized
 class Namespace private constructor(val name: String) {
 
     companion object {
-        val names = mutableMapOf<String, Namespace>()
-        val sync = SynchronizedObject()
+        private val names = mutableMapOf<String, Namespace>()
+        private val sync = SynchronizedObject()
 
         operator fun invoke(name: String): Namespace {
             synchronized(sync) {

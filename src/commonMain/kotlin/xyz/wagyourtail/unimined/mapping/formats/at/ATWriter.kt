@@ -4,20 +4,13 @@ import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.*
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.jvms.four.contains
-import xyz.wagyourtail.unimined.mapping.jvms.four.plus
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
@@ -26,7 +19,7 @@ object ATWriter : FormatWriter {
 
     var defaultToPublic: Boolean = false
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): RootMappingVisitor {
         return assembleAts {
             writeData(it, append)
         }
@@ -51,8 +44,7 @@ object ATWriter : FormatWriter {
                             targetNs,
                             FullyQualifiedName(
                                 ObjectType(it.targetClass),
-                                NameAndDescriptor(
-                                    it.memberName,
+                                it.memberName.withFieldDesc(
                                     null
                                 )
                             )
@@ -118,7 +110,7 @@ object ATWriter : FormatWriter {
             }
         }
 
-    fun assembleAts(finalizer: (List<ATReader.ATItem>) -> Unit): MappingVisitor {
+    fun assembleAts(finalizer: (List<ATReader.ATItem>) -> Unit): RootMappingVisitor {
         var ns: Namespace? = null
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null
@@ -131,63 +123,61 @@ object ATWriter : FormatWriter {
 
         val mappings = defaultedMapOf<InternalName, MutableList<ATReader.ATData>> { mutableListOf() }
 
-        return EmptyMappingVisitor().delegator(object : NullDelegator() {
+        return EmptyRootMappingVisitor().delegator(object : NullDelegator() {
 
-            override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+            override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
                 if (namespaces.size != 1) {
                     throw IllegalArgumentException("AWWriter requires exactly one namespace")
                 }
-                ns = Namespace(namespaces[0])
+                ns = namespaces[0]
             }
 
-            override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+            override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
                 cls = names[ns] ?: throw IllegalArgumentException("Class name not found")
                 return default.visitClass(delegate, names)
             }
 
             override fun visitField(
-                delegate: ClassVisitor,
-                names: Map<Namespace, Pair<String, FieldDescriptor?>>
-            ): FieldVisitor? {
-                val (name, desc) = names[ns] ?: throw IllegalArgumentException("Field name not found")
-                member = NameAndDescriptor(UnqualifiedName.read(name), desc ?.let { FieldOrMethodDescriptor(it) })
+                delegate: ClassMappingVisitor,
+                names: Map<Namespace, FieldNameAndDescriptor>
+            ): FieldMappingVisitor? {
+                member = names[ns] ?: throw IllegalArgumentException("Field name not found")
                 return default.visitField(delegate, names)
             }
 
             override fun visitMethod(
-                delegate: ClassVisitor,
-                names: Map<Namespace, Pair<String, MethodDescriptor?>>
-            ): MethodVisitor? {
-                val (name, desc) = names[ns] ?: throw IllegalArgumentException("Method name not found")
-                if (desc == null) throw IllegalArgumentException("Method descriptor not found for $name on $cls")
-                member = NameAndDescriptor(UnqualifiedName.read(name), FieldOrMethodDescriptor(desc))
+                delegate: ClassMappingVisitor,
+                names: Map<Namespace, MethodNameAndDescriptor>
+            ): MethodMappingVisitor? {
+                val target = names[ns] ?: throw IllegalArgumentException("Method name not found")
+                if (!target.hasDescriptor) throw IllegalArgumentException("Method descriptor not found for $name on $cls")
+                member = target
                 return default.visitMethod(delegate, names)
             }
 
             override fun visitWildcard(
-                delegate: ClassVisitor,
-                type: WildcardNode.WildcardType,
+                delegate: ClassMappingVisitor,
+                type: WildcardType,
                 descs: Map<Namespace, FieldOrMethodDescriptor>
-            ): WildcardVisitor? {
+            ): WildcardMappingVisitor? {
                 member = when (type) {
-                    WildcardNode.WildcardType.METHOD -> {
-                        NameAndDescriptor(UnqualifiedName.unchecked("*"), FieldOrMethodDescriptor.unchecked("()V"))
+                    WildcardType.METHOD -> {
+                        UnqualifiedName.unchecked("*").withMethodDesc(descs[ns]?.getMethodDescriptor())
                     }
 
-                    WildcardNode.WildcardType.FIELD -> {
-                        NameAndDescriptor(UnqualifiedName.unchecked("*"), null)
+                    WildcardType.FIELD -> {
+                        UnqualifiedName.unchecked("*").withFieldDesc(null)
                     }
                 }
                 return default.visitWildcard(delegate, type, descs)
             }
 
             override fun visitClassAccess(
-                delegate: ClassVisitor,
+                delegate: ClassMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
                         classAccessAdd += value
@@ -199,12 +189,11 @@ object ATWriter : FormatWriter {
             }
 
             override fun visitFieldAccess(
-                delegate: FieldVisitor,
+                delegate: FieldMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
                         memberAccessesAdd += value
@@ -216,12 +205,11 @@ object ATWriter : FormatWriter {
             }
 
             override fun visitMethodAccess(
-                delegate: MethodVisitor,
+                delegate: MethodMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
                         memberAccessesAdd += value
@@ -233,12 +221,11 @@ object ATWriter : FormatWriter {
             }
 
             override fun visitWildcardAccess(
-                delegate: WildcardVisitor,
+                delegate: WildcardMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
                         memberAccessesAdd += value
@@ -246,10 +233,10 @@ object ATWriter : FormatWriter {
                         memberAccessesRemove += value
                     }
                 }
-                return super.visitWildcardAccess(delegate, type, value, conditions, namespaces)
+                return super.visitWildcardAccess(delegate, type, value, conditions)
             }
 
-            override fun visitClassEnd(delegate: ClassVisitor) {
+            override fun visitClassEnd(delegate: ClassMappingVisitor) {
                 val final = when (AccessFlag.FINAL) {
                     in classAccessAdd -> ATReader.TriState.ADD
                     in classAccessRemove -> ATReader.TriState.REMOVE
@@ -258,12 +245,10 @@ object ATWriter : FormatWriter {
                 val access = AccessFlag.visibilityOf(classAccessAdd)
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
-                        ATReader.ATData(
+                        ATReader.ATDataClass(
                             if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
-                            null,
-                            null
                         ))
                 }
                 classAccessAdd.clear()
@@ -274,7 +259,7 @@ object ATWriter : FormatWriter {
                 member = null
             }
 
-            override fun visitFieldEnd(delegate: FieldVisitor) {
+            override fun visitFieldEnd(delegate: FieldMappingVisitor) {
                 val final = when (AccessFlag.FINAL) {
                     in memberAccessesAdd -> ATReader.TriState.ADD
                     in memberAccessesRemove -> ATReader.TriState.REMOVE
@@ -284,12 +269,11 @@ object ATWriter : FormatWriter {
                 val (name, desc) = member!!.getParts()
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
-                        ATReader.ATData(
+                        ATReader.ATDataField(
                             if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
-                            name.toString(),
-                            null
+                            name,
                         ))
                 }
 
@@ -298,7 +282,7 @@ object ATWriter : FormatWriter {
                 member = null
             }
 
-            override fun visitMethodEnd(delegate: MethodVisitor) {
+            override fun visitMethodEnd(delegate: MethodMappingVisitor) {
                 val final = when (AccessFlag.FINAL) {
                     in memberAccessesAdd -> ATReader.TriState.ADD
                     in memberAccessesRemove -> ATReader.TriState.REMOVE
@@ -308,12 +292,12 @@ object ATWriter : FormatWriter {
                 val (name, desc) = member!!.getParts()
                 if (access != null || final != ATReader.TriState.LEAVE) {
                     mappings[cls]!!.add(
-                        ATReader.ATData(
+                        ATReader.ATDataMethod(
                             if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                             final,
                             cls!!,
-                            name.toString(),
-                            desc?.toString() ?: error("Method descriptor not found")
+                            name,
+                            desc?.getMethodDescriptor() ?: error("Method descriptor not found")
                         ))
                 }
                 memberAccessesAdd.clear()
@@ -321,7 +305,7 @@ object ATWriter : FormatWriter {
                 member = null
             }
 
-            override fun visitWildcardEnd(delegate: WildcardVisitor) {
+            override fun visitWildcardEnd(delegate: WildcardMappingVisitor) {
                 val final = when (AccessFlag.FINAL) {
                     in memberAccessesAdd -> ATReader.TriState.ADD
                     in memberAccessesRemove -> ATReader.TriState.REMOVE
@@ -330,34 +314,29 @@ object ATWriter : FormatWriter {
                 val access = AccessFlag.visibilityOf(memberAccessesAdd)
                 val (name, desc) = member!!.getParts()
                 if (access != null || final != ATReader.TriState.LEAVE) {
-                    if (desc != null) {
-                        mappings[cls]!!.add(
-                            ATReader.ATData(
+                    mappings[cls]!!.add(
+                        if (member is MethodNameAndDescriptor) {
+                            ATReader.ATDataMethodWildcard(
                                 if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                                 final,
                                 cls!!,
-                                name.toString(),
-                                "()"
+                                desc?.getMethodDescriptor()
                             )
-                        )
-                    } else {
-                        mappings[cls]!!.add(
-                            ATReader.ATData(
+                        } else {
+                            ATReader.ATDataFieldWildcard(
                                 if (access == AccessFlag.DEFAULT && defaultToPublic) AccessFlag.PUBLIC else access ?: AccessFlag.PUBLIC,
                                 final,
                                 cls!!,
-                                name.toString(),
-                                null
                             )
-                        )
-                    }
+                        }
+                    )
                 }
                 memberAccessesAdd.clear()
                 memberAccessesRemove.clear()
                 member = null
             }
 
-            override fun visitFooter(delegate: MappingVisitor) {
+            override fun visitFooter(delegate: RootMappingVisitor) {
                 finalizer(mappings.values.map { members ->
                     members.sortedBy {
                     buildString {

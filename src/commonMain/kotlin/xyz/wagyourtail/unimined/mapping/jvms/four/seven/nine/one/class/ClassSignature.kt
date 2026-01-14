@@ -3,15 +3,15 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
-import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Signature
 import kotlin.jvm.JvmInline
 
 /**
  * ClassSignature:
- *   [[TypeParameters]] [SuperclassSignature] {[SuperinterfaceSignature]}
+ *   [[TypeParameters]] [SuperclassSignature] {[SuperInterfaceSignature]}
  */
 @JvmInline
-value class ClassSignature private constructor(val value: String) : Type {
+value class ClassSignature private constructor(val value: String) : Signature {
 
     companion object: TypeCompanion<ClassSignature> {
 
@@ -27,8 +27,8 @@ value class ClassSignature private constructor(val value: String) : Type {
                 append(TypeParameters.read(reader))
             }
             append(SuperclassSignature.read(reader))
-            while (!reader.exhausted() && SuperinterfaceSignature.shouldRead(reader.copy())) {
-                append(SuperinterfaceSignature.read(reader))
+            while (!reader.exhausted() && SuperInterfaceSignature.shouldRead(reader.copy())) {
+                append(SuperInterfaceSignature.read(reader))
             }
         }
 
@@ -38,20 +38,20 @@ value class ClassSignature private constructor(val value: String) : Type {
                     append(TypeParameters.read("<${typeParams.joinToString("")}>"))
                 }
                 append(SuperclassSignature.read(superClass))
-                superInterfaces.forEach { append(SuperinterfaceSignature.read(it)) }
+                superInterfaces.forEach { append(SuperInterfaceSignature.read(it)) }
             })
 
         override fun unchecked(value: String) = ClassSignature(value)
     }
 
-    fun getParts(): Triple<TypeParameters?, SuperclassSignature, List<SuperinterfaceSignature>> = StringCharReader(value).let {
+    fun getParts(): Triple<TypeParameters?, SuperclassSignature, List<SuperInterfaceSignature>> = StringCharReader(value).let {
         val typeParams = if (TypeParameters.shouldRead(it.copy())) {
             TypeParameters.read(it)
         } else null
         val superclass = SuperclassSignature.read(it)
-        val interfaces = mutableListOf<SuperinterfaceSignature>()
+        val interfaces = mutableListOf<SuperInterfaceSignature>()
         while (!it.exhausted()) {
-            interfaces.add(SuperinterfaceSignature.read(it))
+            interfaces.add(SuperInterfaceSignature.read(it))
         }
         Triple(typeParams, superclass, interfaces)
     }

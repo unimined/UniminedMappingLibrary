@@ -2,11 +2,11 @@ package xyz.wagyourtail.unimined.mapping.formats.unsupported
 
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 
 object UnsupportedWriter : FormatWriter {
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): RootMappingVisitor {
         throw UnsupportedOperationException("Unsupported format")
     }
 

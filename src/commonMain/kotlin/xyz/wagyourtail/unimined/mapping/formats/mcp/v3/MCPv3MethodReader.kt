@@ -6,11 +6,13 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
@@ -31,7 +33,7 @@ object MCPv3MethodReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -49,16 +51,16 @@ object MCPv3MethodReader : FormatReader {
         into.use {
             visitHeader(notchNs.name, seargeNs.name, mcpNs.name)
 
-            var lastClass: Pair<InternalName, ClassVisitor?>? = null
+            var lastClass: Pair<InternalName, ClassMappingVisitor?>? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
                     input.take()
                     continue
                 }
-                val searge = input.takeCol()!!
-                val name = input.takeCol()!!
-                val notch = input.takeCol()!!
+                val searge = UnqualifiedName.read(input.takeCol()!!)
+                val name = UnqualifiedName.read(input.takeCol()!!)
+                val notch = UnqualifiedName.read(input.takeCol()!!)
                 input.takeCol() // sig
                 val notchSig = MethodDescriptor.read(input.takeCol()!!)
                 val className = input.takeCol()
@@ -82,9 +84,9 @@ object MCPv3MethodReader : FormatReader {
 
                     lastClass.second?.visitMethod(
                         mapOf(
-                            notchNs to (notch to notchSig),
-                            seargeNs to (searge to null),
-                            mcpNs to (name to null)
+                            notchNs to MethodNameAndDescriptor(notch, notchSig),
+                            seargeNs to MethodNameAndDescriptor(searge, null),
+                            mcpNs to MethodNameAndDescriptor(name, null)
                         ),
                     )
 

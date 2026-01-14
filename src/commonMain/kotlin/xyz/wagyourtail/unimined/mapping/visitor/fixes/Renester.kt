@@ -5,11 +5,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
+import xyz.wagyourtail.unimined.mapping.tree.mapping._class.ClassMappingImpl
+import xyz.wagyourtail.unimined.mapping.visitor.InnerType
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
-private fun AbstractMappingTree.fixNest(target: ClassNode, srcNs: Namespace, targetNs: Namespace): InternalName? {
+private fun AbstractMappingTree.fixNest(target: ClassMappingImpl, srcNs: Namespace, targetNs: Namespace): InternalName? {
     val srcName = target.getName(srcNs) ?: return target.getName(targetNs)
     if ('$' !in srcName.value) return target.getName(targetNs)
     val parent = InternalName.unchecked(srcName.value.substringBeforeLast('$'))
@@ -23,11 +23,11 @@ private fun AbstractMappingTree.fixNest(target: ClassNode, srcNs: Namespace, tar
 
         val cname = newName.value.substringAfterLast('$')
         val (type, innerName) = if (cname.toIntOrNull() != null) {
-            InnerClassNode.InnerType.ANONYMOUS to cname
+            InnerType.ANONYMOUS to cname
         } else if (cname.first().isDigit()) {
-            InnerClassNode.InnerType.LOCAL to Regex("\\d+(.+)").find(cname)!!.groupValues[1]
+            InnerType.LOCAL to Regex("\\d+(.+)").find(cname)!!.groupValues[1]
         } else {
-            InnerClassNode.InnerType.INNER to cname
+            InnerType.INNER to cname
         }
 
         visitInnerClass(type, mapOf(targetNs to (innerName to FullyQualifiedName(ObjectType(parentDstName), null))))?.visitEnd()

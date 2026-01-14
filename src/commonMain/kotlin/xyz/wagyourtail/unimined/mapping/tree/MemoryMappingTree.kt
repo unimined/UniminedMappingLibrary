@@ -9,60 +9,58 @@ import xyz.wagyourtail.commonskt.utils.filterNotNullValues
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
-import xyz.wagyourtail.unimined.mapping.visitor.ConstantGroupVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.PackageVisitor
+import xyz.wagyourtail.unimined.mapping.tree.mapping._class.ClassMappingImpl
+import xyz.wagyourtail.unimined.mapping.tree.mapping._constant.ConstantGroupMappingImpl
+import xyz.wagyourtail.unimined.mapping.tree.mapping._package.PackageMappingImpl
+import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.*
 
 class MemoryMappingTree : AbstractMappingTree() {
     private val _namespaces = mutableListOf<Namespace>()
-    private val _packages = mutableListOf<PackageNode>()
-    private val _classes = mutableListOf<ClassNode>()
-    private val _constantGroups = mutableListOf<ConstantGroupNode>()
+    private val _packages = mutableListOf<PackageMappingImpl>()
+    private val _classes = mutableListOf<ClassMappingImpl>()
+    private val _constantGroups = mutableListOf<ConstantGroupMappingImpl>()
 
-    internal val packages: List<PackageNode> get() = _packages
-    internal val classes: List<ClassNode> get() = _classes
-    internal val constantGroups: List<ConstantGroupNode> get() = _constantGroups
+    override val packages: List<PackageMappingImpl> get() = _packages
+    override val classes: List<ClassMappingImpl> get() = _classes
+    override val constantGroups: List<ConstantGroupMappingImpl> get() = _constantGroups
 
 
-    private val byNamespace = defaultedMapOf<Namespace, MutableMap<InternalName, ClassNode>> { mutableMapOf() }
+    private val byNamespace = defaultedMapOf<Namespace, MutableMap<InternalName, ClassMappingImpl>> { mutableMapOf() }
 
-    override fun getClass(namespace: Namespace, name: InternalName): ClassNode? {
+    override fun getClass(namespace: Namespace, name: InternalName): ClassMappingImpl? {
         return byNamespace[namespace][name]
     }
 
-    override fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassNode>> = _classes.iterator().asSequence().map {
+    override fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassMappingImpl>> = _classes.iterator().asSequence().map {
         it.names.filterNotNullValues() to { it }
     }.iterator()
 
-    override fun packagesIter(): Iterator<Pair<Map<Namespace, PackageName>, () -> PackageNode>> = _packages.iterator().asSequence().map {
+    override fun packagesIter(): Iterator<Pair<Map<Namespace, PackageName>, () -> PackageMappingImpl>> = _packages.iterator().asSequence().map {
         it.names.filterNotNullValues() to { it }
     }.iterator()
 
-    override fun constantGroupsIter(): Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>> = _constantGroups.iterator().asSequence().map {
-        Triple(it.name, it.type, listOf(it.baseNs, *it.namespaces.toTypedArray())) to { it }
+    override fun constantGroupsIter(): Iterator<Pair<Pair<String?, InlineType>, () -> ConstantGroupMappingImpl>> = _constantGroups.iterator().asSequence().map {
+        Pair(it.name, it.type) to { it }
     }.iterator()
 
-    override fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
-        return object : AbstractList<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
+    override fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>> {
+        return object : AbstractList<Triple<Map<Namespace, InternalName>, () -> ClassMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>>() {
             override val size: Int get() = _classes.size
 
-            override fun get(index: Int): Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
+            override fun get(index: Int): Triple<Map<Namespace, InternalName>, () -> ClassMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit> {
                 val cls = _classes[index]
                 return Triple(cls.names.filterNotNullValues(), { cls }, { visitor, nsFilter -> cls.accept(visitor, nsFilter, false) })
             }
         }
     }
 
-    override fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
-        return object : AbstractList<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
+    override fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>> {
+        return object : AbstractList<Triple<Map<Namespace, PackageName>, () -> PackageMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>>() {
 
             override val size: Int get() = _packages.size
 
-            override fun get(index: Int): Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
+            override fun get(index: Int): Triple<Map<Namespace, PackageName>, () -> PackageMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit> {
                 val pkg = _packages[index]
                 return Triple(pkg.names.filterNotNullValues(), { pkg }, { visitor, nsFilter -> pkg.accept(visitor, nsFilter, false) })
             }
@@ -70,18 +68,18 @@ class MemoryMappingTree : AbstractMappingTree() {
         }
     }
 
-    override fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>> {
-        return object : AbstractList<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>>() {
+    override fun constantGroupList(): List<Triple<Pair<String?, InlineType>, () -> ConstantGroupMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>> {
+        return object : AbstractList<Triple<Pair<String?, InlineType>, () -> ConstantGroupMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>>() {
             override val size: Int get() = _constantGroups.size
 
-            override fun get(index: Int): Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit> {
+            override fun get(index: Int): Triple<Pair<String?, InlineType>, () -> ConstantGroupMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit> {
                 val group = _constantGroups[index]
-                return Triple(Triple(null as String?, group.type, listOf(group.baseNs) + group.namespaces.toList()), { group }, { visitor, nsFilter -> group.accept(visitor, nsFilter, false) })
+                return Triple(Pair(group.name, group.type), { group }, { visitor, nsFilter -> group.accept(visitor, nsFilter, false) })
             }
         }
     }
 
-    override fun visitPackage(names: Map<Namespace, PackageName>): PackageVisitor {
+    override fun visitPackage(names: Map<Namespace, PackageName>): PackageMappingVisitor {
         for (ns in namespaces.filter { it in names }) {
             // check if exists
             val existing = packages.firstOrNull { it.names[ns] == names[ns] }
@@ -91,13 +89,13 @@ class MemoryMappingTree : AbstractMappingTree() {
                 return existing
             }
         }
-        val node = PackageNode(this)
+        val node = PackageMappingImpl(this)
         node.setNames(names)
         _packages.add(node)
         return node
     }
 
-    override fun visitClass(names: Map<Namespace, InternalName>): ClassNode {
+    override fun visitClass(names: Map<Namespace, InternalName>): ClassMappingImpl {
         for (ns in namespaces.filter { it in names }) {
             // check if exists
             val existing = getClass(ns, names[ns]!!)
@@ -113,7 +111,7 @@ class MemoryMappingTree : AbstractMappingTree() {
                 return existing
             }
         }
-        val node = ClassNode(this)
+        val node = ClassMappingImpl(this)
         node.setNames(names)
         for ((ns, name) in names) {
             byNamespace[ns].put(name, node)
@@ -123,13 +121,11 @@ class MemoryMappingTree : AbstractMappingTree() {
     }
 
     override fun visitConstantGroup(
-        type: ConstantGroupNode.InlineType,
+        type: InlineType,
         name: String?,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): ConstantGroupVisitor {
-        val node = ConstantGroupNode(this, type, name, baseNs)
-        node.addNamespaces(namespaces)
+    ): ConstantGroupMappingVisitor {
+        val node = ConstantGroupMappingImpl(this, type, name, baseNs)
         _constantGroups.add(node)
         return node
     }
@@ -154,7 +150,7 @@ class MemoryMappingTree : AbstractMappingTree() {
                         it.setNames(nameMap)
                         for (fill in toFill) {
                             it.acceptInner(
-                                DelegateClassVisitor(it, NameCopyDelegate(fill)),
+                                DelegateClassMappingVisitor(it, NameCopyDelegate(fill)),
                                 namespaces,
                                 false
                             )

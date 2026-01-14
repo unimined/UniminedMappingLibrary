@@ -7,9 +7,12 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
@@ -63,7 +66,7 @@ object TinyV2Reader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -95,7 +98,7 @@ object TinyV2Reader : FormatReader {
         into.use {
 
             visitHeader(*namespaces.map { it.name }.toTypedArray())
-            val stack = mutableListOf<BaseVisitor<*>?>(into)
+            val stack = mutableListOf<BaseMappingVisitor?>(into)
             outer@ while (!input.exhausted()) {
                 if (input.peek() == '\n') {
                     input.take()
@@ -115,7 +118,7 @@ object TinyV2Reader : FormatReader {
                 }
                 val type = col
                 val last = stack.last()
-                val next: BaseVisitor<*>? = when (type) {
+                val next: BaseMappingVisitor? = when (type) {
                     "c" -> {
                         if (indent == 0) {
                             // class
@@ -135,13 +138,13 @@ object TinyV2Reader : FormatReader {
                                     nameMap[ns] = InternalName.read(name)
                                 }
                             }
-                            last as MappingVisitor?
+                            last as RootMappingVisitor?
                             last?.visitClass(nameMap)
                         } else {
                             // comment
                             val comment = input.takeLine().removePrefix("\t").translateEscapes()
-                            last as JavadocParentNode?
-                            last?.visitJavadoc(comment, namespaces.toSet())
+                            last as JavadocParentMappingVisitor?
+                            last?.visitJavadoc(comment, namespaces.first())
                         }
                     }
 
@@ -155,16 +158,16 @@ object TinyV2Reader : FormatReader {
                         }
                         val nameIter = names.iterator()
                         val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, Pair<String, FieldDescriptor?>>()
-                        nameMap[nsIter.next()] = nameIter.next() to FieldDescriptor.read(desc)
+                        val nameMap = mutableMapOf<Namespace, FieldNameAndDescriptor>()
+                        nameMap[nsIter.next()] = UnqualifiedName.read(nameIter.next()).withFieldDesc(FieldDescriptor.read(desc))
                         while (nameIter.hasNext()) {
                             val ns = nsIter.next()
                             val name = nameIter.next()
                             if (name.isNotEmpty()) {
-                                nameMap[ns] = name to null
+                                nameMap[ns] = UnqualifiedName.read(name).withFieldDesc(null)
                             }
                         }
-                        last as ClassVisitor?
+                        last as ClassMappingVisitor?
                         last?.visitField(nameMap)
                     }
 
@@ -178,16 +181,16 @@ object TinyV2Reader : FormatReader {
                         }
                         val nameIter = names.iterator()
                         val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, Pair<String, MethodDescriptor?>>()
-                        nameMap[nsIter.next()] = nameIter.next() to MethodDescriptor.read(desc)
+                        val nameMap = mutableMapOf<Namespace, MethodNameAndDescriptor>()
+                        nameMap[nsIter.next()] = UnqualifiedName.read(nameIter.next()).withMethodDesc(MethodDescriptor.read(desc))
                         while (nameIter.hasNext()) {
                             val ns = nsIter.next()
                             val name = nameIter.next()
                             if (name.isNotEmpty()) {
-                                nameMap[ns] = name to null
+                                nameMap[ns] = UnqualifiedName.read(name).withMethodDesc(null)
                             }
                         }
-                        last as ClassVisitor?
+                        last as ClassMappingVisitor?
                         last?.visitMethod(nameMap)
                     }
 
@@ -201,15 +204,15 @@ object TinyV2Reader : FormatReader {
                         }
                         val nameIter = names.iterator()
                         val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, String>()
+                        val nameMap = mutableMapOf<Namespace, UnqualifiedName>()
                         while (nameIter.hasNext()) {
                             val ns = nsIter.next()
                             val name = nameIter.next()
                             if (name.isNotEmpty()) {
-                                nameMap[ns] = name
+                                nameMap[ns] = UnqualifiedName.read(name)
                             }
                         }
-                        last as MethodVisitor?
+                        last as MethodMappingVisitor?
                         last?.visitParameter(null, lvOrd, nameMap)
                     }
 

@@ -7,13 +7,14 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.JavadocVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.FieldMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.JavadocMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
@@ -40,7 +41,7 @@ object MCPv1FieldReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -56,7 +57,7 @@ object MCPv1FieldReader : FormatReader {
             throw IllegalArgumentException("invalid header for older method csv")
         }
 
-        val data = mutableMapOf<String, Pair<String, String?>>()
+        val data = mutableMapOf<UnqualifiedName, Pair<UnqualifiedName, String?>>()
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
@@ -65,11 +66,11 @@ object MCPv1FieldReader : FormatReader {
             }
             input.takeCol() // clientClsName
             input.takeCol() // empty
-            val clientSrg = input.takeCol()
+            val clientSrg = UnqualifiedName.read(input.takeCol()!!)
 
             input.takeCol() // serverClsName
             input.takeCol() // empty
-            val serverSrg = input.takeCol()
+            val serverSrg = UnqualifiedName.read(input.takeCol()!!)
 
             val fieldName = input.takeCol()
             val comment = input.takeCol()
@@ -83,12 +84,12 @@ object MCPv1FieldReader : FormatReader {
             }
 
             if (envType == EnvType.CLIENT) {
-                if (clientSrg == "*") continue
-                data[clientSrg!!] = fieldName to comment
+                if (clientSrg.value == "*") continue
+                data[clientSrg] = UnqualifiedName.read(fieldName) to comment
             }
             if (envType == EnvType.SERVER) {
-                if (serverSrg == "*") continue
-                data[serverSrg!!] = fieldName to comment
+                if (serverSrg.value == "*") continue
+                data[serverSrg] = UnqualifiedName.read(fieldName) to comment
             }
 
         }
@@ -99,36 +100,36 @@ object MCPv1FieldReader : FormatReader {
         context?.accept(
             into.delegator(object : NullDelegator() {
 
-                override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
-                    val ns = setOf(*namespaces, srcNs.name, dstNs.name)
+                override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
+                    val ns = setOf(*namespaces, srcNs, dstNs)
                     default.visitHeader(delegate, *ns.toTypedArray())
                 }
 
-                override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+                override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
                     return default.visitClass(delegate, names)
                 }
 
                 override fun visitField(
-                    delegate: ClassVisitor,
-                    names: Map<Namespace, Pair<String, FieldDescriptor?>>
-                ): FieldVisitor? {
+                    delegate: ClassMappingVisitor,
+                    names: Map<Namespace, FieldNameAndDescriptor>
+                ): FieldMappingVisitor? {
                     val ns = names[srcNs] ?: return null
-                    val fData = data[ns.first] ?: return null
+                    val fData = data[ns.name] ?: return null
                     val nameMap = names.toMutableMap()
-                    nameMap[dstNs] = fData.first to null
+                    nameMap[dstNs] = FieldNameAndDescriptor(fData.first, null)
                     val visitor = default.visitField(delegate, nameMap)
                     if (fData.second != null) {
-                        visitor?.visitJavadoc(fData.second!!, setOf(dstNs))?.visitEnd()
+                        visitor?.visitJavadoc(fData.second!!, dstNs)?.visitEnd()
                     }
                     return visitor
                 }
 
                 override fun visitFieldJavadoc(
-                    delegate: FieldVisitor,
+                    delegate: FieldMappingVisitor,
                     value: String,
-                    namespaces: Set<Namespace>
-                ): JavadocVisitor? {
-                    return default.visitFieldJavadoc(delegate, value, namespaces)
+                    baseNs: Namespace
+                ): JavadocMappingVisitor? {
+                    return default.visitFieldJavadoc(delegate, value, baseNs)
                 }
 
             })

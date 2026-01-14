@@ -96,6 +96,9 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
 }
 
 operator fun Int.contains(flag: AccessFlag): Boolean {
+    if (flag == AccessFlag.DEFAULT && this and AccessFlag.visibilityMask == 0) {
+        return true
+    }
     return this and flag.access != 0
 }
 

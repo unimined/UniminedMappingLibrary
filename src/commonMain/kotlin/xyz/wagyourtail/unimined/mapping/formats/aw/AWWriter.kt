@@ -1,25 +1,17 @@
 package xyz.wagyourtail.unimined.mapping.formats.aw
 
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
-import xyz.wagyourtail.commonskt.utils.ListCompare
-import xyz.wagyourtail.commonskt.utils.comparable
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.*
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.contains
 import xyz.wagyourtail.unimined.mapping.jvms.four.plus
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
@@ -33,12 +25,12 @@ object AWWriter : FormatWriter {
      * use [AWWriter.remapMappings] to convert to the correct mappings,
      * and [AWWriter.writeData] to write the mappings
      */
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): RootMappingVisitor {
         var ns: Namespace? = null
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null
 
-        var wildcardType: WildcardNode.WildcardType? = null
+        var wildcardType: WildcardType? = null
 
         var wildcardFieldAdd = 0
         var wildcardFieldRemove = 0
@@ -54,51 +46,50 @@ object AWWriter : FormatWriter {
 
         val mappings = defaultedMapOf<InternalName, MutableList<AWReader.AWData>> { mutableListOf() }
 
-        return EmptyMappingVisitor().delegator(object : NullDelegator() {
+        return EmptyRootMappingVisitor().delegator(object : NullDelegator() {
 
-            override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
+            override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
                 if (namespaces.size != 1) {
                     throw IllegalArgumentException("AWWriter requires exactly one namespace")
                 }
-                ns = Namespace(namespaces[0])
+                ns = namespaces[0]
             }
 
-            override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+            override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
                 cls = names[ns] ?: throw IllegalArgumentException("Class name not found")
                 return default.visitClass(delegate, names)
             }
 
             override fun visitField(
-                delegate: ClassVisitor,
-                names: Map<Namespace, Pair<String, FieldDescriptor?>>
-            ): FieldVisitor? {
-                val (name, desc) = names[ns] ?: throw IllegalArgumentException("Field name not found")
-                if (desc == null) return null
-                member = NameAndDescriptor(UnqualifiedName.read(name), FieldOrMethodDescriptor(desc))
+                delegate: ClassMappingVisitor,
+                names: Map<Namespace, FieldNameAndDescriptor>
+            ): FieldMappingVisitor? {
+                val target = names[ns] ?: throw IllegalArgumentException("Field name not found")
+                if (!target.hasDescriptor) return null
+                member = target
                 memberAccessesAdd = wildcardFieldAdd
                 memberAccessesRemove = wildcardFieldRemove
                 return default.visitField(delegate, names)
             }
 
             override fun visitMethod(
-                delegate: ClassVisitor,
-                names: Map<Namespace, Pair<String, MethodDescriptor?>>
-            ): MethodVisitor? {
-                val (name, desc) = names[ns] ?: throw IllegalArgumentException("Method name not found")
-                if (desc == null) return null
-                member = NameAndDescriptor(UnqualifiedName.read(name), FieldOrMethodDescriptor(desc))
+                delegate: ClassMappingVisitor,
+                names: Map<Namespace, MethodNameAndDescriptor>
+            ): MethodMappingVisitor? {
+                val target = names[ns] ?: throw IllegalArgumentException("Method name not found")
+                if (!target.hasDescriptor) return null
+                member = target
                 memberAccessesAdd = wildcardMethodAdd
                 memberAccessesRemove = wildcardMethodRemove
                 return default.visitMethod(delegate, names)
             }
 
             override fun visitClassAccess(
-                delegate: ClassVisitor,
+                delegate: ClassMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
                         classAccessAdd += value
@@ -110,23 +101,22 @@ object AWWriter : FormatWriter {
             }
 
             override fun visitWildcard(
-                delegate: ClassVisitor,
-                type: WildcardNode.WildcardType,
+                delegate: ClassMappingVisitor,
+                type: WildcardType,
                 descs: Map<Namespace, FieldOrMethodDescriptor>
-            ): WildcardVisitor? {
+            ): WildcardMappingVisitor? {
                 wildcardType = type
                 return default.visitWildcard(delegate, type, descs)
             }
 
             override fun visitWildcardAccess(
-                delegate: WildcardVisitor,
+                delegate: WildcardMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (wildcardType == WildcardNode.WildcardType.FIELD) {
+                    if (wildcardType == WildcardType.FIELD) {
                         if (type == AccessType.ADD) {
                             wildcardFieldAdd += value
                         } else {
@@ -143,17 +133,16 @@ object AWWriter : FormatWriter {
                 return null
             }
 
-            override fun visitWildcardEnd(delegate: WildcardVisitor) {
+            override fun visitWildcardEnd(delegate: WildcardMappingVisitor) {
                 wildcardType = null
             }
 
             override fun visitFieldAccess(
-                delegate: FieldVisitor,
+                delegate: FieldMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
                         memberAccessesAdd += value
@@ -165,12 +154,11 @@ object AWWriter : FormatWriter {
             }
 
             override fun visitMethodAccess(
-                delegate: MethodVisitor,
+                delegate: MethodMappingVisitor,
                 type: AccessType,
                 value: AccessFlag,
                 conditions: AccessConditions,
-                namespaces: Set<Namespace>
-            ): AccessVisitor? {
+            ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (type == AccessType.ADD) {
                         memberAccessesAdd += value
@@ -181,7 +169,7 @@ object AWWriter : FormatWriter {
                 return null
             }
 
-            override fun visitClassEnd(delegate: ClassVisitor) {
+            override fun visitClassEnd(delegate: ClassMappingVisitor) {
                 val fqn = FullyQualifiedName(ObjectType(cls!!), null)
                 if (AccessFlag.PUBLIC in classAccessAdd) {
                     mappings[cls]!!.add(AWReader.AWData(
@@ -206,7 +194,7 @@ object AWWriter : FormatWriter {
                 cls = null
             }
 
-            override fun visitFieldEnd(delegate: FieldVisitor) {
+            override fun visitFieldEnd(delegate: FieldMappingVisitor) {
                 val fqn = FullyQualifiedName(ObjectType(cls!!), member!!)
                 if (memberAccessesAdd.contains(AccessFlag.PUBLIC)) {
                     mappings[cls]!!.add(AWReader.AWData(
@@ -223,7 +211,7 @@ object AWWriter : FormatWriter {
                 member = null
             }
 
-            override fun visitMethodEnd(delegate: MethodVisitor) {
+            override fun visitMethodEnd(delegate: MethodMappingVisitor) {
                 val fqn = FullyQualifiedName(ObjectType(cls!!), member!!)
                 if (memberAccessesAdd.contains(AccessFlag.PUBLIC)) {
                     mappings[cls]!!.add(AWReader.AWData(
@@ -240,11 +228,10 @@ object AWWriter : FormatWriter {
                 member = null
             }
 
-            override fun visitFooter(delegate: MappingVisitor) {
+            override fun visitFooter(delegate: RootMappingVisitor) {
                 writeData(AWReader.AWMappings(ns!!, mappings.values.map { map ->
-                    map.sortedBy {
-                        listOf(it.target.toString(), it.access).comparable()
-                } }.flatten()), append)
+                    map.sorted()
+                }.flatten()), append)
             }
         })
     }

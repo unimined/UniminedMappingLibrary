@@ -6,12 +6,15 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object TinyV1Reader : FormatReader {
@@ -28,7 +31,7 @@ object TinyV1Reader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -40,7 +43,7 @@ object TinyV1Reader : FormatReader {
         into.use {
             visitHeader(*namespaces.map { it.name }.toTypedArray())
 
-            var currentCls: Pair<InternalName, ClassVisitor?>? = null
+            var currentCls: Pair<InternalName, ClassMappingVisitor?>? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -74,17 +77,17 @@ object TinyV1Reader : FormatReader {
                     "FIELD" -> {
                         val srcClass = InternalName.read(input.takeNextLiteral()!!)
                         val srcDesc = FieldDescriptor.read(input.takeNextLiteral()!!)
-                        val srcName = input.takeNextLiteral()!!
+                        val srcName = UnqualifiedName.read(input.takeNextLiteral()!!)
                         val names = input.takeRemainingOnLine().map { it }
                         val namesIter = names.iterator()
                         val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, Pair<String, FieldDescriptor?>>()
-                        nameMap[nsIter.next()] = srcName to srcDesc
+                        val nameMap = mutableMapOf<Namespace, FieldNameAndDescriptor>()
+                        nameMap[nsIter.next()] = srcName.withFieldDesc(srcDesc)
                         while (namesIter.hasNext()) {
                             val ns = nsIter.next()
                             val name = namesIter.next()
                             if (name.isNotEmpty()) {
-                                nameMap[ns] = name to null
+                                nameMap[ns] = UnqualifiedName.read(name).withFieldDesc(srcDesc)
                             }
                         }
                         if (currentCls?.first != srcClass) {
@@ -97,17 +100,17 @@ object TinyV1Reader : FormatReader {
                     "METHOD" -> {
                         val srcClass = InternalName.read(input.takeNextLiteral()!!)
                         val srcDesc = MethodDescriptor.read(input.takeNextLiteral()!!)
-                        val srcName = input.takeNextLiteral()!!
+                        val srcName = UnqualifiedName.read(input.takeNextLiteral()!!)
                         val names = input.takeRemainingOnLine().map { it }
                         val namesIter = names.iterator()
                         val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, Pair<String, MethodDescriptor?>>()
-                        nameMap[nsIter.next()] = srcName to srcDesc
+                        val nameMap = mutableMapOf<Namespace, MethodNameAndDescriptor>()
+                        nameMap[nsIter.next()] = srcName.withMethodDesc(srcDesc)
                         while (namesIter.hasNext()) {
                             val ns = nsIter.next()
                             val name = namesIter.next()
                             if (name.isNotEmpty()) {
-                                nameMap[ns] = name to null
+                                nameMap[ns] = UnqualifiedName.read(name).withMethodDesc(null)
                             }
                         }
                         if (currentCls?.first != srcClass) {

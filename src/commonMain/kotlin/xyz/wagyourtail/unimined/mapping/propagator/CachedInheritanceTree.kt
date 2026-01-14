@@ -9,6 +9,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 
 class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): InheritanceTree(tree) {
@@ -32,7 +33,7 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
                     val access = AccessFlag.of(ElementType.METHOD, field.access).joinToString("|") { it.toString() }
                     append(access.maybeEscape())
                     append("\t")
-                    append(field.name.maybeEscape())
+                    append(field.name.value.maybeEscape())
                     append("\t")
                     append(field.descriptor.toString().maybeEscape())
                     append("\n")
@@ -43,7 +44,7 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
                     val access = AccessFlag.of(ElementType.METHOD, method.access).joinToString("|") { it.toString() }
                     append(access.maybeEscape())
                     append("\t")
-                    append(method.name.maybeEscape())
+                    append(method.name.value.maybeEscape())
                     append("\t")
                     append(method.descriptor.toString().maybeEscape())
                     append("\n")
@@ -100,7 +101,7 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
                 classes[ci!!.name] = ci!!
             } else {
                 val acc = data.takeNextUMF()!!.split("|").filter { it.isNotBlank() }.map { AccessFlag.valueOf(it.uppercase()) }
-                val name = data.takeNextUMF()!!
+                val name = UnqualifiedName.read(data.takeNextUMF()!!)
                 val desc = FieldOrMethodDescriptor.read(data.takeNextUMF()!!)
 
                 if (desc.isMethodDescriptor()) {

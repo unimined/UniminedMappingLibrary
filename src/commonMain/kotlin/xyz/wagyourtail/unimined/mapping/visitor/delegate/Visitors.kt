@@ -1,191 +1,150 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
-import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Signature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.tree.node._class.InnerClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.visitor.*
 
-fun MappingVisitor.delegator(delegator: Delegator) = DelegateMappingVisitor(this, delegator)
+fun RootMappingVisitor.delegator(delegator: Delegator) = DelegateMappingRootMappingVisitor(this, delegator)
 
-fun MappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingVisitor(this, object : Delegator() {
+fun RootMappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMappingRootMappingVisitor(this, object : Delegator() {
 
-    override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
-        super.visitHeader(delegate, *namespaces.map { nsMap[Namespace(it)]?.name ?: it }.toTypedArray())
+    override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
+        super.visitHeader(delegate, *namespaces.map { nsMap[it] ?: it }.toTypedArray())
     }
 
-    override fun visitPackage(delegate: MappingVisitor, names: Map<Namespace, PackageName>): PackageVisitor? {
+    override fun visitPackage(delegate: RootMappingVisitor, names: Map<Namespace, PackageName>): PackageMappingVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitPackage(delegate, n)
     }
 
-    override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+    override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitClass(delegate, n)
     }
 
-    override fun visitField(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, FieldDescriptor?>>
-    ): FieldVisitor? {
+    override fun visitField(delegate: ClassMappingVisitor, names: Map<Namespace, FieldNameAndDescriptor>): FieldMappingVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitField(delegate, n)
     }
 
-    override fun visitMethod(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, MethodDescriptor?>>
-    ): MethodVisitor? {
+    override fun visitMethod(delegate: ClassMappingVisitor, names: Map<Namespace, MethodNameAndDescriptor>): MethodMappingVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitMethod(delegate, n)
     }
 
     override fun visitWildcard(
-        delegate: ClassVisitor,
-        type: WildcardNode.WildcardType,
+        delegate: ClassMappingVisitor,
+        type: WildcardType,
         descs: Map<Namespace, FieldOrMethodDescriptor>
-    ): WildcardVisitor? {
+    ): WildcardMappingVisitor? {
         val n = descs.mapKeys { nsMap[it.key] ?: it.key }
         return super.visitWildcard(delegate, type, n)
     }
 
     override fun visitInnerClass(
-        delegate: ClassVisitor,
-        type: InnerClassNode.InnerType,
+        delegate: ClassMappingVisitor,
+        type: InnerType,
         names: Map<Namespace, Pair<String, FullyQualifiedName?>>
-    ): InnerClassVisitor? {
+    ): InnerClassMappingVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitInnerClass(delegate, type, n)
     }
 
     override fun visitSeal(
-        delegate: ClassVisitor,
+        delegate: ClassMappingVisitor,
         type: SealedType,
         name: InternalName?,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): SealVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitSeal(delegate, type, name, nsMap[baseNs] ?: baseNs, namespaces)
+    ): SealMappingVisitor? {
+        return super.visitSeal(delegate, type, name, nsMap[baseNs] ?: baseNs)
     }
 
     override fun visitInterface(
-        delegate: ClassVisitor,
+        delegate: ClassMappingVisitor,
         type: InterfacesType,
         name: ClassTypeSignature,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): InterfaceVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitInterface(delegate, type, name, nsMap[baseNs] ?: baseNs, namespaces)
+    ): InterfaceMappingVisitor? {
+        return super.visitInterface(delegate, type, name, nsMap[baseNs] ?: baseNs)
     }
 
     override fun visitParameter(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         index: Int?,
         lvOrd: Int?,
-        names: Map<Namespace, String>
-    ): ParameterVisitor? {
+        names: Map<Namespace, UnqualifiedName>
+    ): ParameterMappingVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitParameter(delegate, index, lvOrd, n)
     }
 
     override fun visitLocalVariable(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         lvOrd: Int,
         startOp: Int?,
-        names: Map<Namespace, String>
-    ): LocalVariableVisitor? {
+        names: Map<Namespace, UnqualifiedName>
+    ): LocalVariableMappingVisitor? {
         val n = names.mapKeys { nsMap[it.key] ?: it.key }
         if (n.isEmpty()) return null
         return super.visitLocalVariable(delegate, lvOrd, startOp, n)
     }
 
     override fun visitException(
-        delegate: InvokableVisitor<*>,
+        delegate: InvokableMappingVisitor,
         type: ExceptionType,
         exception: InternalName,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): ExceptionVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitException(delegate, type, exception, nsMap[baseNs] ?: baseNs, n)
-    }
-
-    override fun visitAccess(
-        delegate: AccessParentVisitor<*>,
-        type: AccessType,
-        value: AccessFlag,
-        conditions: AccessConditions,
-        namespaces: Set<Namespace>
-    ): AccessVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitAccess(delegate, type, value, conditions, n)
+    ): ExceptionMappingVisitor? {
+        return super.visitException(delegate, type, exception, nsMap[baseNs] ?: baseNs)
     }
 
     override fun visitJavadoc(
-        delegate: JavadocParentNode<*>,
+        delegate: JavadocParentMappingVisitor,
         value: String,
-        namespaces: Set<Namespace>
-    ): JavadocVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitJavadoc(delegate, value, n)
+        baseNs: Namespace
+    ): JavadocMappingVisitor? {
+        return super.visitJavadoc(delegate, value, nsMap[baseNs] ?: baseNs)
     }
 
-    override fun visitSignature(
-        delegate: SignatureParentVisitor<*>,
-        value: String,
+    override fun <T: Signature> visitSignature(
+        delegate: SignatureParentMappingVisitor<T>,
+        value: T,
         baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): SignatureVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitSignature(delegate, value, nsMap[baseNs] ?: baseNs, n)
+    ): SignatureMappingVisitor? {
+        return super.visitSignature(delegate, value, nsMap[baseNs] ?: baseNs)
     }
 
     override fun visitAnnotation(
-        delegate: AnnotationParentVisitor<*>,
+        delegate: AnnotationParentMappingVisitor,
         type: AnnotationType,
         baseNs: Namespace,
         annotation: Annotation,
-        namespaces: Set<Namespace>
-    ): AnnotationVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitAnnotation(delegate, type, nsMap[baseNs] ?: baseNs, annotation, n)
+    ): AnnotationMappingVisitor? {
+        return super.visitAnnotation(delegate, type, nsMap[baseNs] ?: baseNs, annotation)
     }
 
     override fun visitConstantGroup(
-        delegate: MappingVisitor,
-        type: ConstantGroupNode.InlineType,
+        delegate: RootMappingVisitor,
+        type: InlineType,
         name: String?,
-        baseNs: Namespace,
-        namespaces: Set<Namespace>
-    ): ConstantGroupVisitor? {
-        val n = namespaces.map { nsMap[it] ?: it }.toSet()
-        if (n.isEmpty()) return null
-        return super.visitConstantGroup(delegate, type, name, nsMap[baseNs] ?: baseNs, n)
+        baseNs: Namespace
+    ): ConstantGroupMappingVisitor? {
+        return super.visitConstantGroup(delegate, type, name, nsMap[baseNs] ?: baseNs)
     }
 
 })

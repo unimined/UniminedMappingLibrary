@@ -7,12 +7,15 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 object ParchmentReader : FormatReader {
@@ -30,7 +33,7 @@ object ParchmentReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -55,7 +58,7 @@ object ParchmentReader : FormatReader {
                 }
                 if (content != null) {
                     visitPackage(mapOf(srcNs to PackageName.read("$pkgName/")))?.use {
-                        visitJavadoc(content,  setOf(srcNs))?.visitEnd()
+                        visitJavadoc(content,  srcNs)?.visitEnd()
                     }
                 }
             }
@@ -69,7 +72,7 @@ object ParchmentReader : FormatReader {
                     val methods = clsObj["methods"]?.jsonArray ?: emptyList()
                     for (method in methods) {
                         val methodObj = method.jsonObject
-                        val methodName = methodObj["name"]?.jsonPrimitive?.content ?: continue
+                        val methodName = UnqualifiedName.read(methodObj["name"]?.jsonPrimitive?.content ?: continue)
                         val methodDesc = methodObj["descriptor"]?.jsonPrimitive?.content ?: continue
                         val javadoc = methodObj["javadoc"]
                         val content = if (javadoc is JsonArray) {
@@ -77,16 +80,16 @@ object ParchmentReader : FormatReader {
                         } else {
                             javadoc?.jsonPrimitive?.content
                         }
-                        visitMethod(mapOf(srcNs to (methodName to MethodDescriptor.read(methodDesc))))?.use {
+                        visitMethod(mapOf(srcNs to MethodNameAndDescriptor(methodName, MethodDescriptor.read(methodDesc))))?.use {
                             if (content != null) {
-                                visitJavadoc(content, setOf(srcNs))?.visitEnd()
+                                visitJavadoc(content, srcNs)?.visitEnd()
                             }
 
                             val params = methodObj["parameters"]?.jsonArray ?: emptyList()
                             for (param in params) {
                                 val paramObj = param.jsonObject
                                 val paramLvOrd = paramObj["index"]?.jsonPrimitive?.int ?: continue
-                                val paramName = paramObj["name"]?.jsonPrimitive?.content ?: continue
+                                val paramName = UnqualifiedName.read(paramObj["name"]?.jsonPrimitive?.content ?: continue)
                                 val paramJavadoc = paramObj["javadoc"]
                                 val paramContent = if (paramJavadoc is JsonArray) {
                                     paramJavadoc.joinToString("\n") { it.jsonPrimitive.content }
@@ -95,7 +98,7 @@ object ParchmentReader : FormatReader {
                                 }
                                 visitParameter(null, paramLvOrd, mapOf(srcNs to paramName))?.use {
                                     if (paramContent != null) {
-                                        visitJavadoc(paramContent, setOf(srcNs))?.visitEnd()
+                                        visitJavadoc(paramContent, srcNs)?.visitEnd()
                                     }
                                 }
                             }
@@ -106,7 +109,7 @@ object ParchmentReader : FormatReader {
                     val fields = clsObj["fields"]?.jsonArray ?: emptyList()
                     for (field in fields) {
                         val fieldObj = field.jsonObject
-                        val fieldName = fieldObj["name"]?.jsonPrimitive?.content ?: continue
+                        val fieldName = UnqualifiedName.read(fieldObj["name"]?.jsonPrimitive?.content ?: continue)
                         val fieldDesc = fieldObj["descriptor"]?.jsonPrimitive?.content ?: continue
                         val javadoc = fieldObj["javadoc"]
                         val content = if (javadoc is JsonArray) {
@@ -114,9 +117,9 @@ object ParchmentReader : FormatReader {
                         } else {
                             javadoc?.jsonPrimitive?.content
                         }
-                        visitField(mapOf(srcNs to (fieldName to FieldDescriptor.read(fieldDesc))))?.use {
+                        visitField(mapOf(srcNs to FieldNameAndDescriptor(fieldName, FieldDescriptor.read(fieldDesc))))?.use {
                             if (content != null) {
-                                visitJavadoc(content, setOf(srcNs))?.visitEnd()
+                                visitJavadoc(content, srcNs)?.visitEnd()
                             }
                         }
                     }

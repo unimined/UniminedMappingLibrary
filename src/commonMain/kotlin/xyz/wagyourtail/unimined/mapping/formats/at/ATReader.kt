@@ -7,18 +7,13 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.visitor.AccessParentVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.visitor.*
 
 /**
  * This reads AT files written in the format found in forge 1.7-current
@@ -57,11 +52,11 @@ object ATReader : FormatReader {
         return access to final
     }
 
-    private fun <T: AccessParentVisitor<T>> AccessParentVisitor<T>.applyAccess(access: AccessFlag, final: TriState, ns: Set<Namespace>) {
-        this.visitAccess(AccessType.ADD, access, AccessConditions.ALL, ns)?.visitEnd()
+    private fun AccessParentMappingVisitor.applyAccess(access: AccessFlag, final: TriState) {
+        this.visitAccess(AccessType.ADD, access, AccessConditions.ALL)?.visitEnd()
         when (final) {
-            TriState.ADD -> this.visitAccess(AccessType.ADD, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
-            TriState.REMOVE -> this.visitAccess(AccessType.REMOVE, AccessFlag.FINAL, AccessConditions.ALL, ns)?.visitEnd()
+            TriState.ADD -> this.visitAccess(AccessType.ADD, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
+            TriState.REMOVE -> this.visitAccess(AccessType.REMOVE, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
             TriState.LEAVE -> {}
         }
     }
@@ -73,7 +68,7 @@ object ATReader : FormatReader {
         val newline: Boolean
     ) : ATItem
 
-    object ATNewline : ATItem
+    data object ATNewline : ATItem
 
     interface ATData : ATItem {
 
@@ -128,14 +123,18 @@ object ATReader : FormatReader {
         override val targetClass: InternalName,
         val memberName: UnqualifiedName,
         val memberDesc: MethodDescriptor
-    ) : ATData
+    ) : ATData {
+        val member = memberName.withMethodDesc(memberDesc)
+    }
 
     data class ATDataField(
         override val access: AccessFlag,
         override val final: TriState,
         override val targetClass: InternalName,
         val memberName: UnqualifiedName
-    ) : ATData
+    ) : ATData {
+        val member = memberName.withFieldDesc(null)
+    }
 
     interface ATDataWildcard : ATData
 
@@ -161,7 +160,7 @@ object ATReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -199,8 +198,8 @@ object ATReader : FormatReader {
 
             val targetClass = InternalName.read(input.takeUntil { it.isWhitespace() }.replace(".", "/"))
             input.takeNonNewlineWhitespace()
-            val memberName = if (input.peek() == '#') null else input.takeUntil { it.isWhitespace() || it == '(' }.ifEmpty { null }
-            val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifEmpty { null }?.replace(".", "/")
+            val memberName = if (input.peek() == '#') null else input.takeUntil { it.isWhitespace() || it == '(' }.ifBlank { null }
+            val memberDesc = if (memberName == null) null else input.takeUntil { it.isWhitespace() }.ifBlank { null }?.replace(".", "/")
 
             try {
                 data.add(ATData(access.first, access.second, targetClass, memberName, memberDesc))
@@ -231,7 +230,7 @@ object ATReader : FormatReader {
         return data
     }
 
-    fun applyData(data: List<ATItem>, into: MappingVisitor, ns: Namespace) {
+    fun applyData(data: List<ATItem>, into: RootMappingVisitor, ns: Namespace) {
         val nsSet = setOf(ns)
         into.use {
             visitHeader(ns.name)
@@ -239,33 +238,32 @@ object ATReader : FormatReader {
                 if (at !is ATData) continue
                 visitClass(mapOf(ns to at.targetClass))?.use {
                     if (at is ATDataClass) {
-                        applyAccess(at.access, at.final, nsSet)
+                        applyAccess(at.access, at.final)
                     } else {
                         if (at is ATDataWildcard) {
                             if (at is ATDataMethodWildcard) {
                                 val map = if (at.memberDesc != null) {
-                                    mapOf(ns to FieldOrMethodDescriptor(at.memberDesc))
+                                    mapOf(ns to at.memberDesc)
                                 } else {
                                     emptyMap()
                                 }
-                                visitWildcard(WildcardNode.WildcardType.METHOD, map)?.use {
-                                    applyAccess(at.access, at.final, nsSet)
+                                visitWildcard(WildcardType.METHOD, map)?.use {
+                                    applyAccess(at.access, at.final)
                                 }
                             } else {
-                                visitWildcard(WildcardNode.WildcardType.FIELD, emptyMap())?.use {
-                                    applyAccess(at.access, at.final, nsSet)
+                                visitWildcard(WildcardType.FIELD, emptyMap())?.use {
+                                    applyAccess(at.access, at.final)
                                 }
                             }
                         } else {
                             if (at is ATDataMethod) {
-                                visitMethod(mapOf(ns to (at.memberName.toString() to at.memberDesc)))?.use {
-                                    applyAccess(at.access, at.final, nsSet)
-                                    visitEnd()
+                                visitMethod(mapOf(ns to at.member))?.use {
+                                    applyAccess(at.access, at.final)
                                 }
                             } else {
                                 if (at !is ATDataField) error("unknown ATData type $at")
-                                visitField(mapOf(ns to (at.memberName.toString() to null)))?.use {
-                                    applyAccess(at.access, at.final, nsSet)
+                                visitField(mapOf(ns to at.member))?.use {
+                                    applyAccess(at.access, at.final)
                                 }
                             }
 

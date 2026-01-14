@@ -6,13 +6,14 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.JavadocVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.JavadocMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.MethodMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 
@@ -37,7 +38,7 @@ object MCPv6MethodReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -47,15 +48,15 @@ object MCPv6MethodReader : FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        val data = mutableMapOf<String, Pair<String, String?>>()
+        val data = mutableMapOf<UnqualifiedName, Pair<UnqualifiedName, String?>>()
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
                 input.take()
                 continue
             }
-            val searge = input.takeCol()!!
-            val name = input.takeCol()!!
+            val searge = UnqualifiedName.read(input.takeCol()!!)
+            val name = UnqualifiedName.read(input.takeCol()!!)
             val side = input.takeCol()!!
             val comment = input.takeCol()
 
@@ -71,36 +72,36 @@ object MCPv6MethodReader : FormatReader {
         context?.accept(
             into.delegator(object : NullDelegator() {
 
-                override fun visitHeader(delegate: MappingVisitor, vararg namespaces: String) {
-                    val ns = setOf(*namespaces, srcNs.name, dstNs.name)
+                override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
+                    val ns = setOf(*namespaces, srcNs, dstNs)
                     default.visitHeader(delegate, *ns.toTypedArray())
                 }
 
-                override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+                override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
                     return default.visitClass(delegate, names)
                 }
 
                 override fun visitMethod(
-                    delegate: ClassVisitor,
-                    names: Map<Namespace, Pair<String, MethodDescriptor?>>
-                ): MethodVisitor? {
+                    delegate: ClassMappingVisitor,
+                    names: Map<Namespace, MethodNameAndDescriptor>
+                ): MethodMappingVisitor? {
                     val ns = names[srcNs] ?: return null
-                    val mData = data[ns.first] ?: return null
+                    val mData = data[ns.name] ?: return null
                     val nameMap = names.toMutableMap()
-                    nameMap[dstNs] = mData.first to null
+                    nameMap[dstNs] = MethodNameAndDescriptor(mData.first, null)
                     val visitor = default.visitMethod(delegate, nameMap)
                     if (mData.second != null) {
-                        visitor?.visitJavadoc(mData.second!!, setOf(dstNs))?.visitEnd()
+                        visitor?.visitJavadoc(mData.second!!, dstNs)?.visitEnd()
                     }
                     return visitor
                 }
 
                 override fun visitMethodJavadoc(
-                    delegate: MethodVisitor,
+                    delegate: MethodMappingVisitor,
                     value: String,
-                    namespaces: Set<Namespace>
-                ): JavadocVisitor? {
-                    return default.visitMethodJavadoc(delegate, value, namespaces)
+                    baseNs: Namespace
+                ): JavadocMappingVisitor? {
+                    return default.visitMethodJavadoc(delegate, value, baseNs)
                 }
 
             })

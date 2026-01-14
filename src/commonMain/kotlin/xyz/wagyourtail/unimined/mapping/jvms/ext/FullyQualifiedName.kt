@@ -5,6 +5,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import kotlin.jvm.JvmInline
 
 /**
@@ -12,7 +13,7 @@ import kotlin.jvm.JvmInline
  *  [ObjectType] [[NameAndDescriptor]]
  */
 @JvmInline
-value class FullyQualifiedName(val value: String) : Type {
+value class FullyQualifiedName(val value: String) : Type, Comparable<FullyQualifiedName> {
 
     constructor(type: ObjectType, nameAndDescriptor: NameAndDescriptor?) : this(buildString {
         append(type)
@@ -37,6 +38,30 @@ value class FullyQualifiedName(val value: String) : Type {
 
     }
 
+    val owner: ObjectType get() = ObjectType.unchecked(value.substringBefore(';') + ";")
+
+    val name: UnqualifiedName? get() {
+        val name = value.substringAfter(";").substringBefore(";")
+        return if (name.isEmpty()) {
+            null
+        } else {
+            UnqualifiedName.unchecked(name)
+        }
+    }
+
+    val descriptor: NameAndDescriptor? get() {
+        val desc = value.substringAfter(";").substringAfter(";", "")
+        return if (desc.isEmpty()) {
+            null
+        } else {
+            NameAndDescriptor.unchecked(desc)
+        }
+    }
+
+    operator fun component1() = owner
+    operator fun component2() = name
+    operator fun component3() = descriptor
+
     fun getParts(): Pair<ObjectType, NameAndDescriptor?> = StringCharReader(value).let {
         val objectType = ObjectType.read(it)
         if (it.exhausted()) {
@@ -52,6 +77,10 @@ value class FullyQualifiedName(val value: String) : Type {
             owner.accept(visitor)
             nameAndDesc?.accept(visitor)
         }
+    }
+
+    override fun compareTo(other: FullyQualifiedName): Int {
+        return value.compareTo(other.value)
     }
 
     override fun toString() = value

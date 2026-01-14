@@ -6,11 +6,12 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateMappingRootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
 
 object MCPConfigStaticMethodsReader : FormatReader {
@@ -30,7 +31,7 @@ object MCPConfigStaticMethodsReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -50,38 +51,38 @@ object MCPConfigStaticMethodsReader : FormatReader {
             }
         }
 
-        context?.accept(DelegateMappingVisitor(into, object : NullDelegator() {
+        context?.accept(DelegateMappingRootMappingVisitor(into, object : NullDelegator() {
 
-            override fun visitClass(delegate: MappingVisitor, names: Map<Namespace, InternalName>): ClassVisitor? {
+            override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
                 return default.visitClass(delegate, names)
             }
 
             override fun visitMethod(
-                delegate: ClassVisitor,
-                names: Map<Namespace, Pair<String, MethodDescriptor?>>
-            ): MethodVisitor? {
+                delegate: ClassMappingVisitor,
+                names: Map<Namespace, MethodNameAndDescriptor>
+            ): MethodMappingVisitor? {
                 val name = names[srcNs] ?: return null
-                if (!name.first.matches(Regex("^func_\\d+_\\w*]$"))) return null
-                val mid = name.first.split("_")[1]
+                if (!name.name.value.matches(Regex("^func_\\d+_\\w*]$"))) return null
+                val mid = name.name.value.split("_")[1]
                 // find a descriptor that matches
-                val desc = names.mapNotNull { it.value.second }.firstOrNull()
+                val desc = names.mapNotNull { it.value.descriptor }.firstOrNull()
                 if (desc == null) return null
                 val method = default.visitMethod(delegate, names) ?: return null
                 val params = desc.getParts().second
-                var lvtIdx = if (statics.contains(name.first)) 0 else 1
+                var lvtIdx = if (statics.contains(name.name.value)) 0 else 1
                 for (idx in params.indices) {
-                    method.visitParameter(idx, lvtIdx, mapOf(srcNs to "p_${mid}_${lvtIdx}"))
+                    method.visitParameter(idx, lvtIdx, mapOf(srcNs to UnqualifiedName.read("p_${mid}_${lvtIdx}")))
                     lvtIdx += params[idx].value.getWidth()
                 }
                 return method
             }
 
             override fun visitParameter(
-                delegate: InvokableVisitor<*>,
+                delegate: InvokableMappingVisitor,
                 index: Int?,
                 lvOrd: Int?,
-                names: Map<Namespace, String>
-            ): ParameterVisitor? {
+                names: Map<Namespace, UnqualifiedName>
+            ): ParameterMappingVisitor? {
                 return default.visitParameter(delegate, index, lvOrd, names)
             }
 

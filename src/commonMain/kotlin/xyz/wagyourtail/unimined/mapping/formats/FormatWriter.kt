@@ -2,17 +2,17 @@ package xyz.wagyourtail.unimined.mapping.formats
 
 import okio.BufferedSink
 import xyz.wagyourtail.unimined.mapping.EnvType
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 
 interface FormatWriter {
 
     val name: String
         get() = this::class.simpleName!!.removeSuffix("Reader")
 
-    fun write(into: Appendable, envType: EnvType = EnvType.JOINED): MappingVisitor = write(into::append, envType)
+    fun write(into: Appendable, envType: EnvType = EnvType.JOINED): RootMappingVisitor = write(into::append, envType)
 
-    fun write(into: BufferedSink, envType: EnvType = EnvType.JOINED): MappingVisitor = write(into::writeUtf8, envType)
+    fun write(into: BufferedSink, envType: EnvType = EnvType.JOINED): RootMappingVisitor = write(into::writeUtf8, envType)
 
-    fun write(append: (String) -> Unit, envType: EnvType = EnvType.JOINED): MappingVisitor
+    fun write(append: (String) -> Unit, envType: EnvType = EnvType.JOINED): RootMappingVisitor
 
 }

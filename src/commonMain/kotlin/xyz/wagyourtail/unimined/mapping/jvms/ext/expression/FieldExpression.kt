@@ -71,9 +71,9 @@ value class FieldExpression(val value: String) : Type {
                 val (name, desc) = nameAndDesc.getParts()
 
                 return if (instance) {
-                    FieldExpression("${owner}this.$name;${desc?.value ?: ""}")
+                    FieldExpression("${owner}this.$name;${desc?.toString() ?: ""}")
                 } else {
-                    FieldExpression("$owner$name;${desc?.value ?: ""}")
+                    FieldExpression("$owner$name;${desc?.toString() ?: ""}")
                 }
             }
             return FieldExpression(fqn.value)
@@ -82,7 +82,7 @@ value class FieldExpression(val value: String) : Type {
         operator fun invoke(nameAndDesc: NameAndDescriptor, instance: Boolean): FieldExpression {
             val (name, desc) = nameAndDesc.getParts()
             return if (instance) {
-                FieldExpression("this.$name;${desc?.value ?: ""}")
+                FieldExpression("this.$name;${desc?.toString() ?: ""}")
             } else {
                 throw IllegalArgumentException("not allowed!")
             }
@@ -117,7 +117,7 @@ value class FieldExpression(val value: String) : Type {
             return null
         }
         val (name, desc) = nameAndDesc
-        return FullyQualifiedName(owner, NameAndDescriptor(name, if (desc != null) FieldOrMethodDescriptor(desc) else null))
+        return FullyQualifiedName(owner, name.withFieldDesc(desc))
     }
 
     override fun accept(visitor: (Any) -> Boolean) {

@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.jvms.four.three.two
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import kotlin.jvm.JvmInline
 
 /**
@@ -10,7 +11,7 @@ import kotlin.jvm.JvmInline
  *   [FieldType]
  */
 @JvmInline
-value class FieldDescriptor(val value: FieldType) : Type {
+value class FieldDescriptor(val value: FieldType) : Type, FieldOrMethodDescriptor {
 
     companion object: TypeCompanion<FieldDescriptor> {
         override fun shouldRead(reader: CharReader<*>) = FieldType.shouldRead(reader)

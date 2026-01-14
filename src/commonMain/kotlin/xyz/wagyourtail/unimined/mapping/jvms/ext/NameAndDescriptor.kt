@@ -5,24 +5,22 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
-import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 
 /**
  * NameAndDescriptor
  *  [UnqualifiedName] [; [FieldOrMethodDescriptor]]
  */
-@JvmInline
-value class NameAndDescriptor(val value: String) : Type {
-
-    constructor(name: UnqualifiedName, descriptor: FieldOrMethodDescriptor?) : this(buildString {
-        append(name)
-        if (descriptor != null) {
-            append(';')
-            append(descriptor)
-        }
-    })
+interface NameAndDescriptor : Type {
 
     companion object : TypeCompanion<NameAndDescriptor> {
+
+        operator fun invoke(name: UnqualifiedName, descriptor: FieldOrMethodDescriptor): NameAndDescriptor {
+            if (descriptor is MethodDescriptor) return name.withMethodDesc(descriptor)
+            return name.withFieldDesc(descriptor as FieldDescriptor)
+        }
+
         override fun shouldRead(reader: CharReader<*>): Boolean {
             return reader.take() !in JVMS.unqualifiedNameIllegalChars
         }
@@ -35,19 +33,33 @@ value class NameAndDescriptor(val value: String) : Type {
             }
         }
 
-        override fun unchecked(value: String) = NameAndDescriptor(value)
+        override fun unchecked(value: String) = if (value.contains("(")) {
+            MethodNameAndDescriptor(value)
+        } else {
+            FieldNameAndDescriptor(value)
+        }
 
     }
 
-    fun getParts(): Pair<UnqualifiedName, FieldOrMethodDescriptor?> {
-        val name = value.substringBefore(';')
-        val desc = if (';' in value) {
+    val value: String
+
+    val name: UnqualifiedName
+        get() = UnqualifiedName.unchecked(value.substringBefore(';'))
+
+    val hasDescriptor: Boolean
+        get() = ';' in value
+
+    val descriptor: FieldOrMethodDescriptor?
+        get() = if (';' in value) {
             FieldOrMethodDescriptor.unchecked(value.substringAfter(';'))
         } else {
             null
         }
-        return UnqualifiedName.unchecked(name) to desc
-    }
+
+    operator fun component1() = name
+    operator fun component2() = descriptor
+
+    fun getParts(): Pair<UnqualifiedName, FieldOrMethodDescriptor?>
 
     override fun accept(visitor: (Any) -> Boolean) {
         if (visitor(this)) {
@@ -56,9 +68,5 @@ value class NameAndDescriptor(val value: String) : Type {
             desc?.accept(visitor)
         }
     }
-
-    override fun toString() = value
-
-
 
 }

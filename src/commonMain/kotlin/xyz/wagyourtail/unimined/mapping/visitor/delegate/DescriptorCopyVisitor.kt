@@ -1,37 +1,32 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._class.member.WildcardNode
-import xyz.wagyourtail.unimined.mapping.visitor.ClassVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.FieldVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.WildcardVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.*
 
 class DescriptorCopyDelegator(val context: AbstractMappingTree) : Delegator() {
 
     override fun visitMethod(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, MethodDescriptor?>>
-    ): MethodVisitor? {
-        val descriptor = names.entries.firstOrNull { it.value.second != null }
+        delegate: ClassMappingVisitor,
+        names: Map<Namespace, MethodNameAndDescriptor>
+    ): MethodMappingVisitor? {
+        val descriptor = names.entries.firstOrNull { it.value.descriptor != null }
         return if (descriptor == null) {
             super.visitMethod(delegate, names)
         } else {
-            val newNames = mutableMapOf<Namespace, Pair<String, MethodDescriptor>>()
+            val newNames = mutableMapOf<Namespace, MethodNameAndDescriptor>()
             val fromNs = descriptor.key
-            val fromDesc = descriptor.value.second!!
+            val fromDesc = descriptor.value.descriptor!!
 
             for ((ns, value) in names) {
-                if (value.second == null) {
+                if (value.descriptor == null) {
                     val mapped = context.map(fromNs, ns, fromDesc)
-                    newNames[ns] = value.first to mapped
+                    newNames[ns] = value.name.withMethodDesc(mapped)
                 } else {
-                    newNames[ns] = value.first to value.second!!
+                    newNames[ns] = value
                 }
             }
 
@@ -41,23 +36,23 @@ class DescriptorCopyDelegator(val context: AbstractMappingTree) : Delegator() {
     }
 
     override fun visitField(
-        delegate: ClassVisitor,
-        names: Map<Namespace, Pair<String, FieldDescriptor?>>
-    ): FieldVisitor? {
-        val descriptor = names.entries.firstOrNull { it.value.second != null }
+        delegate: ClassMappingVisitor,
+        names: Map<Namespace, FieldNameAndDescriptor>
+    ): FieldMappingVisitor? {
+        val descriptor = names.entries.firstOrNull { it.value.descriptor != null }
         return if (descriptor == null) {
             super.visitField(delegate, names)
         } else {
-            val newNames = mutableMapOf<Namespace, Pair<String, FieldDescriptor>>()
+            val newNames = mutableMapOf<Namespace, FieldNameAndDescriptor>()
             val fromNs = descriptor.key
-            val fromDesc = descriptor.value.second!!
+            val fromDesc = descriptor.value.descriptor!!
 
             for ((ns, value) in names) {
-                if (value.second == null) {
+                if (value.descriptor == null) {
                     val mapped = context.map(fromNs, ns, fromDesc)
-                    newNames[ns] = value.first to mapped
+                    newNames[ns] = value.name.withFieldDesc(mapped)
                 } else {
-                    newNames[ns] = value.first to value.second!!
+                    newNames[ns] = value
                 }
             }
 
@@ -66,10 +61,10 @@ class DescriptorCopyDelegator(val context: AbstractMappingTree) : Delegator() {
     }
 
     override fun visitWildcard(
-        delegate: ClassVisitor,
-        type: WildcardNode.WildcardType,
+        delegate: ClassMappingVisitor,
+        type: WildcardType,
         descs: Map<Namespace, FieldOrMethodDescriptor>
-    ): WildcardVisitor? {
+    ): WildcardMappingVisitor? {
         if (descs.isEmpty()) return null
         val (fromNs, fromDesc) = descs.entries.first()
         val newDescs = mutableMapOf<Namespace, FieldOrMethodDescriptor>()
@@ -86,6 +81,6 @@ class DescriptorCopyDelegator(val context: AbstractMappingTree) : Delegator() {
 
 }
 
-fun MappingVisitor.copyDescriptors(context: AbstractMappingTree): MappingVisitor {
+fun RootMappingVisitor.copyDescriptors(context: AbstractMappingTree): RootMappingVisitor {
     return delegator(DescriptorCopyDelegator(context))
 }

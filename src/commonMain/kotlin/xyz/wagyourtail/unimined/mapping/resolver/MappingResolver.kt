@@ -24,7 +24,7 @@ import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.LazyMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.util.*
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import xyz.wagyourtail.unimined.mapping.visitor.fixes.renest
 import kotlin.js.JsName
@@ -106,9 +106,9 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
     @JvmOverloads
     fun postProcessDependency(key: String,
-        intern: @Scoped T.() -> Unit,
-        process: MemoryMappingTree.() -> Unit = { },
-        postProcess: MappingEntry.() -> Unit) {
+                              intern: @Scoped T.() -> Unit,
+                              process: MemoryMappingTree.() -> Unit = { },
+                              postProcess: MappingEntry.() -> Unit) {
         val resolver = createForPostProcess(key, process)
         resolver.intern()
 
@@ -201,7 +201,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                     for (entry in sorted) {
                         LOGGER.info { "Reading: $entry" }
                         val visitor =
-                            entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as MappingVisitor) { acc, it ->
+                            entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as RootMappingVisitor) { acc, it ->
                                 it(acc)
                             }
                         try {
@@ -357,7 +357,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
         var skip by FinalizeOnRead(false)
 
-        val insertInto = finalizableSetOf<(MappingVisitor) -> MappingVisitor>()
+        val insertInto = finalizableSetOf<(RootMappingVisitor) -> RootMappingVisitor>()
         val preProcess = finalizableSetOf<(AbstractMappingTree, FormatProvider, ContentProvider) -> Unit>()
 
         var provider by FinalizeOnRead(LazyMutable {

@@ -9,8 +9,9 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
@@ -40,7 +41,7 @@ object SrgReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -78,8 +79,8 @@ object SrgReader : FormatReader {
                         val dst = input.takeNextLiteral(' ')!!
                         val srcClass = src.substringBeforeLast('/')
                         val dstClass = dst.substringBeforeLast('/')
-                        val srcField = src.substringAfterLast('/')
-                        val dstField = dst.substringAfterLast('/')
+                        val srcField = UnqualifiedName.read(src.substringAfterLast('/'))
+                        val dstField = UnqualifiedName.read(dst.substringAfterLast('/'))
                         into.visitClass(
                             mapOf(
                                 srcNs to InternalName.read(srcClass),
@@ -87,7 +88,7 @@ object SrgReader : FormatReader {
                             )
                         )?.use {
                             visitField(
-                                mapOf(srcNs to (srcField to null), dstNs to (dstField to null))
+                                mapOf(srcNs to srcField.withFieldDesc(null), dstNs to dstField.withFieldDesc(null))
                             )
                         }
                     }
@@ -99,8 +100,8 @@ object SrgReader : FormatReader {
                         val dstDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
                         val srcClass = src.substringBeforeLast('/')
                         val dstClass = dst.substringBeforeLast('/')
-                        val srcMethod = src.substringAfterLast('/')
-                        val dstMethod = dst.substringAfterLast('/')
+                        val srcMethod = UnqualifiedName.read(src.substringAfterLast('/'))
+                        val dstMethod = UnqualifiedName.read(dst.substringAfterLast('/'))
                         into.visitClass(
                             mapOf(
                                 srcNs to InternalName.read(srcClass),
@@ -108,7 +109,7 @@ object SrgReader : FormatReader {
                             )
                         )?.use {
                             visitMethod(
-                                mapOf(srcNs to (srcMethod to srcDesc), dstNs to (dstMethod to dstDesc))
+                                mapOf(srcNs to srcMethod.withMethodDesc(srcDesc), dstNs to dstMethod.withMethodDesc(dstDesc))
                             )
                         }
                     }

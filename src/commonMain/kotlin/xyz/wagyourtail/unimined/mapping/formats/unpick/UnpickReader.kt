@@ -15,8 +15,8 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.InlineType
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
@@ -40,12 +40,23 @@ object UnpickReader : FormatReader {
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        if (input.takeLine() != "v2") throw IllegalArgumentException("Invalid unpick file")
+        val version = input.takeLine()
+        when (version) {
+            "v2" -> readV2(input, into, nsMapping)
+            else -> throw IllegalArgumentException("Invalid unpick file, unknown version $version")
+        }
+    }
+
+    fun readV2(
+        input: CharReader<*>,
+        into: RootMappingVisitor,
+        nsMapping: Map<String, String>,
+    ) {
         val constants = defaultedMapOf<String, MutableList<UnpickConstant>> { mutableListOf() }
         val targets = mutableListOf<UnpickTarget>()
         var currentTarget: UnpickTarget? = null
@@ -115,12 +126,12 @@ object UnpickReader : FormatReader {
             for ((group, consts) in constants) {
                 val targs = targetsByGroup[group]
                 val type = if (consts.any { it.type == "flag" }) {
-                    ConstantGroupNode.InlineType.BITFIELD
+                    InlineType.BITFIELD
                 } else {
-                    ConstantGroupNode.InlineType.PLAIN
+                    InlineType.PLAIN
                 }
 
-                visitConstantGroup(type, group, ns, setOf())?.use {
+                visitConstantGroup(type, group, ns)?.use {
                     for (const in consts) {
                         visitConstant(const.intlName, const.fieldName, null)?.visitEnd()
                     }

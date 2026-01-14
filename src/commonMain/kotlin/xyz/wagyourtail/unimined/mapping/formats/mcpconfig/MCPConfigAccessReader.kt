@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -13,7 +14,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
 /**
@@ -47,7 +48,7 @@ object MCPConfigAccessReader : FormatReader{
     override suspend fun read(
         input: CharReader<*>,
         context: AbstractMappingTree?,
-        into: MappingVisitor,
+        into: RootMappingVisitor,
         envType: EnvType,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
@@ -64,18 +65,17 @@ object MCPConfigAccessReader : FormatReader{
                 val line = input.takeLine().split(" ").iterator()
                 val access = AccessFlag.valueOf(line.next().uppercase())
                 val srcCls = InternalName.read(line.next())
-                val srcName = line.next()
+                val srcName = UnqualifiedName.read(line.next())
                 val srcDesc = MethodDescriptor.read(line.next())
                 if (line.hasNext()) {
                     throw IllegalStateException("expected 4 elements on line, found more")
                 }
                 visitClass(mapOf(srcNs to srcCls))?.use {
-                    visitMethod(mapOf(srcNs to (srcName to srcDesc)))?.use {
+                    visitMethod(mapOf(srcNs to MethodNameAndDescriptor(srcName, srcDesc)))?.use {
                         visitAccess(
                             AccessType.ADD,
                             access,
                             AccessConditions.ALL,
-                            setOf(srcNs)
                         )?.visitEnd()
                     }
                 }

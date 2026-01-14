@@ -1,9 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.tree
 
-import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.commonskt.utils.maybeEscape
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.formats.csrg.CsrgReader.mapPackage
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
@@ -11,8 +9,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationElementName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationIdentifier
-import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.EnumConstant
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
@@ -20,18 +16,20 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.node.BaseNode
-import xyz.wagyourtail.unimined.mapping.tree.node._class.ClassNode
-import xyz.wagyourtail.unimined.mapping.tree.node._constant.ConstantGroupNode
-import xyz.wagyourtail.unimined.mapping.tree.node._package.PackageNode
-import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.NullVisitor
+import xyz.wagyourtail.unimined.mapping.tree.mapping.BaseMappingImpl
+import xyz.wagyourtail.unimined.mapping.tree.mapping._class.ClassMappingImpl
+import xyz.wagyourtail.unimined.mapping.tree.mapping._constant.ConstantGroupMappingImpl
+import xyz.wagyourtail.unimined.mapping.tree.mapping._package.PackageMappingImpl
+import xyz.wagyourtail.unimined.mapping.visitor.InlineType
+import xyz.wagyourtail.unimined.mapping.visitor.MappingTree
+import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
+import xyz.wagyourtail.unimined.mapping.visitor.NullMappingVisitor
 import kotlin.js.JsName
 import kotlin.jvm.JvmName
 
-abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null), MappingVisitor {
+abstract class AbstractMappingTree : BaseMappingImpl<RootMappingVisitor, NullMappingVisitor>(null), MappingTree, RootMappingVisitor {
     private val _namespaces = mutableListOf<Namespace>()
-    val namespaces: List<Namespace> get() = _namespaces
+    override val namespaces: List<Namespace> get() = _namespaces
 
     internal fun mergeNs(names: Iterable<Namespace>) {
         for (ns in names) {
@@ -41,19 +39,7 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         }
     }
 
-    override fun nextUnnamedNs(): Namespace {
-        var i = 0
-        while (true) {
-            val ns = Namespace("unnamed_$i")
-            if (ns !in namespaces) {
-                _namespaces.add(ns)
-                return ns
-            }
-            i++
-        }
-    }
-
-    abstract fun getClass(namespace: Namespace, name: InternalName): ClassNode?
+    abstract fun getClass(namespace: Namespace, name: InternalName): ClassMappingImpl?
 
     fun visitClass(vararg names: Pair<Namespace, InternalName>) = visitClass(names.toMap())
 
@@ -167,18 +153,18 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         if (parts.second != null) {
             val mParts = parts.second!!.getParts()
             val mappedName = if (mParts.second == null || mParts.second!!.isFieldDescriptor()) {
-                val fd = cls.getFields(fromNs, mParts.first.value, mParts.second?.getFieldDescriptor())
-                fd.firstOrNull()?.getName(toNs) ?: mParts.first.value
+                val fd = cls.getFields(fromNs, mParts.first, mParts.second?.getFieldDescriptor())
+                fd.firstOrNull()?.getName(toNs) ?: mParts.first
             } else {
-                val md = cls.getMethods(fromNs, mParts.first.value, mParts.second?.getMethodDescriptor())
-                md.firstOrNull()?.getName(toNs) ?: mParts.first.value
+                val md = cls.getMethods(fromNs, mParts.first, mParts.second?.getMethodDescriptor())
+                md.firstOrNull()?.getName(toNs) ?: mParts.first
             }
             val mappedDesc = if (mParts.second == null) {
                 null
             } else {
                 map(fromNs, toNs, mParts.second!!)
             }
-            return FullyQualifiedName(ObjectType(mappedCls), NameAndDescriptor(UnqualifiedName.unchecked(mappedName), mappedDesc))
+            return FullyQualifiedName(ObjectType(mappedCls), if (mappedDesc == null) mappedName.withFieldDesc(null) else NameAndDescriptor(mappedName, mappedDesc))
         }
         return FullyQualifiedName(ObjectType(mappedCls), null)
     }
@@ -274,10 +260,10 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
                 }
                 is AnnotationElementName -> {
                     if (cls != null) {
-                        val md = cls.getMethods(fromNs, obj.value.unescape(), null).map { it.getName(toNs) }
+                        val md = cls.getMethods(fromNs, UnqualifiedName.unchecked(obj.value.unescape()), null).map { it.getName(toNs) }
                         if (md.isNotEmpty()) {
                             val mappedName = md.first()!!
-                            append(mappedName.maybeEscape())
+                            append(mappedName.value.maybeEscape())
                         } else {
                             append(obj)
                         }
@@ -297,38 +283,42 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
         }
     }
 
-    open fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassNode>> {
+    open fun classesIter(): Iterator<Pair<Map<Namespace, InternalName>, () -> ClassMappingImpl>> {
         return classList().asSequence().map { (names, cls, _) -> names to cls }.iterator()
     }
 
-    open fun packagesIter(): Iterator<Pair<Map<Namespace, PackageName>, () -> PackageNode>> {
+    open fun packagesIter(): Iterator<Pair<Map<Namespace, PackageName>, () -> PackageMappingImpl>> {
         return packageList().asSequence().map { (names, pkg, _) -> names to pkg }.iterator()
     }
 
-    open fun constantGroupsIter(): Iterator<Pair<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode>> {
+    open fun constantGroupsIter(): Iterator<Pair<Pair<String?, InlineType>, () -> ConstantGroupMappingImpl>> {
         return constantGroupList().asSequence().map { (names, group, _) -> names to group }.iterator()
     }
 
-    abstract fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
+    abstract fun classList(): List<Triple<Map<Namespace, InternalName>, () -> ClassMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>>
 
-    abstract fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
+    abstract fun packageList(): List<Triple<Map<Namespace, PackageName>, () -> PackageMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>>
 
-    abstract fun constantGroupList(): List<Triple<Triple<String?, ConstantGroupNode.InlineType, List<Namespace>>, () -> ConstantGroupNode, (MappingVisitor, Collection<Namespace>) -> Unit>>
+    abstract fun constantGroupList(): List<Triple<Pair<String?, InlineType>, () -> ConstantGroupMappingImpl, (RootMappingVisitor, Collection<Namespace>) -> Unit>>
 
     override fun visitHeader(vararg namespaces: String) {
         mergeNs(namespaces.map { Namespace(it) }.toSet())
     }
 
-    open fun accept(visitor: MappingVisitor, nsFilter: List<Namespace> = namespaces, sort: Boolean = false) {
+    override fun visitHeader(vararg namespaces: Namespace) {
+        mergeNs(namespaces.toSet())
+    }
+
+    open fun accept(visitor: RootMappingVisitor, nsFilter: List<Namespace> = namespaces, sort: Boolean = false) {
         acceptInner(visitor, nsFilter, sort)
         visitor.visitEnd()
     }
 
-    override fun acceptOuter(visitor: NullVisitor, nsFilter: Collection<Namespace>): MappingVisitor? {
+    override fun acceptOuter(visitor: NullMappingVisitor, nsFilter: Collection<Namespace>): RootMappingVisitor? {
         return null
     }
 
-    override fun acceptInner(visitor: MappingVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
+    override fun acceptInner(visitor: RootMappingVisitor, nsFilter: Collection<Namespace>, sort: Boolean) {
         visitor.visitHeader(*nsFilter.filter { namespaces.contains(it) }.map { it.name }.toTypedArray())
         super.acceptInner(visitor, nsFilter, sort)
         val packageIter = packagesIter().asSequence().map { it.second() }

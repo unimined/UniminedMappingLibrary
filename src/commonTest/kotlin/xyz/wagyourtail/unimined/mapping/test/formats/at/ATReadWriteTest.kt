@@ -48,7 +48,7 @@ class ATReadWriteTest {
     """.trimIndent()
 
     val umfText = """
-        umf	1	0
+        umf	1	1
         source
         c	net/minecraft/class_3720
         	a	+	final	*	source
@@ -220,8 +220,8 @@ class ATReadWriteTest {
             accessWidener	v2	intermediary
             accessible	class	net/minecraft/class_3720
             accessible	method	net/minecraft/class_3720	<init>	(Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;)V
-            extendable	class	net/minecraft/class_3721
             accessible	method	net/minecraft/class_3721	method_31659	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+            extendable	class	net/minecraft/class_3721
             extendable	method	net/minecraft/class_3721	method_31659	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
             extendable	class	net/minecraft/class_3722
         """.trimIndent(), aw.trimEnd())

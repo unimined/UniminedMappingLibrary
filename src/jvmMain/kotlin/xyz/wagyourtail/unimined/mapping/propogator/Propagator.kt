@@ -1,6 +1,5 @@
 package xyz.wagyourtail.unimined.mapping.propogator
 
-import kotlinx.coroutines.runBlocking
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
@@ -8,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.propagator.InheritanceTree
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import java.io.InputStream
@@ -44,10 +44,10 @@ class Propagator(tree: AbstractMappingTree, override val fns: Namespace, jars: S
 
         return className to ClassInfo(className, InternalName.read(node.superName), node.interfaces.map(InternalName::read)).apply {
             for (method in node.methods) {
-                methods.add(MethodInfo(method.name, MethodDescriptor.read(method.desc), method.access))
+                methods.add(MethodInfo(UnqualifiedName.read(method.name), MethodDescriptor.read(method.desc), method.access))
             }
             for (field in node.fields) {
-                fields.add(FieldInfo(field.name, FieldDescriptor.read(field.desc), field.access))
+                fields.add(FieldInfo(UnqualifiedName.read(field.name), FieldDescriptor.read(field.desc), field.access))
             }
         }
     }
