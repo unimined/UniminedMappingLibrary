@@ -68,7 +68,7 @@ object MCPConfigConstructorReader : FormatReader{
                         var lvtIdx = 1
                         val parts = srcMethod.getParts().second
                         for (idx in parts.indices) {
-                            visitParameter(idx, lvtIdx, mapOf(srcNs to UnqualifiedName.read("p_i${id}_${idx + 1}")))?.visitEnd()
+                            visitParameter(idx, lvtIdx, mapOf(srcNs to UnqualifiedName.read("p_i${id}_${idx + 1}_")))?.visitEnd()
                             lvtIdx += parts[idx].value.getWidth()
                         }
                     }
