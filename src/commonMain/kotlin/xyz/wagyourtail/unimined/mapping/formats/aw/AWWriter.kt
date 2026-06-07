@@ -1,7 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.formats.aw
 
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
-import xyz.wagyourtail.commonskt.utils.ListCompare
 import xyz.wagyourtail.commonskt.utils.comparable
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
@@ -13,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.contains
 import xyz.wagyourtail.unimined.mapping.jvms.four.plus
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
@@ -52,7 +52,7 @@ object AWWriter : FormatWriter {
         var classAccessAdd = 0
         var classAccessRemove = 0
 
-        val mappings = defaultedMapOf<InternalName, MutableList<AWReader.AWData>> { mutableListOf() }
+        val mappings = defaultedMapOf<InternalName, MutableList<AWReader.AWOrderableItem>> { mutableListOf() }
 
         return EmptyMappingVisitor().delegator(object : NullDelegator() {
 
@@ -243,8 +243,30 @@ object AWWriter : FormatWriter {
             override fun visitFooter(delegate: MappingVisitor) {
                 writeData(AWReader.AWMappings(ns!!, mappings.values.map { map ->
                     map.sortedBy {
-                        listOf(it.target.toString(), it.access).comparable()
+                        listOf(it.getSorting(), it.access).comparable()
                 } }.flatten()), append)
+            }
+
+            override fun visitInterface(
+                delegate: ClassVisitor,
+                type: InterfacesType,
+                name: ClassTypeSignature,
+                baseNs: Namespace,
+                namespaces: Set<Namespace>
+            ): InterfaceVisitor? {
+                if (type == InterfacesType.ADD) {
+                    mappings[cls]!!.add(AWReader.CTII(
+                        "inject-interface",
+                        cls!!,
+                        name
+                    ))
+                }
+
+                return null
+            }
+
+            override fun visitInterfaceEnd(delegate: InterfaceVisitor) {
+
             }
         })
     }
@@ -253,6 +275,18 @@ object AWWriter : FormatWriter {
         return AWReader.AWMappings(targetNs, mappings.targets.map {
             if (it is AWReader.AWData) {
                 AWReader.AWData(it.access, context.map(mappings.namespace, targetNs, it.target))
+            } else if (it is AWReader.CTII) {
+                AWReader.CTII(
+                    it.access,
+                    context.map(mappings.namespace, targetNs, it.target),
+                    context.map(mappings.namespace, targetNs, it.signature)
+                )
+            } else if (it is AWReader.CTEE) {
+                AWReader.CTEE(
+                    it.access,
+                    context.map(mappings.namespace, targetNs, it.target),
+                    it.fieldName
+                )
             } else {
                 it
             }
@@ -260,7 +294,7 @@ object AWWriter : FormatWriter {
     }
 
     fun writeData(mappings: AWReader.AWMappings, append: (String) -> Unit) {
-        append("accessWidener\tv2\t${mappings.namespace.name}\n")
+        append("classTweaker\tv2\t${mappings.namespace.name}\n")
         for ((i, target) in mappings.targets.withIndex()) {
             when (target) {
                 is AWReader.AWData -> {
@@ -284,6 +318,15 @@ object AWWriter : FormatWriter {
                 }
                 is AWReader.AWNewline -> {
                     append("\n")
+                }
+                is AWReader.CTII -> {
+                    if (i != 0) append("\n")
+                    append("${target.access}\t${target.target}\t")
+                    append(target.signature.toString().substring(1).dropLast(1))
+                }
+                is AWReader.CTEE -> {
+                    if (i != 0) append("\n")
+                    append("${target.access}\t${target.target}\t${target.fieldName}")
                 }
             }
         }

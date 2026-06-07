@@ -19,7 +19,7 @@ import kotlin.test.assertEquals
 
 class AWReadWriteTest {
     val awText = """
-        accessWidener v2 intermediary
+        classTweaker v2 intermediary
         accessible class net/minecraft/class_3720 # end of line comment
         
         # this is a comment
@@ -28,6 +28,13 @@ class AWReadWriteTest {
         # second comment
         extendable method net/minecraft/class_3721 method_31659 (Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         mutable field net/minecraft/class_3721 field_19158 I
+        
+        # third comment
+        inject-interface net/minecraft/class_3721 net/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline
+        inject-interface net/minecraft/class_3721 net/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline2<TS;>
+        
+        # fourth comment
+        extend-enum net/minecraft/class_3720 CONSTANT3
     """.trimIndent()
 
     @Test
@@ -49,6 +56,8 @@ c	net/minecraft/class_3720
 	a	+	public	*	intermediary
 c	net/minecraft/class_3721
 	a	-	final	*	intermediary
+	j	+	Lnet/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline2<TS;>;	intermediary	intermediary
+	j	+	Lnet/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline;	intermediary	intermediary
 	f	field_19158;I
 		a	-	final	*	intermediary
 	m	method_31659;(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
@@ -83,12 +92,14 @@ c	net/minecraft/class_3721
         }
 
         assertEquals("""
-        accessWidener v2 intermediary
+        classTweaker v2 intermediary
         accessible class net/minecraft/class_3720
         extendable	class	net/minecraft/class_3721
         mutable field net/minecraft/class_3721 field_19158 I
         accessible method net/minecraft/class_3721 method_31659 (Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
         extendable method net/minecraft/class_3721 method_31659 (Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+        inject-interface net/minecraft/class_3721 net/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline2<TS;>
+        inject-interface net/minecraft/class_3721 net/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline
         """.trimIndent().replace(" ", "\t"), out.trimEnd())
     }
 
@@ -110,7 +121,7 @@ c	net/minecraft/class_3721
         val betterWrite = buildString { AWWriter.writeData(remapped, ::append) }
 
         assertEquals("""
-        accessWidener	v2	named
+        classTweaker	v2	named
         accessible	class	net/minecraft/block/entity/BlastFurnaceBlockEntity # end of line comment
         
         # this is a comment
@@ -119,6 +130,13 @@ c	net/minecraft/class_3721
         # second comment
         extendable	method	net/minecraft/block/entity/BellBlockEntity	serverTick	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/block/entity/BellBlockEntity;)V
         mutable	field	net/minecraft/block/entity/BellBlockEntity	resonateTime	I
+
+        # third comment
+        inject-interface net/minecraft/block/entity/BellBlockEntity net/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline
+        inject-interface net/minecraft/block/entity/BellBlockEntity net/fabricmc/fabric/api/client/rendering/v1/FabricRenderPipeline2<TS;>
+
+        # fourth comment
+        extend-enum net/minecraft/block/entity/BlastFurnaceBlockEntity CONSTANT3
         """.trimIndent().replace("\t", " "), betterWrite.trimEnd().replace("\t", " "))
     }
 

@@ -11,6 +11,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
@@ -18,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.AccessType
+import xyz.wagyourtail.unimined.mapping.visitor.InterfacesType
 import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -33,15 +35,22 @@ object AWReader: FormatReader {
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
         // check content begins with "accessWidener"
-        return input.peek().readUtf8Line()?.startsWith("accessWidener") ?: false
+        val line = input.peek().readUtf8Line()
+        return line != null && (line.startsWith("accessWidener") || line.startsWith("classTweaker"))
     }
 
     sealed interface AWItem
+    sealed interface AWOrderableItem : AWItem {
+        val access: String
+        fun getSorting(): String
+    }
 
     data class AWData(
-        val access: String,
+        override val access: String,
         val target: FullyQualifiedName
-    ) : AWItem
+    ) : AWOrderableItem {
+        override fun getSorting(): String = target.toString()
+    }
 
     data class AWComment(
         val comment: String,
@@ -49,6 +58,22 @@ object AWReader: FormatReader {
     ) : AWItem
 
     object AWNewline : AWItem
+
+    data class CTII(
+        override val access: String,
+        val target: InternalName,
+        val signature: ClassTypeSignature
+    ) : AWOrderableItem {
+        override fun getSorting(): String = target.toString() + signature.toString()
+    }
+
+    data class CTEE(
+        override val access: String,
+        val target: InternalName,
+        val fieldName: UnqualifiedName
+    ) : AWOrderableItem {
+        override fun getSorting(): String = target.toString() + fieldName.toString()
+    }
 
     data class AWMappings(
         val namespace: Namespace,
@@ -169,6 +194,18 @@ object AWReader: FormatReader {
                     }
                 }
             }
+
+            for ((access, target, sig) in targets.filterIsInstance<CTII>()) {
+                if (!access.startsWith("transitive-")) {
+                    if (!allowNonTransitive) {
+                        continue
+                    }
+                }
+
+                into.visitClass(mapOf(ns to target))?.use {
+                    visitInterface(InterfacesType.ADD, sig, ns, setOf(ns))
+                }
+            }
         }
     }
 
@@ -180,12 +217,21 @@ object AWReader: FormatReader {
         val namespace = input.takeNextLiteral { it.isWhitespace() }!!
         val targets = mutableListOf<AWItem>()
 
-        if (aw != "accessWidener") {
-            throw IllegalArgumentException("Invalid access widener file")
+        val actualVersion: Int = when (aw) {
+            "accessWidener" -> when (version) {
+                "v1" -> 1
+                "v2" -> 2
+                else -> throw IllegalArgumentException("Unknown version $version for access widener")
+            }
+            "classTweaker" -> when (version) {
+                "v1" -> 3
+                "v2" -> 4
+                else -> throw IllegalArgumentException("Unknown version $version for class tweaker")
+            }
+            else -> throw IllegalArgumentException("Invalid class tweaker file")
         }
-        if (version !in setOf("v1", "v2")) {
-            throw IllegalArgumentException("Unknown version $version")
-        }
+
+        fun delimiter(c: Char): Boolean = actualVersion < 2 && c.isWhitespace() || actualVersion >= 2 && (c == ' ' || c == '\t')
 
         val remain = input.takeLine().trimStart()
         if (remain.isNotEmpty()) {
@@ -217,9 +263,9 @@ object AWReader: FormatReader {
                 throw IllegalStateException("Unexpected whitespace")
             }
 
-            val access = input.takeNextLiteral { it.isWhitespace() }!!
+            val access = input.takeNextLiteral { delimiter(it) }!!
             input.takeWhitespace()
-            val target = input.takeNextLiteral { it.isWhitespace() }!!
+            val target = input.takeNextLiteral { delimiter(it) }!!
             input.takeWhitespace()
 
             if (!access.startsWith("transitive-") && !allowNonTransitive) {
@@ -227,48 +273,58 @@ object AWReader: FormatReader {
                 continue
             }
 
-            when (target) {
-                "class" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    targets.add(AWData(access, FullyQualifiedName(ObjectType(cls), null)))
-                }
+            if (actualVersion > 2 && access in listOf("inject-interface", "transitive-inject-interface")) {
+                val cls = InternalName.read(target)
+                val sig = ClassTypeSignature.read("L${input.takeNextLiteral { delimiter(it) }!!};")
+                targets.add(CTII(access, cls, sig))
+            } else if (actualVersion > 3 && access in listOf("extend-enum", "transitive-extend-enum")) {
+                val cls = InternalName.read(target)
+                val fieldName = UnqualifiedName.read(input.takeNextLiteral { delimiter(it) }!!)
+                targets.add(CTEE(access, cls, fieldName))
+            } else {
+                when (target) {
+                    "class" -> {
+                        val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
+                        targets.add(AWData(access, FullyQualifiedName(ObjectType(cls), null)))
+                    }
 
-                "method" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    input.takeWhitespace()
-                    val method = input.takeNextLiteral { it.isWhitespace() }!!
-                    input.takeWhitespace()
-                    val desc = MethodDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    targets.add(
-                        AWData(
-                            access,
-                            FullyQualifiedName(
-                                ObjectType(cls),
-                                NameAndDescriptor(UnqualifiedName.read(method), FieldOrMethodDescriptor(desc))
+                    "method" -> {
+                        val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
+                        input.takeWhitespace()
+                        val method = input.takeNextLiteral { delimiter(it) }!!
+                        input.takeWhitespace()
+                        val desc = MethodDescriptor.read(input.takeNextLiteral { delimiter(it) }!!)
+                        targets.add(
+                            AWData(
+                                access,
+                                FullyQualifiedName(
+                                    ObjectType(cls),
+                                    NameAndDescriptor(UnqualifiedName.read(method), FieldOrMethodDescriptor(desc))
+                                )
                             )
                         )
-                    )
-                }
+                    }
 
-                "field" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    input.takeWhitespace()
-                    val field = input.takeNextLiteral { it.isWhitespace() }!!
-                    input.takeWhitespace()
-                    val desc = FieldDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
-                    targets.add(
-                        AWData(
-                            access,
-                            FullyQualifiedName(
-                                ObjectType(cls),
-                                NameAndDescriptor(UnqualifiedName.read(field), FieldOrMethodDescriptor(desc))
+                    "field" -> {
+                        val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
+                        input.takeWhitespace()
+                        val field = input.takeNextLiteral { delimiter(it) }!!
+                        input.takeWhitespace()
+                        val desc = FieldDescriptor.read(input.takeNextLiteral { delimiter(it) }!!)
+                        targets.add(
+                            AWData(
+                                access,
+                                FullyQualifiedName(
+                                    ObjectType(cls),
+                                    NameAndDescriptor(UnqualifiedName.read(field), FieldOrMethodDescriptor(desc))
+                                )
                             )
                         )
-                    )
-                }
+                    }
 
-                else -> {
-                    throw IllegalArgumentException("Unknown target $target")
+                    else -> {
+                        throw IllegalArgumentException("Unknown target $target")
+                    }
                 }
             }
 

@@ -14,6 +14,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationElementNam
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationIdentifier
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.EnumConstant
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
@@ -149,6 +150,45 @@ abstract class AbstractMappingTree : BaseNode<MappingVisitor, NullVisitor>(null)
             }
         }
         return packageName
+    }
+
+    open fun map(fromNs: Namespace, toNs: Namespace, classTypeSignature: ClassTypeSignature): ClassTypeSignature {
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
+        if (fromNs == toNs) return classTypeSignature
+        val (pkg, simpleClassTypeSignature, _) = classTypeSignature.getParts()
+        val (className, signatures) = simpleClassTypeSignature.getParts()
+        val internalName = map(fromNs, toNs, InternalName.read("${pkg}${className}"))
+
+        val sigResult = if (signatures != null) {
+            val typeArgs = signatures.getParts().map {
+                if (it.isWildcard()) it.toString()
+                else map(fromNs, toNs, it.getParts()!!.second)
+            }
+
+            "<${typeArgs.joinToString("")}>"
+        } else {
+            ""
+        }
+
+        return ClassTypeSignature.read("L${internalName}${sigResult};")
+    }
+
+    open fun map(fromNs: Namespace, toNs: Namespace, referenceTypeSignature: ReferenceTypeSignature): ReferenceTypeSignature {
+        checkNamespace(fromNs)
+        checkNamespace(toNs)
+        if (fromNs == toNs) return referenceTypeSignature
+
+        if (referenceTypeSignature.isTypeVariableSignature()) return referenceTypeSignature
+
+        if (referenceTypeSignature.isClassTypeSignature()) return ReferenceTypeSignature.unchecked(map(fromNs, toNs, referenceTypeSignature.getClassTypeSignature()).toString())
+
+        val arrayType = referenceTypeSignature.getArrayTypeSignature()
+        val javaType = arrayType.getParts()
+
+        if (javaType.isBaseType()) return ReferenceTypeSignature.unchecked("[${javaType}")
+
+        return ReferenceTypeSignature.unchecked("[${map(fromNs, toNs, javaType.getReferenceTypeSignature())}")
     }
 
     fun map(fromNs: Namespace, toNs: Namespace, fullyQualifiedName: FullyQualifiedName): FullyQualifiedName {
