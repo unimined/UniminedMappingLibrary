@@ -1,11 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.visitor.delegate
 
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.visitor.*
+import kotlin.io.println
 
 fun MappingVisitor.copyNames(from: Namespace, to: Set<Namespace>, onlyMissing: Boolean = true): MappingVisitor {
     return DelegateMappingVisitor(this, NameCopyDelegate(from to to, onlyMissing = onlyMissing))
@@ -40,6 +42,16 @@ class NameCopyDelegate(val from: Pair<Namespace, Set<Namespace>>, val onlyMissin
                 names[namespace] = fillWith(name)
             }
             return write(names)
+        }
+
+        inline fun <U> updateNamespaces(toFill: Pair<Namespace, Set<Namespace>>, baseNs: Namespace, namespaces: Set<Namespace>, write: (Set<Namespace>) -> U): U? {
+            val (from, to) = toFill
+            val namespaces = namespaces.toMutableSet()
+
+            if (baseNs == from || namespaces.contains(from)) namespaces.addAll(to)
+            else return null
+
+            return write(namespaces)
         }
 
     }
@@ -96,4 +108,27 @@ class NameCopyDelegate(val from: Pair<Namespace, Set<Namespace>>, val onlyMissin
         }
     }
 
+    override fun visitInterface(
+        delegate: ClassVisitor,
+        type: InterfacesType,
+        name: ClassTypeSignature,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): InterfaceVisitor? {
+        return updateNamespaces(from, baseNs, namespaces) {
+            default.visitInterface(delegate, type, name, baseNs, it)
+        }
+    }
+
+    override fun visitException(
+        delegate: InvokableVisitor<*>,
+        type: ExceptionType,
+        exception: InternalName,
+        baseNs: Namespace,
+        namespaces: Set<Namespace>
+    ): ExceptionVisitor? {
+        return updateNamespaces(from, baseNs, namespaces) {
+            default.visitException(delegate, type, exception, baseNs, it)
+        }
+    }
 }
