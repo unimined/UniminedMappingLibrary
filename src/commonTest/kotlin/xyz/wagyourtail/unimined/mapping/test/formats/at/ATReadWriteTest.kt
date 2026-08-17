@@ -14,6 +14,7 @@ import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
 import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.formats.ct.CTWriter
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -246,6 +247,35 @@ class ATReadWriteTest {
             """.trimIndent(), out.trimEnd())
 
         }
+    }
+
+    @Test
+    fun testAt2Ct() = runTest {
+        val m = Buffer().use { input ->
+            input.writeUtf8(TinyV2ReadWriteTest.mappings)
+            TinyV2Reader.read(input)
+        }
+        Buffer().use {
+            it.writeUtf8(atText)
+            ATReader.read(it, m, m, EnvType.JOINED, mapOf("source" to "intermediary"))
+        }
+
+        val ct = Buffer().use {
+            m.accept(CTWriter.write(it).nsFiltered("intermediary"))
+//            m.accept(UMFWriter.write(EnvType.JOINED, it))
+            it.readUtf8()
+        }
+
+        assertEquals("""
+            classTweaker	v2	intermediary
+            accessible	class	net/minecraft/class_3720
+            accessible	method	net/minecraft/class_3720	<init>	(Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;)V
+            extendable	class	net/minecraft/class_3721
+            accessible	method	net/minecraft/class_3721	method_31659	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+            extendable	method	net/minecraft/class_3721	method_31659	(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+            extendable	class	net/minecraft/class_3722
+        """.trimIndent(), ct.trimEnd())
+
     }
 
 }
