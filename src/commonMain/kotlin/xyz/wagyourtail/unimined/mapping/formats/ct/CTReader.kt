@@ -6,17 +6,10 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.formats.aw.AWLikeReader
 import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader
-import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader.AWComment
 import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader.AWData
-import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader.AWNewline
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
@@ -27,7 +20,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.use
 /**
  * ClassTweaker is an extension of the AccessWidener format.
  */
-object CTReader: FormatReader {
+object CTReader: FormatReader, AWLikeReader() {
 
     @Suppress("MemberVisibilityCanBePrivate")
     var allowNonTransitive = true
@@ -82,7 +75,7 @@ object CTReader: FormatReader {
                     is AWData -> {
                         val (access, target) = ctData
 
-                        AWReader.readAWData(target, access, into, ns, allowNonTransitive)
+                        readAWData(target, access, into, ns, allowNonTransitive)
                     }
                     is CTInjectedInterface -> {
                         val (access, target, sig) = ctData
@@ -104,11 +97,7 @@ object CTReader: FormatReader {
     }
 
     fun readData(input: CharReader<*>): CTMappings {
-        val ctType = input.takeNextLiteral { it.isWhitespace() }
-        input.takeWhitespace()
-        val version = input.takeNextLiteral { it.isWhitespace() }
-        input.takeWhitespace()
-        val namespace = input.takeNextLiteral { it.isWhitespace() }!!
+        val (ctType, version, namespace) = readHeader(input)
         val targets = mutableListOf<CTItem>()
 
         if (ctType == "accessWidener") {
@@ -116,7 +105,7 @@ object CTReader: FormatReader {
                 throw IllegalArgumentException("Unknown access widener version $version")
             }
 
-            val awItems = AWReader.parseAWMappings(input, version!!, allowNonTransitive)
+            val awItems = parseAWMappings(input, version!!, allowNonTransitive)
             return CTMappings(Namespace(namespace), awItems)
         } else if (ctType != "classTweaker") {
             throw IllegalArgumentException("Invalid class tweaker file")
@@ -128,35 +117,10 @@ object CTReader: FormatReader {
 
         fun delimiter(c: Char): Boolean = c == ' ' || c == '\t'
 
-        val remain = input.takeLine().trimStart()
-        if (remain.isNotEmpty()) {
-            if (remain.first() != '#') {
-                throw IllegalArgumentException("Expected newline or comment, found $remain")
-            }
-            targets.add(AWComment(remain, false))
-        }
-
-        if (input.peek() == '\n') {
-            input.take()
-        }
+        handleFirstAndLastLines(input, targets)
 
         while (!input.exhausted()) {
-            if (input.peek() == '\n') {
-                input.take()
-                targets.add(AWNewline)
-                continue
-            }
-            if (input.peek() == '#') {
-                targets.add(AWComment(input.takeLine(), true))
-
-                if (input.peek() == '\n') {
-                    input.take()
-                }
-                continue
-            }
-            if (input.peek()?.isWhitespace() == true) {
-                throw IllegalStateException("Unexpected whitespace")
-            }
+            if (handleCommentsAndBlanks(input, targets)) continue
 
             val access = input.takeNextLiteral { delimiter(it) }!!
             input.takeWhitespace()
@@ -183,63 +147,10 @@ object CTReader: FormatReader {
                 val sig = ClassTypeSignature.read("L${input.takeNextLiteral { delimiter(it) }!!};")
                 targets.add(CTInjectedInterface(access, cls, sig))
             } else {
-                when (target) {
-                    "class" -> {
-                        val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
-                        targets.add(AWData(access, FullyQualifiedName(ObjectType(cls), null)))
-                    }
-
-                    "method" -> {
-                        val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
-                        input.takeWhitespace()
-                        val method = input.takeNextLiteral { delimiter(it) }!!
-                        input.takeWhitespace()
-                        val desc = MethodDescriptor.read(input.takeNextLiteral { delimiter(it) }!!)
-                        targets.add(
-                            AWData(
-                                access,
-                                FullyQualifiedName(
-                                    ObjectType(cls),
-                                    NameAndDescriptor(UnqualifiedName.read(method), FieldOrMethodDescriptor(desc))
-                                )
-                            )
-                        )
-                    }
-
-                    "field" -> {
-                        val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
-                        input.takeWhitespace()
-                        val field = input.takeNextLiteral { delimiter(it) }!!
-                        input.takeWhitespace()
-                        val desc = FieldDescriptor.read(input.takeNextLiteral { delimiter(it) }!!)
-                        targets.add(
-                            AWData(
-                                access,
-                                FullyQualifiedName(
-                                    ObjectType(cls),
-                                    NameAndDescriptor(UnqualifiedName.read(field), FieldOrMethodDescriptor(desc))
-                                )
-                            )
-                        )
-                    }
-
-                    else -> {
-                        throw IllegalArgumentException("Unknown target $target")
-                    }
-                }
+                handleAccessWideners(target, input, targets, access, ::delimiter)
             }
 
-            val lineComment = input.takeLine().trimStart()
-            if (lineComment.isNotEmpty()) {
-                if (lineComment.first() != '#') {
-                    throw IllegalArgumentException("Expected newline or comment, found $lineComment")
-                }
-                targets.add(AWComment(lineComment, false))
-            }
-
-            if (input.peek() == '\n') {
-                input.take()
-            }
+            handleFirstAndLastLines(input, targets)
         }
         return CTMappings(Namespace(namespace), targets)
     }
