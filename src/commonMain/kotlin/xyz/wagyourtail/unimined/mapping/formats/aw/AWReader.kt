@@ -1,11 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.formats.aw
 
 import okio.BufferedSource
+import org.jetbrains.annotations.ApiStatus
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.formats.ct.CTReader
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
@@ -36,12 +38,12 @@ object AWReader: FormatReader {
         return input.peek().readUtf8Line()?.startsWith("accessWidener") ?: false
     }
 
-    sealed interface AWItem
+    sealed interface AWItem : CTReader.CTItem
 
     data class AWData(
         val access: String,
         val target: FullyQualifiedName
-    ) : AWItem
+    ) : AWItem, CTReader.CTData
 
     data class AWComment(
         val comment: String,
@@ -71,100 +73,113 @@ object AWReader: FormatReader {
             val ns = nsMapping[namespace.name]?.let { Namespace(it) } ?: namespace
 
             for ((access, target) in targets.filterIsInstance<AWData>()) {
-                val addAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
-                val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
+                readAWData(target, access, into, ns, allowNonTransitive)
+            }
+        }
+    }
 
-                val (cls, member) = target.getParts()
+    @ApiStatus.Internal
+    fun readAWData(
+        target: FullyQualifiedName,
+        access: String,
+        into: MappingVisitor,
+        ns: Namespace,
+        allowNonTransitive: Boolean
+    ) {
+        val addAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
+        val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
 
-                if (!access.startsWith("transitive-")) {
-                    if (!allowNonTransitive) {
-                        continue
-                    }
-                }
+        val (cls, member) = target.getParts()
 
-                when (access) {
-                    "accessible", "transitive-accessible" -> {
-                        if (member == null) {
-                            addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                        } else {
-                            val (memberName, memberDesc) = member.getParts()
-                            if (memberDesc!!.isMethodDescriptor()) {
-                                addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                                addAccess.add(AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}"))
-                            } else {
-                                addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                            }
-                        }
-                    }
-                    "mutable", "transitive-mutable" -> {
-                        if (member == null) {
-                            throw IllegalArgumentException("mutable is only valid for fields")
-                        }
-                        val (memberName, memberDesc) = member.getParts()
-                        if (memberDesc!!.isMethodDescriptor()) {
-                            throw IllegalArgumentException("mutable is only valid for fields")
-                        }
-                        removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                    }
-                    "extendable", "transitive-extendable" -> {
-                        if (member == null) {
-                            addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                            removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                        } else {
-                            val (memberName, memberDesc) = member.getParts()
-                            if (memberDesc!!.isFieldDescriptor()) {
-                                throw IllegalArgumentException("extendable is not valid for fields")
-                            }
-                            addAccess.add(AccessFlag.PROTECTED to AccessConditions.unchecked("-${AccessFlag.PUBLIC}"))
-                            removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                        }
-                    }
-                }
+        if (!access.startsWith("transitive-")) {
+            if (!allowNonTransitive) {
+                return
+            }
+        }
 
+        when (access) {
+            "accessible", "transitive-accessible" -> {
                 if (member == null) {
-                    into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
+                    addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                } else {
+                    val (memberName, memberDesc) = member.getParts()
+                    if (memberDesc!!.isMethodDescriptor()) {
+                        addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                        addAccess.add(AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}"))
+                    } else {
+                        addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                    }
+                }
+            }
+
+            "mutable", "transitive-mutable" -> {
+                if (member == null) {
+                    throw IllegalArgumentException("mutable is only valid for fields")
+                }
+                val (memberName, memberDesc) = member.getParts()
+                if (memberDesc!!.isMethodDescriptor()) {
+                    throw IllegalArgumentException("mutable is only valid for fields")
+                }
+                removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
+            }
+
+            "extendable", "transitive-extendable" -> {
+                if (member == null) {
+                    addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
+                    removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
+                } else {
+                    val (memberName, memberDesc) = member.getParts()
+                    if (memberDesc!!.isFieldDescriptor()) {
+                        throw IllegalArgumentException("extendable is not valid for fields")
+                    }
+                    addAccess.add(AccessFlag.PROTECTED to AccessConditions.unchecked("-${AccessFlag.PUBLIC}"))
+                    removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
+                }
+            }
+        }
+
+        if (member == null) {
+            into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
+                for ((flag, conditions) in addAccess) {
+                    visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
+                }
+                for ((flag, conditions) in removeAccess) {
+                    visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
+                }
+            }
+        } else {
+            val (memberName, memberDesc) = member.getParts()
+            if (memberDesc!!.isMethodDescriptor()) {
+                into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
+                    var removeClsFinal = false
+                    visitMethod(mapOf(ns to (memberName.value to memberDesc.getMethodDescriptor())))?.use {
                         for ((flag, conditions) in addAccess) {
                             visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
                         }
                         for ((flag, conditions) in removeAccess) {
                             visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
+                            if (flag == AccessFlag.FINAL) {
+                                removeClsFinal = true
+                            }
                         }
                     }
-                } else {
-                    val (memberName, memberDesc) = member.getParts()
-                    if (memberDesc!!.isMethodDescriptor()) {
-                        into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
-                            var removeClsFinal = false
-                            visitMethod(mapOf(ns to (memberName.value to memberDesc.getMethodDescriptor())))?.use {
-                                for ((flag, conditions) in addAccess) {
-                                    visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
-                                }
-                                for ((flag, conditions) in removeAccess) {
-                                    visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
-                                    if (flag == AccessFlag.FINAL) {
-                                        removeClsFinal = true
-                                    }
-                                }
-                            }
-                            if (removeClsFinal) {
-                                visitAccess(
-                                    AccessType.REMOVE,
-                                    AccessFlag.FINAL,
-                                    AccessConditions.ALL,
-                                    setOf(ns)
-                                )?.visitEnd()
-                            }
+                    if (removeClsFinal) {
+                        visitAccess(
+                            AccessType.REMOVE,
+                            AccessFlag.FINAL,
+                            AccessConditions.ALL,
+                            setOf(ns)
+                        )?.visitEnd()
+                    }
+                }
+            } else {
+                into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
+                    visitField(mapOf(ns to (memberName.value to memberDesc.getFieldDescriptor())))?.use {
+                        for ((flag, conditions) in addAccess) {
+                            visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
                         }
-                    } else {
-                        into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
-                            visitField(mapOf(ns to (memberName.value to memberDesc.getFieldDescriptor())))?.use {
-                                for ((flag, conditions) in addAccess) {
-                                    visitAccess(AccessType.ADD, flag, conditions, setOf(ns))?.visitEnd()
-                                }
-                                for ((flag, conditions) in removeAccess) {
-                                    visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
-                                }
-                            }
+                        for ((flag, conditions) in removeAccess) {
+                            visitAccess(AccessType.REMOVE, flag, conditions, setOf(ns))?.visitEnd()
                         }
                     }
                 }
@@ -178,7 +193,6 @@ object AWReader: FormatReader {
         val version = input.takeNextLiteral { it.isWhitespace() }
         input.takeWhitespace()
         val namespace = input.takeNextLiteral { it.isWhitespace() }!!
-        val targets = mutableListOf<AWItem>()
 
         if (aw != "accessWidener") {
             throw IllegalArgumentException("Invalid access widener file")
@@ -187,6 +201,18 @@ object AWReader: FormatReader {
             throw IllegalArgumentException("Unknown version $version")
         }
 
+        return AWMappings(Namespace(namespace), parseAWMappings(input, version!!, allowNonTransitive))
+    }
+
+    @ApiStatus.Internal
+    fun parseAWMappings(
+        input: CharReader<*>,
+        version: String,
+        allowNonTransitive: Boolean
+    ): List<AWItem> {
+        fun delimiter(c: Char): Boolean = (version == "v1" && c.isWhitespace()) || (version == "v2" && (c == ' ' || c == '\t'))
+
+        val targets = mutableListOf<AWItem>()
         val remain = input.takeLine().trimStart()
         if (remain.isNotEmpty()) {
             if (remain.first() != '#') {
@@ -217,9 +243,9 @@ object AWReader: FormatReader {
                 throw IllegalStateException("Unexpected whitespace")
             }
 
-            val access = input.takeNextLiteral { it.isWhitespace() }!!
+            val access = input.takeNextLiteral { delimiter(it) }!!
             input.takeWhitespace()
-            val target = input.takeNextLiteral { it.isWhitespace() }!!
+            val target = input.takeNextLiteral { delimiter(it) }!!
             input.takeWhitespace()
 
             if (!access.startsWith("transitive-") && !allowNonTransitive) {
@@ -229,16 +255,16 @@ object AWReader: FormatReader {
 
             when (target) {
                 "class" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
                     targets.add(AWData(access, FullyQualifiedName(ObjectType(cls), null)))
                 }
 
                 "method" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
                     input.takeWhitespace()
-                    val method = input.takeNextLiteral { it.isWhitespace() }!!
+                    val method = input.takeNextLiteral { delimiter(it) }!!
                     input.takeWhitespace()
-                    val desc = MethodDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    val desc = MethodDescriptor.read(input.takeNextLiteral { delimiter(it) }!!)
                     targets.add(
                         AWData(
                             access,
@@ -251,11 +277,11 @@ object AWReader: FormatReader {
                 }
 
                 "field" -> {
-                    val cls = InternalName.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    val cls = InternalName.read(input.takeNextLiteral { delimiter(it) }!!)
                     input.takeWhitespace()
-                    val field = input.takeNextLiteral { it.isWhitespace() }!!
+                    val field = input.takeNextLiteral { delimiter(it) }!!
                     input.takeWhitespace()
-                    val desc = FieldDescriptor.read(input.takeNextLiteral { it.isWhitespace() }!!)
+                    val desc = FieldDescriptor.read(input.takeNextLiteral { delimiter(it) }!!)
                     targets.add(
                         AWData(
                             access,
@@ -284,6 +310,6 @@ object AWReader: FormatReader {
                 input.take()
             }
         }
-        return AWMappings(Namespace(namespace), targets)
+        return targets
     }
 }
