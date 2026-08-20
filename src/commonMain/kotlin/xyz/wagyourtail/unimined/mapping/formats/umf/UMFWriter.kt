@@ -219,18 +219,18 @@ object UMFWriter : FormatWriter {
 
         override fun visitSeal(
             delegate: ClassMappingVisitor,
-            type: SealedType,
+            type: AddRemoveClear,
             name: InternalName?,
             baseNs: Namespace,
         ): SealMappingVisitor? {
             val typeStr = when (type) {
-                SealedType.ADD -> "+"
-                SealedType.REMOVE -> "-"
-                SealedType.CLEAR -> "c"
+                AddRemoveClear.ADD -> "+"
+                AddRemoveClear.REMOVE -> "-"
+                AddRemoveClear.CLEAR -> "c"
             }
             into(indent)
             into("${UMFReader.EntryType.SEAL.key}\t$typeStr\t")
-            if (type != SealedType.CLEAR) {
+            if (type != AddRemoveClear.CLEAR) {
                 into(name!!.value.maybeEscape())
                 into("\t")
             }
@@ -242,13 +242,13 @@ object UMFWriter : FormatWriter {
 
         override fun visitInterface(
             delegate: ClassMappingVisitor,
-            type: InterfacesType,
+            type: AddRemove,
             name: ClassTypeSignature,
             baseNs: Namespace,
         ): InterfaceMappingVisitor? {
             val typeStr = when (type) {
-                InterfacesType.ADD -> "+"
-                InterfacesType.REMOVE -> "-"
+                AddRemove.ADD -> "+"
+                AddRemove.REMOVE -> "-"
             }
             into(indent)
             into("${UMFReader.EntryType.INTERFACE.key}\t$typeStr\t")
@@ -298,15 +298,15 @@ object UMFWriter : FormatWriter {
 
         override fun visitException(
             delegate: InvokableMappingVisitor,
-            type: ExceptionType,
+            type: AddRemove,
             exception: InternalName,
             baseNs: Namespace,
         ): ExceptionMappingVisitor? {
             into(indent)
             into("${UMFReader.EntryType.EXCEPTION.key}\t")
             when (type) {
-                ExceptionType.ADD -> into("+\t")
-                ExceptionType.REMOVE -> into("-\t")
+                AddRemove.ADD -> into("+\t")
+                AddRemove.REMOVE -> into("-\t")
             }
             into(exception.value.maybeEscape())
             into("\t")
@@ -318,15 +318,15 @@ object UMFWriter : FormatWriter {
 
         override fun visitAccess(
             delegate: AccessParentMappingVisitor,
-            type: AccessType,
+            type: AddRemove,
             value: AccessFlag,
             conditions: AccessConditions,
         ): AccessMappingVisitor? {
             into(indent)
             into("${UMFReader.EntryType.ACCESS.key}\t")
             when (type) {
-                AccessType.ADD -> into("+\t")
-                AccessType.REMOVE -> into("-\t")
+                AddRemove.ADD -> into("+\t")
+                AddRemove.REMOVE -> into("-\t")
             }
             into("${value.name.lowercase()}\t")
             into("$conditions\t")
@@ -368,16 +368,16 @@ object UMFWriter : FormatWriter {
 
         override fun visitAnnotation(
             delegate: AnnotationParentMappingVisitor,
-            type: AnnotationType,
+            type: AddRemoveModify,
             baseNs: Namespace,
             annotation: Annotation,
         ): AnnotationMappingVisitor? {
             into(indent)
             into("${UMFReader.EntryType.ANNOTATION.key}\t")
             when (type) {
-                AnnotationType.ADD -> into("+\t")
-                AnnotationType.REMOVE -> into("-\t")
-                AnnotationType.MODIFY -> into("m\t")
+                AddRemoveModify.ADD -> into("+\t")
+                AddRemoveModify.REMOVE -> into("-\t")
+                AddRemoveModify.MODIFY -> into("m\t")
             }
             val parts = annotation.getParts()
             into(parts.first.value.maybeEscape())

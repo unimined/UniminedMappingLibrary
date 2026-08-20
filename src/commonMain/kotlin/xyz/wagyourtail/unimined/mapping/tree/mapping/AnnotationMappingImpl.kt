@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.tree.mapping
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.visitor.AnnotationType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemoveModify
 import xyz.wagyourtail.unimined.mapping.visitor.AnnotationMapping
 import xyz.wagyourtail.unimined.mapping.visitor.AnnotationParentMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.AnnotationMappingVisitor
@@ -13,7 +13,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateAnnotationMappi
 
 class AnnotationMappingImpl<U: AnnotationParentMappingVisitor>(
     parent: BaseMappingImpl<U, *>,
-    override val type: AnnotationType,
+    override val type: AddRemoveModify,
     override val baseNs: Namespace,
     override val annotation: Annotation
 ) : BaseMappingImpl<AnnotationMappingVisitor, U>(parent), AnnotationMapping, AnnotationMappingVisitor {

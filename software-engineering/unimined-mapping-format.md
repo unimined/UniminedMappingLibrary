@@ -24,6 +24,7 @@ created over the years.
     * [exceptions](#exceptions)
     * [sealed classes](#sealed)
     * [interface modification](#interfaces)
+    * [enum extension](#enum-extension)
 2. Must be human-readable
 3. Must be relatively easy to parse / write
 4. all notations must be able to represent everything legal by the jvms
@@ -332,6 +333,14 @@ if none of the namespaces in the file are just numbers, indexes can be used inst
 
 where `<action>` is either `+` or `-` for add and remove respectively.
 `<ifname>` is the internal name of an interface in `<ns1 name>`'s names.
+
+## Enum Extension
+
+this can add/remove an enum value from an enum.
+`u <action> <value> <ns1 name> <ns2 name> <ns3 name> ...`
+
+where `<action>` is either `+` or `-` for add and remove respectively.
+`<value>` is the name of an enum value in `<ns1 name>`'s names.
 
 ## Constant Group
 

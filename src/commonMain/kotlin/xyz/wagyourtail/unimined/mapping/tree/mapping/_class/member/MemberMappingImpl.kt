@@ -21,7 +21,7 @@ abstract class MemberMappingImpl<T: MemberMappingVisitor, U: BaseMappingVisitor>
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation
     ): AnnotationMappingVisitor? {

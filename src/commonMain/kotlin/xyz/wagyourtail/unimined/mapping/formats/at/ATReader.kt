@@ -53,10 +53,10 @@ object ATReader : FormatReader {
     }
 
     private fun AccessParentMappingVisitor.applyAccess(access: AccessFlag, final: TriState) {
-        this.visitAccess(AccessType.ADD, access, AccessConditions.ALL)?.visitEnd()
+        this.visitAccess(AddRemove.ADD, access, AccessConditions.ALL)?.visitEnd()
         when (final) {
-            TriState.ADD -> this.visitAccess(AccessType.ADD, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
-            TriState.REMOVE -> this.visitAccess(AccessType.REMOVE, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
+            TriState.ADD -> this.visitAccess(AddRemove.ADD, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
+            TriState.REMOVE -> this.visitAccess(AddRemove.REMOVE, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
             TriState.LEAVE -> {}
         }
     }

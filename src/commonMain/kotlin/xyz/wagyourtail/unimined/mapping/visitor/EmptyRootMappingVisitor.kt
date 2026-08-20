@@ -54,7 +54,7 @@ open class EmptyRootMappingVisitor : EmptyBaseMappingVisitor(), RootMappingVisit
 open class EmptyAccessParentMappingVisitor : EmptyBaseMappingVisitor(), AccessParentMappingVisitor {
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions,
     ): AccessMappingVisitor? {
@@ -65,7 +65,7 @@ open class EmptyAccessParentMappingVisitor : EmptyBaseMappingVisitor(), AccessPa
 
 open class EmptyAnnotationParentMappingVisitor : EmptyBaseMappingVisitor(), AnnotationParentMappingVisitor {
 
-    override fun visitAnnotation(type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    override fun visitAnnotation(type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return EmptyAnnotationMappingVisitor()
     }
 
@@ -120,7 +120,7 @@ open class EmptyClassMappingVisitor : EmptyMemberMappingVisitor(), SignaturePare
     }
 
     override fun visitSeal(
-        type: SealedType,
+        type: AddRemoveClear,
         name: InternalName?,
         baseNs: Namespace,
     ): SealMappingVisitor? {
@@ -128,11 +128,19 @@ open class EmptyClassMappingVisitor : EmptyMemberMappingVisitor(), SignaturePare
     }
 
     override fun visitInterface(
-        type: InterfacesType,
+        type: AddRemove,
         name: ClassTypeSignature,
         baseNs: Namespace,
     ): InterfaceMappingVisitor? {
         return EmptyInterfaceMappingVisitor()
+    }
+
+    override fun visitEnumExtension(
+        type: AddRemove,
+        name: UnqualifiedName,
+        baseNs: Namespace
+    ): EnumExtensionMappingVisitor? {
+        return EmptyEnumExtensionMappingVisitor()
     }
 
     override fun visitInnerClass(
@@ -162,7 +170,7 @@ open class EmptyMethodMappingVisitor : EmptyMemberMappingVisitor(), SignaturePar
     }
 
     override fun visitException(
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace,
     ): ExceptionMappingVisitor? {
@@ -191,7 +199,7 @@ open class EmptyWildcardMappingVisitor : EmptyMemberMappingVisitor(), SignatureP
     }
 
     override fun visitException(
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace,
     ): ExceptionMappingVisitor? {
@@ -244,3 +252,6 @@ open class EmptyInnerClassMappingVisitor : EmptyBaseMappingVisitor(), AccessPare
 open class EmptySealMappingVisitor : EmptyBaseMappingVisitor(), SealMappingVisitor
 
 open class EmptyInterfaceMappingVisitor : EmptyBaseMappingVisitor(), InterfaceMappingVisitor
+
+open class EmptyEnumExtensionMappingVisitor : EmptyBaseMappingVisitor(), EnumExtensionMappingVisitor
+

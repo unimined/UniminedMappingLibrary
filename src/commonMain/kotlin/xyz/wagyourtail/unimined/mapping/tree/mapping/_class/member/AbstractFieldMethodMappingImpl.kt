@@ -14,8 +14,6 @@ abstract class AbstractFieldMethodMappingImpl<T: MemberMappingVisitor, U: FieldO
     val names: Map<Namespace, UnqualifiedName> get() = _names
     val descs: Map<Namespace, U> get() = _descs
 
-    fun hasDescriptor() = descs.isNotEmpty()
-
     fun getDescriptor(namespace: Namespace): FieldOrMethodDescriptor? {
         if (descs.isEmpty()) return null
         if (namespace in descs) {

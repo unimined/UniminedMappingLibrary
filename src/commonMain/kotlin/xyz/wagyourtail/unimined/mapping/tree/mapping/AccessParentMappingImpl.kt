@@ -4,7 +4,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.visitor.AccessParentMapping
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
 import xyz.wagyourtail.unimined.mapping.visitor.AccessParentMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.AccessMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.BaseMappingVisitor
@@ -22,7 +22,7 @@ abstract class AccessParentMappingImpl<T: AccessParentMappingVisitor, U: BaseMap
     }
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions
     ): AccessMappingVisitor? {

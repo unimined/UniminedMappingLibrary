@@ -33,8 +33,6 @@ class WildcardMappingImpl(
     override val localVariables: List<LocalMappingImpl<WildcardMappingVisitor>> get() = _locals
     override val exceptions: List<ExceptionMappingImpl<WildcardMappingVisitor>> get() = _exceptions
 
-    fun hasDescriptor() = descs.isNotEmpty()
-
     fun getDescriptor(namespace: Namespace): FieldOrMethodDescriptor? {
         if (descs.isEmpty()) return null
         if (namespace in descs) {
@@ -83,7 +81,7 @@ class WildcardMappingImpl(
     }
 
     override fun visitException(
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace
     ): ExceptionMappingVisitor? {

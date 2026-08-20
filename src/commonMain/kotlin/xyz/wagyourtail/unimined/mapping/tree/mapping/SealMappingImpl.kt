@@ -8,12 +8,12 @@ import xyz.wagyourtail.unimined.mapping.visitor.EmptyClassMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptySealMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.SealMapping
 import xyz.wagyourtail.unimined.mapping.visitor.SealMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.SealedType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemoveClear
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateSealMappingVisitor
 
 class SealMappingImpl(
     parent: BaseMappingImpl<ClassMappingVisitor, *>?,
-    override val type: SealedType,
+    override val type: AddRemoveClear,
     override val name: InternalName?,
     override val baseNs: Namespace
 ): BaseMappingImpl<SealMappingVisitor, ClassMappingVisitor>(parent), SealMapping, SealMappingVisitor {

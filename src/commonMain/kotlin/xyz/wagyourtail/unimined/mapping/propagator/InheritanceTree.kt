@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.propagator
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.atomicfu.locks.ReentrantLock
 import kotlinx.atomicfu.locks.withLock
+import kotlinx.coroutines.NonCancellable.children
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -18,26 +19,25 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.*
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
 import kotlin.collections.filterValues
 
-abstract class InheritanceTree(val tree: AbstractMappingTree) {
+abstract class InheritanceTree {
     val LOGGER = KotlinLogging.logger {  }
 
     abstract val fns: Namespace
 
     abstract val classes: Map<InternalName, ClassInfo>
 
-    suspend fun propagate(targets: Set<Namespace>) = coroutineScope {
+    suspend fun propagate(tree: MappingTree, targets: Set<Namespace>) = coroutineScope {
         val classes = classes.filterValues { it.inMappings }
 
         // write classes
         classes.values.parallelMap {
-            it.propagate(targets)
+            it.propagate(tree, targets)
         }
 
         // write class mappings
@@ -190,7 +190,7 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
         val methodData = mutableMapOf<MethodInfo, MutableMap<Namespace, UnqualifiedName>>()
         private val visitedNs = mutableSetOf(fns)
 
-        suspend fun propagate(targets: Set<Namespace>): Unit = coroutineScope {
+        suspend fun propagate(tree: MappingTree, targets: Set<Namespace>): Unit = coroutineScope {
             val targets = targets - visitedNs
             if (targets.isEmpty()) return@coroutineScope
             propagateLock.withLock {
@@ -204,11 +204,11 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
                     // modify access
                     val acc = AccessFlag.of(ElementType.METHOD, md.access).toMutableSet()
                     val cls = tree.getClass(fns, name)
-                    val methods = cls?.getMethods(fns, md.name, md.descriptor)
+                    val methods = with (tree) { cls?.getMethods(fns, md.name, md.descriptor) }
                     methods?.flatMap { it.access }?.forEach {
                         it.apply(acc)
                     }
-                    val wildcards = cls?.getWildcards(WildcardType.METHOD, fns, md.descriptor)
+                    val wildcards = with (tree) { cls?.getWildcards(WildcardType.METHOD, fns, md.descriptor) }
                     wildcards?.flatMap { it.access }?.forEach {
                         it.apply(acc)
                     }
@@ -284,7 +284,7 @@ abstract class InheritanceTree(val tree: AbstractMappingTree) {
                     methodData.getOrPut(method) { mutableMapOf() }.putAll(names)
                 }
                 visitedNs += targets
-            }
+            } }
         }
 
 

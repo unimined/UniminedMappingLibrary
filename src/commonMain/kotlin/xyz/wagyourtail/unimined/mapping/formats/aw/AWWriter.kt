@@ -86,12 +86,12 @@ object AWWriter : FormatWriter {
 
             override fun visitClassAccess(
                 delegate: ClassMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (type == AccessType.ADD) {
+                    if (type == AddRemove.ADD) {
                         classAccessAdd += value
                     } else {
                         classAccessRemove += value
@@ -111,19 +111,19 @@ object AWWriter : FormatWriter {
 
             override fun visitWildcardAccess(
                 delegate: WildcardMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
                     if (wildcardType == WildcardType.FIELD) {
-                        if (type == AccessType.ADD) {
+                        if (type == AddRemove.ADD) {
                             wildcardFieldAdd += value
                         } else {
                             wildcardFieldRemove += value
                         }
                     } else {
-                        if (type == AccessType.ADD) {
+                        if (type == AddRemove.ADD) {
                             wildcardMethodAdd += value
                         } else {
                             wildcardMethodRemove += value
@@ -139,12 +139,12 @@ object AWWriter : FormatWriter {
 
             override fun visitFieldAccess(
                 delegate: FieldMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (type == AccessType.ADD) {
+                    if (type == AddRemove.ADD) {
                         memberAccessesAdd += value
                     } else {
                         memberAccessesRemove += value
@@ -155,12 +155,12 @@ object AWWriter : FormatWriter {
 
             override fun visitMethodAccess(
                 delegate: MethodMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (type == AccessType.ADD) {
+                    if (type == AddRemove.ADD) {
                         memberAccessesAdd += value
                     } else {
                         memberAccessesRemove += value

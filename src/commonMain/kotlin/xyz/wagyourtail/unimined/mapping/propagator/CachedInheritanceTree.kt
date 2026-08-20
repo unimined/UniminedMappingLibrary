@@ -12,7 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 
-class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): InheritanceTree(tree) {
+class CachedInheritanceTree(data: CharReader<*>): InheritanceTree() {
 
     companion object {
 
@@ -98,7 +98,7 @@ class CachedInheritanceTree(tree: AbstractMappingTree, data: CharReader<*>): Inh
                 val sup = data.takeNextUMF()?.ifEmpty { null }
                 val intf = data.takeRemainingFixedOnLine().map { InternalName.read(it!!) }
                 ci = ClassInfo(InternalName.read(cls), sup?.let { InternalName.read(it) }, intf)
-                classes[ci!!.name] = ci!!
+                classes[ci.name] = ci
             } else {
                 val acc = data.takeNextUMF()!!.split("|").filter { it.isNotBlank() }.map { AccessFlag.valueOf(it.uppercase()) }
                 val name = UnqualifiedName.read(data.takeNextUMF()!!)

@@ -73,7 +73,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
 
     override fun visitSeal(
         delegate: ClassMappingVisitor,
-        type: SealedType,
+        type: AddRemoveClear,
         name: InternalName?,
         baseNs: Namespace,
     ): SealMappingVisitor? {
@@ -83,7 +83,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
 
     override fun visitInterface(
         delegate: ClassMappingVisitor,
-        type: InterfacesType,
+        type: AddRemove,
         name: ClassTypeSignature,
         baseNs: Namespace,
     ): InterfaceMappingVisitor? {
@@ -113,7 +113,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
 
     override fun visitException(
         delegate: InvokableMappingVisitor,
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace,
     ): ExceptionMappingVisitor? {
@@ -141,7 +141,7 @@ class NamespaceRecordingDelegate(val recorder: (Set<Namespace>) -> Unit) : Deleg
 
     override fun visitAnnotation(
         delegate: AnnotationParentMappingVisitor,
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor? {

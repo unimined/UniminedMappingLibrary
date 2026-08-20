@@ -50,7 +50,7 @@ open class NullDelegator : Delegator() {
 
     override fun visitSeal(
         delegate: ClassMappingVisitor,
-        type: SealedType,
+        type: AddRemoveClear,
         name: InternalName?,
         baseNs: Namespace,
     ): SealMappingVisitor? {
@@ -59,7 +59,7 @@ open class NullDelegator : Delegator() {
 
     override fun visitInterface(
         delegate: ClassMappingVisitor,
-        type: InterfacesType,
+        type: AddRemove,
         name: ClassTypeSignature,
         baseNs: Namespace,
     ): InterfaceMappingVisitor? {
@@ -84,11 +84,11 @@ open class NullDelegator : Delegator() {
         return null
     }
 
-    override fun visitException(delegate: InvokableMappingVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
+    override fun visitException(delegate: InvokableMappingVisitor, type: AddRemove, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
         return null
     }
 
-    override fun visitAccess(delegate: AccessParentMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    override fun visitAccess(delegate: AccessParentMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return null
     }
 
@@ -110,7 +110,7 @@ open class NullDelegator : Delegator() {
 
     override fun visitAnnotation(
         delegate: AnnotationParentMappingVisitor,
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation
     ): AnnotationMappingVisitor? {

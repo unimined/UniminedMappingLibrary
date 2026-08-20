@@ -66,7 +66,7 @@ fun RootMappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMapping
 
     override fun visitSeal(
         delegate: ClassMappingVisitor,
-        type: SealedType,
+        type: AddRemoveClear,
         name: InternalName?,
         baseNs: Namespace,
     ): SealMappingVisitor? {
@@ -75,7 +75,7 @@ fun RootMappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMapping
 
     override fun visitInterface(
         delegate: ClassMappingVisitor,
-        type: InterfacesType,
+        type: AddRemove,
         name: ClassTypeSignature,
         baseNs: Namespace,
     ): InterfaceMappingVisitor? {
@@ -106,7 +106,7 @@ fun RootMappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMapping
 
     override fun visitException(
         delegate: InvokableMappingVisitor,
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace,
     ): ExceptionMappingVisitor? {
@@ -131,7 +131,7 @@ fun RootMappingVisitor.mapNs(nsMap: Map<Namespace, Namespace>) = DelegateMapping
 
     override fun visitAnnotation(
         delegate: AnnotationParentMappingVisitor,
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor? {

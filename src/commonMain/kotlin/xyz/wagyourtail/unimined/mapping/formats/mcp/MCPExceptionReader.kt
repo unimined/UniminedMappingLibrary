@@ -13,8 +13,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
-import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
 import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -143,14 +142,14 @@ object MCPExceptionReader : FormatReader {
                 visitClass(mapOf(srcNs to cls))?.use {
                     visitMethod(mapOf(srcNs to method))?.use {
                         for (ex in exc) {
-                            visitException(ExceptionType.ADD, ex, srcNs)?.visitEnd()
+                            visitException(AddRemove.ADD, ex, srcNs)?.visitEnd()
                         }
                         for (i in param.indices) {
                             visitParameter(i, null, mapOf(srcNs to param[i]))?.visitEnd()
                         }
                         if (access != null) {
                             visitAccess(
-                                AccessType.ADD,
+                                AddRemove.ADD,
                                 AccessFlag.valueOf(access),
                                 AccessConditions.ALL,
                             )?.visitEnd()

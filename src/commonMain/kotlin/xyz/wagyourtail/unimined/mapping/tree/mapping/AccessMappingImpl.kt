@@ -4,7 +4,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
 import xyz.wagyourtail.unimined.mapping.visitor.AccessMapping
 import xyz.wagyourtail.unimined.mapping.visitor.AccessParentMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.AccessMappingVisitor
@@ -14,22 +14,13 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateAccessMappingVi
 
 class AccessMappingImpl<U: AccessParentMappingVisitor>(
     parent: BaseMappingImpl<U, *>,
-    override val type: AccessType,
+    override val type: AddRemove,
     override val value: AccessFlag,
     override val condition: AccessConditions
 ) : BaseMappingImpl<AccessMappingVisitor, U>(parent), AccessMapping, AccessMappingVisitor {
 
     override fun acceptOuter(visitor: U, nsFilter: Collection<Namespace>): AccessMappingVisitor? {
         return visitor.visitAccess(type, value, condition)
-    }
-
-    fun apply(set: MutableSet<AccessFlag>) {
-        if (condition.check(set)) {
-            when (type) {
-                AccessType.ADD -> set.add(value)
-                AccessType.REMOVE -> set.remove(value)
-            }
-        }
     }
 
     override fun toUMF(inner: Boolean) = buildString {

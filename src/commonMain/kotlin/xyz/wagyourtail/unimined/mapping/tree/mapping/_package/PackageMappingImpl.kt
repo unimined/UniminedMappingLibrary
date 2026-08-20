@@ -41,7 +41,7 @@ class PackageMappingImpl(parent: AbstractMappingTree) : BaseMappingImpl<PackageM
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor {

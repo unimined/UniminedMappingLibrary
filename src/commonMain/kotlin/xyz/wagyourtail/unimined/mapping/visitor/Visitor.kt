@@ -65,23 +65,23 @@ interface RootMappingVisitor : BaseMappingVisitor {
 
 interface AccessParentMappingVisitor : BaseMappingVisitor {
     companion object {
-        inline fun AccessParentMappingVisitor.visitAccess(type: AccessType, value: AccessFlag, condition: AccessConditions, visitor: AccessMappingVisitor.() -> Unit) {
+        inline fun AccessParentMappingVisitor.visitAccess(type: AddRemove, value: AccessFlag, condition: AccessConditions, visitor: AccessMappingVisitor.() -> Unit) {
             visitAccess(type, value, condition)?.use(visitor)
         }
     }
 
-    fun visitAccess(type: AccessType, value: AccessFlag, condition: AccessConditions): AccessMappingVisitor?
+    fun visitAccess(type: AddRemove, value: AccessFlag, condition: AccessConditions): AccessMappingVisitor?
 
 }
 
 interface AnnotationParentMappingVisitor : BaseMappingVisitor {
     companion object {
-        inline fun AnnotationParentMappingVisitor.visitAnnotation(type: AnnotationType, baseNs: Namespace, annotation: Annotation, visitor: AnnotationMappingVisitor.() -> Unit) {
+        inline fun AnnotationParentMappingVisitor.visitAnnotation(type: AddRemoveModify, baseNs: Namespace, annotation: Annotation, visitor: AnnotationMappingVisitor.() -> Unit) {
             visitAnnotation(type, baseNs, annotation)?.use(visitor)
         }
     }
 
-    fun visitAnnotation(type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor?
+    fun visitAnnotation(type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor?
 
 }
 
@@ -124,12 +124,16 @@ interface ClassMappingVisitor : MemberMappingVisitor, SignatureParentMappingVisi
             visitWildcard(type, descs)?.use(visitor)
         }
 
-        inline fun ClassMappingVisitor.visitSeal(type: SealedType, name: InternalName?, baseNs: Namespace, visitor: SealMappingVisitor.() -> Unit) {
+        inline fun ClassMappingVisitor.visitSeal(type: AddRemoveClear, name: InternalName?, baseNs: Namespace, visitor: SealMappingVisitor.() -> Unit) {
             visitSeal(type, name, baseNs)?.use(visitor)
         }
 
-        inline fun ClassMappingVisitor.visitInterface(type: InterfacesType, name: ClassTypeSignature, baseNs: Namespace, visitor: InterfaceMappingVisitor.() -> Unit) {
+        inline fun ClassMappingVisitor.visitInterface(type: AddRemove, name: ClassTypeSignature, baseNs: Namespace, visitor: InterfaceMappingVisitor.() -> Unit) {
             visitInterface(type, name, baseNs)?.use(visitor)
+        }
+
+        inline fun ClassMappingVisitor.visitEnumExtension(type: AddRemove, name: UnqualifiedName, baseNs: Namespace, visitor: EnumExtensionMappingVisitor.() -> Unit) {
+            visitEnumExtension(type, name, baseNs)?.use(visitor)
         }
     }
 
@@ -141,10 +145,11 @@ interface ClassMappingVisitor : MemberMappingVisitor, SignatureParentMappingVisi
 
     fun visitWildcard(type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>): WildcardMappingVisitor?
 
-    fun visitSeal(type: SealedType, name: InternalName?, baseNs: Namespace): SealMappingVisitor?
+    fun visitSeal(type: AddRemoveClear, name: InternalName?, baseNs: Namespace): SealMappingVisitor?
 
-    fun visitInterface(type: InterfacesType, name: ClassTypeSignature, baseNs: Namespace): InterfaceMappingVisitor?
+    fun visitInterface(type: AddRemove, name: ClassTypeSignature, baseNs: Namespace): InterfaceMappingVisitor?
 
+    fun visitEnumExtension(type: AddRemove, name: UnqualifiedName, baseNs: Namespace): EnumExtensionMappingVisitor?
 }
 
 interface InvokableMappingVisitor : MemberMappingVisitor, SignatureParentMappingVisitor<MethodSignature> {
@@ -157,7 +162,7 @@ interface InvokableMappingVisitor : MemberMappingVisitor, SignatureParentMapping
             visitLocalVariable(lvOrd, startOp, names)?.use(visitor)
         }
 
-        inline fun InvokableMappingVisitor.visitException(type: ExceptionType, exception: InternalName, baseNs: Namespace, visitor: ExceptionMappingVisitor.() -> Unit) {
+        inline fun InvokableMappingVisitor.visitException(type: AddRemove, exception: InternalName, baseNs: Namespace, visitor: ExceptionMappingVisitor.() -> Unit) {
             visitException(type, exception, baseNs)?.use(visitor)
         }
     }
@@ -166,7 +171,7 @@ interface InvokableMappingVisitor : MemberMappingVisitor, SignatureParentMapping
 
     fun visitLocalVariable(lvOrd: Int, startOp: Int?, names: Map<Namespace, UnqualifiedName>): LocalVariableMappingVisitor?
 
-    fun visitException(type: ExceptionType, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor?
+    fun visitException(type: AddRemove, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor?
 
 }
 
@@ -227,3 +232,5 @@ interface InnerClassMappingVisitor : AccessParentMappingVisitor
 interface SealMappingVisitor : BaseMappingVisitor
 
 interface InterfaceMappingVisitor : BaseMappingVisitor
+
+interface EnumExtensionMappingVisitor : BaseMappingVisitor

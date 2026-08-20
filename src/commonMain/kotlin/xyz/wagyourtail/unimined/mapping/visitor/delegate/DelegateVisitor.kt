@@ -90,7 +90,7 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitInterface(delegate: ClassMappingVisitor, type: InterfacesType, name: ClassTypeSignature, baseNs: Namespace): InterfaceMappingVisitor? {
+    open fun visitInterface(delegate: ClassMappingVisitor, type: AddRemove, name: ClassTypeSignature, baseNs: Namespace): InterfaceMappingVisitor? {
         return delegate.visitInterface(type, name, baseNs)?.let { DelegateInterfaceMappingVisitor(it, delegator) }
     }
 
@@ -98,7 +98,15 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitSeal(delegate: ClassMappingVisitor, type: SealedType, name: InternalName?, baseNs: Namespace): SealMappingVisitor? {
+    open fun visitEnumExtension(delegate: ClassMappingVisitor, type: AddRemove, name: UnqualifiedName, baseNs: Namespace): EnumExtensionMappingVisitor? {
+        return delegate.visitEnumExtension(type, name, baseNs)?.let { DelegateEnumExtensionMappingVisitor(it, delegator) }
+    }
+
+    open fun visitEnumExtensionEnd(delegate: EnumExtensionMappingVisitor) {
+        visitEnd(delegate)
+    }
+
+    open fun visitSeal(delegate: ClassMappingVisitor, type: AddRemoveClear, name: InternalName?, baseNs: Namespace): SealMappingVisitor? {
         return delegate.visitSeal(type, name, baseNs)?.let { DelegateSealMappingVisitor(it, delegator) }
     }
 
@@ -138,7 +146,7 @@ open class Delegator(delegator: Delegator? = null) {
         return visitLocalVariable(delegate, lvOrd, startOp, names)
     }
 
-    open fun visitException(delegate: InvokableMappingVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
+    open fun visitException(delegate: InvokableMappingVisitor, type: AddRemove, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
         return delegate.visitException(type, exception,baseNs)?.let { DelegateExceptionMappingVisitor(it, delegator) }
     }
 
@@ -146,15 +154,15 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitMethodException(delegate: MethodMappingVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
+    open fun visitMethodException(delegate: MethodMappingVisitor, type: AddRemove, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
         return visitException(delegate, type, exception, baseNs)
     }
 
-    open fun visitWildcardException(delegate: WildcardMappingVisitor, type: ExceptionType, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
+    open fun visitWildcardException(delegate: WildcardMappingVisitor, type: AddRemove, exception: InternalName, baseNs: Namespace): ExceptionMappingVisitor? {
         return visitException(delegate, type, exception,baseNs)
     }
 
-    open fun visitAccess(delegate: AccessParentMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitAccess(delegate: AccessParentMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return delegate.visitAccess(type, value, conditions)?.let { DelegateAccessMappingVisitor(it, delegator) }
     }
 
@@ -162,31 +170,31 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitFieldAccess(delegate: FieldMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitFieldAccess(delegate: FieldMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return visitAccess(delegate, type, value, conditions)
     }
 
-    open fun visitMethodAccess(delegate: MethodMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitMethodAccess(delegate: MethodMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return visitAccess(delegate, type, value, conditions)
     }
 
-    open fun visitWildcardAccess(delegate: WildcardMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitWildcardAccess(delegate: WildcardMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return visitAccess(delegate, type, value, conditions)
     }
 
-    open fun visitClassAccess(delegate: ClassMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitClassAccess(delegate: ClassMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return visitAccess(delegate, type, value, conditions)
     }
 
-    open fun visitParameterAccess(delegate: ParameterMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitParameterAccess(delegate: ParameterMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return visitAccess(delegate, type, value, conditions)
     }
 
-    open fun visitLocalVariableAccess(delegate: LocalVariableMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitLocalVariableAccess(delegate: LocalVariableMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return visitAccess(delegate, type, value, conditions)
     }
 
-    open fun visitInnerClassAccess(delegate: InnerClassMappingVisitor, type: AccessType, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
+    open fun visitInnerClassAccess(delegate: InnerClassMappingVisitor, type: AddRemove, value: AccessFlag, conditions: AccessConditions): AccessMappingVisitor? {
         return visitAccess(delegate, type, value, conditions)
     }
 
@@ -255,7 +263,7 @@ open class Delegator(delegator: Delegator? = null) {
         return visitSignature(delegate, value, baseNs)
     }
 
-    open fun visitAnnotation(delegate: AnnotationParentMappingVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    open fun visitAnnotation(delegate: AnnotationParentMappingVisitor, type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return delegate.visitAnnotation(type, baseNs, annotation)?.let { DelegateAnnotationMappingVisitor(it, delegator) }
     }
 
@@ -263,27 +271,27 @@ open class Delegator(delegator: Delegator? = null) {
         visitEnd(delegate)
     }
 
-    open fun visitClassAnnotation(delegate: ClassMappingVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    open fun visitClassAnnotation(delegate: ClassMappingVisitor, type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation)
     }
 
-    open fun visitMethodAnnotation(delegate: MethodMappingVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    open fun visitMethodAnnotation(delegate: MethodMappingVisitor, type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation)
     }
 
-    open fun visitWildcardAnnotation(delegate: WildcardMappingVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    open fun visitWildcardAnnotation(delegate: WildcardMappingVisitor, type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation)
     }
 
-    open fun visitFieldAnnotation(delegate: FieldMappingVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    open fun visitFieldAnnotation(delegate: FieldMappingVisitor, type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation)
     }
 
-    open fun visitParameterAnnotation(delegate: ParameterMappingVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    open fun visitParameterAnnotation(delegate: ParameterMappingVisitor, type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation)
     }
 
-    open fun visitLocalVariableAnnotation(delegate: LocalVariableMappingVisitor, type: AnnotationType, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
+    open fun visitLocalVariableAnnotation(delegate: LocalVariableMappingVisitor, type: AddRemoveModify, baseNs: Namespace, annotation: Annotation): AnnotationMappingVisitor? {
         return visitAnnotation(delegate, type, baseNs, annotation)
     }
 
@@ -399,16 +407,24 @@ open class DelegateClassMappingVisitor(delegate: ClassMappingVisitor, delegator:
         return delegator.visitWildcard(delegate, type, descs)
     }
 
-    override fun visitSeal(type: SealedType, name: InternalName?, baseNs: Namespace): SealMappingVisitor? {
+    override fun visitSeal(type: AddRemoveClear, name: InternalName?, baseNs: Namespace): SealMappingVisitor? {
         return delegator.visitSeal(delegate, type, name, baseNs)
     }
 
     override fun visitInterface(
-        type: InterfacesType,
+        type: AddRemove,
         name: ClassTypeSignature,
         baseNs: Namespace
     ): InterfaceMappingVisitor? {
         return delegator.visitInterface(delegate, type, name, baseNs)
+    }
+
+    override fun visitEnumExtension(
+        type: AddRemove,
+        name: UnqualifiedName,
+        baseNs: Namespace
+    ): EnumExtensionMappingVisitor? {
+        return delegator.visitEnumExtension(delegate, type, name, baseNs)
     }
 
     override fun visitJavadoc(value: String, baseNs: Namespace): JavadocMappingVisitor? {
@@ -420,7 +436,7 @@ open class DelegateClassMappingVisitor(delegate: ClassMappingVisitor, delegator:
     }
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions
     ): AccessMappingVisitor? {
@@ -428,7 +444,7 @@ open class DelegateClassMappingVisitor(delegate: ClassMappingVisitor, delegator:
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation
     ): AnnotationMappingVisitor? {
@@ -444,7 +460,7 @@ open class DelegateClassMappingVisitor(delegate: ClassMappingVisitor, delegator:
 open class DelegateMethodMappingVisitor(delegate: MethodMappingVisitor, delegator: Delegator) : DelegateBaseMappingVisitor<MethodMappingVisitor>(delegate, delegator), MethodMappingVisitor {
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions,
     ): AccessMappingVisitor? {
@@ -452,7 +468,7 @@ open class DelegateMethodMappingVisitor(delegate: MethodMappingVisitor, delegato
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor? {
@@ -472,7 +488,7 @@ open class DelegateMethodMappingVisitor(delegate: MethodMappingVisitor, delegato
     }
 
     override fun visitException(
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace
     ): ExceptionMappingVisitor? {
@@ -492,7 +508,7 @@ open class DelegateMethodMappingVisitor(delegate: MethodMappingVisitor, delegato
 open class DelegateFieldMappingVisitor(delegate: FieldMappingVisitor, delegator: Delegator) : DelegateBaseMappingVisitor<FieldMappingVisitor>(delegate, delegator), FieldMappingVisitor {
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions,
     ): AccessMappingVisitor? {
@@ -500,7 +516,7 @@ open class DelegateFieldMappingVisitor(delegate: FieldMappingVisitor, delegator:
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor? {
@@ -532,7 +548,7 @@ open class DelegateWildcardMappingVisitor(delegate: WildcardMappingVisitor, dele
     }
 
     override fun visitException(
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace,
     ): ExceptionMappingVisitor? {
@@ -540,7 +556,7 @@ open class DelegateWildcardMappingVisitor(delegate: WildcardMappingVisitor, dele
     }
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions,
     ): AccessMappingVisitor? {
@@ -548,7 +564,7 @@ open class DelegateWildcardMappingVisitor(delegate: WildcardMappingVisitor, dele
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor? {
@@ -576,7 +592,7 @@ open class DelegateParameterMappingVisitor(delegate: ParameterMappingVisitor, de
     }
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions
     ): AccessMappingVisitor? {
@@ -584,7 +600,7 @@ open class DelegateParameterMappingVisitor(delegate: ParameterMappingVisitor, de
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor? {
@@ -600,7 +616,7 @@ open class DelegateParameterMappingVisitor(delegate: ParameterMappingVisitor, de
 open class DelegateLocalVariableMappingVisitor(delegate: LocalVariableMappingVisitor, delegator: Delegator) : DelegateBaseMappingVisitor<LocalVariableMappingVisitor>(delegate, delegator), LocalVariableMappingVisitor {
 
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions,
     ): AccessMappingVisitor? {
@@ -608,7 +624,7 @@ open class DelegateLocalVariableMappingVisitor(delegate: LocalVariableMappingVis
     }
 
     override fun visitAnnotation(
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation,
     ): AnnotationMappingVisitor? {
@@ -700,7 +716,7 @@ open class DelegateExpressionMappingVisitor(delegate: ExpressionMappingVisitor, 
 
 open class DelegateInnerClassMappingVisitor(delegate: InnerClassMappingVisitor, delegator: Delegator) : DelegateBaseMappingVisitor<InnerClassMappingVisitor>(delegate, delegator), InnerClassMappingVisitor {
     override fun visitAccess(
-        type: AccessType,
+        type: AddRemove,
         value: AccessFlag,
         condition: AccessConditions
     ): AccessMappingVisitor? {
@@ -727,4 +743,10 @@ open class DelegateInterfaceMappingVisitor(delegate: InterfaceMappingVisitor, de
         delegator.visitInterfaceEnd(delegate)
     }
 
+}
+
+open class DelegateEnumExtensionMappingVisitor(delegate: EnumExtensionMappingVisitor, delegator: Delegator): DelegateBaseMappingVisitor<EnumExtensionMappingVisitor>(delegate, delegator), EnumExtensionMappingVisitor {
+    override fun visitEnd() {
+        delegator.visitEnumExtensionEnd(delegate)
+    }
 }

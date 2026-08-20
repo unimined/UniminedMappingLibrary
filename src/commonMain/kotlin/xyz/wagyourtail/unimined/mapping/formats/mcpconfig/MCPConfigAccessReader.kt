@@ -13,7 +13,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
 import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -73,7 +73,7 @@ object MCPConfigAccessReader : FormatReader{
                 visitClass(mapOf(srcNs to srcCls))?.use {
                     visitMethod(mapOf(srcNs to MethodNameAndDescriptor(srcName, srcDesc)))?.use {
                         visitAccess(
-                            AccessType.ADD,
+                            AddRemove.ADD,
                             access,
                             AccessConditions.ALL,
                         )?.visitEnd()

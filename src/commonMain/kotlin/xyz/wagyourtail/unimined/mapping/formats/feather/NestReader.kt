@@ -81,7 +81,7 @@ object NestReader : FormatReader {
                     visitInnerClass(type, mapOf(ns to (innerName.value to fqn)))?.use {
                         for (acc in AccessFlag.of(ElementType.INNER_CLASS, access)) {
                             if (acc.elements.contains(ElementType.CLASS)) continue
-                            visitAccess(AccessType.ADD, acc, AccessConditions.ALL)?.visitEnd()
+                            visitAccess(AddRemove.ADD, acc, AccessConditions.ALL)?.visitEnd()
                         }
                     }
 

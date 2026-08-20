@@ -174,12 +174,12 @@ object ATWriter : FormatWriter {
 
             override fun visitClassAccess(
                 delegate: ClassMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (type == AccessType.ADD) {
+                    if (type == AddRemove.ADD) {
                         classAccessAdd += value
                     } else {
                         classAccessRemove += value
@@ -190,12 +190,12 @@ object ATWriter : FormatWriter {
 
             override fun visitFieldAccess(
                 delegate: FieldMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (type == AccessType.ADD) {
+                    if (type == AddRemove.ADD) {
                         memberAccessesAdd += value
                     } else {
                         memberAccessesRemove += value
@@ -206,12 +206,12 @@ object ATWriter : FormatWriter {
 
             override fun visitMethodAccess(
                 delegate: MethodMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (type == AccessType.ADD) {
+                    if (type == AddRemove.ADD) {
                         memberAccessesAdd += value
                     } else {
                         memberAccessesRemove += value
@@ -222,12 +222,12 @@ object ATWriter : FormatWriter {
 
             override fun visitWildcardAccess(
                 delegate: WildcardMappingVisitor,
-                type: AccessType,
+                type: AddRemove,
                 value: AccessFlag,
                 conditions: AccessConditions,
             ): AccessMappingVisitor? {
                 if (conditions == AccessConditions.ALL) {
-                    if (type == AccessType.ADD) {
+                    if (type == AddRemove.ADD) {
                         memberAccessesAdd += value
                     } else {
                         memberAccessesRemove += value

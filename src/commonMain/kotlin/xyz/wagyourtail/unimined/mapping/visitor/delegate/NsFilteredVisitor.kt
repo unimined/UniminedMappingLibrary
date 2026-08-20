@@ -58,7 +58,7 @@ class NsFilteredDelegate(val namespaces: Set<Namespace>, val inverted: Boolean) 
 
     override fun visitSeal(
         delegate: ClassMappingVisitor,
-        type: SealedType,
+        type: AddRemoveClear,
         name: InternalName?,
         baseNs: Namespace
     ): SealMappingVisitor? {
@@ -68,7 +68,7 @@ class NsFilteredDelegate(val namespaces: Set<Namespace>, val inverted: Boolean) 
 
     override fun visitInterface(
         delegate: ClassMappingVisitor,
-        type: InterfacesType,
+        type: AddRemove,
         name: ClassTypeSignature,
         baseNs: Namespace
     ): InterfaceMappingVisitor? {
@@ -110,7 +110,7 @@ class NsFilteredDelegate(val namespaces: Set<Namespace>, val inverted: Boolean) 
 
     override fun visitException(
         delegate: InvokableMappingVisitor,
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace
     ): ExceptionMappingVisitor? {
@@ -130,7 +130,7 @@ class NsFilteredDelegate(val namespaces: Set<Namespace>, val inverted: Boolean) 
 
     override fun visitAnnotation(
         delegate: AnnotationParentMappingVisitor,
-        type: AnnotationType,
+        type: AddRemoveModify,
         baseNs: Namespace,
         annotation: Annotation
     ): AnnotationMappingVisitor? {

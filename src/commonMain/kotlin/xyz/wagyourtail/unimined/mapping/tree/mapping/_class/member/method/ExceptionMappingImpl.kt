@@ -6,7 +6,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.mapping.BaseMappingImpl
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyExceptionMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.EmptyMethodMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionMapping
 import xyz.wagyourtail.unimined.mapping.visitor.ExceptionMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.InvokableMappingVisitor
@@ -14,7 +14,7 @@ import xyz.wagyourtail.unimined.mapping.visitor.delegate.DelegateExceptionMappin
 
 class ExceptionMappingImpl<T: InvokableMappingVisitor>(
     parent: BaseMappingImpl<T, *>,
-    override val type: ExceptionType,
+    override val type: AddRemove,
     override val exception: InternalName,
     override val baseNs: Namespace
 ) : BaseMappingImpl<ExceptionMappingVisitor, T>(parent), ExceptionMapping, ExceptionMappingVisitor {

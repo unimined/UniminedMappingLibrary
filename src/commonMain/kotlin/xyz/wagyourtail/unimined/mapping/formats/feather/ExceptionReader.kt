@@ -12,7 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ExceptionType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
 import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -64,7 +64,7 @@ object ExceptionReader : FormatReader {
                     }
                     cls?.visitMethod(mapOf(ns to MethodNameAndDescriptor(   mName, desc)))?.use {
                         for (exc in exceptions) {
-                            visitException(ExceptionType.ADD, InternalName.read(exc), ns)?.visitEnd()
+                            visitException(AddRemove.ADD, InternalName.read(exc), ns)?.visitEnd()
                         }
                     }
                 }

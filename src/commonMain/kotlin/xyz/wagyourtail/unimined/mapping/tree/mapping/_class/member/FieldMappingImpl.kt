@@ -21,6 +21,10 @@ class FieldMappingImpl(parent: ClassMappingImpl): FieldMethodResolvable<FieldMap
 
     override val signatures: List<SignatureMappingImpl<FieldMappingVisitor, FieldSignature>> get() = _signatures
 
+    override fun hasDescriptor(): Boolean {
+        return descs.isNotEmpty()
+    }
+
     fun getFieldDesc(namespace: Namespace) = getDescriptor(namespace)?.getFieldDescriptor()
 
     fun setFieldDescs(descs: Map<Namespace, FieldDescriptor>) {

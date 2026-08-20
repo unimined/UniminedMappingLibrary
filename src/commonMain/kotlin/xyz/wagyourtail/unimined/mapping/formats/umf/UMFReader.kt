@@ -169,7 +169,7 @@ object UMFReader : FormatReader {
                 if (input.exhausted()) break
                 throw IllegalArgumentException("Invalid entry type $token")
             }
-            val entryType = EntryType.byKey[token.first().lowercaseChar()] ?: throw IllegalArgumentException("Invalid entry type ${token}")
+            val entryType = EntryType.byKey.getValue(token.first().lowercaseChar())
             while (indent <= indentStack.last()) {
                 visitStack.removeLast()?.visitEnd()
                 indentStack.removeLast()
@@ -226,8 +226,8 @@ object UMFReader : FormatReader {
                 EntryType.EXCEPTION -> {
                     val type = input.takeNextUMF()!!.let {
                         when (it) {
-                            "+" -> ExceptionType.ADD
-                            "-" -> ExceptionType.REMOVE
+                            "+" -> AddRemove.ADD
+                            "-" -> AddRemove.REMOVE
                             else -> throw IllegalArgumentException("Invalid exception type $it")
                         }
                     }
@@ -282,13 +282,13 @@ object UMFReader : FormatReader {
                 EntryType.SEAL -> {
                     val type = input.takeNextUMF()!!.let {
                         when (it) {
-                            "+" -> SealedType.ADD
-                            "-" -> SealedType.REMOVE
-                            "c" -> SealedType.CLEAR
+                            "+" -> AddRemoveClear.ADD
+                            "-" -> AddRemoveClear.REMOVE
+                            "c" -> AddRemoveClear.CLEAR
                             else -> throw IllegalArgumentException("Invalid seal type $it")
                         }
                     }
-                    val name = if (type != SealedType.CLEAR) {
+                    val name = if (type != AddRemoveClear.CLEAR) {
                         input.takeNextUMF()?.let {
                             if (unchecked) InternalName.unchecked(it) else InternalName.read(it)
                         }
@@ -300,8 +300,8 @@ object UMFReader : FormatReader {
                 EntryType.INTERFACE -> {
                     val type = input.takeNextUMF()!!.let {
                         when (it) {
-                            "+" -> InterfacesType.ADD
-                            "-" -> InterfacesType.REMOVE
+                            "+" -> AddRemove.ADD
+                            "-" -> AddRemove.REMOVE
                             else -> throw IllegalArgumentException("Invalid interface type $it")
                         }
                     }
@@ -312,6 +312,21 @@ object UMFReader : FormatReader {
                     last as ClassMappingVisitor?
                     last?.visitInterface(type, name, names.next())
                 }
+                EntryType.ENUM -> {
+                    val type = input.takeNextUMF()!!.let {
+                        when (it) {
+                            "+" -> AddRemove.ADD
+                            "-" -> AddRemove.REMOVE
+                            else -> throw IllegalArgumentException("Invalid enum type $it")
+                        }
+                    }
+                    val name = input.takeNextUMF()!!.let {
+                        if (unchecked) UnqualifiedName.unchecked(it) else UnqualifiedName.read(it)
+                    }
+                    val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
+                    last as ClassMappingVisitor?
+                    last?.visitEnumExtension(type, name, names.next())
+                }
                 EntryType.JAVADOC -> {
                     val comment = input.takeNextUMF()!!
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }
@@ -321,9 +336,9 @@ object UMFReader : FormatReader {
                 EntryType.ANNOTATION -> {
                     val type = input.takeNextUMF()!!.let {
                         when (it) {
-                            "+" -> AnnotationType.ADD
-                            "-" -> AnnotationType.REMOVE
-                            "m" -> AnnotationType.MODIFY
+                            "+" -> AddRemoveModify.ADD
+                            "-" -> AddRemoveModify.REMOVE
+                            "m" -> AddRemoveModify.MODIFY
                             else -> throw IllegalArgumentException("Invalid annotation type $it")
                         }
                     }
@@ -337,8 +352,8 @@ object UMFReader : FormatReader {
                 EntryType.ACCESS -> {
                     val type = input.takeNextUMF()!!.let {
                         when (it) {
-                            "+" -> AccessType.ADD
-                            "-" -> AccessType.REMOVE
+                            "+" -> AddRemove.ADD
+                            "-" -> AddRemove.REMOVE
                             else -> throw IllegalArgumentException("Invalid access type $it")
                         }
                     }
@@ -415,7 +430,8 @@ object UMFReader : FormatReader {
         CONSTANT_EXPRESSION('e'),
         COMMENT('#'),
         INTERFACE('j'),
-        SEAL('s')
+        SEAL('s'),
+        ENUM('u')
         ;
 
         companion object {
@@ -424,7 +440,7 @@ object UMFReader : FormatReader {
             init {
                 // assert all keys are unique
                 if (byKey.size != entries.size) {
-                    throw IllegalStateException("Duplicate keys found in EntryType")
+                    throw IllegalStateException("Duplicate keys found in ${this::class.simpleName}")
                 }
             }
         }

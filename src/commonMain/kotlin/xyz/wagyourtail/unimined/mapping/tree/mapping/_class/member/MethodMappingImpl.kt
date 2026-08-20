@@ -36,6 +36,10 @@ class MethodMappingImpl(parent: ClassMappingImpl) : FieldMethodResolvable<Method
         names.values.any { it.value == "<init>" }
     }
 
+    override fun hasDescriptor(): Boolean {
+        return descs.isNotEmpty()
+    }
+
     override fun setNames(names: Map<Namespace, UnqualifiedName>) {
         if (isClinit && names.values.any { it.value != "<clinit>" }) {
             throw IllegalStateException("clinit method name must be <clinit>")
@@ -80,7 +84,7 @@ class MethodMappingImpl(parent: ClassMappingImpl) : FieldMethodResolvable<Method
     }
 
     override fun visitException(
-        type: ExceptionType,
+        type: AddRemove,
         exception: InternalName,
         baseNs: Namespace
     ): ExceptionMappingVisitor {

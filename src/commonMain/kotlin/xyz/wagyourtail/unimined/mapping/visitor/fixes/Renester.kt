@@ -6,16 +6,17 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.mapping._class.ClassMappingImpl
+import xyz.wagyourtail.unimined.mapping.visitor.ClassMapping
 import xyz.wagyourtail.unimined.mapping.visitor.InnerType
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
-private fun AbstractMappingTree.fixNest(target: ClassMappingImpl, srcNs: Namespace, targetNs: Namespace): InternalName? {
-    val srcName = target.getName(srcNs) ?: return target.getName(targetNs)
-    if ('$' !in srcName.value) return target.getName(targetNs)
+private fun AbstractMappingTree.fixNest(target: ClassMapping, srcNs: Namespace, targetNs: Namespace): InternalName? {
+    val srcName = target.names[srcNs] ?: return target.names[targetNs]
+    if ('$' !in srcName.value) return target.names[targetNs]
     val parent = InternalName.unchecked(srcName.value.substringBeforeLast('$'))
-    val parentNode = getClass(srcNs, parent) ?: return target.getName(targetNs)
-    val parentDstName = fixNest(parentNode, srcNs, targetNs) ?: return target.getName(targetNs)
-    val dstName = target.getName(targetNs) ?: srcName
+    val parentNode = getClass(srcNs, parent) ?: return target.names[targetNs]
+    val parentDstName = fixNest(parentNode, srcNs, targetNs) ?: return target.names[targetNs]
+    val dstName = target.names[targetNs] ?: srcName
     val clsName = if ('$' !in dstName.value) dstName.value.substringAfterLast('/') else dstName.value.substringAfterLast('$')
     val newName = InternalName.unchecked(parentDstName.value + '$' + clsName)
 

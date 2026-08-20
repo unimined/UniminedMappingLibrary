@@ -15,7 +15,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.AccessType
+import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
 import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.use
 
@@ -132,10 +132,10 @@ object AWReader: FormatReader {
                 if (member == null) {
                     into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
                         for ((flag, conditions) in addAccess) {
-                            visitAccess(AccessType.ADD, flag, conditions)?.visitEnd()
+                            visitAccess(AddRemove.ADD, flag, conditions)?.visitEnd()
                         }
                         for ((flag, conditions) in removeAccess) {
-                            visitAccess(AccessType.REMOVE, flag, conditions)?.visitEnd()
+                            visitAccess(AddRemove.REMOVE, flag, conditions)?.visitEnd()
                         }
                     }
                 } else {
@@ -144,10 +144,10 @@ object AWReader: FormatReader {
                             var removeClsFinal = false
                             visitMethod(mapOf(ns to member))?.use {
                                 for ((flag, conditions) in addAccess) {
-                                    visitAccess(AccessType.ADD, flag, conditions)?.visitEnd()
+                                    visitAccess(AddRemove.ADD, flag, conditions)?.visitEnd()
                                 }
                                 for ((flag, conditions) in removeAccess) {
-                                    visitAccess(AccessType.REMOVE, flag, conditions)?.visitEnd()
+                                    visitAccess(AddRemove.REMOVE, flag, conditions)?.visitEnd()
                                     if (flag == AccessFlag.FINAL) {
                                         removeClsFinal = true
                                     }
@@ -155,7 +155,7 @@ object AWReader: FormatReader {
                             }
                             if (removeClsFinal) {
                                 visitAccess(
-                                    AccessType.REMOVE,
+                                    AddRemove.REMOVE,
                                     AccessFlag.FINAL,
                                     AccessConditions.ALL,
                                 )?.visitEnd()
@@ -165,10 +165,10 @@ object AWReader: FormatReader {
                         into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
                             visitField(mapOf(ns to member as FieldNameAndDescriptor))?.use {
                                 for ((flag, conditions) in addAccess) {
-                                    visitAccess(AccessType.ADD, flag, conditions)?.visitEnd()
+                                    visitAccess(AddRemove.ADD, flag, conditions)?.visitEnd()
                                 }
                                 for ((flag, conditions) in removeAccess) {
-                                    visitAccess(AccessType.REMOVE, flag, conditions)?.visitEnd()
+                                    visitAccess(AddRemove.REMOVE, flag, conditions)?.visitEnd()
                                 }
                             }
                         }
