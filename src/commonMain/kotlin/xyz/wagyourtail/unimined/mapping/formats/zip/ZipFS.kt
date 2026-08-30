@@ -1,14 +1,22 @@
 package xyz.wagyourtail.unimined.mapping.formats.zip
 
+import no.synth.kmpzip.okio.asSource
+import no.synth.kmpzip.zip.ZipFile
 import okio.BufferedSource
 import okio.Closeable
+import okio.buffer
 
-@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-expect class ZipFS(zip: BufferedSource) : Closeable {
+class ZipFS(zip: BufferedSource) : Closeable {
+    private val zipFile = ZipFile(zip.readByteArray())
 
-    suspend fun getFiles(): List<String>
-    suspend fun getContents(path: String): BufferedSource
+    fun getFiles(): List<String> = zipFile.entries.map { it.name }
 
-    override fun close()
+    fun getContents(path: String): BufferedSource {
+        return zipFile.getInputStream(zipFile.getEntry(path)
+            ?: error("ZIP entry not found: $path")).asSource().buffer()
+    }
 
+    override fun close() {
+        zipFile.close()
+    }
 }

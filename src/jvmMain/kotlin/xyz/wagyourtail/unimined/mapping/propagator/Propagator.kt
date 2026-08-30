@@ -1,17 +1,15 @@
-package xyz.wagyourtail.unimined.mapping.propogator
+package xyz.wagyourtail.unimined.mapping.propagator
 
-import kotlinx.coroutines.runBlocking
-import org.apache.commons.compress.archivers.zip.ZipFile
+import no.synth.kmpzip.io.fileSeekableSource
+import no.synth.kmpzip.zip.ZipFile
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.propagator.InheritanceTree
 import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
 import java.io.InputStream
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.streams.asSequence
 import kotlin.streams.asStream
@@ -25,7 +23,7 @@ class Propagator(tree: AbstractMappingTree, override val fns: Namespace, jars: S
     }
 
     private fun scanJar(jar: Path): Sequence<Pair<InternalName, ClassInfo>> {
-        ZipFile.builder().setSeekableByteChannel(Files.newByteChannel(jar)).setIgnoreLocalFileHeader(true).get().use { zf ->
+        ZipFile(fileSeekableSource(jar.toString())).use { zf ->
             return zf.entries.asSequence().map {
                 return@map if (!it.isDirectory && !it.name.startsWith("META-INF/versions") && it.name.endsWith(".class")) {
                     zf.getInputStream(it).use { stream -> scanClass(it.name, stream) }

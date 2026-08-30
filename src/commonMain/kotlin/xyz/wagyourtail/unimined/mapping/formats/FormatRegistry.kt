@@ -68,9 +68,8 @@ object FormatRegistry {
         FormatProvider(CsrgReader, mustBeAfter = listOf(PackageSrgReader)),
     )
 
-    private val _formats = mutableListOf<FormatProvider>()
     val formats: List<FormatProvider>
-        get() = _formats
+        field = mutableListOf<FormatProvider>()
 
     val byName: Map<String, FormatProvider> by lazy {
         formats.associateBy { it.name }
@@ -90,7 +89,7 @@ object FormatRegistry {
     fun registerFormat(format: FormatProvider) {
         val mustBeAfter = format.mustBeAfter.toMutableSet()
         if (mustBeAfter.isEmpty()) {
-            _formats.add(0, format)
+            formats.add(0, format)
             return
         }
         for (i in formats.indices) {
@@ -98,12 +97,12 @@ object FormatRegistry {
             if (mustBeAfter.contains(name)) {
                 mustBeAfter.remove(name)
                 if (mustBeAfter.isEmpty()) {
-                    _formats.add(i + 1, format)
+                    formats.add(i + 1, format)
                     return
                 }
             }
         }
-        _formats.add(format)
+        formats.add(format)
     }
 
     fun autodetectFormat(envType: EnvType, fileName: String, inputType: BufferedSource): FormatProvider? {
@@ -117,9 +116,7 @@ object FormatRegistry {
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 expect class FormatSupplier() {
-
     val providers: List<FormatProvider>
-
 }
 
 class FormatProvider(val reader: FormatReader, val writer: FormatWriter = UnsupportedWriter, val mustBeAfter: List<String> = listOf()): FormatReader by reader, FormatWriter by writer {

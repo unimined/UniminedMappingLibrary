@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.formats.at
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import okio.BufferedSource
+import org.jetbrains.annotations.ApiStatus
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
@@ -19,10 +20,12 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 object LegacyATReader : FormatReader {
     private val logger = KotlinLogging.logger {  }
 
-    @Deprecated("set within the settings argument instead")
+    @ApiStatus.Internal
+    @set:Deprecated("set within the settings argument instead")
     override var unchecked: Boolean = false
 
-    @Deprecated("set within the settings argument instead")
+    @ApiStatus.Internal
+    @set:Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
     override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {

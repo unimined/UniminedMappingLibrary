@@ -8,8 +8,6 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.propagator.CachedInheritanceTree
-import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest.Companion.mappings
-import xyz.wagyourtail.unimined.mapping.test.formats.zip.getResource
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.InvokableVisitor
 import xyz.wagyourtail.unimined.mapping.visitor.ParameterVisitor

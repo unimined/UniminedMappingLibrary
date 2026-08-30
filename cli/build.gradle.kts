@@ -14,8 +14,9 @@ dependencies {
 
 }
 
-val shadowJar by tasks.registering(ShadowJar::class) {
-    from(sourceSets.main.get().output)
+val shadowJar = tasks.register("shadowJar", ShadowJar::class) {
+    description = "Generates a jar with dependency classes included"
+	from(sourceSets.main.get().output)
 
     archiveBaseName.set(base.archivesName.get() + "-cli")
     archiveClassifier = "all"

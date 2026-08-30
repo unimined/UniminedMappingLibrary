@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats.umf
 
 import okio.BufferedSource
+import org.jetbrains.annotations.ApiStatus
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -30,13 +31,18 @@ import kotlin.jvm.JvmStatic
  */
 object UMFReader : FormatReader {
 
-    @Deprecated("set within the settings argument instead")
+    @ApiStatus.Internal
+    @set:Deprecated("set within the settings argument instead")
     override var unchecked: Boolean = false
-    @Deprecated("set within the settings argument instead")
+
+    @ApiStatus.Internal
+    @set:Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
     @JvmStatic
-    @Deprecated("set within the settings argument instead")
+    @get:ApiStatus.Internal
+    @set:ApiStatus.Internal
+    @set:Deprecated("set within the settings argument instead")
     var uncheckedReading
         get() = unchecked
         set(value) {

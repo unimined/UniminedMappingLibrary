@@ -1,22 +1,24 @@
-import java.net.URI
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     kotlin("multiplatform") version libs.versions.kotlin.asProvider()
     kotlin("plugin.serialization") version libs.versions.kotlin.asProvider()
     alias(libs.plugins.commons)
     alias(libs.plugins.kotlinx.atomicfu)
+    alias(libs.plugins.resources)
     `maven-publish`
 }
 
 allprojects {
-    apply(plugin = "base")
+    pluginManager.apply("base")
+    pluginManager.apply("xyz.wagyourtail.commons-gradle")
 
-    version = if (project.hasProperty("version_snapshot")) project.properties["version"] as String + "-SNAPSHOT" else project.properties["version"] as String
-    group = project.properties["group"] as String
+    group = project.property("group").toString()
+    base.archivesName = project.property("archives_base_name").toString()
 
-    base {
-        archivesName.set(project.properties["archives_base_name"] as String)
-    }
+    commons.autoVersion(defaultSnapshot = true)
 
     repositories {
         mavenCentral()
@@ -33,21 +35,26 @@ kotlin {
         }
     }
     js {
+        useCommonJs()
         browser {
-            useCommonJs()
-
-            testTask {
-                enabled = false
-            }
         }
-        nodejs {
-            useCommonJs()
+        nodejs()
+        binaries.executable()
+    }
+    wasmJs {
+        browser {
         }
+        nodejs()
         binaries.executable()
     }
 
+    linuxX64()
+    linuxArm64()
+
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
-        val commonMain by getting {
+        commonMain {
             dependencies {
                 api(libs.commons.kt)
                 api(libs.kotlin.logging)
@@ -55,57 +62,71 @@ kotlin {
                 api(libs.jetbrains.annotations.kmp)
                 api(libs.kotlin.coroutines)
                 api(libs.kotlin.serialization.json)
+                api(libs.kmp.zip)
+                api(libs.kmp.zip.okio)
             }
         }
-        val commonTest by getting {
+        commonTest {
             dependencies {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
                 implementation(libs.kotlin.coroutines.tests)
+                implementation(libs.resources)
             }
         }
-        val jvmMain by getting {
+        val nonJvmMain = create("nonJvmMain") {
+            dependsOn(commonMain.get())
+        }
+        jvmMain {
             dependencies {
-                api(libs.appache.commons.compress)
-
-                api(libs.asm)
-                api(libs.asm.tree)
+                api(libs.bundles.asm)
 
                 api(libs.slf4j.api)
                 api(libs.slf4j.simple)
             }
         }
-        val jvmTest by getting {
+        jvmTest {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(kotlin("test-junit"))
             }
         }
-        val jsMain by getting {
-            dependencies {
-                implementation(npm("jszip", libs.versions.jszip.get()))
-            }
+
+        webMain {
+            dependsOn(nonJvmMain)
         }
-        val jsTest by getting {
+        jsTest {
             dependencies {
                 implementation(kotlin("test-js"))
             }
         }
+
+        nativeMain {
+            dependsOn(nonJvmMain)
+        }
     }
+}
+
+tasks.getByName("allTests") {
+    dependsOn(tasks.getByName("kotlinUpgradeYarnLock"))
 }
 
 publishing {
     repositories {
-        maven {
-            name = "WagYourMaven"
-            url = if (project.hasProperty("version_snapshot")) {
-                URI.create("https://maven.wagyourtail.xyz/snapshots/")
-            } else {
-                URI.create("https://maven.wagyourtail.xyz/releases/")
+        val cred = Action<PasswordCredentials> {
+            username = project.findProperty("mvn.user") as String? ?: System.getenv("USERNAME")
+            password = project.findProperty("mvn.key") as String? ?: System.getenv("TOKEN")
+        }
+        if (project.hasProperty("version_release")) {
+            maven("https://maven.wagyourtail.xyz/releases/") {
+                name = "WagYourMaven-Releases"
+                credentials(cred)
             }
-            credentials {
-                username = project.findProperty("mvn.user") as String? ?: System.getenv("USERNAME")
-                password = project.findProperty("mvn.key") as String? ?: System.getenv("TOKEN")
+        }
+        if (project.hasProperty("version_snapshot")) {
+            maven("https://maven.wagyourtail.xyz/snapshots/") {
+                name = "WagYourMaven-Snapshots"
+                credentials(cred)
             }
         }
     }

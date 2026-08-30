@@ -1,8 +1,6 @@
 package xyz.wagyourtail.unimined.mapping.formats.aw
 
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
-import xyz.wagyourtail.commonskt.utils.ListCompare
-import xyz.wagyourtail.commonskt.utils.comparable
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
@@ -241,10 +239,9 @@ object AWWriter : FormatWriter {
             }
 
             override fun visitFooter(delegate: MappingVisitor) {
-                writeData(AWReader.AWMappings(ns!!, mappings.values.map { map ->
-                    map.sortedBy {
-                        listOf(it.target.toString(), it.access).comparable()
-                } }.flatten()), append)
+                writeData(AWReader.AWMappings(ns!!, mappings.values.flatMap { map ->
+	                map.sorted()
+                }), append)
             }
         })
     }

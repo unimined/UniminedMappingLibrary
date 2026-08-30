@@ -41,7 +41,10 @@ object AWReader: FormatReader {
     data class AWData(
         val access: String,
         val target: FullyQualifiedName
-    ) : AWItem
+    ) : AWItem, Comparable<AWData> {
+        override fun compareTo(other: AWData): Int =
+            compareValuesBy(this, other, { it.target }, { it.access })
+    }
 
     data class AWComment(
         val comment: String,
@@ -87,7 +90,7 @@ object AWReader: FormatReader {
                         if (member == null) {
                             addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
                         } else {
-                            val (memberName, memberDesc) = member.getParts()
+                            val (_, memberDesc) = member.getParts()
                             if (memberDesc!!.isMethodDescriptor()) {
                                 addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
                                 addAccess.add(AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}"))
@@ -102,7 +105,7 @@ object AWReader: FormatReader {
                         }
                         val (memberName, memberDesc) = member.getParts()
                         if (memberDesc!!.isMethodDescriptor()) {
-                            throw IllegalArgumentException("mutable is only valid for fields")
+                            throw IllegalArgumentException("mutable is only valid for fields, cannot apply to $memberName")
                         }
                         removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
                     }
@@ -113,7 +116,7 @@ object AWReader: FormatReader {
                         } else {
                             val (memberName, memberDesc) = member.getParts()
                             if (memberDesc!!.isFieldDescriptor()) {
-                                throw IllegalArgumentException("extendable is not valid for fields")
+                                throw IllegalArgumentException("extendable is not valid for fields, cannot apply to $memberName")
                             }
                             addAccess.add(AccessFlag.PROTECTED to AccessConditions.unchecked("-${AccessFlag.PUBLIC}"))
                             removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)

@@ -16,7 +16,7 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.cli.Main.Companion.LOGGER
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
-import xyz.wagyourtail.unimined.mapping.propogator.Propagator
+import xyz.wagyourtail.unimined.mapping.propagator.Propagator
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
 import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyNames
 import kotlin.time.measureTime
@@ -30,7 +30,9 @@ fun main(vararg args: String) {
     LOGGER.info { "Finished in ${totalTime.inWholeMilliseconds}ms" }
 }
 
-class Main: CliktCommand(printHelpOnEmptyArgs = true) {
+class Main: CliktCommand() {
+    override val printHelpOnEmptyArgs: Boolean = true
+
     companion object {
         val LOGGER = KotlinLogging.logger { }
     }

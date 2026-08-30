@@ -42,3 +42,5 @@ bin/
 .DS_Store
 
 .kotlin
+kotlin-js-store/
+karma.config.d/

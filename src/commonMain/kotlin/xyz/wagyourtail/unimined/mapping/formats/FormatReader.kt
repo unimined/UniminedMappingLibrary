@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats
 
 import okio.BufferedSource
+import org.jetbrains.annotations.ApiStatus
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
@@ -10,10 +11,14 @@ import xyz.wagyourtail.unimined.mapping.visitor.MappingVisitor
 
 interface FormatReader : FormatReaderSettings {
 
-    @Deprecated("set within the settings argument instead")
+    @get:ApiStatus.Internal
+    @set:ApiStatus.Internal
+    @set:Deprecated("set within the settings argument instead")
     override var unchecked: Boolean
 
-    @Deprecated("set within the settings argument instead")
+    @set:ApiStatus.Internal
+    @get:ApiStatus.Internal
+    @set:Deprecated("set within the settings argument instead")
     override var leinient: Boolean
 
     val name: String

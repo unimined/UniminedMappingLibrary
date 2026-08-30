@@ -1,0 +1,26 @@
+name: Run Unit Tests
+on:
+  pull_request:
+    types:
+      - synchronize
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Set up the version required for Gradle
+      # Expect toolchain to build for target version
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Tests
+        run: ./gradlew kotlinUpgradeYarnLock allTests

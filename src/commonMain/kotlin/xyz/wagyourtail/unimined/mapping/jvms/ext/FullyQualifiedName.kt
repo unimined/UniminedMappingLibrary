@@ -12,7 +12,7 @@ import kotlin.jvm.JvmInline
  *  [ObjectType] [[NameAndDescriptor]]
  */
 @JvmInline
-value class FullyQualifiedName(val value: String) : Type {
+value class FullyQualifiedName(val value: String) : Type, Comparable<FullyQualifiedName> {
 
     constructor(type: ObjectType, nameAndDescriptor: NameAndDescriptor?) : this(buildString {
         append(type)
@@ -56,4 +56,5 @@ value class FullyQualifiedName(val value: String) : Type {
 
     override fun toString() = value
 
+    override fun compareTo(other: FullyQualifiedName): Int = value.compareTo(other.value)
 }
