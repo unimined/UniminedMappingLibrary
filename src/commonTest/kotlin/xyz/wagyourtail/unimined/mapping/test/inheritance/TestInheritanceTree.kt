@@ -54,7 +54,7 @@ class TestInheritanceTree {
         """.trimIndent()
 
     val UNPROP_MAPPINGS = """
-        umf 1 1
+        umf 1 2
         intermediary named
         c clsA Parent
          f fieldA;I field1
@@ -89,7 +89,7 @@ class TestInheritanceTree {
         """.trimIndent()
 
     val PROP_MAPPINGS = """
-        umf 1 1
+        umf 1 2
         intermediary named
         c clsA Parent
          f fieldA;I field1
@@ -128,7 +128,7 @@ class TestInheritanceTree {
         """.trimIndent()
 
     val FILTERED_MAPPINGS = """
-        umf 1 1
+        umf 1 2
         intermediary named
         c clsA Parent
          f fieldA;I field1
@@ -197,7 +197,7 @@ class TestInheritanceTree {
     }
 
     val PREPROP_CHILD = """
-umf	1	1
+umf	1	2
 official	intermediary	yarn
 c	tx	net/minecraft/class_2479	net/minecraft/nbt/NbtByteArray
 c	tz	net/minecraft/class_2483	net/minecraft/nbt/AbstractNbtList
@@ -225,7 +225,7 @@ uh	java/lang/Object	tz
     """.trimIndent()
 
     val POSTPROP_CHILD = """
-umf	1	1
+umf	1	2
 official	intermediary	yarn
 c	tx	net/minecraft/class_2479	net/minecraft/nbt/NbtByteArray
 	m	c;(I)Lva;	method_10534	get

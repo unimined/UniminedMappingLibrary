@@ -25,7 +25,7 @@ import xyz.wagyourtail.unimined.mapping.tree.impl.*
 class MCPv6ReadWriteTest {
 
     val context = """
-        umf	1	1
+        umf	1	2
         searge	target
         c	a	net/minecraft/src/Minecraft
         	f	field_1_a	field1
@@ -54,7 +54,7 @@ class MCPv6ReadWriteTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge	target	mcp
 c	a	net/minecraft/src/Minecraft	_
 	f	field_1_a	field1	mcField
@@ -84,7 +84,7 @@ c	a	net/minecraft/src/Minecraft	_
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge	target	mcp
 c	a	net/minecraft/src/Minecraft	_
 	f	field_1_a	field1	_
@@ -115,7 +115,7 @@ c	a	net/minecraft/src/Minecraft	_
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge	target	mcp
 c	a	net/minecraft/src/Minecraft	_
 	f	field_1_a	field1	_
@@ -147,7 +147,7 @@ c	a	net/minecraft/src/Minecraft	_
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge	mcp
 c	net/minecraft/src/Minecraft	net/minecraft/src/Minecraft
 c	net/minecraft/src/World	net/minecraft/src/World
@@ -160,7 +160,7 @@ c	net/minecraft/src/World	net/minecraft/src/World
     fun testFieldWrite() = runTest {
         val tree = UMFReader.read(
             """
-            umf	1	1
+            umf	1	2
             searge	mcp
             c	a	b
             	f	field_1_a	mcField
@@ -188,7 +188,7 @@ field_2_a,mcField2,2,
     fun testMethodWrite() = runTest {
         val tree = UMFReader.read(
             """
-            umf	1	1
+            umf	1	2
             searge	mcp
             c	a	b
             	m	func_1_a;()V	mcMethod
@@ -216,7 +216,7 @@ func_2_a,mcMethod2,2,
     fun testParamWrite() = runTest {
         val tree = UMFReader.read(
             """
-            umf	1	1
+            umf	1	2
             searge	mcp
             c	a	b
             	m	func_1_a;(I)V	mcMethod

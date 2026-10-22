@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.element.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 interface MutableWildcardMapping : WildcardMapping, MutableInvokableMapping {
 
@@ -20,7 +21,7 @@ interface MutableWildcardMapping : WildcardMapping, MutableInvokableMapping {
             metadata: Iterable<MetadataElement> = emptyList()
         ): MutableWildcardMapping = WildcardMappingData(
             type,
-            descs.toMutableMap(),
+            descs.toSmallMap(),
             parameters.map { it.asData() }.toMutableList(),
             localVariables.map { it.asData() }.toMutableList(),
             metadata.asMetadataDataList()

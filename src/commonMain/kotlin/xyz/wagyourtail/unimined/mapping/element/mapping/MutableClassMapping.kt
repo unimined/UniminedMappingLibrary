@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 interface MutableClassMapping : ClassMapping, MutableMetadataParent {
 
@@ -38,7 +39,7 @@ interface MutableClassMapping : ClassMapping, MutableMetadataParent {
             wildcards: Iterable<WildcardMapping> = emptyList(),
             metadata: Iterable<MetadataElement> = emptyList()
         ): MutableClassMapping = ClassMappingData(
-            names.toMutableMap(),
+            names.toSmallMap(),
             methods.map { it.asData() }.toMutableList(),
             fields.map { it.asData() }.toMutableList(),
             wildcards.map { it.asData() }.toMutableList(),

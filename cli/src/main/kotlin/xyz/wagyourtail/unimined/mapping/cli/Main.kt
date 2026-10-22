@@ -13,15 +13,14 @@ import okio.sink
 import okio.source
 import xyz.wagyourtail.commonskt.utils.mutliAssociate
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.cli.Main.Companion.LOGGER
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.propogator.Propagator
-import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
-import xyz.wagyourtail.unimined.mapping.fillMissingNames
-import xyz.wagyourtail.unimined.mapping.sink.asVisitor
-import xyz.wagyourtail.unimined.mapping.sink.VisitorSink
 import xyz.wagyourtail.unimined.mapping.sink.emit
+import xyz.wagyourtail.unimined.mapping.tree.impl.fillMissingNames
 import kotlin.time.measureTime
 
 fun main(vararg args: String) {
@@ -46,7 +45,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
     val classpath  by option("-c", "--classpath", help = "Classpath for the jar scanning.").file(mustExist = true, canBeDir = false).multiple(required = false, default = emptyList())
     val copyMissing by option("-m", "--copy-missing", help = "Copy missing names from ns to other ns").pair().multiple(required = false, default = emptyList())
 
-    val mappings = MemoryMappingTree()
+    val mappings = MutableMappingTree()
 
     override fun run() = runBlocking {
         val nsMapMap = nsMap.mutliAssociate { it.first to (it.second to it.third) }
@@ -54,8 +53,12 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
             LOGGER.info { "Loading ${input.name}..." }
             val t = measureTime {
                 input.source().buffer().use { buf ->
-                    FormatRegistry.autodetectFormat(envType, input.name, buf.peek())
-                        ?.read(buf, mappings, mappings.asVisitor(), envType, nsMapMap[idx]?.associate { it } ?: emptyMap())
+                    FormatRegistry.autodetectFormat(input.name, buf.peek())
+                        ?.read(
+                            buf, mappings,
+                            nsMapMap[idx]?.associate { it } ?: emptyMap(),
+                            FormatReaderSettings(envType = envType)
+                        )
                         ?: throw IllegalArgumentException("Could not autodetect format for ${input.name}")
                 }
             }
@@ -93,7 +96,7 @@ class ExportMappings(val main: Main) : CliktCommand(name = "export") {
         val t = measureTime {
             output.parentFile?.mkdirs()
             output.sink().buffer().use { buf ->
-                main.mappings.emit(VisitorSink(format.write(buf, main.envType)))
+                main.mappings.emit(format.write(buf, main.envType))
             }
         }
         LOGGER.info { "Wrote in ${t.inWholeMilliseconds}ms" }

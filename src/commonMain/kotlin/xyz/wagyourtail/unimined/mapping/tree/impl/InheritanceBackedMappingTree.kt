@@ -15,6 +15,7 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.element.mapping.walkMappings
+import xyz.wagyourtail.unimined.mapping.newSmallSet
 
 /**
  * member identity for propagation lookups — (name, desc) in the inheritance tree's base namespace
@@ -39,11 +40,12 @@ class InheritanceBackedMappingTree(
     val strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT
 ) : MutableMappingTree by delegate {
 
-    /** explicit-assignment provenance: class fns-name -> member -> namespaces with explicit names */
-    internal val explicit = mutableMapOf<InternalName, MutableMap<MemberKey, MutableSet<Namespace>>>()
+    /** explicit-assignment provenance: class fns-name -> member -> namespaces with explicit names.
+     *  lookup-heavy at member scale — stays LinkedHashMap regardless of [MappingCollections.useSmallCollections] */
+    internal val explicit = LinkedHashMap<InternalName, MutableMap<MemberKey, MutableSet<Namespace>>>()
 
     private fun markExplicit(cls: InternalName, key: MemberKey, nss: Collection<Namespace>) {
-        explicit.getOrPut(cls) { mutableMapOf() }.getOrPut(key) { mutableSetOf() }.addAll(nss)
+        explicit.getOrPut(cls) { LinkedHashMap() }.getOrPut(key) { newSmallSet() }.addAll(nss)
     }
 
     private fun isExplicit(cls: InternalName, key: MemberKey, ns: Namespace) =

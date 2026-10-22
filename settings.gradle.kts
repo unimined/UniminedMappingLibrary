@@ -14,4 +14,3 @@ plugins {
 include("cli")
 
 rootProject.name = "unimined-mapping-library"
-

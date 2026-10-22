@@ -54,7 +54,7 @@ class ParchmentReadTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 source
 k	net/minecraft/src/
 	*	"package docs"	source

@@ -13,7 +13,7 @@ members, params, local vars, wildcards, javadoc, signatures, exceptions,
 access, inner classes, constant groups) in a single namespaced text file.
 
 ```
-umf	1	1
+umf	1	2
 official	intermediary	named
 c	a	net/minecraft/class_1	net/minecraft/Minecraft
 	m	a;()V	method_1	method1

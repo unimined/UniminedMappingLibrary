@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.element.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 interface MutableParameterMapping : ParameterMapping, MutableMetadataParent {
 
@@ -24,7 +25,7 @@ interface MutableParameterMapping : ParameterMapping, MutableMetadataParent {
         ): MutableParameterMapping = ParameterMappingData(
             index,
             lvOrd,
-            names.toMutableMap(),
+            names.toSmallMap(),
             metadata.asMetadataDataList()
         )
     }

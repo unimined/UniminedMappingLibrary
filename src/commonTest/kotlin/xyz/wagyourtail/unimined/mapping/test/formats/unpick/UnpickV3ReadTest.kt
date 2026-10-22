@@ -62,7 +62,7 @@ target_annotation net.minecraft.SomeAnnotation ARGBColor
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 source
 u	bitfield	SetBlockFlag	source
 	@	+	Lunimined/unpick/DataType;	value="int"	source

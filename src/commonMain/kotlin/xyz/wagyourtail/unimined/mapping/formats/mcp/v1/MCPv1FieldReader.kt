@@ -20,6 +20,7 @@ import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 import xyz.wagyourtail.unimined.mapping.sink.emit
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 /**
  * this reads the MCP 1-2.12 field csv files
@@ -110,7 +111,7 @@ object MCPv1FieldReader : FormatReader {
                     val entries = element.emitEntries()
                     val ns = entries[srcNs] ?: return null
                     val fData = data[ns.name] ?: return null
-                    val nameMap = entries.toMutableMap()
+                    val nameMap = entries.toSmallMap()
                     nameMap[dstNs] = FieldNameAndDescriptor(fData.first, null)
                     val pushed = into.push(MutableFieldMapping(nameMap)) ?: return null
                     if (fData.second != null) {

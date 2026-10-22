@@ -14,7 +14,7 @@ import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 object UMFWriter : FormatWriter {
 
-    val EMPTY ="umf\t1\t1\n"
+    val EMPTY ="umf\t1\t2\n"
 
     var global_minimize = false
 
@@ -154,8 +154,7 @@ object UMFWriter : FormatWriter {
                     AddRemove.REMOVE -> into("-\t")
                 }
                 into("${meta.value.name.lowercase()}\t")
-                into("${meta.condition}\t")
-                into(namespaces.joinToString("\t") { it.name.maybeEscape() })
+                into(meta.condition.toString())
             }
             is JavadocElement -> writeLine(meta, UMFReader.EntryType.JAVADOC.key) {
                 into(meta.value.maybeEscape())
@@ -237,7 +236,7 @@ object UMFWriter : FormatWriter {
                     meta.names.mapValues { v -> v.value.second?.let { "${v.value.first};${it.value}" } ?: v.value.first }
                 })
             }
-            is EnumExtensionElement -> writeLine(meta, UMFReader.EntryType.CONSTANT_GROUP.key) {
+            is EnumExtensionElement -> writeLine(meta, UMFReader.EntryType.ENUM.key) {
                 into(when (meta.type) {
                     AddRemove.ADD -> "+\t"
                     AddRemove.REMOVE -> "-\t"

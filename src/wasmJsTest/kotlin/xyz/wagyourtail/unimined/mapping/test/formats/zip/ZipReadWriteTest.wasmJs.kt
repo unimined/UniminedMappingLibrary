@@ -7,10 +7,8 @@ private external fun checkIsNodeJS(): Boolean
 @JsFun("() => import.meta.dirname")
 private external fun dirname(): String
 
-@JsModule("node:fs")
-private external object Fs {
-    fun readFileSync(path: String): JsAny
-}
+@JsFun("(path) => Array.from(require('node:fs').readFileSync(path))")
+private external fun readFileBytes(path: String): JsArray<JsNumber>
 
 val isNodeJS get() = checkIsNodeJS()
 
@@ -18,6 +16,6 @@ actual suspend fun getResource(name: String): ByteArray? {
     if (!isNodeJS) {
         return null
     }
-    val data = Fs.readFileSync(dirname() + "/$name") as JsArray<JsNumber>
+    val data = readFileBytes(dirname() + "/$name")
     return ByteArray(data.length) { data[it]!!.toInt().toByte() }
 }

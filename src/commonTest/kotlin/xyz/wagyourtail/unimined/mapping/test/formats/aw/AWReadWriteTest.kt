@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.sink.emit
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import xyz.wagyourtail.unimined.mapping.element.*
@@ -22,6 +23,12 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class AWReadWriteTest {
+
+    @AfterTest
+    fun cleanup() {
+        ATWriter.defaultToPublic = false
+    }
+
     val awText = """
         accessWidener v2 intermediary
         accessible class net/minecraft/class_3720 # end of line comment
@@ -47,19 +54,19 @@ class AWReadWriteTest {
         }
 
         assertEquals("""
-umf	1	1
+umf	1	2
 intermediary
 c	net/minecraft/class_3720
-	a	+	public	*	intermediary
+	a	+	public	*
 c	net/minecraft/class_3721
-	a	-	final	*	intermediary
+	a	-	final	*
 	f	field_19158;I
-		a	-	final	*	intermediary
+		a	-	final	*
 	m	method_31659;(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
-		a	+	final	+PRIVATE	intermediary
-		a	+	protected	-PUBLIC	intermediary
-		a	+	public	*	intermediary
-		a	-	final	*	intermediary
+		a	+	final	+PRIVATE
+		a	+	protected	-PUBLIC
+		a	+	public	*
+		a	-	final	*
 """.trimStart(), umfOut)
     }
 

@@ -59,12 +59,15 @@ will be considered a comment and will be ignored by the parser.
 
 the header will be
 ```
-umf 1 0
+umf 1 2
 <ns1> <ns2> <ns3> ...
 ```
 
 the second line is a list of namespace names.
 it is not recommended to have namespaces with spaces in them, but it is allowed by the format.
+Readers also accept UMF 1.0 and 1.1. In those legacy versions, `u` in class
+scope denotes an enum extension; UMF 1.2 assigns enum extensions the distinct
+`z` key, leaving `u` exclusively for constant groups.
 
 ## Packages
 
@@ -337,7 +340,7 @@ where `<action>` is either `+` or `-` for add and remove respectively.
 ## Enum Extension
 
 this can add/remove an enum value from an enum.
-`u <action> <value> <ns1 name> <ns2 name> <ns3 name> ...`
+`z <action> <value> <ns1 name> <ns2 name> <ns3 name> ...`
 
 where `<action>` is either `+` or `-` for add and remove respectively.
 `<value>` is the name of an enum value in `<ns1 name>`'s names.
@@ -352,8 +355,6 @@ u <t> <name> <ns1> <ns2> <ns3> ...
     e <const> <expr>
     t <td> <p>
 ```
-
-note: `u` is shared with [Enum](#enum-extension) — when a `u` line follows a class component it is an enum extension, otherwise it is a constant group.
 
 where `<t>` is the type of constant group.
 currently accepted values are `bitfield` for bitfields (where multiple constants get bitwise OR'd together), and `plain` if only a single constant's value should be used.
@@ -385,7 +386,7 @@ the unpick v3/v4 format's group attributes are represented as `Lunimined/unpick/
 # Example
 
 ```
-umf 1 0
+umf 1 2
 obf intermediary yarn
 c evi net/minecraft/class_310 net/minecraft/client/Minecraft
  m (Ljava/lang/String;)V a method_1 exampleMethod
@@ -400,3 +401,9 @@ c evi$a net/minecraft/class_310$class_311 net/minecraft/client/Minecraft$Example
  i i Lnet/minecraft/class_310;
  * "this is a comment about the inner class"
 ```
+## Metadata entry reference
+
+Per-element key/argument tables are generated from the `@MetadataElementSpec`
+annotations — see [umf-reference.generated.md](umf-reference.generated.md)
+(produced by `ksp-processor`; refreshed via `./gradlew syncFormatDocs` or any
+`build`).

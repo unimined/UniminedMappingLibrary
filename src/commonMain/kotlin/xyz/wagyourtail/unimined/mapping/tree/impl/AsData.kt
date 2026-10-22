@@ -32,6 +32,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 internal fun mergeDescMismatch(hasDesc: MethodMappingData, noDesc: MethodMappingData) {
     hasDesc.setNames(noDesc.names.filter { it.key !in hasDesc.names })
@@ -48,11 +49,11 @@ internal fun mergeDescMismatch(hasDesc: FieldMappingData, noDesc: FieldMappingDa
 // ---- foreign-impl -> default-impl conversions for factories/wrappers ----
 
 internal fun PackageMapping.asData() = this as? PackageMappingData
-    ?: PackageMappingData(names.toMutableMap(), metadata.asMetadataDataList())
+    ?: PackageMappingData(names.toSmallMap(), metadata.asMetadataDataList())
 
 internal fun ClassMapping.asData() = this as? ClassMappingData
     ?: ClassMappingData(
-        names.toMutableMap(),
+        names.toSmallMap(),
         methods.map { it.asData() }.toMutableList(),
         fields.map { it.asData() }.toMutableList(),
         wildcards.map { it.asData() }.toMutableList(),
@@ -61,29 +62,29 @@ internal fun ClassMapping.asData() = this as? ClassMappingData
 
 internal fun MethodMapping.asData() = this as? MethodMappingData
     ?: MethodMappingData(
-        entries.toMutableMap(),
+        entries.toSmallMap(),
         parameters.map { it.asData() }.toMutableList(),
         localVariables.map { it.asData() }.toMutableList(),
         metadata.asMetadataDataList()
     )
 
 internal fun FieldMapping.asData() = this as? FieldMappingData
-    ?: FieldMappingData(entries.toMutableMap(), metadata.asMetadataDataList())
+    ?: FieldMappingData(entries.toSmallMap(), metadata.asMetadataDataList())
 
 internal fun WildcardMapping.asData() = this as? WildcardMappingData
     ?: WildcardMappingData(
         type,
-        descs.toMutableMap(),
+        descs.toSmallMap(),
         parameters.map { it.asData() }.toMutableList(),
         localVariables.map { it.asData() }.toMutableList(),
         metadata.asMetadataDataList()
     )
 
 internal fun ParameterMapping.asData() = this as? ParameterMappingData
-    ?: ParameterMappingData(index, lvOrd, names.toMutableMap(), metadata.asMetadataDataList())
+    ?: ParameterMappingData(index, lvOrd, names.toSmallMap(), metadata.asMetadataDataList())
 
 internal fun LocalVariableMapping.asData() = this as? LocalVariableMappingData
-    ?: LocalVariableMappingData(lvOrd, startOp, names.toMutableMap(), metadata.asMetadataDataList())
+    ?: LocalVariableMappingData(lvOrd, startOp, names.toSmallMap(), metadata.asMetadataDataList())
 
 internal fun ConstantGroupMapping.asData() = this as? ConstantGroupMappingData
     ?: ConstantGroupMappingData(type, name, baseNs, metadata.asMetadataDataList())

@@ -24,6 +24,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.serialization.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 @Serializable
 data class ClassMappingData(
@@ -48,7 +49,7 @@ data class ClassMappingData(
     }
 
     override fun method(entries: Map<Namespace, MethodNameAndDescriptor>): MutableMethodMapping {
-        val incoming = MethodMappingData(entries.toMutableMap())
+        val incoming = MethodMappingData(entries.toSmallMap())
         incoming.descRemapper = descRemapper
         for (existing in methods) {
             if (incoming.mergeInto(existing)) return existing
@@ -58,7 +59,7 @@ data class ClassMappingData(
     }
 
     override fun field(entries: Map<Namespace, FieldNameAndDescriptor>): MutableFieldMapping {
-        val incoming = FieldMappingData(entries.toMutableMap())
+        val incoming = FieldMappingData(entries.toSmallMap())
         incoming.descRemapper = descRemapper
         for (existing in fields) {
             if (incoming.mergeInto(existing)) return existing
@@ -68,7 +69,7 @@ data class ClassMappingData(
     }
 
     override fun wildcard(type: WildcardType, descs: Map<Namespace, FieldOrMethodDescriptor>): MutableWildcardMapping {
-        val incoming = WildcardMappingData(type, descs.toMutableMap())
+        val incoming = WildcardMappingData(type, descs.toSmallMap())
         incoming.descRemapper = descRemapper
         for (existing in wildcards) {
             if (incoming.mergeInto(existing)) return existing

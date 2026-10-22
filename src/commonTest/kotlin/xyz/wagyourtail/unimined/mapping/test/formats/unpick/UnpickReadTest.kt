@@ -54,7 +54,7 @@ class UnpickReadTest {
         }
 
         assertEquals("""
-umf	1	1
+umf	1	2
 source
 u	bitfield	armor_stand_flags	source
 	n	net/minecraft/entity/decoration/ArmorStandEntity	HIDE_BASE_PLATE_FLAG

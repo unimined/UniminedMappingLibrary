@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.test.assertSame
 
 class TestWalk {
@@ -36,9 +37,9 @@ class TestWalk {
         // tree, clsA, methodA, clsB — self first, depth-first
         assertEquals(4, walked.size)
         assertSame(tree, walked[0])
-        assert(walked[1] is ClassMapping)
-        assert(walked[2] is MethodMapping)
-        assert(walked[3] is ClassMapping)
+        assertTrue(walked[1] is ClassMapping)
+        assertTrue(walked[2] is MethodMapping)
+        assertTrue(walked[3] is ClassMapping)
     }
 
     @Test

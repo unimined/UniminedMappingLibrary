@@ -10,5 +10,5 @@ Supports SRG, CSRG, TSRG v1/v2, Tiny v1/v2, Proguard (Mojang), Feather
 MCPConfig side files, AccessTransformer/AccessWidener, Parchment, zip
 containers — plus UMF, the library's own superset format.
 
-See [FORMATS.md](FORMATS.md) for per-format examples, where each file type is
-found, and what produces it.
+See [FORMATS.md](software-engineering/external/FORMATS.md) for per-format
+examples, where each file type is found, and what produces it.

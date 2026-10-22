@@ -19,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.serialization.InternalNameSerializer
 import xyz.wagyourtail.unimined.mapping.serialization.NamespaceSerializer
 import xyz.wagyourtail.unimined.mapping.serialization.PackageNameSerializer
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 @Serializable
 class MappingTreeData(
@@ -62,7 +63,7 @@ class MappingTreeData(
                 return existing
             }
         }
-        val node = PackageMappingData(names.toMutableMap())
+        val node = PackageMappingData(names.toSmallMap())
         packages.add(node)
         return node
     }
@@ -82,7 +83,7 @@ class MappingTreeData(
                 return existing
             }
         }
-        val node = ClassMappingData(names.toMutableMap())
+        val node = ClassMappingData(names.toSmallMap())
         node.descRemapper = { from, to, desc -> map(from, to, desc) }
         for ((ns, name) in names) {
             byNamespace[ns][name] = node

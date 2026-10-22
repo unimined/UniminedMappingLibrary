@@ -59,7 +59,7 @@ class TsrgReadWriteTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 obf	mcp
 c	a	net/minecraft/src/Minecraft
 	f	a	field_1724

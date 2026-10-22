@@ -38,7 +38,7 @@ class CsrgReadTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 source	target
 c	a	net/minecraft/src/Minecraft
 	f	a	field_1724
@@ -71,7 +71,7 @@ c	b	net/minecraft/src/World
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 source	target
 k	""	pkga/
 c	a	pkga/Minecraft

@@ -29,6 +29,7 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.collections.filterValues
+import xyz.wagyourtail.unimined.mapping.newSmallSet
 
 abstract class InheritanceTree {
     val LOGGER = KotlinLogging.logger {  }
@@ -148,7 +149,7 @@ abstract class InheritanceTree {
          * map of inheritable methods to their names
          */
         val methodData = mutableMapOf<MethodInfo, MutableMap<Namespace, UnqualifiedName>>()
-        private val visitedNs = mutableSetOf(fns)
+        private val visitedNs = newSmallSet(fns)
 
         suspend fun propagate(tree: MappingTree, targets: Set<Namespace>): Unit = coroutineScope {
             val targets = targets - visitedNs
@@ -204,7 +205,7 @@ abstract class InheritanceTree {
                     // traverse parents, retrieve matching mappings
                     val superNames = superClass?.methodData?.get(md)
                     val interfaces = interfaceClasses.map { it to it.methodData[md] }
-                    val needsOverwrite = mutableSetOf<Namespace>()
+                    val needsOverwrite = newSmallSet<Namespace>()
                     val setFromParent = defaultedMapOf<Namespace, Boolean> { false }
                     if (superNames != null) {
                         for (ns in targets) {

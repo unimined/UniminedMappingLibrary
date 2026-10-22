@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.element.metadata.impl
 
 import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 /** shared metadata-attach merge used by all MutableMetadataParent impls */
 internal fun MutableList<MetadataElementData>.mergeMetadata(meta: MetadataElement) {
@@ -33,11 +34,11 @@ internal fun MetadataElement.asMetadataData(): MetadataElementData {
         is SealElement -> SealElementData(type, name, baseNs)
         is InterfaceElement -> InterfaceElementData(type, name, baseNs)
         is EnumExtensionElement -> EnumExtensionElementData(type, name, baseNs)
-        is InnerClassElement -> InnerClassElementData(type, names.toMutableMap())
+        is InnerClassElement -> InnerClassElementData(type, names.toSmallMap(), metadata.asMetadataDataList())
         is ConstantElement -> ConstantElementData(owner, field)
         is TargetElement -> TargetElementData(target, paramIdx)
         is ExpressionElement -> ExpressionElementData(value, expression)
-        is SyntheticBridgeElement -> SyntheticBridgeElementData(names.toMutableMap())
+        is SyntheticBridgeElement -> SyntheticBridgeElementData(names.toSmallMap())
         else -> error("no default impl for ${this::class}")
     }
 }

@@ -23,6 +23,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 @Serializable
 data class MethodMappingData(
@@ -61,7 +62,7 @@ data class MethodMappingData(
     }
 
     override fun parameter(index: Int?, lvOrd: Int?, names: Map<Namespace, UnqualifiedName>): MutableParameterMapping {
-        val incoming = ParameterMappingData(index, lvOrd, names.toMutableMap())
+        val incoming = ParameterMappingData(index, lvOrd, names.toSmallMap())
         for (existing in parameters) {
             if (incoming.mergeInto(existing)) return existing
         }
@@ -76,7 +77,7 @@ data class MethodMappingData(
                 return existing
             }
         }
-        val node = LocalVariableMappingData(lvOrd, startOp, names.toMutableMap())
+        val node = LocalVariableMappingData(lvOrd, startOp, names.toSmallMap())
         localVariables.add(node)
         return node
     }

@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 /**
  * fills missing names from dependent namespaces.
@@ -14,7 +15,7 @@ import xyz.wagyourtail.unimined.mapping.*
 fun MutableMappingTree.fillMissingNames(vararg toFill: Pair<Namespace, Set<Namespace>>) {
     fun <T> fill(names: Map<Namespace, T>): Map<Namespace, T> {
         if (toFill.isEmpty()) return names
-        val out = names.toMutableMap()
+        val out = names.toSmallMap()
         for ((from, targets) in toFill) {
             val src = out[from] ?: continue
             for (t in targets) {

@@ -32,11 +32,11 @@ class MCPExceptionReadTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge
 c	a
 	m	b;()V
-		a	+	public	*	searge
+		a	+	public	*
 		x	+	java/lang/Exception	searge
 		p	0	_	p_1_0_
 c	net/minecraft/src/World

@@ -22,7 +22,8 @@ class LazyMappingTree(
     private val _packages = mutableListOf<PackageMappingData>()
     private val _constantGroups = mutableListOf<ConstantGroupMappingData>()
 
-    private val classIndex = mutableMapOf<Namespace, MutableMap<InternalName, Int>>()
+    /** lookup-heavy at member scale — stays LinkedHashMap regardless of [MappingCollections.useSmallCollections] */
+    private val classIndex = LinkedHashMap<Namespace, MutableMap<InternalName, Int>>()
     private val classFragments = mutableListOf<String>()
 
     override val namespaces get() = _namespaces.toList()
@@ -90,7 +91,7 @@ class LazyMappingTree(
             val idx = classFragments.size
             classFragments.add(umf.encodeToString(ClassMappingData.serializer(), cls))
             for ((ns, name) in cls.names) {
-                classIndex.getOrPut(ns) { mutableMapOf() }[name] = idx
+                classIndex.getOrPut(ns) { LinkedHashMap() }[name] = idx
             }
         }
     }

@@ -22,6 +22,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 @Serializable
 data class WildcardMappingData(
@@ -40,7 +41,7 @@ data class WildcardMappingData(
     }
 
     override fun parameter(index: Int?, lvOrd: Int?, names: Map<Namespace, UnqualifiedName>): MutableParameterMapping {
-        val incoming = ParameterMappingData(index, lvOrd, names.toMutableMap())
+        val incoming = ParameterMappingData(index, lvOrd, names.toSmallMap())
         for (existing in parameters) {
             if (incoming.mergeInto(existing)) return existing
         }
@@ -55,7 +56,7 @@ data class WildcardMappingData(
                 return existing
             }
         }
-        val node = LocalVariableMappingData(lvOrd, startOp, names.toMutableMap())
+        val node = LocalVariableMappingData(lvOrd, startOp, names.toSmallMap())
         localVariables.add(node)
         return node
     }

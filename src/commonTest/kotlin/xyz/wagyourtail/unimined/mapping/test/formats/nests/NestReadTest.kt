@@ -36,25 +36,25 @@ class NestReadTest {
             output.readUtf8()
         }
         assertEquals("""
-umf	1	1
+umf	1	2
 source
 c	aba
 	i	i	aba;Laez;
-		a	+	static	*	source
+		a	+	static	*
 c	abj
 	i	i	abj;Lxy;
 c	abn
 	i	a	1;Lkx;a;(Ljava/lang/Iterable;)Ljava/util/List;
-		a	+	static	*	source
+		a	+	static	*
 c	abt
 	i	i	abt;Lnc;
-		a	+	static	*	source
+		a	+	static	*
 c	ac
 	i	i	ac;Lrp;
-		a	+	static	*	source
+		a	+	static	*
 c	acc
 	i	a	3;Lpx;<clinit>;()V
-		a	+	static	*	source
+		a	+	static	*
 """.trim(), output.trimEnd())
     }
     

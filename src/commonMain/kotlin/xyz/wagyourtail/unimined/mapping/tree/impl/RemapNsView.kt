@@ -21,9 +21,13 @@ fun MetadataElement.remapNs(fn: (Namespace) -> Namespace): MetadataElement = whe
     is SealElement -> SealElement(type, name, fn(baseNs))
     is InterfaceElement -> InterfaceElement(type, name, fn(baseNs))
     is EnumExtensionElement -> EnumExtensionElement(type, name, fn(baseNs))
-    is InnerClassElement -> InnerClassElement(type, names.remapNsKeys(fn))
+    is InnerClassElement -> InnerClassElementData(
+        type,
+        names.remapNsKeys(fn).toSmallMap(),
+        metadata.asMetadataDataList()
+    )
     // group-relative (constant group carries the baseNs) or ns-free — unchanged
-    is SyntheticBridgeElement -> SyntheticBridgeElementData(names.mapKeysTo(mutableMapOf()) { fn(it.key) })
+    is SyntheticBridgeElement -> SyntheticBridgeElementData(names.remapNsKeys(fn).toSmallMap())
     is AccessElement, is ConstantElement, is TargetElement, is ExpressionElement -> this
     else -> this
 }

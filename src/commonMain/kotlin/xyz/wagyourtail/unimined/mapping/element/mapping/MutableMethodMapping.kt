@@ -8,6 +8,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.element.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 interface MutableMethodMapping : MethodMapping, MutableInvokableMapping {
 
@@ -24,7 +25,7 @@ interface MutableMethodMapping : MethodMapping, MutableInvokableMapping {
             localVariables: Iterable<LocalVariableMapping> = emptyList(),
             metadata: Iterable<MetadataElement> = emptyList()
         ): MutableMethodMapping = MethodMappingData(
-            entries.toMutableMap(),
+            entries.toSmallMap(),
             parameters.map { it.asData() }.toMutableList(),
             localVariables.map { it.asData() }.toMutableList(),
             metadata.asMetadataDataList()

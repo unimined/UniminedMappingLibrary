@@ -45,7 +45,7 @@ class MCPReadTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 source	searge	mcp
 k	""	net/minecraft/src/	_
 c	a	net/minecraft/src/Minecraft	_
@@ -117,7 +117,7 @@ c	b	net/minecraft/src/World	_
         }
 
         assertEquals("""
-                umf	1	1
+                umf	1	2
                 notch	searge
                 c	dp	net/minecraft/src/World
                 c	dq	net/minecraft/src/WorldClient

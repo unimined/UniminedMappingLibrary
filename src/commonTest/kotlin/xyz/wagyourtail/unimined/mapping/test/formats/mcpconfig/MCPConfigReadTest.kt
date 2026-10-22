@@ -39,14 +39,14 @@ class MCPConfigReadTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge
 c	a
 	m	func_1_a;()V
-		a	+	public	*	searge
+		a	+	public	*
 c	b
 	m	func_2_a;(I)V
-		a	+	private	*	searge
+		a	+	private	*
             """.trimIndent(),
             out.trimEnd()
         )
@@ -70,7 +70,7 @@ c	b
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge
 c	a
 	m	<init>;()V
@@ -100,7 +100,7 @@ c	b
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge
 c	a
 	m	func_1_a;()V
@@ -118,7 +118,7 @@ c	b
     fun testStaticMethods() = runTest {
         val tree = UMFReader.read(
             """
-            umf	1	1
+            umf	1	2
             searge
             c	a
             	m	func_1_a;(I)V
@@ -140,7 +140,7 @@ c	b
         // func_1_a is listed static -> lvOrd starts at 0; func_2_a is not -> starts at 1
         assertEquals(
             """
-umf	1	1
+umf	1	2
 searge
 c	a
 	m	func_1_a;(I)V

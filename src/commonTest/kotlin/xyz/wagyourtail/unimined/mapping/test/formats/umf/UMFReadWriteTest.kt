@@ -21,7 +21,7 @@ class UMFReadWriteTest {
     @Test
     fun testReadWrite() = runTest {
         val inp = """
-umf	1	1
+umf	1	2
 intermediary	named
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 	*	"example comment"	named
@@ -45,7 +45,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
     @Test
     fun testMergableMethods() = runTest {
         val inp = """
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	f	field_1724	_	_
@@ -77,7 +77,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             output.readUtf8()
         }
         val testOutput = """
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	f	c	field_71512_c	c
@@ -103,7 +103,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
     @Test
     fun testMergableParams() = runTest {
         val inp = """
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
@@ -120,7 +120,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             mappings.emit(UMFWriter.write(output, false))
             output.readUtf8()
         }
-        val testOutput = """umf	1	1
+        val testOutput = """umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	m	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V	<init>;(Leqm;JLeub;Ljava/lang/String;Ljava/lang/String;)V
@@ -133,7 +133,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
     @Test
     fun testMinimize() = runTest {
         val inp = """
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	f	field_1724;Lnet/minecraft/class_746;	test;Lnamed/class;	_
@@ -150,7 +150,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             output.readUtf8()
         }
         val testOutput = """
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
 	f	field_1724;Lnet/minecraft/class_746;	test	_
@@ -164,7 +164,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
     @Test
     fun testLazy() = runTest {
         val inp = """
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 	*	"example comment"	named
@@ -187,7 +187,7 @@ c	net/minecraft/class_310	_	net/minecraft/Minecraft
         }
 
         val testOuput = """
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Minecraft
 	*	"example comment"	named
@@ -204,7 +204,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Min
         }
 
         assertEquals("""
-umf	1	1
+umf	1	2
 intermediary	named	extra
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Minecraft
 	*	"example comment"	named
@@ -218,7 +218,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Min
     @Test
     fun testOverrideName() = runTest {
         val inp = """
-umf	1	1
+umf	1	2
 intermediary	named
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 	*	"example comment"	named
@@ -238,7 +238,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
             output.readUtf8()
         }
         assertEquals("""
-umf	1	1
+umf	1	2
 intermediary	named
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 	*	"example comment"	named
@@ -252,7 +252,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
     @Test
     fun testAddDescInfo() = runTest {
         val inp = """
-umf	1	1
+umf	1	2
 intermediary	named
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 	*	"example comment"	named
@@ -277,7 +277,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
         }
 
         assertEquals("""
-umf	1	1
+umf	1	2
 intermediary	named
 c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
 	*	"example comment"	named

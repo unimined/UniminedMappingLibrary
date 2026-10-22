@@ -53,10 +53,10 @@ class TestTypeCache {
         TypeCache.getOrPut("tag", "a") { computed++; "va$computed" }
         assertEquals(1, computed)
         // "b" was still cached before this get evicted it... "a"'s get evicts "b" now
-        TypeCache.getOrPut("tag", "c") { }
+        TypeCache.getOrPut("tag", "c") { "vc2" }
         // "c" survives
         var cComputed = 0
-        TypeCache.getOrPut("tag", "c") { cComputed++ }
+        TypeCache.getOrPut("tag", "c") { cComputed++; "ignored" }
         assertEquals(0, cComputed)
     }
 

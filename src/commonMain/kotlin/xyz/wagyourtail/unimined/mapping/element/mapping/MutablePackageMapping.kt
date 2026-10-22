@@ -6,6 +6,7 @@ import xyz.wagyourtail.unimined.mapping.element.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 interface MutablePackageMapping : PackageMapping, MutableMetadataParent {
 
@@ -15,7 +16,7 @@ interface MutablePackageMapping : PackageMapping, MutableMetadataParent {
         operator fun invoke(
             names: Map<Namespace, PackageName> = emptyMap(),
             metadata: Iterable<MetadataElement> = emptyList()
-        ): MutablePackageMapping = PackageMappingData(names.toMutableMap(), metadata.asMetadataDataList())
+        ): MutablePackageMapping = PackageMappingData(names.toSmallMap(), metadata.asMetadataDataList())
     }
 
 }

@@ -41,7 +41,7 @@ class MCPv3ReadTest {
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 notch	searge	mcp
 c	net/minecraft/src/Minecraft	_	_
 	f	a	field_1_a	mcField
@@ -73,7 +73,7 @@ c	net/minecraft/src/World	_	_
 
         assertEquals(
             """
-umf	1	1
+umf	1	2
 notch	searge	mcp
 c	net/minecraft/src/Minecraft	_	_
 	m	a;()V	func_1_a;()V	mcMethod;()V

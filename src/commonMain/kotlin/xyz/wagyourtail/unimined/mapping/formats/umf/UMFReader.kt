@@ -119,11 +119,13 @@ object UMFReader : FormatReader {
             throw IllegalArgumentException("Invalid UMF file, expected UMF header found ${token}")
         }
         token = input.takeNext()!!
-        if (token.toInt() > 1) {
+        val majorVersion = token.toInt()
+        if (majorVersion > 1) {
             throw IllegalArgumentException("unsupported UMF major version ${token}")
         }
         token = input.takeNext()!!
-        if (token.toInt() > 1) {
+        val minorVersion = token.toInt()
+        if (minorVersion > 2) {
             throw IllegalArgumentException("unsupported UMF minor version ${token}")
         }
         if (input.peek() == '\n') {
@@ -144,7 +146,10 @@ object UMFReader : FormatReader {
 
             val visitStack = mutableListOf<Element?>(null)
             val indentStack = mutableListOf(-1)
-            readWithStack(input, context, into, nsMapping, visitStack, indentStack, ::getNamespace, settings)
+            readWithStack(
+                input, context, into, nsMapping, visitStack, indentStack, ::getNamespace, settings,
+                legacyEnumKey = majorVersion == 1 && minorVersion < 2
+            )
         }
         into.end()
     }
@@ -157,7 +162,8 @@ object UMFReader : FormatReader {
         visitStack: MutableList<Element?>,
         indentStack: MutableList<Int>,
         getNamespace: (Int) -> Namespace,
-        settings: FormatReaderSettings = this
+        settings: FormatReaderSettings = this,
+        legacyEnumKey: Boolean = false
     ) {
         val unchecked = uncheckedReading || settings.unchecked
         val initialSize = visitStack.size
@@ -180,8 +186,7 @@ object UMFReader : FormatReader {
                 visitStack.removeLast()?.let { into.pop(it) }
                 indentStack.removeLast()
             }
-                        // 'u' is both enum-extension (class scope) and constant-group (root scope) per the umf spec
-            val entryType = if (entryKey == 'u') {
+            val entryType = if (legacyEnumKey && entryKey == 'u') {
                 if (visitStack.last() is ClassMapping) EntryType.ENUM else EntryType.CONSTANT_GROUP
             } else {
                 EntryType.byKey.getValue(entryKey)
@@ -428,16 +433,16 @@ object UMFReader : FormatReader {
         COMMENT('#'),
         INTERFACE('j'),
         SEAL('s'),
-        ENUM('u'),
+        ENUM('z'),
         SYNTHETIC_BRIDGE('b')
         ;
 
         companion object {
-            val byKey = entries.filter { it != ENUM }.associateBy { it.key }
+            val byKey = entries.associateBy { it.key }
 
             init {
                 // assert all keys are unique
-                if (byKey.size != entries.size - 1) {
+                if (byKey.size != entries.size) {
                     throw IllegalStateException("Duplicate keys found in ${this::class.simpleName}")
                 }
             }

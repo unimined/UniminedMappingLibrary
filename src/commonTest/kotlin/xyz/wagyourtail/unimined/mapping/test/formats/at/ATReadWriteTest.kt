@@ -53,27 +53,27 @@ class ATReadWriteTest {
     """.trimIndent()
 
     val umfText = """
-        umf	1	1
+        umf	1	2
         source
         c	net/minecraft/class_3720
-        	a	+	final	*	source
-        	a	+	public	*	source
+        	a	+	final	*
+        	a	+	public	*
         	w	f	_
-        		a	+	public	*	source
-        		a	-	final	*	source
+        		a	+	public	*
+        		a	-	final	*
         	w	m	_
-        		a	+	public	*	source
+        		a	+	public	*
         c	net/minecraft/class_3721
-        	a	+	protected	*	source
-        	a	-	final	*	source
+        	a	+	protected	*
+        	a	-	final	*
         	f	field_19158
-        		a	+	private	*	source
+        		a	+	private	*
         	m	method_31659;(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
-        		a	+	public	*	source
-        		a	-	final	*	source
+        		a	+	public	*
+        		a	-	final	*
         c	net/minecraft/class_3722
-        	a	+	default	*	source
-        	a	-	final	*	source
+        	a	+	default	*
+        	a	-	final	*
     """.trimIndent()
 
     @Test
