@@ -10,10 +10,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object ProguardReader : FormatReader {
 
@@ -22,7 +27,7 @@ object ProguardReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (!fileName.endsWith(".txt")) return false
         // check that there's a -> in the file
         return input.peek().readUtf8(1024).contains("->")
@@ -70,20 +75,20 @@ object ProguardReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-
+        val envType = settings.envType
+        
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.use {
-            visitHeader(srcNs.name, dstNs.name)
+        with (into) {
+            header(listOf(srcNs, dstNs))
 
-            var cls: ClassMappingVisitor? = null
+            var cls: MappingElement? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -97,8 +102,8 @@ object ProguardReader : FormatReader {
                     val parts = line.split("->")
                     val srcCls = InternalName.read(parts[0].trim().replace(".", "/"))
                     val dstCls = InternalName.read(parts[1].trim().removeSuffix(":").replace(".", "/"))
-                    cls?.visitEnd()
-                    cls = visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))
+                    cls?.let { pop(it) }
+                    cls = push(MutableClassMapping(mapOf(srcNs to srcCls, dstNs to dstCls)))
                 } else {
                     val parts = line.split("->")
                     val src = parts[0].trim().split(" ")
@@ -110,18 +115,19 @@ object ProguardReader : FormatReader {
                         val srcName = UnqualifiedName.read(src[1].substringBeforeLast("("))
                         val mDesc =
                             MethodDescriptor.read(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
-                        cls?.visitMethod(mapOf(srcNs to srcName.withMethodDesc(mDesc), dstNs to dst.withMethodDesc(null)))?.visitEnd()
+                        pushed(MutableMethodMapping(mapOf(srcNs to srcName.withMethodDesc(mDesc), dstNs to dst.withMethodDesc(null)))) {}
                     } else {
                         // field
                         val fDesc = FieldDescriptor.read(remapProguardParamDesc(srcDesc.last()))
                         val srcName = UnqualifiedName.read(src[1])
-                        cls?.visitField(mapOf(srcNs to srcName.withFieldDesc(fDesc), dstNs to dst.withFieldDesc(null)))?.visitEnd()
+                        pushed(MutableFieldMapping(mapOf(srcNs to srcName.withFieldDesc(fDesc), dstNs to dst.withFieldDesc(null)))) {}
                     }
                 }
             }
 
-            cls?.visitEnd()
+            cls?.let { pop(it) }
         }
+        into.end()
 
     }
 

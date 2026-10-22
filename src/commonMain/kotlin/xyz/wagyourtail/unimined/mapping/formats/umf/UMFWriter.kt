@@ -5,25 +5,12 @@ import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
-import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
-import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
-import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Signature
-import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
-import kotlin.collections.mapValues
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 object UMFWriter : FormatWriter {
 
@@ -45,32 +32,32 @@ object UMFWriter : FormatWriter {
 
     operator fun String.minus(s: String): String = this.removeSuffix(s)
 
-    override fun write(append: (String) -> Unit, envType: EnvType): RootMappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
         return write(envType, append, global_minimize)
     }
 
-    fun write(into: BufferedSink, minimize: Boolean): RootMappingVisitor {
+    fun write(into: BufferedSink, minimize: Boolean): MappingSink {
         return write(EnvType.JOINED, into, minimize)
     }
 
-    fun write(envType: EnvType, into: BufferedSink, minimize: Boolean): RootMappingVisitor {
+    fun write(envType: EnvType, into: BufferedSink, minimize: Boolean): MappingSink {
         return write(envType, into::writeUtf8, minimize)
     }
 
-    fun write(into: (String) -> Unit, minimize: Boolean): RootMappingVisitor {
+    fun write(into: (String) -> Unit, minimize: Boolean): MappingSink {
         into(EMPTY)
-        return EmptyRootMappingVisitor().delegator(UMFWriterDelegator(into, minimize))
+        return UMFWriterSink(into, minimize)
     }
 
-    fun write(envType: EnvType, into: (String) -> Unit, minimize: Boolean): RootMappingVisitor {
+    fun write(envType: EnvType, into: (String) -> Unit, minimize: Boolean): MappingSink {
         into(EMPTY)
-        return EmptyRootMappingVisitor().delegator(UMFWriterDelegator(into, minimize))
+        return UMFWriterSink(into, minimize)
     }
 
-    class UMFWriterDelegator(
+    class UMFWriterSink(
         val into: (String) -> Unit,
         val minimize: Boolean
-    ) : Delegator() {
+    ) : MappingSink {
 
         lateinit var namespaces: List<Namespace>
         var indent = ""
@@ -84,381 +71,213 @@ object UMFWriter : FormatWriter {
             }
         }
 
-        override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
-            this.namespaces = namespaces.toList()
+        private fun namespacedMinimized(names: Map<Namespace, NameAndDescriptor>, getDesc: (NameAndDescriptor) -> String): Map<Namespace, String> {
+            return if (minimize) {
+                val map = mutableMapOf<Namespace, String>()
+                var hasDesc = false
+                for ((ns, entry) in names.entries.sortedBy { namespaces.indexOf(it.key) }) {
+                    if (entry.hasDescriptor && !hasDesc) {
+                        hasDesc = true
+                        map[ns] = getDesc(entry)
+                    } else {
+                        map[ns] = entry.name.value
+                    }
+                }
+                map
+            } else {
+                names.mapValues { v -> v.value.value }
+            }
+        }
+
+        override fun header(namespaces: List<Namespace>) {
+            this.namespaces = namespaces
             into(indent)
             into(namespaces.joinToString("\t") { it.name.maybeEscape() })
             into("\n")
         }
 
-        override fun visitEnd(delegate: BaseMappingVisitor) {
+        private inline fun <T : Any> writeLine(element: T, letter: Char, body: () -> Unit): T {
+            into(indent)
+            into("$letter\t")
+            body()
+            into("\n")
+            indent += "\t"
+            return element
+        }
+
+        override fun push(element: MappingElement): MappingElement? = when (element) {
+            is PackageMapping -> writeLine(element, UMFReader.EntryType.PACKAGE.key) {
+                into.writeNamespaced(element.names.mapValues { it.value.value })
+            }
+            is ClassMapping -> writeLine(element, UMFReader.EntryType.CLASS.key) {
+                into.writeNamespaced(element.names.mapValues { it.value.value })
+            }
+            is FieldMapping -> writeLine(element, UMFReader.EntryType.FIELD.key) {
+                into.writeNamespaced(namespacedMinimized(element.emitEntries()) { it.value })
+            }
+            is MethodMapping -> writeLine(element, UMFReader.EntryType.METHOD.key) {
+                into.writeNamespaced(namespacedMinimized(element.emitEntries()) { it.value })
+            }
+            is WildcardMapping -> writeLine(element, UMFReader.EntryType.WILDCARD.key) {
+                into(when (element.type) {
+                    WildcardType.FIELD -> "f"
+                    WildcardType.METHOD -> "m"
+                })
+                into("\t")
+                val descs = element.descs
+                into.writeNamespaced((if (minimize && descs.isNotEmpty()) mapOf(descs.entries.sortedBy { namespaces.indexOf(it.key) }.first().toPair()) else descs).mapValues { it.value.toString() })
+            }
+            is ParameterMapping -> writeLine(element, UMFReader.EntryType.PARAMETER.key) {
+                into(element.index?.toString().maybeEscape())
+                into("\t")
+                into(element.lvOrd?.toString().maybeEscape())
+                into("\t")
+                into.writeNamespaced(element.names.mapValues { it.value.value })
+            }
+            is LocalVariableMapping -> writeLine(element, UMFReader.EntryType.LOCAL_VARIABLE.key) {
+                into(element.lvOrd.toString().maybeEscape())
+                into("\t")
+                into(element.startOp?.toString().maybeEscape())
+                into("\t")
+                into.writeNamespaced(element.names.mapValues { it.value.value })
+            }
+            is ConstantGroupMapping -> writeLine(element, UMFReader.EntryType.CONSTANT_GROUP.key) {
+                into("${element.type.name.lowercase()}\t${element.name.maybeEscape()}\t${element.baseNs.name.maybeEscape()}")
+            }
+            else -> null
+        }
+
+        override fun push(meta: MetadataElement): MetadataElement? = when (meta) {
+            is AccessElement -> writeLine(meta, UMFReader.EntryType.ACCESS.key) {
+                when (meta.type) {
+                    AddRemove.ADD -> into("+\t")
+                    AddRemove.REMOVE -> into("-\t")
+                }
+                into("${meta.value.name.lowercase()}\t")
+                into("${meta.condition}\t")
+                into(namespaces.joinToString("\t") { it.name.maybeEscape() })
+            }
+            is JavadocElement -> writeLine(meta, UMFReader.EntryType.JAVADOC.key) {
+                into(meta.value.maybeEscape())
+                into("\t")
+                into(meta.baseNs.name.maybeEscape())
+            }
+            is SignatureElement -> writeLine(meta, UMFReader.EntryType.SIGNATURE.key) {
+                into(meta.value.toString().maybeEscape())
+                into("\t")
+                into(meta.baseNs.name.maybeEscape())
+            }
+            is AnnotationElement -> writeLine(meta, UMFReader.EntryType.ANNOTATION.key) {
+                when (meta.type) {
+                    AddRemoveModify.ADD -> into("+\t")
+                    AddRemoveModify.REMOVE -> into("-\t")
+                    AddRemoveModify.MODIFY -> into("m\t")
+                }
+                val parts = meta.annotation.getParts()
+                into(parts.first.value.maybeEscape())
+                into("\t")
+                into(parts.second?.value.maybeEscape())
+                if (parts.third != null) {
+                    into(parts.third!!.value.maybeEscape())
+                }
+                into("\t")
+                into(meta.baseNs.name.maybeEscape())
+            }
+            is SealElement -> writeLine(meta, UMFReader.EntryType.SEAL.key) {
+                into(when (meta.type) {
+                    AddRemoveClear.ADD -> "+\t"
+                    AddRemoveClear.REMOVE -> "-\t"
+                    AddRemoveClear.CLEAR -> "c\t"
+                })
+                if (meta.type != AddRemoveClear.CLEAR) {
+                    into(meta.name!!.value.maybeEscape())
+                    into("\t")
+                }
+                into(meta.baseNs.name.maybeEscape())
+            }
+            is InterfaceElement -> writeLine(meta, UMFReader.EntryType.INTERFACE.key) {
+                into(when (meta.type) {
+                    AddRemove.ADD -> "+\t"
+                    AddRemove.REMOVE -> "-\t"
+                })
+                into(meta.name.value.maybeEscape())
+                into("\t")
+                into(meta.baseNs.name.maybeEscape())
+            }
+            is ExceptionElement -> writeLine(meta, UMFReader.EntryType.EXCEPTION.key) {
+                when (meta.type) {
+                    AddRemove.ADD -> into("+\t")
+                    AddRemove.REMOVE -> into("-\t")
+                }
+                into(meta.exception.value.maybeEscape())
+                into("\t")
+                into(meta.baseNs.name.maybeEscape())
+            }
+            is InnerClassElement -> writeLine(meta, UMFReader.EntryType.INNER_CLASS.key) {
+                into(when (meta.type) {
+                    InnerType.INNER -> "i\t"
+                    InnerType.LOCAL -> "l\t"
+                    InnerType.ANONYMOUS -> "a\t"
+                })
+                into.writeNamespaced(if (minimize) {
+                    val map = mutableMapOf<Namespace, String>()
+                    var hasDesc = false
+                    for ((ns, entry) in meta.names.entries.sortedBy { namespaces.indexOf(it.key) }) {
+                        val (name, desc) = entry
+                        if (desc != null && !hasDesc) {
+                            hasDesc = true
+                            map[ns] = "$name;${desc.value}"
+                        } else {
+                            map[ns] = name
+                        }
+                    }
+                    if (!hasDesc) throw IllegalArgumentException("No fqn found")
+                    map
+                } else {
+                    meta.names.mapValues { v -> v.value.second?.let { "${v.value.first};${it.value}" } ?: v.value.first }
+                })
+            }
+            is EnumExtensionElement -> writeLine(meta, UMFReader.EntryType.CONSTANT_GROUP.key) {
+                into(when (meta.type) {
+                    AddRemove.ADD -> "+\t"
+                    AddRemove.REMOVE -> "-\t"
+                })
+                into(meta.name.value.maybeEscape())
+                into("\t")
+                into(meta.baseNs.name.maybeEscape())
+            }
+            is SyntheticBridgeElement -> writeLine(meta, UMFReader.EntryType.SYNTHETIC_BRIDGE.key) {
+                into.writeNamespaced(meta.names.mapValues { it.value.value })
+            }
+            is ConstantElement -> writeLine(meta, UMFReader.EntryType.CONSTANT.key) {
+                into(meta.owner.value.maybeEscape())
+                into("\t")
+                into(meta.field.name.value.maybeEscape())
+                if (meta.field.descriptor != null) {
+                    into(";")
+                    into(meta.field.descriptor!!.value.value.maybeEscape())
+                }
+            }
+            is TargetElement -> writeLine(meta, UMFReader.EntryType.CONSTANT_TARGET.key) {
+                meta.target?.let { into(it.value.maybeEscape()) }
+                into("\t")
+                into(meta.paramIdx?.toString().maybeEscape())
+            }
+            is ExpressionElement -> writeLine(meta, UMFReader.EntryType.CONSTANT_EXPRESSION.key) {
+                into(meta.value.value.maybeEscape())
+                into("\t")
+                into(meta.expression.toString().maybeEscape())
+            }
+            else -> null
+        }
+
+        override fun pop(element: MappingElement) {
             indent -= "\t"
         }
 
-        override fun visitPackage(delegate: RootMappingVisitor, names: Map<Namespace, PackageName>): PackageMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.PACKAGE.key}\t")
-            into.writeNamespaced(names.mapValues { it.value.value })
-            into("\n")
-            indent += "\t"
-            return super.visitPackage(delegate, names)
+        override fun pop(meta: MetadataElement) {
+            indent -= "\t"
         }
-
-        override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.CLASS.key}\t")
-            into.writeNamespaced(names.mapValues { it.value.value })
-            into("\n")
-            indent += "\t"
-            return super.visitClass(delegate, names)
-        }
-
-        override fun visitField(
-            delegate: ClassMappingVisitor,
-            names: Map<Namespace, FieldNameAndDescriptor>
-        ): FieldMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.FIELD.key}\t")
-            into.writeNamespaced(if (minimize) {
-                val map = mutableMapOf<Namespace, String>()
-                var hasDesc = false
-                for ((ns, entry) in names.entries.sortedBy { namespaces.indexOf(it.key) }) {
-                    if (entry.hasDescriptor && !hasDesc) {
-                        hasDesc = true
-                        map[ns] = entry.value
-                    } else {
-                        map[ns] = entry.name.value
-                    }
-                }
-                map
-            } else {
-                names.mapValues { v -> v.value.value }
-            })
-            into("\n")
-            indent += "\t"
-            return super.visitField(delegate, names)
-        }
-
-        override fun visitMethod(
-            delegate: ClassMappingVisitor,
-            names: Map<Namespace, MethodNameAndDescriptor>
-        ): MethodMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.METHOD.key}\t")
-            into.writeNamespaced(if (minimize) {
-                val map = mutableMapOf<Namespace, String>()
-                var hasDesc = false
-                for ((ns, entry) in names.entries.sortedBy { namespaces.indexOf(it.key) }) {
-                    if (entry.hasDescriptor && !hasDesc) {
-                        hasDesc = true
-                        map[ns] = entry.value
-                    } else {
-                        map[ns] = entry.name.value
-                    }
-                }
-                map
-            } else {
-                names.mapValues { v -> v.value.value }
-            })
-            into("\n")
-            indent += "\t"
-            return super.visitMethod(delegate, names)
-        }
-
-        override fun visitWildcard(
-            delegate: ClassMappingVisitor,
-            type: WildcardType,
-            descs: Map<Namespace, FieldOrMethodDescriptor>
-        ): WildcardMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.WILDCARD.key}\t")
-            into(when (type) {
-                WildcardType.FIELD -> "f"
-                WildcardType.METHOD -> "m"
-            })
-            into("\t")
-            into.writeNamespaced((if (minimize && descs.isNotEmpty()) mapOf(descs.entries.sortedBy { namespaces.indexOf(it.key) }.first().toPair()) else descs).mapValues { it.value.toString() })
-            into("\n")
-            indent += "\t"
-            return super.visitWildcard(delegate, type, descs)
-        }
-
-        override fun visitInnerClass(
-            delegate: ClassMappingVisitor,
-            type: InnerType,
-            names: Map<Namespace, Pair<String, FullyQualifiedName?>>
-        ): InnerClassMappingVisitor? {
-            val typeStr = when (type) {
-                InnerType.INNER -> "i"
-                InnerType.LOCAL -> "l"
-                InnerType.ANONYMOUS -> "a"
-            }
-            into(indent)
-            into("${UMFReader.EntryType.INNER_CLASS.key}\t$typeStr\t")
-            into.writeNamespaced(if (minimize) {
-                val map = mutableMapOf<Namespace, String>()
-                var hasDesc = false
-                for ((ns, entry) in names.entries.sortedBy { namespaces.indexOf(it.key) }) {
-                    val (name, desc) = entry
-                    if (desc != null && !hasDesc) {
-                        hasDesc = true
-                        map[ns] = "$name;${desc.value}"
-                    } else {
-                        map[ns] = name
-                    }
-                }
-                if (!hasDesc) throw IllegalArgumentException("No fqn found")
-                map
-            } else {
-                names.mapValues { v -> v.value.second?.let { "${v.value.first};${it.value}" } ?: v.value.first }
-            })
-            into("\n")
-            indent += "\t"
-            return super.visitInnerClass(delegate, type, names)
-        }
-
-        override fun visitSeal(
-            delegate: ClassMappingVisitor,
-            type: AddRemoveClear,
-            name: InternalName?,
-            baseNs: Namespace,
-        ): SealMappingVisitor? {
-            val typeStr = when (type) {
-                AddRemoveClear.ADD -> "+"
-                AddRemoveClear.REMOVE -> "-"
-                AddRemoveClear.CLEAR -> "c"
-            }
-            into(indent)
-            into("${UMFReader.EntryType.SEAL.key}\t$typeStr\t")
-            if (type != AddRemoveClear.CLEAR) {
-                into(name!!.value.maybeEscape())
-                into("\t")
-            }
-            into(baseNs.name.maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitSeal(delegate, type, name, baseNs)
-        }
-
-        override fun visitInterface(
-            delegate: ClassMappingVisitor,
-            type: AddRemove,
-            name: ClassTypeSignature,
-            baseNs: Namespace,
-        ): InterfaceMappingVisitor? {
-            val typeStr = when (type) {
-                AddRemove.ADD -> "+"
-                AddRemove.REMOVE -> "-"
-            }
-            into(indent)
-            into("${UMFReader.EntryType.INTERFACE.key}\t$typeStr\t")
-            into(name.value.maybeEscape())
-            into("\t")
-            into(baseNs.name.maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitInterface(delegate, type, name, baseNs)
-        }
-
-        override fun visitParameter(
-            delegate: InvokableMappingVisitor,
-            index: Int?,
-            lvOrd: Int?,
-            names: Map<Namespace, UnqualifiedName>
-        ): ParameterMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.PARAMETER.key}\t")
-            into(index?.toString().maybeEscape())
-            into("\t")
-            into(lvOrd?.toString().maybeEscape())
-            into("\t")
-            into.writeNamespaced(names.mapValues { it.value.value })
-            into("\n")
-            indent += "\t"
-            return super.visitParameter(delegate, index, lvOrd, names)
-        }
-
-        override fun visitLocalVariable(
-            delegate: InvokableMappingVisitor,
-            lvOrd: Int,
-            startOp: Int?,
-            names: Map<Namespace, UnqualifiedName>
-        ): LocalVariableMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.LOCAL_VARIABLE.key}\t")
-            into(lvOrd.toString().maybeEscape())
-            into("\t")
-            into(startOp?.toString().maybeEscape())
-            into("\t")
-            into.writeNamespaced(names.mapValues { it.value.value })
-            into("\n")
-            indent += "\t"
-            return super.visitLocalVariable(delegate, lvOrd, startOp, names)
-        }
-
-        override fun visitException(
-            delegate: InvokableMappingVisitor,
-            type: AddRemove,
-            exception: InternalName,
-            baseNs: Namespace,
-        ): ExceptionMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.EXCEPTION.key}\t")
-            when (type) {
-                AddRemove.ADD -> into("+\t")
-                AddRemove.REMOVE -> into("-\t")
-            }
-            into(exception.value.maybeEscape())
-            into("\t")
-            into(baseNs.name.maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitException(delegate, type, exception, baseNs)
-        }
-
-        override fun visitAccess(
-            delegate: AccessParentMappingVisitor,
-            type: AddRemove,
-            value: AccessFlag,
-            conditions: AccessConditions,
-        ): AccessMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.ACCESS.key}\t")
-            when (type) {
-                AddRemove.ADD -> into("+\t")
-                AddRemove.REMOVE -> into("-\t")
-            }
-            into("${value.name.lowercase()}\t")
-            into("$conditions\t")
-            into(namespaces.joinToString("\t") { it.name.maybeEscape() })
-            into("\n")
-            indent += "\t"
-            return super.visitAccess(delegate, type, value, conditions)
-        }
-
-        override fun visitJavadoc(
-            delegate: JavadocParentMappingVisitor,
-            value: String,
-            baseNs: Namespace
-        ): JavadocMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.JAVADOC.key}\t")
-            into(value.maybeEscape())
-            into("\t")
-            into(baseNs.name.maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitJavadoc(delegate, value, baseNs)
-        }
-
-        override fun <T: Signature> visitSignature(
-            delegate: SignatureParentMappingVisitor<T>,
-            value: T,
-            baseNs: Namespace
-        ): SignatureMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.SIGNATURE.key}\t")
-            into(value.toString().maybeEscape())
-            into("\t")
-            into(baseNs.name.maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitSignature(delegate, value, baseNs)
-        }
-
-        override fun visitAnnotation(
-            delegate: AnnotationParentMappingVisitor,
-            type: AddRemoveModify,
-            baseNs: Namespace,
-            annotation: Annotation,
-        ): AnnotationMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.ANNOTATION.key}\t")
-            when (type) {
-                AddRemoveModify.ADD -> into("+\t")
-                AddRemoveModify.REMOVE -> into("-\t")
-                AddRemoveModify.MODIFY -> into("m\t")
-            }
-            val parts = annotation.getParts()
-            into(parts.first.value.maybeEscape())
-            into("\t")
-            into(parts.second?.value.maybeEscape())
-            if (parts.third != null) {
-                into(parts.third!!.value.maybeEscape())
-            }
-            into("\t")
-            into(baseNs.name.maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitAnnotation(delegate, type, baseNs, annotation)
-        }
-
-        override fun visitConstantGroup(
-            delegate: RootMappingVisitor,
-            type: InlineType,
-            name: String?,
-            baseNs: Namespace,
-        ): ConstantGroupMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.CONSTANT_GROUP.key}\t")
-            into("${type.name.lowercase()}\t${name.maybeEscape()}\t${baseNs.name.maybeEscape()}")
-            into("\n")
-            indent += "\t"
-            return super.visitConstantGroup(delegate, type, name, baseNs)
-        }
-
-        override fun visitConstant(
-            delegate: ConstantGroupMappingVisitor,
-            fieldClass: InternalName,
-            fieldName: UnqualifiedName,
-            fieldDesc: FieldDescriptor?
-        ): ConstantMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.CONSTANT.key}\t")
-            into(fieldClass.value.maybeEscape())
-            into("\t")
-            into(fieldName.value.maybeEscape())
-            if (fieldDesc != null) {
-                into(";")
-                into(fieldDesc.value.value.maybeEscape())
-            }
-            into("\n")
-            indent += "\t"
-            return super.visitConstant(delegate, fieldClass, fieldName, fieldDesc)
-        }
-
-        override fun visitTarget(
-            delegate: ConstantGroupMappingVisitor,
-            target: FullyQualifiedName?,
-            paramIdx: Int?
-        ): TargetMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.CONSTANT_TARGET.key}\t")
-            if (target != null) {
-                into(target.value.maybeEscape())
-            }
-            into("\t")
-            into(paramIdx?.toString().maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitTarget(delegate, target, paramIdx)
-        }
-
-        override fun visitExpression(
-            delegate: ConstantGroupMappingVisitor,
-            value: Constant,
-            expression: Expression
-        ): ExpressionMappingVisitor? {
-            into(indent)
-            into("${UMFReader.EntryType.CONSTANT_EXPRESSION.key}\t")
-            into(value.value.maybeEscape())
-            into("\t")
-            into(expression.toString().maybeEscape())
-            into("\n")
-            indent += "\t"
-            return super.visitExpression(delegate, value, expression)
-        }
-
     }
 
 

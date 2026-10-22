@@ -1,21 +1,18 @@
-package xyz.wagyourtail.unimined.mapping.propagator
+package xyz.wagyourtail.unimined.mapping.inheritance
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.atomicfu.locks.ReentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.commonskt.utils.coroutines.parallelMap
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.element.PackageMapping
-import xyz.wagyourtail.unimined.mapping.element.WildcardMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.PackageMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.WildcardMapping
 import xyz.wagyourtail.unimined.mapping.element.WildcardType
-import xyz.wagyourtail.unimined.mapping.element.ParameterMapping
-import xyz.wagyourtail.unimined.mapping.element.LocalVariableMapping
-import xyz.wagyourtail.unimined.mapping.element.ConstantGroupMapping
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.element.mapping.ParameterMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.LocalVariableMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.ConstantGroupMapping
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
@@ -26,13 +23,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
-import xyz.wagyourtail.unimined.mapping.element.ClassMapping
-import xyz.wagyourtail.unimined.mapping.element.FieldMapping
-import xyz.wagyourtail.unimined.mapping.element.MethodMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.FieldMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.emit
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import kotlin.collections.filterValues
 
 abstract class InheritanceTree {
@@ -103,6 +98,7 @@ abstract class InheritanceTree {
                 }
                 is PackageMapping, is WildcardMapping, is ParameterMapping,
                 is LocalVariableMapping, is ConstantGroupMapping, is MappingTree -> el
+                else -> el
             }
         }
     }

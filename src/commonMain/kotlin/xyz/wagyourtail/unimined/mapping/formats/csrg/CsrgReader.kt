@@ -12,9 +12,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object CsrgReader : FormatReader {
 
@@ -27,21 +33,21 @@ object CsrgReader : FormatReader {
     const val FIELD_MAPPING = 3
     const val METHOD_MAPPING = 4
 
-    fun AbstractMappingTree?.mapPackage(srcNs: Namespace, dstNs: Namespace, name: InternalName): InternalName {
+    fun MappingTree?.mapPackage(srcNs: Namespace, dstNs: Namespace, name: InternalName): InternalName {
         if (this == null) return name
         val parts = name.getParts()
         val mappedPkg = map(srcNs, dstNs, parts.first)
         return InternalName(mappedPkg, parts.second)
     }
 
-    fun AbstractMappingTree?.mapDescPackages(srcNs: Namespace, dstNs: Namespace, md: MethodDescriptor): MethodDescriptor {
+    fun MappingTree?.mapDescPackages(srcNs: Namespace, dstNs: Namespace, md: MethodDescriptor): MethodDescriptor {
         if (this == null) return md
         return MethodDescriptor.unchecked(buildString {
             md.accept(descRemapAcceptor(this@mapDescPackages, srcNs, dstNs))
         })
     }
 
-    fun StringBuilder.descRemapAcceptor(tree: AbstractMappingTree, fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
+    fun StringBuilder.descRemapAcceptor(tree: MappingTree, fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
         return { obj, leaf ->
             when (obj) {
                 is PackageName -> {
@@ -58,23 +64,23 @@ object CsrgReader : FormatReader {
         }
     }
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         return fileName.endsWith(".csrg")
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val srcNs = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.use {
-            visitHeader(srcNs.name, dstNs.name)
+        with (into) {
+            header(listOf(srcNs, dstNs))
 
             while (!input.exhausted()) {
                 input.takeNonNewlineWhitespace()
@@ -92,15 +98,15 @@ object CsrgReader : FormatReader {
                     CLASS_MAPPING -> {
                         val src = InternalName.read(parts[0])
                         val dst = context.mapPackage(srcNs, dstNs, InternalName.read(parts[1]))
-                        visitClass(mapOf(srcNs to src, dstNs to dst))?.visitEnd()
+                        pushed(MutableClassMapping(mapOf(srcNs to src, dstNs to dst))) {}
                     }
 
                     FIELD_MAPPING -> {
                         val dstCls = context.mapPackage(srcNs, dstNs, InternalName.read(parts[0]))
                         val srcName = UnqualifiedName.read(parts[1])
                         val dstName = UnqualifiedName.read(parts[2])
-                        visitClass(mapOf(dstNs to dstCls))?.use {
-                            visitField(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to FieldNameAndDescriptor(dstName, null)))?.visitEnd()
+                        pushed(MutableClassMapping(mapOf(dstNs to dstCls))) {
+                            pushed(MutableFieldMapping(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to FieldNameAndDescriptor(dstName, null)))) {}
                         }
                     }
 
@@ -109,8 +115,8 @@ object CsrgReader : FormatReader {
                         val srcName = UnqualifiedName.read(parts[1])
                         val dstDesc = context.mapDescPackages(srcNs, dstNs, MethodDescriptor.read(parts[2]))
                         val dstName = UnqualifiedName.read(parts[3])
-                        into.visitClass(mapOf(dstNs to dstCls))?.use {
-                            visitMethod(mapOf(srcNs to srcName.withMethodDesc(null), dstNs to MethodNameAndDescriptor(dstName, dstDesc)))?.visitEnd()
+                        pushed(MutableClassMapping(mapOf(dstNs to dstCls))) {
+                            pushed(MutableMethodMapping(mapOf(srcNs to srcName.withMethodDesc(null), dstNs to MethodNameAndDescriptor(dstName, dstDesc)))) {}
                         }
                     }
 
@@ -120,6 +126,7 @@ object CsrgReader : FormatReader {
                 }
             }
         }
+        into.end()
     }
 
 }

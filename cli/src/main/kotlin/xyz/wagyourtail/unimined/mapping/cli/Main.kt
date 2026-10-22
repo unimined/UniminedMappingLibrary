@@ -18,7 +18,10 @@ import xyz.wagyourtail.unimined.mapping.cli.Main.Companion.LOGGER
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.propogator.Propagator
 import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyNames
+import xyz.wagyourtail.unimined.mapping.fillMissingNames
+import xyz.wagyourtail.unimined.mapping.sink.asVisitor
+import xyz.wagyourtail.unimined.mapping.sink.VisitorSink
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.time.measureTime
 
 fun main(vararg args: String) {
@@ -52,7 +55,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
             val t = measureTime {
                 input.source().buffer().use { buf ->
                     FormatRegistry.autodetectFormat(envType, input.name, buf.peek())
-                        ?.read(buf, mappings, mappings, envType, nsMapMap[idx]?.associate { it } ?: emptyMap())
+                        ?.read(buf, mappings, mappings.asVisitor(), envType, nsMapMap[idx]?.associate { it } ?: emptyMap())
                         ?: throw IllegalArgumentException("Could not autodetect format for ${input.name}")
                 }
             }
@@ -64,7 +67,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
             LOGGER.info { "Propagating..." }
             val t = measureTime {
                 Propagator(mappings, Namespace(propagationNs!!), prop + cp)
-                    .propagate(mappings.namespaces.toSet() - Namespace(propagationNs!!))
+                    .propagate(mappings, mappings.namespaces.toSet() - Namespace(propagationNs!!))
             }
             LOGGER.info { "Propagated in ${t.inWholeMilliseconds}ms" }
         }
@@ -72,7 +75,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
         for ((from, to) in copyMissingMap) {
             LOGGER.info { "Copying missing names from $from to ${to.joinToString(", ")}" }
             val t = measureTime {
-                mappings.accept(mappings.copyNames(Namespace(from), to.map { Namespace(it) }.toSet()))
+                mappings.fillMissingNames(Namespace(from) to to.map { Namespace(it) }.toSet())
             }
             LOGGER.info { "Copied missing names in ${t.inWholeMilliseconds}ms" }
         }
@@ -90,7 +93,7 @@ class ExportMappings(val main: Main) : CliktCommand(name = "export") {
         val t = measureTime {
             output.parentFile?.mkdirs()
             output.sink().buffer().use { buf ->
-                main.mappings.accept(format.write(buf, main.envType))
+                main.mappings.emit(VisitorSink(format.write(buf, main.envType)))
             }
         }
         LOGGER.info { "Wrote in ${t.inWholeMilliseconds}ms" }

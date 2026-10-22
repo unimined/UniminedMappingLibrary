@@ -9,8 +9,15 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object ZipReader : FormatReader {
 
@@ -19,7 +26,7 @@ object ZipReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         input.peek().use {
             try {
                 val bs = it.readByteString(4)
@@ -32,23 +39,22 @@ object ZipReader : FormatReader {
 
     override suspend fun read(
         input: BufferedSource,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        ZipFS(input).use { zip ->
-            val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
+        val envType = settings.envType
+                ZipFS(input).use { zip ->
+            val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(it.replace('\\', '/'), zip.getContents(it)) }
             for ((file, format) in files.entries.sortedBy { FormatRegistry.formats.indexOf(it.value) }) {
                 if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
                 format.read(
                     zip.getContents(file),
                     context,
                     into,
-                    envType,
                     nsMapping.filterKeys { it.startsWith(format.name + "-") }.mapKeys { it.key.removePrefix(format.name + "-") },
-                    settings or this,
+                    FormatReaderSettings(envType = envType) or settings,
                 )
             }
         }
@@ -56,12 +62,12 @@ object ZipReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings,
     ) {
+        val envType = settings.envType
         throw UnsupportedOperationException("ZipReader does not support CharReader")
     }
 

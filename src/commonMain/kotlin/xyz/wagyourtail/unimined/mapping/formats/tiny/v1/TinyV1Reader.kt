@@ -12,10 +12,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object TinyV1Reader : FormatReader {
 
@@ -24,26 +29,26 @@ object TinyV1Reader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         return input.peek().readUtf8Line()?.startsWith("v1\t") ?: false
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val v = input.takeNextLiteral()
+        val envType = settings.envType
+                val v = input.takeNextLiteral()
         if (v != "v1") throw IllegalArgumentException("Invalid tinyv1 file")
         val namespaces = input.takeRemainingOnLine().map { Namespace(nsMapping[it] ?: it) }
 
-        into.use {
-            visitHeader(*namespaces.map { it.name }.toTypedArray())
+        with (into) {
+            header(namespaces)
 
-            var currentCls: Pair<InternalName, ClassMappingVisitor?>? = null
+            var currentCls: Pair<InternalName, MappingElement?>? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -70,8 +75,8 @@ object TinyV1Reader : FormatReader {
                                 nameMap[ns] = InternalName.read(name)
                             }
                         }
-                        currentCls?.second?.visitEnd()
-                        currentCls = srcName to visitClass(nameMap)
+                        currentCls?.second?.let { pop(it) }
+                        currentCls = srcName to push(MutableClassMapping(nameMap))
                     }
 
                     "FIELD" -> {
@@ -91,10 +96,10 @@ object TinyV1Reader : FormatReader {
                             }
                         }
                         if (currentCls?.first != srcClass) {
-                            currentCls?.second?.visitEnd()
-                            currentCls = srcClass to visitClass(mapOf(namespaces.first() to srcClass))
+                            currentCls?.second?.let { pop(it) }
+                            currentCls = srcClass to push(MutableClassMapping(mapOf(namespaces.first() to srcClass)))
                         }
-                        currentCls.second?.visitField(nameMap)?.visitEnd()
+                        pushed(MutableFieldMapping(nameMap)) {}
                     }
 
                     "METHOD" -> {
@@ -114,10 +119,10 @@ object TinyV1Reader : FormatReader {
                             }
                         }
                         if (currentCls?.first != srcClass) {
-                            currentCls?.second?.visitEnd()
-                            currentCls = srcClass to visitClass(mapOf(namespaces.first() to srcClass))
+                            currentCls?.second?.let { pop(it) }
+                            currentCls = srcClass to push(MutableClassMapping(mapOf(namespaces.first() to srcClass)))
                         }
-                        currentCls.second?.visitMethod(nameMap)?.visitEnd()
+                        pushed(MutableMethodMapping(nameMap)) {}
                     }
                     else -> {
                         throw IllegalArgumentException("Invalid tinyv1 file, unknown type $col")
@@ -125,8 +130,9 @@ object TinyV1Reader : FormatReader {
                 }
             }
 
-            currentCls?.second?.visitEnd()
+            currentCls?.second?.let { pop(it) }
         }
+into.end()
     }
 
 }

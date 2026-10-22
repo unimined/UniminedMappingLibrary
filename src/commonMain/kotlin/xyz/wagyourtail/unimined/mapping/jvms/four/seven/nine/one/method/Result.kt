@@ -6,6 +6,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.VoidDescriptor
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * Result:
@@ -16,7 +21,7 @@ import kotlin.jvm.JvmInline
 value class Result private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<Result> {
-        val innerTypes = setOf(JavaTypeSignature, VoidDescriptor)
+        val innerTypes get() = setOf(JavaTypeSignature, VoidDescriptor)
 
         override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true

@@ -12,11 +12,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.MethodMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object TsrgV2Reader : FormatReader {
 
@@ -25,20 +29,20 @@ object TsrgV2Reader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (!fileName.endsWith(".tsrg")) return false
         return input.peek().readUtf8Line()?.startsWith("tsrg2 ") ?: false
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-
+        val envType = settings.envType
+        
         val tsrg2 = input.takeNextLiteral(' ')
         if (tsrg2 != "tsrg2") throw IllegalArgumentException("invalid tsrg2 file")
         val ns = mutableListOf<Namespace>()
@@ -47,11 +51,11 @@ object TsrgV2Reader : FormatReader {
             ns.add(Namespace(nsMapping[nsName] ?: nsName))
         }
 
-        into.use {
-            into.visitHeader(*ns.map { it.name }.toTypedArray())
+        with (into) {
+            header(ns)
 
-            var cls: ClassMappingVisitor? = null
-            var md: MethodMappingVisitor? = null
+            var cls: MappingElement? = null
+            var md: MappingElement? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -66,10 +70,10 @@ object TsrgV2Reader : FormatReader {
                         val name = input.takeNextLiteral(' ') ?: break
                         names.add(InternalName.read(name))
                     }
-                    md?.visitEnd()
+                    md?.let { pop(it) }
                     md = null
-                    cls?.visitEnd()
-                    cls = into.visitClass(names.withIndex().associate { ns[it.index] to it.value })
+                    cls?.let { pop(it) }
+                    cls = push(MutableClassMapping(names.withIndex().associate { ns[it.index] to it.value }))
                 } else if (whitespace.length == 1) {
                     // method
                     val srcName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
@@ -82,10 +86,10 @@ object TsrgV2Reader : FormatReader {
                             val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
                             names.add(name.withMethodDesc(null))
                         }
-                        md?.visitEnd()
-                        md = cls?.visitMethod(
+                        md?.let { pop(it) }
+                        md = push(MutableMethodMapping(
                             names.withIndex()
-                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withMethodDesc(srcDesc)))
+                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withMethodDesc(srcDesc))))
                     } else {
                         // field
                         val names = mutableListOf<FieldNameAndDescriptor>()
@@ -93,10 +97,9 @@ object TsrgV2Reader : FormatReader {
                             val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
                             names.add(name.withFieldDesc(null))
                         }
-                        cls?.visitField(
+                        pushed(MutableFieldMapping(
                             names.withIndex()
-                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withFieldDesc(null)))
-                            ?.visitEnd()
+                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withFieldDesc(null)))) {}
                         md = null
                     }
                 } else if (whitespace.length == 2) {
@@ -108,10 +111,10 @@ object TsrgV2Reader : FormatReader {
                             val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
                             names.add(name)
                         }
-                        md?.visitParameter(
+                        pushed(MutableParameterMapping(
                             index.toInt(),
                             null,
-                            ns.withIndex().associate { it.value to names[it.index] })?.visitEnd()
+                            ns.withIndex().associate { it.value to names[it.index] })) {}
                     } else {
                         input.takeLine()
                     }
@@ -120,9 +123,10 @@ object TsrgV2Reader : FormatReader {
                 }
             }
 
-            md?.visitEnd()
-            cls?.visitEnd()
+            md?.let { pop(it) }
+            cls?.let { pop(it) }
         }
+        into.end()
 
 
     }

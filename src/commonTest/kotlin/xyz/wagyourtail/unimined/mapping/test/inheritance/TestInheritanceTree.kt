@@ -7,13 +7,9 @@ import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.propagator.CachedInheritanceTree
-import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.InvokableMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.ParameterMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.Delegator
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
+import xyz.wagyourtail.unimined.mapping.inheritance.CachedInheritanceTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -171,10 +167,10 @@ class TestInheritanceTree {
         }
 
         val tree = CachedInheritanceTree(mappings, StringCharReader(INHERITANCE_TREE))
-        tree.propagate(setOf(Namespace("named")))
+        tree.propagate(mappings, setOf(Namespace("named")))
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true), sort = true)
+            mappings.emit(UMFWriter.write(output, true), sort = true)
             output.readUtf8()
         }
 
@@ -188,12 +184,12 @@ class TestInheritanceTree {
             UMFReader.read(input)
         }
 
-        val filtered = MemoryMappingTree()
+        val filtered = MutableMappingTree()
         val tree = CachedInheritanceTree(mappings, StringCharReader(INHERITANCE_TREE))
-        tree.filtered(filtered)
+        tree.filtered(mappings, filtered)
 
         val output = Buffer().use { output ->
-            filtered.accept(UMFWriter.write(output, true), sort = true)
+            filtered.emit(UMFWriter.write(output, true), sort = true)
             output.readUtf8()
         }
         assertEquals(FILTERED_MAPPINGS.trimEnd().replace(" ", "\t"), output.trimEnd())
@@ -251,20 +247,13 @@ c	va	net/minecraft/class_2520	net/minecraft/nbt/NbtElement
         val tree = CachedInheritanceTree(mappings, StringCharReader(CHILD_TREE))
 
         for (m in mappings.namespaces.toSet() - tree.fns) {
-            tree.propagate(setOf(m))
+            tree.propagate(mappings, setOf(m))
         }
 
         val outputText = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true).delegator(object : Delegator() {
-                override fun visitParameter(
-                    delegate: InvokableMappingVisitor,
-                    index: Int?,
-                    lvOrd: Int?,
-                    names: Map<Namespace, UnqualifiedName>
-                ): ParameterMappingVisitor? {
-                    return null
-                }
-            }), sort = true)
+            mappings.emit(UMFWriter.write(output, true), sort = true, transform = { el ->
+                if (el is xyz.wagyourtail.unimined.mapping.element.mapping.ParameterMapping) null else el
+            })
             output.readUtf8()
         }
 

@@ -16,8 +16,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * Ornithe's mapping format for adding inner class information to classes.
@@ -31,22 +38,22 @@ object NestReader : FormatReader {
     override var leinient: Boolean = false
 
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         return fileName.endsWith(".nest")
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val ns = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val ns = Namespace(nsMapping["source"] ?: "source")
 
-        into.use {
-            visitHeader(ns.name)
+        with (into) {
+            header(listOf(ns))
 
             while (!input.exhausted()) {
                 input.takeWhitespace()
@@ -76,12 +83,12 @@ object NestReader : FormatReader {
                     )
                 )
 
-                visitClass(mapOf(ns to className))?.use {
+                pushed(MutableClassMapping(mapOf(ns to className))) {
 
-                    visitInnerClass(type, mapOf(ns to (innerName.value to fqn)))?.use {
+                    pushed(InnerClassElement(type, mapOf(ns to (innerName.value to fqn)))) {
                         for (acc in AccessFlag.of(ElementType.INNER_CLASS, access)) {
                             if (acc.elements.contains(ElementType.CLASS)) continue
-                            visitAccess(AddRemove.ADD, acc, AccessConditions.ALL)?.visitEnd()
+                            pushed(AccessElement(AddRemove.ADD, acc, AccessConditions.ALL)) {}
                         }
                     }
 
@@ -89,6 +96,7 @@ object NestReader : FormatReader {
             }
 
         }
+        into.end()
     }
 
 }

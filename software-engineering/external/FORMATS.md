@@ -20,7 +20,7 @@ c	a	net/minecraft/class_1	net/minecraft/Minecraft
 		p	_	0	_	_	arg0
 ```
 
-- Full spec: [`software-engineering/unimined-mapping-format.md`](software-engineering/unimined-mapping-format.md)
+- Full spec: [`../unimined-mapping-format.md`](../unimined-mapping-format.md)
 - Read/write: `UMFReader` / `UMFWriter`, and `serialization/Umf` (kotlinx
   `StringFormat`)
 
@@ -178,10 +178,33 @@ pipelines to document magic-number constants.
 - Spec/reference: https://github.com/FabricMC/unpick
 - Read: `UnpickReader`
 
+### Unpick v3 (`unpick v3` header)
+
+Newer spec with typed `group <type> [name]` blocks, expression constants
+(`Mth.PI / 3`, `Cls.*` wildcards), `@scope`/`@strict`/`@format`/`@flags`
+attributes, `param`/`return` method targets, `target_field` lines, and (v4)
+`target_annotation` lines. Binary (dotted) class names; `param` indexes are
+arg indexes, not LVT.
+
+Mapping into the element model:
+
+- group data type → `Lunimined/unpick/DataType;` annotation on the group
+- `@scope`/`@strict`/`@format` → `Lunimined/unpick/Scope;`/`Strict;`/`Format;`
+  annotations on the group; `@flags` → bitfield group
+- `#` comments immediately preceding a group → group javadoc
+- `Cls.FIELD[:type]` consts (incl. `Cls.*` wildcards) → constant elements;
+  `:instance` markers and other expressions → verbatim expression elements
+- `target_field`/`target_annotation` → class-level targets (annotation
+  targets have no member descriptor); `param`/`return` → indexed targets
+
+- Spec: https://github.com/FabricMC/unpick/issues/26 (v3),
+  `unpick v4` adds `target_annotation`
+- Read: `UnpickReader` (shared v2/v3/v4)
+
 ## Retroguard (`.rgs`)
 
 RetroGuard script format — the original obfuscation mapping output produced
-by running RetroGuard in old (pre-1.5-era) MCP toolchains. `.class`/`method`
+by running RetroGuard in old (alpha era) MCP toolchains. `.class`/`method`
 /`field` mapping statements plus `-out`/`-startclass` style directives.
 
 - Read: `RetroguardReader`

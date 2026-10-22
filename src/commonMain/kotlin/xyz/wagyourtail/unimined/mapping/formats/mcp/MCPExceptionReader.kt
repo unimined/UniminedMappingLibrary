@@ -12,10 +12,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object MCPExceptionReader : FormatReader {
 
@@ -24,7 +29,7 @@ object MCPExceptionReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         return fileName.substringAfterLast('/').endsWith(".exc")
     }
 
@@ -46,13 +51,13 @@ object MCPExceptionReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-
+        val envType = settings.envType
+        
         val data = mutableMapOf<Pair<InternalName, MethodNameAndDescriptor>, Triple<List<InternalName>, List<UnqualifiedName>, String?>>()
 
         while (!input.exhausted()) {
@@ -129,8 +134,8 @@ object MCPExceptionReader : FormatReader {
 
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
 
-        into.use {
-            visitHeader(srcNs.name)
+        with (into) {
+            header(listOf(srcNs))
 
             for ((e, excParam) in data) {
                 val cls = e.first
@@ -139,25 +144,26 @@ object MCPExceptionReader : FormatReader {
                 val param = excParam.second
                 val access = excParam.third
 
-                visitClass(mapOf(srcNs to cls))?.use {
-                    visitMethod(mapOf(srcNs to method))?.use {
+                pushed(MutableClassMapping(mapOf(srcNs to cls))) {
+                    pushed(MutableMethodMapping(mapOf(srcNs to method))) {
                         for (ex in exc) {
-                            visitException(AddRemove.ADD, ex, srcNs)?.visitEnd()
+                            pushed(ExceptionElement(AddRemove.ADD, ex, srcNs)) {}
                         }
                         for (i in param.indices) {
-                            visitParameter(i, null, mapOf(srcNs to param[i]))?.visitEnd()
+                            pushed(MutableParameterMapping(i, null, mapOf(srcNs to param[i]))) {}
                         }
                         if (access != null) {
-                            visitAccess(
+                            pushed(AccessElement(
                                 AddRemove.ADD,
                                 AccessFlag.valueOf(access),
                                 AccessConditions.ALL,
-                            )?.visitEnd()
+                            )) {}
                         }
                     }
                 }
             }
         }
+into.end()
 
     }
 

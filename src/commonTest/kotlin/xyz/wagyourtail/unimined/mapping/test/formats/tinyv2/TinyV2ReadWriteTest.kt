@@ -5,8 +5,14 @@ import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Writer
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class TinyV2ReadWriteTest {
 
@@ -121,7 +127,7 @@ class TinyV2ReadWriteTest {
             TinyV2Reader.read(input)
         }
         val output = Buffer().use { output ->
-            m.accept(TinyV2Writer.write(output))
+            m.emit(TinyV2Writer.write(output))
             output.readUtf8()
         }
         assertEquals(mappings.trimEnd(), output.trimEnd())

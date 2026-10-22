@@ -6,9 +6,15 @@ import okio.use
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.copyNames
+import xyz.wagyourtail.unimined.mapping.sink.emit
+import xyz.wagyourtail.unimined.mapping.tree.impl.fillMissingNames
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class NameCopyTest {
 
@@ -39,10 +45,11 @@ class NameCopyTest {
             UMFReader.read(input)
         }
 
-        mappings.accept(mappings.copyNames(Namespace("intermediary") to setOf(Namespace("named"))))
+        mappings.fillMissingNames(Namespace("intermediary") to setOf(Namespace("named")))
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true).copyNames(Namespace("named") to setOf(Namespace("extra"))))
+            mappings.fillMissingNames(Namespace("named") to setOf(Namespace("extra")))
+            mappings.emit(UMFWriter.write(output, true))
             output.readUtf8()
         }
 
@@ -60,7 +67,7 @@ class NameCopyTest {
         mappings.fillMissingNames(Namespace("intermediary") to setOf(Namespace("named")), Namespace("named") to setOf(Namespace("extra")))
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true))
+            mappings.emit(UMFWriter.write(output, true))
             output.readUtf8()
         }
 

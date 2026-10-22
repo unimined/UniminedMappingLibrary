@@ -6,6 +6,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmName
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * FieldOrMethodDescriptor:
@@ -15,7 +20,7 @@ import kotlin.jvm.JvmName
 interface FieldOrMethodDescriptor : Type {
 
     companion object : TypeCompanion<FieldOrMethodDescriptor> {
-        val innerTypes = setOf(
+        val innerTypes get() = setOf(
             FieldDescriptor,
             MethodDescriptor
         )

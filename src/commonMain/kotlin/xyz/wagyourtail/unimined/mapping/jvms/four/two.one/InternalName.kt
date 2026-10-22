@@ -5,7 +5,13 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.TypeCache
 import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * InternalName:
@@ -37,10 +43,10 @@ value class InternalName private constructor(val value: String) : Type {
         operator fun invoke(pkg: PackageName, name: UnqualifiedName) = InternalName("${pkg.value}${name.value}")
     }
 
-    fun getParts(): Pair<PackageName, UnqualifiedName> {
-        val parts = value.split("/")
-        val pkg = parts.dropLast(1).joinToString("/").let { if (it.isEmpty()) it else "$it/" }
-        return PackageName.unchecked(pkg) to UnqualifiedName.unchecked(parts.last())
+    fun getParts(): Pair<PackageName, UnqualifiedName> = TypeCache.getOrPut(Companion, value) {
+        val parts = it.split("/")
+        val pkg = parts.dropLast(1).joinToString("/").let { s -> if (s.isEmpty()) s else "$s/" }
+        PackageName.unchecked(pkg) to UnqualifiedName.unchecked(parts.last())
     }
 
     override fun accept(visitor: (Any) -> Boolean) {

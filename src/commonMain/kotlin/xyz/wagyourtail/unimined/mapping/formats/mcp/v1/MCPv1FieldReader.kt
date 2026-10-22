@@ -10,13 +10,16 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.FieldMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.JavadocMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
+import xyz.wagyourtail.unimined.mapping.sink.emit
 
 /**
  * this reads the MCP 1-2.12 field csv files
@@ -28,7 +31,7 @@ object MCPv1FieldReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "fields.csv") return false
         // check that 4th line starts with "class"
         input.peek().use {
@@ -40,13 +43,13 @@ object MCPv1FieldReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        input.takeLine()
+        val envType = settings.envType
+                input.takeLine()
         input.take()
         input.takeLine()
         input.take()
@@ -97,43 +100,27 @@ object MCPv1FieldReader : FormatReader {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
-        context?.accept(
-            into.delegator(object : NullDelegator() {
+        context?.emit(object : MappingSink by into {
+            override fun header(namespaces: List<Namespace>) {
+                into.header((namespaces + setOf(srcNs, dstNs)).distinct())
+            }
 
-                override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
-                    val ns = setOf(*namespaces, srcNs, dstNs)
-                    default.visitHeader(delegate, *ns.toTypedArray())
-                }
-
-                override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
-                    return default.visitClass(delegate, names)
-                }
-
-                override fun visitField(
-                    delegate: ClassMappingVisitor,
-                    names: Map<Namespace, FieldNameAndDescriptor>
-                ): FieldMappingVisitor? {
-                    val ns = names[srcNs] ?: return null
+            override fun push(element: MappingElement): MappingElement? {
+                if (element is FieldMapping) {
+                    val entries = element.emitEntries()
+                    val ns = entries[srcNs] ?: return null
                     val fData = data[ns.name] ?: return null
-                    val nameMap = names.toMutableMap()
+                    val nameMap = entries.toMutableMap()
                     nameMap[dstNs] = FieldNameAndDescriptor(fData.first, null)
-                    val visitor = default.visitField(delegate, nameMap)
+                    val pushed = into.push(MutableFieldMapping(nameMap)) ?: return null
                     if (fData.second != null) {
-                        visitor?.visitJavadoc(fData.second!!, dstNs)?.visitEnd()
+                        into.pushed(JavadocElement(fData.second!!, dstNs)) {}
                     }
-                    return visitor
+                    return pushed
                 }
-
-                override fun visitFieldJavadoc(
-                    delegate: FieldMappingVisitor,
-                    value: String,
-                    baseNs: Namespace
-                ): JavadocMappingVisitor? {
-                    return default.visitFieldJavadoc(delegate, value, baseNs)
-                }
-
-            })
-        )
+                return into.push(element)
+            }
+        })
 
     }
 }

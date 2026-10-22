@@ -4,9 +4,14 @@ import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 interface FormatReader : FormatReaderSettings {
 
@@ -19,92 +24,83 @@ interface FormatReader : FormatReaderSettings {
     val name: String
         get() = this::class.simpleName!!.removeSuffix("Reader").lowercase()
 
-    fun isFormat(fileName: String, input: BufferedSource, envType: EnvType = EnvType.JOINED): Boolean
+    fun isFormat(fileName: String, input: BufferedSource): Boolean
 
     fun getSide(fileName: String, input: BufferedSource): Set<EnvType> = EnvType.entries.toSet()
 
     suspend fun read(
         content: String,
-        envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
-    ): MemoryMappingTree = MemoryMappingTree().also {
-        read(StringCharReader(content.replace("\r", "")), null, it, envType, nsMapping, settings)
+    ): MutableMappingTree = MutableMappingTree().also {
+        read(StringCharReader(content.replace("\r", "")), null, it, nsMapping, settings)
     }
 
     suspend fun read(
         content: String,
-        into: AbstractMappingTree,
-        envType: EnvType = EnvType.JOINED,
+        into: MutableMappingTree,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
     ) {
-        read(StringCharReader(content.replace("\r", "")), into, into, envType, nsMapping, settings)
+        read(StringCharReader(content.replace("\r", "")), into, into, nsMapping, settings)
     }
 
     suspend fun read(
         content: String,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType = EnvType.JOINED,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
-    ) = read(StringCharReader(content.replace("\r", "")), context, into, envType, nsMapping, settings)
+    ) = read(StringCharReader(content.replace("\r", "")), context, into, nsMapping, settings)
 
     suspend fun read(
         input: BufferedSource,
-        envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
-    ): MemoryMappingTree = MemoryMappingTree().also {
-        read(input, null, it, envType, nsMapping, settings)
+    ): MutableMappingTree = MutableMappingTree().also {
+        read(input, null, it, nsMapping, settings)
     }
 
     suspend fun read(
         input: BufferedSource,
-        into: AbstractMappingTree,
-        envType: EnvType = EnvType.JOINED,
+        into: MutableMappingTree,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
     ) {
-        read(StringCharReader(input.readUtf8().replace("\r", "")), into, into, envType, nsMapping, settings)
+        read(StringCharReader(input.readUtf8().replace("\r", "")), into, into, nsMapping, settings)
     }
 
     suspend fun read(
         input: BufferedSource,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType = EnvType.JOINED,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
     ) {
-        read(StringCharReader(input.readUtf8().replace("\r", "")), context, into, envType, nsMapping, settings)
+        read(StringCharReader(input.readUtf8().replace("\r", "")), context, into, nsMapping, settings)
     }
 
     suspend fun read(
         input: CharReader<*>,
-        envType: EnvType = EnvType.JOINED,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
-    ): MemoryMappingTree = MemoryMappingTree().also {
-        read(input, null, it, envType, nsMapping, settings)
+    ): MutableMappingTree = MutableMappingTree().also {
+        read(input, null, it, nsMapping, settings)
     }
 
     suspend fun read(
         input: CharReader<*>,
-        into: AbstractMappingTree,
-        envType: EnvType = EnvType.JOINED,
+        into: MutableMappingTree,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
     ) {
-        read(input, into, into, envType, nsMapping, settings)
+        read(input, into, into, nsMapping, settings)
     }
 
     suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType = EnvType.JOINED,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String> = mapOf(),
         settings: FormatReaderSettings = this,
     )

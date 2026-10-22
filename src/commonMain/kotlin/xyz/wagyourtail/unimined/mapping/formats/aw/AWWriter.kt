@@ -11,10 +11,12 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.contains
 import xyz.wagyourtail.unimined.mapping.jvms.four.plus
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 object AWWriter : FormatWriter {
 
@@ -25,7 +27,7 @@ object AWWriter : FormatWriter {
      * use [AWWriter.remapMappings] to convert to the correct mappings,
      * and [AWWriter.writeData] to write the mappings
      */
-    override fun write(append: (String) -> Unit, envType: EnvType): RootMappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
         var ns: Namespace? = null
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null
@@ -46,197 +48,138 @@ object AWWriter : FormatWriter {
 
         val mappings = defaultedMapOf<InternalName, MutableList<AWReader.AWData>> { mutableListOf() }
 
-        return EmptyRootMappingVisitor().delegator(object : NullDelegator() {
+        return object : MappingSink {
 
-            override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
+            override fun header(namespaces: List<Namespace>) {
                 if (namespaces.size != 1) {
                     throw IllegalArgumentException("AWWriter requires exactly one namespace")
                 }
                 ns = namespaces[0]
             }
 
-            override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
-                cls = names[ns] ?: throw IllegalArgumentException("Class name not found")
-                return default.visitClass(delegate, names)
-            }
-
-            override fun visitField(
-                delegate: ClassMappingVisitor,
-                names: Map<Namespace, FieldNameAndDescriptor>
-            ): FieldMappingVisitor? {
-                val target = names[ns] ?: throw IllegalArgumentException("Field name not found")
-                if (!target.hasDescriptor) return null
-                member = target
-                memberAccessesAdd = wildcardFieldAdd
-                memberAccessesRemove = wildcardFieldRemove
-                return default.visitField(delegate, names)
-            }
-
-            override fun visitMethod(
-                delegate: ClassMappingVisitor,
-                names: Map<Namespace, MethodNameAndDescriptor>
-            ): MethodMappingVisitor? {
-                val target = names[ns] ?: throw IllegalArgumentException("Method name not found")
-                if (!target.hasDescriptor) return null
-                member = target
-                memberAccessesAdd = wildcardMethodAdd
-                memberAccessesRemove = wildcardMethodRemove
-                return default.visitMethod(delegate, names)
-            }
-
-            override fun visitClassAccess(
-                delegate: ClassMappingVisitor,
-                type: AddRemove,
-                value: AccessFlag,
-                conditions: AccessConditions,
-            ): AccessMappingVisitor? {
-                if (conditions == AccessConditions.ALL) {
-                    if (type == AddRemove.ADD) {
-                        classAccessAdd += value
-                    } else {
-                        classAccessRemove += value
+            override fun push(element: MappingElement): MappingElement? {
+                when (element) {
+                    is ClassMapping -> {
+                        cls = element.names[ns] ?: throw IllegalArgumentException("Class name not found")
                     }
+                    is FieldMapping -> {
+                        val target = element.emitEntries()[ns] ?: throw IllegalArgumentException("Field name not found")
+                        if (!target.hasDescriptor) return null
+                        member = target
+                        memberAccessesAdd = wildcardFieldAdd
+                        memberAccessesRemove = wildcardFieldRemove
+                    }
+                    is MethodMapping -> {
+                        val target = element.emitEntries()[ns] ?: throw IllegalArgumentException("Method name not found")
+                        if (!target.hasDescriptor) return null
+                        member = target
+                        memberAccessesAdd = wildcardMethodAdd
+                        memberAccessesRemove = wildcardMethodRemove
+                    }
+                    is WildcardMapping -> {
+                        wildcardType = element.type
+                    }
+                    else -> {}
                 }
-                return null
+                return element
             }
 
-            override fun visitWildcard(
-                delegate: ClassMappingVisitor,
-                type: WildcardType,
-                descs: Map<Namespace, FieldOrMethodDescriptor>
-            ): WildcardMappingVisitor? {
-                wildcardType = type
-                return default.visitWildcard(delegate, type, descs)
-            }
-
-            override fun visitWildcardAccess(
-                delegate: WildcardMappingVisitor,
-                type: AddRemove,
-                value: AccessFlag,
-                conditions: AccessConditions,
-            ): AccessMappingVisitor? {
-                if (conditions == AccessConditions.ALL) {
-                    if (wildcardType == WildcardType.FIELD) {
-                        if (type == AddRemove.ADD) {
-                            wildcardFieldAdd += value
-                        } else {
-                            wildcardFieldRemove += value
+            override fun push(meta: MetadataElement): MetadataElement? {
+                if (meta is AccessElement && meta.condition == AccessConditions.ALL) {
+                    val add = meta.type == AddRemove.ADD
+                    when {
+                        wildcardType != null -> {
+                            if (wildcardType == WildcardType.FIELD) {
+                                if (add) wildcardFieldAdd += meta.value else wildcardFieldRemove += meta.value
+                            } else {
+                                if (add) wildcardMethodAdd += meta.value else wildcardMethodRemove += meta.value
+                            }
                         }
-                    } else {
-                        if (type == AddRemove.ADD) {
-                            wildcardMethodAdd += value
-                        } else {
-                            wildcardMethodRemove += value
+                        member != null -> {
+                            if (add) memberAccessesAdd += meta.value else memberAccessesRemove += meta.value
+                        }
+                        else -> {
+                            if (add) classAccessAdd += meta.value else classAccessRemove += meta.value
                         }
                     }
                 }
-                return null
+                return meta
             }
 
-            override fun visitWildcardEnd(delegate: WildcardMappingVisitor) {
-                wildcardType = null
-            }
-
-            override fun visitFieldAccess(
-                delegate: FieldMappingVisitor,
-                type: AddRemove,
-                value: AccessFlag,
-                conditions: AccessConditions,
-            ): AccessMappingVisitor? {
-                if (conditions == AccessConditions.ALL) {
-                    if (type == AddRemove.ADD) {
-                        memberAccessesAdd += value
-                    } else {
-                        memberAccessesRemove += value
+            override fun pop(element: MappingElement) {
+                when (element) {
+                    is ClassMapping -> {
+                        val fqn = FullyQualifiedName(ObjectType(cls!!), null)
+                        if (AccessFlag.PUBLIC in classAccessAdd) {
+                            mappings[cls]!!.add(AWReader.AWData(
+                                "accessible",
+                                fqn
+                            ))
+                        }
+                        if (classAccessRemove.contains(AccessFlag.FINAL)) {
+                            mappings[cls]!!.add(AWReader.AWData(
+                                "extendable",
+                                fqn
+                            ))
+                        }
+                        classAccessAdd = 0
+                        classAccessRemove = 0
+                        memberAccessesAdd = 0
+                        memberAccessesRemove = 0
+                        wildcardFieldAdd = 0
+                        wildcardFieldRemove = 0
+                        wildcardMethodAdd = 0
+                        wildcardMethodRemove = 0
+                        cls = null
                     }
-                }
-                return null
-            }
-
-            override fun visitMethodAccess(
-                delegate: MethodMappingVisitor,
-                type: AddRemove,
-                value: AccessFlag,
-                conditions: AccessConditions,
-            ): AccessMappingVisitor? {
-                if (conditions == AccessConditions.ALL) {
-                    if (type == AddRemove.ADD) {
-                        memberAccessesAdd += value
-                    } else {
-                        memberAccessesRemove += value
+                    is FieldMapping -> {
+                        val fqn = FullyQualifiedName(ObjectType(cls!!), member!!)
+                        if (memberAccessesAdd.contains(AccessFlag.PUBLIC)) {
+                            mappings[cls]!!.add(AWReader.AWData(
+                                "accessible",
+                                fqn
+                            ))
+                        }
+                        if (memberAccessesRemove.contains(AccessFlag.FINAL)) {
+                            mappings[cls]!!.add(AWReader.AWData(
+                                "mutable",
+                                fqn
+                            ))
+                        }
+                        member = null
                     }
+                    is MethodMapping -> {
+                        val fqn = FullyQualifiedName(ObjectType(cls!!), member!!)
+                        if (memberAccessesAdd.contains(AccessFlag.PUBLIC)) {
+                            mappings[cls]!!.add(AWReader.AWData(
+                                "accessible",
+                                fqn
+                            ))
+                        }
+                        if (memberAccessesRemove.contains(AccessFlag.FINAL)) {
+                            mappings[cls]!!.add(AWReader.AWData(
+                                "extendable",
+                                fqn
+                            ))
+                        }
+                        member = null
+                    }
+                    is WildcardMapping -> {
+                        wildcardType = null
+                    }
+                    else -> {}
                 }
-                return null
             }
 
-            override fun visitClassEnd(delegate: ClassMappingVisitor) {
-                val fqn = FullyQualifiedName(ObjectType(cls!!), null)
-                if (AccessFlag.PUBLIC in classAccessAdd) {
-                    mappings[cls]!!.add(AWReader.AWData(
-                        "accessible",
-                        fqn
-                    ))
-                }
-                if (classAccessRemove.contains(AccessFlag.FINAL)) {
-                    mappings[cls]!!.add(AWReader.AWData(
-                        "extendable",
-                        fqn
-                    ))
-                }
-                classAccessAdd = 0
-                classAccessRemove = 0
-                memberAccessesAdd = 0
-                memberAccessesRemove = 0
-                wildcardFieldAdd = 0
-                wildcardFieldRemove = 0
-                wildcardMethodAdd = 0
-                wildcardMethodRemove = 0
-                cls = null
-            }
-
-            override fun visitFieldEnd(delegate: FieldMappingVisitor) {
-                val fqn = FullyQualifiedName(ObjectType(cls!!), member!!)
-                if (memberAccessesAdd.contains(AccessFlag.PUBLIC)) {
-                    mappings[cls]!!.add(AWReader.AWData(
-                        "accessible",
-                        fqn
-                    ))
-                }
-                if (memberAccessesRemove.contains(AccessFlag.FINAL)) {
-                    mappings[cls]!!.add(AWReader.AWData(
-                        "mutable",
-                        fqn
-                    ))
-                }
-                member = null
-            }
-
-            override fun visitMethodEnd(delegate: MethodMappingVisitor) {
-                val fqn = FullyQualifiedName(ObjectType(cls!!), member!!)
-                if (memberAccessesAdd.contains(AccessFlag.PUBLIC)) {
-                    mappings[cls]!!.add(AWReader.AWData(
-                        "accessible",
-                        fqn
-                    ))
-                }
-                if (memberAccessesRemove.contains(AccessFlag.FINAL)) {
-                    mappings[cls]!!.add(AWReader.AWData(
-                        "extendable",
-                        fqn
-                    ))
-                }
-                member = null
-            }
-
-            override fun visitFooter(delegate: RootMappingVisitor) {
+            override fun end() {
                 writeData(AWReader.AWMappings(ns!!, mappings.values.map { map ->
                     map.sorted()
                 }.flatten()), append)
             }
-        })
+        }
     }
 
-    fun remapMappings(mappings: AWReader.AWMappings, context: AbstractMappingTree, targetNs: Namespace): AWReader.AWMappings {
+    fun remapMappings(mappings: AWReader.AWMappings, context: MappingTree, targetNs: Namespace): AWReader.AWMappings {
         return AWReader.AWMappings(targetNs, mappings.targets.map {
             if (it is AWReader.AWData) {
                 AWReader.AWData(it.access, context.map(mappings.namespace, targetNs, it.target))

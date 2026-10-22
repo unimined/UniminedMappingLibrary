@@ -13,6 +13,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType.Companion
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * Constant:
@@ -26,7 +31,7 @@ value class Constant private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<Constant> {
 
-        val innerTypes: Set<TypeCompanion<*>> = setOf(StringConstant, BooleanConstant, NumberConstant)
+        val innerTypes: Set<TypeCompanion<*>> get() = setOf(StringConstant, BooleanConstant, NumberConstant)
 
         override fun shouldRead(reader: CharReader<*>): Boolean {
             if (reader.peek() == 'n') {

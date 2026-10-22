@@ -4,6 +4,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * FieldType:
@@ -16,7 +21,7 @@ value class FieldType private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<FieldType> {
 
-        val innerTypes: Set<TypeCompanion<*>> = setOf(BaseType, ObjectType, ArrayType)
+        val innerTypes: Set<TypeCompanion<*>> get() = setOf(BaseType, ObjectType, ArrayType)
 
         override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true

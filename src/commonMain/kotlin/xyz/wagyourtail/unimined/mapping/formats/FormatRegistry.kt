@@ -32,6 +32,11 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.unpick.UnpickReader
 import xyz.wagyourtail.unimined.mapping.formats.unsupported.UnsupportedWriter
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 object FormatRegistry {
 
@@ -106,9 +111,9 @@ object FormatRegistry {
         _formats.add(format)
     }
 
-    fun autodetectFormat(envType: EnvType, fileName: String, inputType: BufferedSource): FormatProvider? {
+    fun autodetectFormat(fileName: String, inputType: BufferedSource): FormatProvider? {
         return formats.firstOrNull {
-            try { it.isFormat(fileName, inputType.peek(), envType) }
+            try { it.isFormat(fileName, inputType.peek()) }
             catch (e: Exception) { false }
         }
     }

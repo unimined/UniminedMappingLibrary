@@ -14,9 +14,14 @@ import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
 import xyz.wagyourtail.commonskt.reader.StringCharReader
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class ATReadWriteTest {
     val atText = """
@@ -79,7 +84,7 @@ class ATReadWriteTest {
         }
 
         val umfOut = Buffer().use {
-            at.accept(UMFWriter.write(it, EnvType.JOINED), sort = true)
+            at.emit(UMFWriter.write(it), sort = true)
             it.readUtf8()
         }
 
@@ -94,7 +99,7 @@ class ATReadWriteTest {
         }
 
         val umfOut = Buffer().use {
-            at.accept(UMFWriter.write(it, EnvType.JOINED), sort = true)
+            at.emit(UMFWriter.write(it), sort = true)
             it.readUtf8()
         }
 
@@ -109,7 +114,7 @@ class ATReadWriteTest {
         }
 
         val out = Buffer().use {
-            at.accept(ATWriter.write(it, EnvType.JOINED))
+            at.emit(ATWriter.write(it))
             it.readUtf8()
         }
 
@@ -132,7 +137,7 @@ class ATReadWriteTest {
         }
 
         val out = Buffer().use {
-            at.accept(LegacyATWriter.write(it, EnvType.JOINED))
+            at.emit(LegacyATWriter.write(it))
             it.readUtf8()
         }
 
@@ -207,12 +212,12 @@ class ATReadWriteTest {
         }
         Buffer().use {
             it.writeUtf8(atText)
-            ATReader.read(it, m, m, EnvType.JOINED, mapOf("source" to "intermediary"))
+            ATReader.read(it, m, m, mapOf("source" to "intermediary"))
         }
 
         val aw = Buffer().use {
-            m.accept(AWWriter.write(it).nsFiltered("intermediary"))
-//            m.accept(UMFWriter.write(EnvType.JOINED, it))
+            m.emit(AWWriter.write(it), nsFilter = setOf(Namespace("intermediary")))
+//            m.emit(UMFWriter.write(EnvType.JOINED, it))
             it.readUtf8()
         }
 

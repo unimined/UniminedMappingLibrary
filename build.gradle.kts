@@ -32,17 +32,13 @@ kotlin {
             freeCompilerArgs = listOf("-Xjsr305=strict")
         }
     }
-    js {
+    wasmJs {
         browser {
-            useCommonJs()
-
             testTask {
                 enabled = false
             }
         }
-        nodejs {
-            useCommonJs()
-        }
+        nodejs()
         binaries.executable()
     }
 
@@ -81,14 +77,14 @@ kotlin {
                 implementation(kotlin("test-junit"))
             }
         }
-        val jsMain by getting {
+        val wasmJsMain by getting {
             dependencies {
                 implementation(npm("jszip", libs.versions.jszip.get()))
             }
         }
-        val jsTest by getting {
+        val wasmJsTest by getting {
             dependencies {
-                implementation(kotlin("test-js"))
+                implementation(kotlin("test-wasm-js"))
             }
         }
     }

@@ -5,6 +5,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * ReturnDescriptor:
@@ -16,7 +21,7 @@ value class ReturnDescriptor private constructor(val value: String) : Type {
 
     companion object: TypeCompanion<ReturnDescriptor> {
 
-        private val innerTypes: Set<TypeCompanion<*>> = setOf(FieldType, VoidDescriptor)
+        private val innerTypes: Set<TypeCompanion<*>> get() = setOf(FieldType, VoidDescriptor)
 
         override fun shouldRead(reader: CharReader<*>) =
             innerTypes.firstOrNull { it.shouldRead(reader.copy()) }?.shouldRead(reader) == true

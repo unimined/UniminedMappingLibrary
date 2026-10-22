@@ -7,9 +7,15 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object MCPv6PackageReader : FormatReader {
 
@@ -18,20 +24,20 @@ object MCPv6PackageReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "packages.csv") return false
         return input.peek().readUtf8Line()?.startsWith("class,package") ?: false
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val srcNs = Namespace(nsMapping["searge"] ?: "searge")
+        val envType = settings.envType
+                val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
         val header = input.takeLine()
@@ -39,8 +45,8 @@ object MCPv6PackageReader : FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        into.use {
-            visitHeader(srcNs.name, dstNs.name)
+        with (into) {
+            header(listOf(srcNs, dstNs))
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -50,11 +56,11 @@ object MCPv6PackageReader : FormatReader {
                 val cls = input.takeCol()
                 val pkg = input.takeCol()
 
-                into.visitClass(mapOf(
+                pushed(MutableClassMapping(mapOf(
                     srcNs to InternalName.read("net/minecraft/src/$cls"),
                     dstNs to InternalName.read("$pkg/$cls")
-                ))?.visitEnd()
-            }
+                ))) {}            }
         }
+        into.end()
     }
 }

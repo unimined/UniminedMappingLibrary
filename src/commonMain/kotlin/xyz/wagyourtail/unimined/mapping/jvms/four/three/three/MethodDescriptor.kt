@@ -4,8 +4,14 @@ import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.TypeCache
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * MethodDescriptor:
@@ -42,7 +48,7 @@ value class MethodDescriptor private constructor(val value: String) : Type, Fiel
 
     }
 
-    fun getParts(): Pair<ReturnDescriptor, List<ParameterDescriptor>> = StringCharReader(value.substring(1)).let {
+    fun getParts(): Pair<ReturnDescriptor, List<ParameterDescriptor>> = TypeCache.getOrPut(Companion, value) { StringCharReader(it.substring(1)).let {
         val params = mutableListOf<ParameterDescriptor>()
         while (true) {
             val value = it.peek()
@@ -57,6 +63,7 @@ value class MethodDescriptor private constructor(val value: String) : Type, Fiel
             throw IllegalArgumentException("Invalid method type")
         }
         Pair(returnType, params)
+    }
     }
 
     override fun accept(visitor: (Any) -> Boolean) {

@@ -10,8 +10,15 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.ATData
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.parseAccess
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * This reads AT files written in the format found in forge 1.3-1.6.4
@@ -25,7 +32,7 @@ object LegacyATReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         val cfg = fileName.substringAfterLast('.') == "cfg"
         val name = fileName.substringBeforeLast('.').lowercase()
         return (cfg && name.endsWith("_at"))
@@ -33,13 +40,13 @@ object LegacyATReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val ns = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val ns = Namespace(nsMapping["source"] ?: "source")
         val data = readData(input, settings.leinient || leinient)
         ATReader.applyData(data, into, ns)
     }

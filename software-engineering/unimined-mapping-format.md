@@ -234,7 +234,7 @@ and `<ns1_name>` is the name(s) of the namespaces to apply to.
 
 ## Annotations
 
-annotations can occur under classes/methods/fields and will be defined as
+annotations can occur under packages/classes/methods/fields/constant groups and will be defined as
 ```
 a <action> <key> <value> <ns1 name> <ns2 name> <ns3 name> ...
 ```
@@ -349,8 +349,11 @@ this is a top-level component to declare a constant group and then subcomponents
 ```
 u <t> <name> <ns1> <ns2> <ns3> ...
     n <cls> <fd>
+    e <const> <expr>
     t <td> <p>
 ```
+
+note: `u` is shared with [Enum](#enum-extension) — when a `u` line follows a class component it is an enum extension, otherwise it is a constant group.
 
 where `<t>` is the type of constant group.
 currently accepted values are `bitfield` for bitfields (where multiple constants get bitwise OR'd together), and `plain` if only a single constant's value should be used.
@@ -360,10 +363,24 @@ currently accepted values are `bitfield` for bitfields (where multiple constants
 the `n` subelement is one of the fields to use for the constant's value, with it's internal class name and field name in `<ns1>` names.
 field name can have `;` followed by a field descriptor.
 
+the `e` subelement is a constant/expression pair (see the [constant](./constant-serialization-format.md) and [expression](./expression-serialization-format.md) serialization formats), used for group constants that are computed expressions rather than plain field references.
+
 the `t` subelement contains `<td>`, a fully qualified method or field (see [Inner Class](#inner-class) to know what I mean). and if a method, `<p>` should be the index of the parameter to uninline or `_` if a field.
 use `-1` if the return value should be used, this would be in the case of comparing against a constant.
+a `<td>` that is just a class name with no member denotes a class-level target (e.g. unpick `target_annotation`).
 
 this will search for all invocations of targets, and search upwards for matching ldc instructions to replace.
+
+constant groups can also carry javadoc comments (`*`) and annotations (`@`) as metadata, like classes/methods/fields.
+the unpick v3/v4 format's group attributes are represented as `Lunimined/unpick/...;` annotations on the group:
+
+| unpick attribute | annotation |
+| --- | --- |
+| `group <type>` data type | `Lunimined/unpick/DataType;(value="<type>")` |
+| `@scope <kind> <target>` | `Lunimined/unpick/Scope;(type="<kind>",target="<cls>",...)`<br/>method scopes also carry `name` and `desc` args |
+| `@strict` | `Lunimined/unpick/Strict;()` |
+| `@format <fmt>` | `Lunimined/unpick/Format;(value="<fmt>")` |
+| `@flags` | `u bitfield` (not an annotation) |
 
 # Example
 

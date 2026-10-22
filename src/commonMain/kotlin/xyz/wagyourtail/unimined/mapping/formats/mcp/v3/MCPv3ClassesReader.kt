@@ -7,9 +7,15 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * this reads the classes.csv from mcp 3.0-5.6
@@ -21,20 +27,20 @@ object MCPv3ClassesReader: FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "classes.csv") return false
         return input.peek().readUtf8Line()?.startsWith("\"name\",\"notch\"") ?: false
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val srcNs = Namespace(nsMapping["notch"] ?: "notch")
+        val envType = settings.envType
+                val srcNs = Namespace(nsMapping["notch"] ?: "notch")
         val dstNs = Namespace(nsMapping["searge"] ?: "searge")
 
         val header = input.takeLine()
@@ -42,8 +48,8 @@ object MCPv3ClassesReader: FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        into.use {
-            visitHeader(srcNs.name, dstNs.name)
+        with (into) {
+            header(listOf(srcNs, dstNs))
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -61,10 +67,11 @@ object MCPv3ClassesReader: FormatReader {
                         InternalName.read(if (pkg.isNotEmpty()) "$pkg/$dstName" else dstName)
                     val srcCls =
                         InternalName.read(if (dstName == srcName && pkg.isNotEmpty()) "${pkg}/${srcName}" else srcName)
-                    visitClass(mapOf(srcNs to srcCls, dstNs to dstCls))?.visitEnd()
+                    pushed(MutableClassMapping(mapOf(srcNs to srcCls, dstNs to dstCls))) {}
                 }
             }
         }
+into.end()
     }
 
 }

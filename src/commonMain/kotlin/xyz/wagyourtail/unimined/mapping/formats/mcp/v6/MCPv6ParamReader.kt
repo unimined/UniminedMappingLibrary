@@ -6,13 +6,20 @@ import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
+import xyz.wagyourtail.unimined.mapping.sink.emit
 
 object MCPv6ParamReader : FormatReader {
 
@@ -21,7 +28,7 @@ object MCPv6ParamReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "params.csv") return false
         return input.peek().readUtf8Line()?.startsWith("param,name,side") ?: false
     }
@@ -34,13 +41,13 @@ object MCPv6ParamReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val header = input.takeLine()
+        val envType = settings.envType
+                val header = input.takeLine()
         if (!header.startsWith("param,name,side")) {
             throw IllegalArgumentException("invalid header: $header")
         }
@@ -71,52 +78,36 @@ object MCPv6ParamReader : FormatReader {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
-        context?.accept(
-            into.delegator(object : NullDelegator() {
+        context?.emit(object : MappingSink by into {
+            override fun header(namespaces: List<Namespace>) {
+                into.header((namespaces + setOf(srcNs, dstNs)).distinct())
+            }
 
-                override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
-                    val ns = setOf(*namespaces, srcNs, dstNs)
-                    super.visitHeader(delegate, *ns.toTypedArray())
-                }
-
-                override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
-                    return default.visitClass(delegate, names)
-                }
-
-                override fun visitMethod(
-                    delegate: ClassMappingVisitor,
-                    names: Map<Namespace, MethodNameAndDescriptor>
-                ): MethodMappingVisitor? {
-                    return default.visitMethod(delegate, names)?.also { mv ->
-                        if (names[srcNs]?.name?.value?.matches(Regex("func_\\d+_.+")) == true) {
-                            val mid = names[srcNs]?.name?.value?.split('_')?.get(1)?.toInt()
+            override fun push(element: MappingElement): MappingElement? {
+                when (element) {
+                    is ParameterMapping -> {
+                        val searge = element.names[srcNs] ?: return null
+                        val name = data[searge] ?: return null
+                        return into.push(MutableParameterMapping(element.index, element.lvOrd, mapOf(dstNs to name)))
+                    }
+                    is MethodMapping -> {
+                        val pushed = into.push(element) ?: return null
+                        val srcName = element.emitEntries()[srcNs]?.name?.value
+                        if (srcName?.matches(Regex("func_\\d+_.+")) == true) {
+                            val mid = srcName.split('_')[1].toIntOrNull()
                             if (mid != null) {
                                 for ((searge, name) in paramsByNumber[mid] ?: emptyMap()) {
                                     val lvOrd = searge.value.split('_')[2].toInt()
-                                    mv.visitParameter(
-                                        null,
-                                        lvOrd,
-                                        mapOf(srcNs to searge, dstNs to name)
-                                    )?.visitEnd()
+                                    into.pushed(MutableParameterMapping(null, lvOrd, mapOf(dstNs to name))) {}
                                 }
                             }
                         }
+                        return pushed
                     }
+                    else -> return into.push(element)
                 }
-
-                override fun visitParameter(
-                    delegate: InvokableMappingVisitor,
-                    index: Int?,
-                    lvOrd: Int?,
-                    names: Map<Namespace, UnqualifiedName>
-                ): ParameterMappingVisitor? {
-                    val searge = names[srcNs] ?: return null
-                    val name = data[searge] ?: return null
-                    return default.visitParameter(delegate, index, lvOrd, mapOf(dstNs to name))
-                }
-
-            })
-        )
+            }
+        })
 
     }
 

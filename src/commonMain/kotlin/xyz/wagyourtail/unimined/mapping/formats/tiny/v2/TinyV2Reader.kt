@@ -13,8 +13,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * FabricMC's tinyv2 format.
@@ -59,19 +66,19 @@ object TinyV2Reader : FormatReader {
         }
     }
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         return input.peek().readUtf8Line()?.startsWith("tiny\t2\t0\t") ?: false
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val v = input.takeNextLiteral()
+        val envType = settings.envType
+                val v = input.takeNextLiteral()
         if (v != "tiny") throw IllegalArgumentException("Invalid tinyv2 file")
         if (input.takeNextLiteral() != "2") throw IllegalArgumentException("Invalid tinyv2 file")
         if (input.takeNextLiteral() != "0") throw IllegalArgumentException("Invalid tinyv2 file")
@@ -95,10 +102,10 @@ object TinyV2Reader : FormatReader {
         }
         val escaped = metadataKeys.contains("escaped-names")
 
-        into.use {
+        with (into) {
 
-            visitHeader(*namespaces.map { it.name }.toTypedArray())
-            val stack = mutableListOf<BaseMappingVisitor?>(into)
+            header(namespaces)
+            val stack = mutableListOf<Element?>(null)
             outer@ while (!input.exhausted()) {
                 if (input.peek() == '\n') {
                     input.take()
@@ -114,11 +121,10 @@ object TinyV2Reader : FormatReader {
                     throw IllegalArgumentException("Invalid tinyv2 file, found double indent")
                 }
                 while (indent < stack.size - 1) {
-                    stack.removeLast()?.visitEnd()
+                    stack.removeLast()?.let { pop(it) }
                 }
                 val type = col
-                val last = stack.last()
-                val next: BaseMappingVisitor? = when (type) {
+                val next: Element? = when (type) {
                     "c" -> {
                         if (indent == 0) {
                             // class
@@ -138,13 +144,11 @@ object TinyV2Reader : FormatReader {
                                     nameMap[ns] = InternalName.read(name)
                                 }
                             }
-                            last as RootMappingVisitor?
-                            last?.visitClass(nameMap)
+                            push(MutableClassMapping(nameMap))
                         } else {
                             // comment
                             val comment = input.takeLine().removePrefix("\t").translateEscapes()
-                            last as JavadocParentMappingVisitor?
-                            last?.visitJavadoc(comment, namespaces.first())
+                            push(JavadocElement(comment, namespaces.first()))
                         }
                     }
 
@@ -167,8 +171,7 @@ object TinyV2Reader : FormatReader {
                                 nameMap[ns] = UnqualifiedName.read(name).withFieldDesc(null)
                             }
                         }
-                        last as ClassMappingVisitor?
-                        last?.visitField(nameMap)
+                        push(MutableFieldMapping(nameMap))
                     }
 
                     "m" -> {
@@ -190,8 +193,7 @@ object TinyV2Reader : FormatReader {
                                 nameMap[ns] = UnqualifiedName.read(name).withMethodDesc(null)
                             }
                         }
-                        last as ClassMappingVisitor?
-                        last?.visitMethod(nameMap)
+                        push(MutableMethodMapping(nameMap))
                     }
 
                     "p" -> {
@@ -212,8 +214,7 @@ object TinyV2Reader : FormatReader {
                                 nameMap[ns] = UnqualifiedName.read(name)
                             }
                         }
-                        last as MethodMappingVisitor?
-                        last?.visitParameter(null, lvOrd, nameMap)
+                        push(MutableParameterMapping(null, lvOrd, nameMap))
                     }
 
                     else -> {
@@ -224,9 +225,10 @@ object TinyV2Reader : FormatReader {
             }
 
             while (stack.size > 1) {
-                stack.removeLast()?.visitEnd()
+                stack.removeLast()?.let { pop(it) }
             }
         }
+        into.end()
     }
 
 }

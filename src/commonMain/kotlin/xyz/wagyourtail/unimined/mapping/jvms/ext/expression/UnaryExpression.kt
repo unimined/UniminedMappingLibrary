@@ -4,6 +4,11 @@ import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.jvms.Type
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import kotlin.jvm.JvmInline
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * UnaryExpression:
@@ -22,7 +27,7 @@ value class UnaryExpression(val value: String) : Type {
 
     companion object : TypeCompanion<UnaryExpression> {
 
-        val innerTypes: Set<TypeCompanion<*>> = setOf(CastExpression, PrimaryExpression)
+        val innerTypes: Set<TypeCompanion<*>> get() = setOf(CastExpression, PrimaryExpression)
 
         val unaryTokens = setOf('-', '~', '!')
 

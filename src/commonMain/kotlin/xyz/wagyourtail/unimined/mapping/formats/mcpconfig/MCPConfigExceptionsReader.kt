@@ -10,10 +10,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * reads the constructor file
@@ -26,7 +31,7 @@ object MCPConfigExceptionsReader : FormatReader{
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (fileName.substringAfterLast('/') != "constructors.txt") return false
         val line = input.peek().readUtf8Line()?.split(" ") ?: return false
         // check matches InternalName/unqualifiedName methodDescriptor {InternalName}
@@ -41,16 +46,16 @@ object MCPConfigExceptionsReader : FormatReader{
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val srcNs = Namespace(nsMapping["searge"] ?: "searge")
+        val envType = settings.envType
+                val srcNs = Namespace(nsMapping["searge"] ?: "searge")
 
-        into.use {
-            visitHeader(srcNs.name)
+        with (into) {
+            header(listOf(srcNs))
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
                     input.take()
@@ -62,15 +67,16 @@ object MCPConfigExceptionsReader : FormatReader{
                 val srcMethod = UnqualifiedName.read(srcName.substringAfterLast('/'))
                 val srcDesc = MethodDescriptor.read(line.next())
                 val exceptions = line.asSequence().map { InternalName.read(it) }.toList()
-                visitClass(mapOf(srcNs to srcCls))?.use {
-                    visitMethod(mapOf(srcNs to MethodNameAndDescriptor(srcMethod, srcDesc)))?.use {
+                pushed(MutableClassMapping(mapOf(srcNs to srcCls))) {
+                    pushed(MutableMethodMapping(mapOf(srcNs to MethodNameAndDescriptor(srcMethod, srcDesc)))) {
                         for (exception in exceptions) {
-                            visitException(AddRemove.ADD, exception, srcNs)?.visitEnd()
+                            pushed(ExceptionElement(AddRemove.ADD, exception, srcNs)) {}
                         }
                     }
                 }
             }
         }
+into.end()
     }
 
 

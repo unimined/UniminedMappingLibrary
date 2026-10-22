@@ -1,6 +1,11 @@
 package xyz.wagyourtail.unimined.mapping.resolver
 
 import okio.BufferedSource
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 interface ContentProvider {
 

@@ -19,14 +19,16 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
-import xyz.wagyourtail.unimined.mapping.propagator.InheritanceTree
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.LazyMappingTree
-import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
+import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.impl.fillMissingNames
+import xyz.wagyourtail.unimined.mapping.tree.impl.renest
 import xyz.wagyourtail.unimined.mapping.util.*
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
-import xyz.wagyourtail.unimined.mapping.visitor.fixes.renest
+import xyz.wagyourtail.unimined.mapping.sink.emit
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.nsFiltered
+
 import kotlin.js.JsName
 import kotlin.jvm.JvmOverloads
 import kotlin.time.measureTime
@@ -43,7 +45,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
     var finalized = false
         private set
 
-    open var envType by FinalizeOnRead(EnvType.JOINED)
+    override var envType by FinalizeOnRead(EnvType.JOINED)
 
     private val _entries = finalizableMapOf<String, MappingEntry>()
     val entries: Map<String, MappingEntry> get() = _entries
@@ -51,7 +53,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
     protected lateinit var namespaces: Map<Namespace, Boolean>
         private set
 
-    protected lateinit var resolved: AbstractMappingTree
+    protected lateinit var resolved: MappingTree
         private set
 
     open val unmappedNs = setOf(Namespace("official"))
@@ -61,7 +63,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
         return entries.entries.sortedBy { it.key }.joinToString("-") { it.value.id }
     }
 
-    open suspend fun applyInheritanceTree(tree: MemoryMappingTree, apply: suspend (InheritanceTree) -> Unit) {}
+    open suspend fun applyInheritanceTree(tree: MutableMappingTree, apply: suspend (InheritanceTree) -> Unit) {}
 
     fun checkedNsOrNull(name: String): Namespace? {
         val ns = Namespace(name)
@@ -102,12 +104,12 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
         _entries[key] = dependency
     }
 
-    abstract fun createForPostProcess(key: String, process: MemoryMappingTree.() -> Unit): T
+    abstract fun createForPostProcess(key: String, process: MutableMappingTree.() -> Unit): T
 
     @JvmOverloads
     fun postProcessDependency(key: String,
                               intern: @Scoped T.() -> Unit,
-                              process: MemoryMappingTree.() -> Unit = { },
+                              process: MutableMappingTree.() -> Unit = { },
                               postProcess: MappingEntry.() -> Unit) {
         val resolver = createForPostProcess(key, process)
         resolver.intern()
@@ -118,7 +120,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
             override suspend fun resolve() {
                 val tree = resolver.resolve()
                 mappings = Buffer().apply {
-                    tree.accept(UMFWriter.write(this))
+                    tree.emit(UMFWriter.write(this))
                 }
             }
 
@@ -135,13 +137,13 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
     private val resolveLock = Mutex()
 
-    open suspend fun fromCache(key: String): AbstractMappingTree? = null
+    open suspend fun fromCache(key: String): MappingTree? = null
 
-    open suspend fun writeCache(key: String, tree: AbstractMappingTree) {}
+    open suspend fun writeCache(key: String, tree: MappingTree) {}
 
-    open suspend fun afterLoad(tree: MemoryMappingTree) {}
+    open suspend fun afterLoad(tree: MutableMappingTree) {}
 
-    open suspend fun resolve(): AbstractMappingTree {
+    open suspend fun resolve(): MappingTree {
         if (::resolved.isInitialized) return resolved
         return resolveLock.withLock {
             if (::resolved.isInitialized) return@withLock resolved
@@ -194,33 +196,32 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
             var resolved = fromCache(cacheKey)
 
             if (resolved == null) {
-                resolved = MemoryMappingTree()
-                resolved.visitHeader(*unmappedNs.map { it.name }.toTypedArray())
+                resolved = MutableMappingTree()
+                resolved.header(unmappedNs.toList())
 
                 measureTime {
                     for (entry in sorted) {
                         LOGGER.info { "Reading: $entry" }
                         val visitor =
-                            entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet()) as RootMappingVisitor) { acc, it ->
+                            entry.insertInto.fold(resolved.nsFiltered((entry.provides.map { it.first } + entry.requires).toSet())) { acc, it ->
                                 it(acc)
                             }
                         try {
-                            val target = if (entry.preProcess.isNotEmpty()) {
-                                MemoryMappingTree()
+                            val targetTree = if (entry.preProcess.isNotEmpty()) {
+                                MutableMappingTree()
                             } else {
-                                visitor
+                                null
                             }
                             entry.provider.read(
                                 entry.content.content(),
                                 resolved,
-                                target,
-                                envType,
+                                targetTree ?: visitor,
                                 entry.mapNs.map { it.key.name to it.value.name }.toMap(),
                                 entry as FormatReaderSettings,
                             )
-                            if (target != visitor) {
-                                entry.preProcess(target as MemoryMappingTree)
-                                target.accept(visitor)
+                            if (targetTree != null) {
+                                entry.preProcess(targetTree)
+                                targetTree.emit(visitor)
                             }
                         } catch (e: Throwable) {
                             throw IllegalStateException("Error reading $entry", e)
@@ -239,7 +240,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                         for (namespace in sortedNs) {
                             if (namespace in unmappedNs) continue
                             if (namespace == pt.fns) continue
-                            pt.propagate(setOf(namespace))
+                            pt.propagate(resolved as MutableMappingTree, setOf(namespace))
                         }
                     }
                 }.also {
@@ -255,7 +256,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                 for ((key, value) in renest) {
                     if (value.isNotEmpty()) {
                         LOGGER.info { "Renesting $key -> ${value.joinToString(", ")}" }
-                        resolved.renest(key, value)
+                        (resolved as MutableMappingTree).renest(key, value)
                     }
                 }
 
@@ -272,7 +273,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                             toFill.add(entry.requires to targets)
                         }
                     }
-                    resolved.fillMissingNames(*toFill.toTypedArray())
+                    (resolved as MutableMappingTree).fillMissingNames(*toFill.toTypedArray())
                 }.also {
                     LOGGER.info { "Filled in missing names in $it" }
                 }
@@ -288,15 +289,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
 
-            this.resolved = if (resolved is LazyMappingTree) {
-                resolved
-            } else {
-                val lazy = LazyMappingTree()
-                resolved.accept(lazy, sort = true)
-                lazy
-            }
-
-            LOGGER.info { "Resolved to lazy tree" }
+            this.resolved = resolved
             this.resolved
         }
     }
@@ -320,7 +313,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
             return if (contents.isZip()) {
                 val inner = mutableSetOf<MappingEntry>()
                 ZipFS(contents).use { zip ->
-                    val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(envType, it.replace('\\', '/'), zip.getContents(it)) }
+                    val files = zip.getFiles().associateWithNonNull { FormatRegistry.autodetectFormat(it.replace('\\', '/'), zip.getContents(it)) }
                     for ((file, format) in files.entries) {
                         if (!format.getSide(file, zip.getContents(file)).contains(envType)) continue
                         val fileName = file.replace("\\", "/").substringAfterLast("/")
@@ -357,11 +350,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
         var skip by FinalizeOnRead(false)
 
-        val insertInto = finalizableSetOf<(RootMappingVisitor) -> RootMappingVisitor>()
-        val preProcess = finalizableSetOf<(AbstractMappingTree, FormatProvider, ContentProvider) -> Unit>()
+        val insertInto = finalizableSetOf<(MappingSink) -> MappingSink>()
+        val preProcess = finalizableSetOf<(MappingTree, FormatProvider, ContentProvider) -> Unit>()
 
         var provider by FinalizeOnRead(LazyMutable {
-            val format = FormatRegistry.autodetectFormat(envType, content.fileName(), content.content())
+            val format = FormatRegistry.autodetectFormat(content.fileName(), content.content())
             format ?: throw IllegalArgumentException("Unknown format for ${content.fileName()}")
         })
 
@@ -393,11 +386,11 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
             renest.addAll(ns.map { Namespace(it) })
         }
 
-        fun preProcess(pre: (AbstractMappingTree, FormatProvider, ContentProvider) -> Unit) {
+        fun preProcess(pre: (MappingTree, FormatProvider, ContentProvider) -> Unit) {
             preProcess.add(pre)
         }
 
-        internal fun preProcess(mappings: AbstractMappingTree) {
+        internal fun preProcess(mappings: MappingTree) {
             for (pre in preProcess) {
                 pre(mappings, provider, content)
             }

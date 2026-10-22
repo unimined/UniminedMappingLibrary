@@ -9,10 +9,15 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object TsrgV1Reader : FormatReader {
 
@@ -21,26 +26,26 @@ object TsrgV1Reader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (!fileName.endsWith(".tsrg")) return false
         return !(input.peek().readUtf8Line()?.startsWith("tsrg") ?: true)
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val srcNs = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.use {
-            visitHeader(srcNs.name, dstNs.name)
+        with (into) {
+            header(listOf(srcNs, dstNs))
 
-            var cls: ClassMappingVisitor? = null
+            var cls: MappingElement? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -56,27 +61,28 @@ object TsrgV1Reader : FormatReader {
                     if (srcName == null || dstName == null) {
                         throw IllegalArgumentException("invalid line: $srcName $dstName")
                     }
-                    cls?.visitEnd()
-                    cls = visitClass(mapOf(srcNs to InternalName.read(srcName), dstNs to InternalName.read(dstName)))
+                    cls?.let { pop(it) }
+                    cls = push(MutableClassMapping(mapOf(srcNs to InternalName.read(srcName), dstNs to InternalName.read(dstName))))
                 } else {
                     val srcName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
                     val dst = input.takeNextLiteral(' ')!!
                     if (dst.startsWith('(')) {
                         val dstName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
-                        cls?.visitMethod(
+                        pushed(MutableMethodMapping(
                             mapOf(
                                 srcNs to srcName.withMethodDesc(MethodDescriptor.read(dst)),
                                 dstNs to dstName.withMethodDesc(null)
                             )
-                        )?.visitEnd()
+                        )) {}
                     } else {
-                        cls?.visitField(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to UnqualifiedName.read(dst).withFieldDesc(null)))?.visitEnd()
+                        pushed(MutableFieldMapping(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to UnqualifiedName.read(dst).withFieldDesc(null)))) {}
                     }
                 }
             }
 
-            cls?.visitEnd()
+            cls?.let { pop(it) }
         }
+        into.end()
 
     }
 

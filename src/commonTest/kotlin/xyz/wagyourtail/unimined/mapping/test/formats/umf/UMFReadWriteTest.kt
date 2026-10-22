@@ -6,9 +6,15 @@ import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
-import xyz.wagyourtail.unimined.mapping.tree.LazyMappingTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class UMFReadWriteTest {
 
@@ -30,7 +36,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, false))
+            mappings.emit(UMFWriter.write(output, false))
             output.readUtf8()
         }
         assertEquals(inp, output.trimEnd())
@@ -67,7 +73,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, false), sort = true)
+            mappings.emit(UMFWriter.write(output, false), sort = true)
             output.readUtf8()
         }
         val testOutput = """
@@ -111,7 +117,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, false))
+            mappings.emit(UMFWriter.write(output, false))
             output.readUtf8()
         }
         val testOutput = """umf	1	1
@@ -140,7 +146,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, true), sort = true)
+            mappings.emit(UMFWriter.write(output, true), sort = true)
             output.readUtf8()
         }
         val testOutput = """
@@ -171,12 +177,12 @@ c	net/minecraft/class_310	_	net/minecraft/Minecraft
 
         val mappings = Buffer().use { input ->
             input.writeUtf8(inp)
-            LazyMappingTree().also {
-                UMFReader.read(input, it, EnvType.JOINED)
+            MutableMappingTree().also {
+                UMFReader.read(input, it)
             }
         }
         val output = Buffer().use { output ->
-            mappings.nonLazyAccept(UMFWriter.write(output, false))
+            mappings.emit(UMFWriter.write(output, false))
             output.readUtf8()
         }
 
@@ -193,7 +199,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	net/minecraft/Min
         assertEquals(testOuput, output.trimEnd())
 
         val lazyOutput = Buffer().use { output ->
-            mappings.lazyAccept(UMFWriter.write(output, true))
+            mappings.emit(UMFWriter.write(output, true))
             output.readUtf8()
         }
 
@@ -228,7 +234,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
             UMFReader.read(input)
         }
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, false))
+            mappings.emit(UMFWriter.write(output, false))
             output.readUtf8()
         }
         assertEquals("""
@@ -266,7 +272,7 @@ c	net/minecraft/class_310	net/minecraft/client/MinecraftClient
         }
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output, false))
+            mappings.emit(UMFWriter.write(output, false))
             output.readUtf8()
         }
 

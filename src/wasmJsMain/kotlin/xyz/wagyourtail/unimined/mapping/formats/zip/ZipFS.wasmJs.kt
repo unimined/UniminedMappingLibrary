@@ -7,42 +7,41 @@ import okio.Closeable
 import kotlin.js.Promise
 
 @JsModule("jszip")
-external class JSZip {
-    val files: dynamic
-    fun loadAsync(blob: dynamic): Promise<JSZip>
+external class JSZip : JsAny {
+    val files: JsAny
+    fun loadAsync(blob: JsAny): Promise<JSZip>
     fun file(path: String): JSZipFile
 }
 
 @JsModule("jszip")
-external class JSZipFile {
-    fun async(type: String): Promise<String>
+external class JSZipFile : JsAny {
+    fun async(type: String): Promise<JsString>
 }
 
-@Suppress("UNUSED_PARAMETER")
-private fun getFiles(jsZip: JSZip): Array<String> = js("""
-    Object.keys(jsZip.files)
-""").unsafeCast<Array<String>>()
+@JsFun("(jsZip) => Object.keys(jsZip.files)")
+private external fun getFileNames(jsZip: JSZip): JsArray<JsString>
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class ZipFS actual constructor(zip: BufferedSource) : Closeable {
-    private val bytes = zip.readByteArray().toTypedArray()
-    private lateinit var jsZip: JSZip
+    private val bytes = zip.readByteArray().let { data ->
+        JsArray<JsNumber>().apply { for (i in data.indices) set(i, (data[i].toInt() and 0xFF).toJsNumber()) }
+    }
+    private var jsZip: JSZip? = null
 
     private suspend fun getJSZip(): JSZip {
-        if (!::jsZip.isInitialized) {
-            jsZip = JSZip().loadAsync(bytes).await()
-        }
-        return jsZip
+        val cached = jsZip
+        if (cached != null) return cached
+        val loaded = JSZip().loadAsync(bytes).await()
+        jsZip = loaded
+        return loaded
     }
 
     actual suspend fun getFiles(): List<String> {
-        return getFiles(getJSZip()).toList()
+        return getFileNames(getJSZip()).toList().map { it.toString() }
     }
 
     actual suspend fun getContents(path: String): BufferedSource {
-        getJSZip().file(path).async("string").await().let {
-            return Buffer().writeUtf8(it)
-        }
+        return Buffer().writeUtf8(getJSZip().file(path).async("string").await().toString())
     }
 
     actual override fun close() {}

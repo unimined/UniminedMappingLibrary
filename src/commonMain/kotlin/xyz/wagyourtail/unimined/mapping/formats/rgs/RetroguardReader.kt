@@ -10,9 +10,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * This reader is for MCP's bastardization of the RetroGuard obfuscation config.
@@ -31,7 +37,7 @@ object RetroguardReader : FormatReader {
     private const val PKG = "net/minecraft/src/"
     val keys = setOf(".op", ".at", ".cl", ".me", ".fi")
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         val ext = fileName.endsWith(".rgs")
         val firstLine = input.readUtf8Line() ?: return ext
         return ext && keys.any { firstLine.startsWith(it) }
@@ -47,20 +53,20 @@ object RetroguardReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val srcNs = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.use {
-            visitHeader(srcNs.name, dstNs.name)
+        with (into) {
+            header(listOf(srcNs, dstNs))
 
             // hardcoded package mapping
-            visitPackage(mapOf(srcNs to PackageName.read(""), dstNs to PackageName.read(PKG)))
+            pushed(MutablePackageMapping(mapOf(srcNs to PackageName.read(""), dstNs to PackageName.read(PKG)))) {}
 
             while (!input.exhausted()) {
                 input.takeWhitespace()
@@ -71,7 +77,7 @@ object RetroguardReader : FormatReader {
                         val srcName = InternalName.read(input.takeNextLiteral(' ')!!)
                         val dst = input.takeNextLiteral(' ')!!
                         val dstName = InternalName.read(if (dst.contains('/')) dst else "$PKG$dst")
-                        visitClass(mapOf(srcNs to srcName, dstNs to dstName))?.visitEnd()
+                        pushed(MutableClassMapping(mapOf(srcNs to srcName, dstNs to dstName))) {}
                     }
 
                     ".field_map" -> {
@@ -79,10 +85,10 @@ object RetroguardReader : FormatReader {
                         val dstFd = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
                         val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
                         val srcFd = UnqualifiedName.read(srcName.substringAfterLast('/'))
-                        into.visitClass(mapOf(srcNs to srcCls))?.use {
-                            visitField(
+                        pushed(MutableClassMapping(mapOf(srcNs to srcCls))) {
+                            pushed(MutableFieldMapping(
                                 mapOf(srcNs to srcFd.withFieldDesc(null), dstNs to dstFd.withFieldDesc(null))
-                            )?.visitEnd()
+                            )) {}
                         }
                     }
 
@@ -93,10 +99,10 @@ object RetroguardReader : FormatReader {
                         val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
                         val srcMd = UnqualifiedName.read(srcName.substringAfterLast('/'))
 
-                        into.visitClass(mapOf(srcNs to srcCls))?.use {
-                            visitMethod(
+                        pushed(MutableClassMapping(mapOf(srcNs to srcCls))) {
+                            pushed(MutableMethodMapping(
                                 mapOf(srcNs to srcMd.withMethodDesc(srcDesc), dstNs to dstMd.withMethodDesc(null))
-                            )?.visitEnd()
+                            )) {}
                         }
                     }
 
@@ -104,6 +110,7 @@ object RetroguardReader : FormatReader {
                 }
             }
         }
+        into.end()
 
     }
 

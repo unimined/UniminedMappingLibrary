@@ -5,8 +5,14 @@ import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.unpick.UnpickReader
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class UnpickReadTest {
 
@@ -43,7 +49,7 @@ class UnpickReadTest {
         }
 
         val output = Buffer().use { output ->
-            mappings.accept(UMFWriter.write(output), sort = true)
+            mappings.emit(UMFWriter.write(output), sort = true)
             output.readUtf8()
         }
 

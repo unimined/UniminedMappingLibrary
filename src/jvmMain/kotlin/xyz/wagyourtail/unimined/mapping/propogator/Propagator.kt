@@ -8,15 +8,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.propagator.InheritanceTree
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
+import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.streams.asSequence
 import kotlin.streams.asStream
 
-class Propagator(tree: AbstractMappingTree, override val fns: Namespace, jars: Set<Path>): InheritanceTree(tree) {
+class Propagator(tree: MappingTree, override val fns: Namespace, jars: Set<Path>): InheritanceTree() {
 
     override val classes: Map<InternalName, ClassInfo> by lazy {
         jars.parallelStream().flatMap {
@@ -44,10 +44,10 @@ class Propagator(tree: AbstractMappingTree, override val fns: Namespace, jars: S
 
         return className to ClassInfo(className, InternalName.read(node.superName), node.interfaces.map(InternalName::read)).apply {
             for (method in node.methods) {
-                methods.add(MethodInfo(UnqualifiedName.read(method.name), MethodDescriptor.read(method.desc), method.access))
+                methods.add(InheritanceTree.MethodInfo(UnqualifiedName.read(method.name), MethodDescriptor.read(method.desc), method.access))
             }
             for (field in node.fields) {
-                fields.add(FieldInfo(UnqualifiedName.read(field.name), FieldDescriptor.read(field.desc), field.access))
+                fields.add(InheritanceTree.FieldInfo(UnqualifiedName.read(field.name), FieldDescriptor.read(field.desc), field.access))
             }
         }
     }

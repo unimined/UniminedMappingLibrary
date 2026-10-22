@@ -1,7 +1,7 @@
 [versions]
 asm = "9.7.1"
 okio = "3.7.0"
-kotlin = "2.1.20"
+kotlin = "2.4.10"
 
 commons = "1.0.5-SNAPSHOT"
 
@@ -11,8 +11,8 @@ apache_commons_compress = "1.26.2"
 
 kotlin_serialization = "1.6.2"
 kotlin_coroutines = "1.9.0-RC"
-kotlin_logging = "6.0.1"
-kotlin_atomicfu = "0.27.0"
+kotlin_logging = "8.0.4"
+kotlin_atomicfu = "0.33.0"
 
 clikt = "4.3.0"
 slf4j = "2.0.13"

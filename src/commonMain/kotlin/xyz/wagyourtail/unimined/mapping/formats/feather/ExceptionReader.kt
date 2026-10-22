@@ -10,11 +10,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object ExceptionReader : FormatReader {
 
@@ -23,24 +27,24 @@ object ExceptionReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         return fileName.endsWith(".excs")
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val ns = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val ns = Namespace(nsMapping["source"] ?: "source")
 
-        into.use {
-            visitHeader(ns.name)
+        with (into) {
+            header(listOf(ns))
 
-            var cls: ClassMappingVisitor? = null
+            var cls: MappingElement? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -50,8 +54,8 @@ object ExceptionReader : FormatReader {
                 val whitespace = input.takeWhitespace()
                 if (whitespace.isEmpty()) {
                     val name = InternalName.read(input.takeNextLiteral()!!)
-                    cls?.visitEnd()
-                    cls = visitClass(mapOf(ns to name))
+                    cls?.let { pop(it) }
+                    cls = push(MutableClassMapping(mapOf(ns to name)))
                 } else {
                     if (whitespace.length != 1) {
                         throw IllegalArgumentException("invalid line: $whitespace")
@@ -62,14 +66,15 @@ object ExceptionReader : FormatReader {
                     while (true) {
                         exceptions.add(input.takeNextLiteral() ?: break)
                     }
-                    cls?.visitMethod(mapOf(ns to MethodNameAndDescriptor(   mName, desc)))?.use {
+                    pushed(MutableMethodMapping(mapOf(ns to MethodNameAndDescriptor(mName, desc)))) {
                         for (exc in exceptions) {
-                            visitException(AddRemove.ADD, InternalName.read(exc), ns)?.visitEnd()
+                            pushed(ExceptionElement(AddRemove.ADD, InternalName.read(exc), ns)) {}
                         }
                     }
                 }
             }
         }
+        into.end()
     }
 
 }

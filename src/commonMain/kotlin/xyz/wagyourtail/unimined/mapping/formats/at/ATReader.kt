@@ -12,11 +12,19 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.*
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * This reads AT files written in the format found in forge 1.7-current
+ * https://docs.minecraftforge.net/en/latest/advanced/accesstransformers/#examples
  */
 object ATReader : FormatReader {
     private val logger = KotlinLogging.logger {  }
@@ -27,7 +35,7 @@ object ATReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         val cfg = fileName.substringAfterLast('.') in setOf("at", "cfg")
         val name = fileName.substringBeforeLast('.').lowercase()
         return (cfg && name.endsWith("_at") || name.startsWith("accesstransformer"))
@@ -52,11 +60,11 @@ object ATReader : FormatReader {
         return access to final
     }
 
-    private fun AccessParentMappingVisitor.applyAccess(access: AccessFlag, final: TriState) {
-        this.visitAccess(AddRemove.ADD, access, AccessConditions.ALL)?.visitEnd()
+    private fun MappingSink.applyAccess(access: AccessFlag, final: TriState) {
+        push(AccessElement(AddRemove.ADD, access, AccessConditions.ALL))
         when (final) {
-            TriState.ADD -> this.visitAccess(AddRemove.ADD, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
-            TriState.REMOVE -> this.visitAccess(AddRemove.REMOVE, AccessFlag.FINAL, AccessConditions.ALL)?.visitEnd()
+            TriState.ADD -> push(AccessElement(AddRemove.ADD, AccessFlag.FINAL, AccessConditions.ALL))
+            TriState.REMOVE -> push(AccessElement(AddRemove.REMOVE, AccessFlag.FINAL, AccessConditions.ALL))
             TriState.LEAVE -> {}
         }
     }
@@ -159,13 +167,13 @@ object ATReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val ns = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val ns = Namespace(nsMapping["source"] ?: "source")
         val data = readData(input, settings.leinient || leinient)
         applyData(data, into, ns)
     }
@@ -230,13 +238,12 @@ object ATReader : FormatReader {
         return data
     }
 
-    fun applyData(data: List<ATItem>, into: RootMappingVisitor, ns: Namespace) {
-        val nsSet = setOf(ns)
-        into.use {
-            visitHeader(ns.name)
+    fun applyData(data: List<ATItem>, into: MappingSink, ns: Namespace) {
+        with (into) {
+            header(listOf(ns))
             for (at in data) {
                 if (at !is ATData) continue
-                visitClass(mapOf(ns to at.targetClass))?.use {
+                pushed(MutableClassMapping(mapOf(ns to at.targetClass))) {
                     if (at is ATDataClass) {
                         applyAccess(at.access, at.final)
                     } else {
@@ -247,22 +254,22 @@ object ATReader : FormatReader {
                                 } else {
                                     emptyMap()
                                 }
-                                visitWildcard(WildcardType.METHOD, map)?.use {
+                                pushed(MutableWildcardMapping(WildcardType.METHOD, map)) {
                                     applyAccess(at.access, at.final)
                                 }
                             } else {
-                                visitWildcard(WildcardType.FIELD, emptyMap())?.use {
+                                pushed(MutableWildcardMapping(WildcardType.FIELD, emptyMap())) {
                                     applyAccess(at.access, at.final)
                                 }
                             }
                         } else {
                             if (at is ATDataMethod) {
-                                visitMethod(mapOf(ns to at.member))?.use {
+                                pushed(MutableMethodMapping(mapOf(ns to at.member))) {
                                     applyAccess(at.access, at.final)
                                 }
                             } else {
                                 if (at !is ATDataField) error("unknown ATData type $at")
-                                visitField(mapOf(ns to at.member))?.use {
+                                pushed(MutableFieldMapping(mapOf(ns to at.member))) {
                                     applyAccess(at.access, at.final)
                                 }
                             }
@@ -272,6 +279,7 @@ object ATReader : FormatReader {
                 }
             }
         }
+        into.end()
     }
 
 }

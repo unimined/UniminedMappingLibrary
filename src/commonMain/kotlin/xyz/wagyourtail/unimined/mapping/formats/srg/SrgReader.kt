@@ -10,9 +10,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * MCP's SRG format.
@@ -26,7 +32,7 @@ object SrgReader : FormatReader {
 
     val keys = setOf("PK:", "CL:", "FD:", "MD:")
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         val ext = fileName.endsWith(".srg")
         val firstLine = input.readUtf8Line() ?: return ext
         return ext && keys.any { firstLine.startsWith(it) }
@@ -40,17 +46,17 @@ object SrgReader : FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
+        val envType = settings.envType
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
-        into.use {
-            visitHeader(srcNs.name, dstNs.name)
+        with (into) {
+            header(listOf(srcNs, dstNs))
 
             while (!input.exhausted()) {
                 input.takeWhitespace()
@@ -65,13 +71,13 @@ object SrgReader : FormatReader {
                         val dst = input.takeNextLiteral(' ')!!
                         val srcFix = PackageName.read(if (src == ".") "" else "${src}/")
                         val dstFix = PackageName.read(if (dst == ".") "" else "${dst}/")
-                        visitPackage(mapOf(srcNs to srcFix, dstNs to dstFix))?.visitEnd()
+                        pushed(MutablePackageMapping(mapOf(srcNs to srcFix, dstNs to dstFix))) {}
                     }
 
                     "CL:" -> {
                         val src = input.takeNextLiteral(' ')!!
                         val dst = input.takeNextLiteral(' ')!!
-                        visitClass(mapOf(srcNs to InternalName.read(src), dstNs to InternalName.read(dst)))?.visitEnd()
+                        pushed(MutableClassMapping(mapOf(srcNs to InternalName.read(src), dstNs to InternalName.read(dst)))) {}
                     }
 
                     "FD:" -> {
@@ -81,15 +87,17 @@ object SrgReader : FormatReader {
                         val dstClass = dst.substringBeforeLast('/')
                         val srcField = UnqualifiedName.read(src.substringAfterLast('/'))
                         val dstField = UnqualifiedName.read(dst.substringAfterLast('/'))
-                        into.visitClass(
-                            mapOf(
-                                srcNs to InternalName.read(srcClass),
-                                dstNs to InternalName.read(dstClass)
+                        pushed(
+                            MutableClassMapping(
+                                mapOf(
+                                    srcNs to InternalName.read(srcClass),
+                                    dstNs to InternalName.read(dstClass)
+                                )
                             )
-                        )?.use {
-                            visitField(
-                                mapOf(srcNs to srcField.withFieldDesc(null), dstNs to dstField.withFieldDesc(null))
-                            )
+                        ) {
+                            pushed(
+                                MutableFieldMapping(mapOf(srcNs to srcField.withFieldDesc(null), dstNs to dstField.withFieldDesc(null)))
+                            ) {}
                         }
                     }
 
@@ -102,15 +110,17 @@ object SrgReader : FormatReader {
                         val dstClass = dst.substringBeforeLast('/')
                         val srcMethod = UnqualifiedName.read(src.substringAfterLast('/'))
                         val dstMethod = UnqualifiedName.read(dst.substringAfterLast('/'))
-                        into.visitClass(
-                            mapOf(
-                                srcNs to InternalName.read(srcClass),
-                                dstNs to InternalName.read(dstClass)
+                        pushed(
+                            MutableClassMapping(
+                                mapOf(
+                                    srcNs to InternalName.read(srcClass),
+                                    dstNs to InternalName.read(dstClass)
+                                )
                             )
-                        )?.use {
-                            visitMethod(
-                                mapOf(srcNs to srcMethod.withMethodDesc(srcDesc), dstNs to dstMethod.withMethodDesc(dstDesc))
-                            )
+                        ) {
+                            pushed(
+                                MutableMethodMapping(mapOf(srcNs to srcMethod.withMethodDesc(srcDesc), dstNs to dstMethod.withMethodDesc(dstDesc)))
+                            ) {}
                         }
                     }
 
@@ -119,6 +129,7 @@ object SrgReader : FormatReader {
 
             }
         }
+into.end()
 
     }
 

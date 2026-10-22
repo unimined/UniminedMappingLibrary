@@ -12,9 +12,14 @@ import xyz.wagyourtail.unimined.mapping.formats.tiny.v2.TinyV2Reader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.tinyv2.TinyV2ReadWriteTest
 import xyz.wagyourtail.commonskt.reader.StringCharReader
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.nsFiltered
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class AWReadWriteTest {
     val awText = """
@@ -33,11 +38,11 @@ class AWReadWriteTest {
     fun testRead() = runTest {
         val aw = Buffer().use {
             it.writeUtf8(awText)
-            AWReader.read(it, EnvType.JOINED)
+            AWReader.read(it)
         }
 
         val umfOut = Buffer().use {
-            aw.accept(UMFWriter.write(it, EnvType.JOINED), sort = true)
+            aw.emit(UMFWriter.write(it), sort = true)
             it.readUtf8()
         }
 
@@ -62,10 +67,10 @@ c	net/minecraft/class_3721
     fun testReadWithTabs() = runTest {
         val aw = Buffer().use {
             it.writeUtf8(awText.replace(" ", "\t"))
-            AWReader.read(it, EnvType.JOINED)
+            AWReader.read(it)
         }
         val umfOut = Buffer().use {
-            aw.accept(UMFWriter.write(it, EnvType.JOINED))
+            aw.emit(UMFWriter.write(it))
         }
     }
 
@@ -73,11 +78,11 @@ c	net/minecraft/class_3721
     fun testIndirect() = runTest {
         val aw = Buffer().use {
             it.writeUtf8(awText)
-            AWReader.read(it, EnvType.JOINED)
+            AWReader.read(it)
         }
 
         val out = Buffer().use {
-            aw.accept(AWWriter.write(it, EnvType.JOINED))
+            aw.emit(AWWriter.write(it))
             it.readUtf8()
         }
 
@@ -125,13 +130,13 @@ c	net/minecraft/class_3721
     fun testAw2At() = runTest {
         val m = Buffer().use {
             it.writeUtf8(awText)
-            AWReader.read(it, EnvType.JOINED)
+            AWReader.read(it)
         }
 
         ATWriter.defaultToPublic = false
         val aw = Buffer().use {
-            m.accept(ATWriter.write(it).nsFiltered("intermediary"))
-//            m.accept(UMFWriter.write(EnvType.JOINED, it))
+            m.emit(ATWriter.write(it), nsFilter = setOf(Namespace("intermediary")))
+//            m.emit(UMFWriter.write(EnvType.JOINED, it))
             it.readUtf8()
         }
 
@@ -148,13 +153,13 @@ c	net/minecraft/class_3721
     fun testAw2AtFixDefault() = runTest {
         val m = Buffer().use {
             it.writeUtf8(awText)
-            AWReader.read(it, EnvType.JOINED)
+            AWReader.read(it)
         }
 
         ATWriter.defaultToPublic = true
         val aw = Buffer().use {
-            m.accept(ATWriter.write(it).nsFiltered("intermediary"))
-//            m.accept(UMFWriter.write(EnvType.JOINED, it))
+            m.emit(ATWriter.write(it), nsFilter = setOf(Namespace("intermediary")))
+//            m.emit(UMFWriter.write(EnvType.JOINED, it))
             it.readUtf8()
         }
 

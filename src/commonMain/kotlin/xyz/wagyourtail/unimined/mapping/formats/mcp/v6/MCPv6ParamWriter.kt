@@ -4,12 +4,9 @@ import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.visitor.*
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.NullDelegator
-import xyz.wagyourtail.unimined.mapping.visitor.delegate.delegator
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 object MCPv6ParamWriter : FormatWriter {
 
@@ -17,45 +14,40 @@ object MCPv6ParamWriter : FormatWriter {
         return if (this.contains(Regex("[\\n,]"))) this.escape(doubleQuote = true) else this
     }
 
-    override fun write(append: (String) -> Unit, envType: EnvType): RootMappingVisitor {
+    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
         lateinit var ns: List<Namespace>
 
-        return EmptyRootMappingVisitor().delegator(object : NullDelegator() {
-            override fun visitHeader(delegate: RootMappingVisitor, vararg namespaces: Namespace) {
+        return object : MappingSink {
+            override fun header(namespaces: List<Namespace>) {
                 if (namespaces.size != 2) {
                     throw IllegalArgumentException("MCPv6 requires 2 namespaces")
                 }
-                ns = namespaces.toList()
+                ns = namespaces
                 append("${namespaces[0]},${namespaces[1]},side,desc")
             }
 
-            override fun visitClass(delegate: RootMappingVisitor, names: Map<Namespace, InternalName>): ClassMappingVisitor? {
-                return default.visitClass(delegate, names)
+            override fun push(element: MappingElement): MappingElement? {
+                when (element) {
+                    is ParameterMapping -> {
+                        var src = element.names[ns[0]]
+                        var dst = element.names[ns[1]]
+                        if (src == null && dst == null) return null
+                        if (src == null) src = dst!!
+                        if (dst == null) dst = src
+                        val side = envType.ordinal
+                        append("\n${src.value.maybeEscapeCol()},${dst.value.maybeEscapeCol()},$side")
+                    }
+                    is MethodMapping, is WildcardMapping, is ClassMapping -> {}
+                    else -> return null
+                }
+                return element
             }
 
-            override fun visitMethod(
-                delegate: ClassMappingVisitor,
-                names: Map<Namespace, MethodNameAndDescriptor>
-            ): MethodMappingVisitor? {
-                return default.visitMethod(delegate, names)
-            }
+            override fun push(meta: MetadataElement): MetadataElement? = null
 
-            override fun visitParameter(
-                delegate: InvokableMappingVisitor,
-                index: Int?,
-                lvOrd: Int?,
-                names: Map<Namespace, UnqualifiedName>
-            ): ParameterMappingVisitor? {
-                var src = names[ns[0]]
-                var dst = names[ns[1]]
-                if (src == null && dst == null) return null
-                if (src == null) src = dst!!
-                if (dst == null) dst = src
-                val side = envType.ordinal
-                append("\n${src.value.maybeEscapeCol()},${dst.value.maybeEscapeCol()},$side")
-                return null
-            }
-        })
+            override fun pop(element: MappingElement) {}
+        }
+
     }
 
 }

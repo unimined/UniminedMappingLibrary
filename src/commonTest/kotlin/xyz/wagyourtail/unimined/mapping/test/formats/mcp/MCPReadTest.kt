@@ -4,14 +4,21 @@ import kotlinx.coroutines.test.runTest
 import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v3.MCPv3ClassesReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.test.formats.rgs.RetroguardReadTest
-import xyz.wagyourtail.unimined.mapping.tree.MemoryMappingTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class MCPReadTest {
 
@@ -28,11 +35,11 @@ class MCPReadTest {
                 a (Minecraft),method_1507,*,*,minecraftMethod,comment data,,[1]
                 b (World),method_1204,*,*,worldMethod,comment data
             """.trimIndent())
-            MCPv1MethodReader.read(it, tree, EnvType.CLIENT)
+            MCPv1MethodReader.read(it, tree, settings = FormatReaderSettings(envType = EnvType.CLIENT))
         }
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(EnvType.CLIENT, it, true))
+            tree.emit(UMFWriter.write(EnvType.CLIENT, it, true))
             it.readUtf8()
         }
 
@@ -69,11 +76,11 @@ c	b	net/minecraft/src/World	_
                 b,a,field_1725,*,*,worldField,comment data
             """.trimIndent()
             )
-            MCPv1FieldReader.read(it, tree, EnvType.CLIENT)
+            MCPv1FieldReader.read(it, tree, settings = FormatReaderSettings(envType = EnvType.CLIENT))
         }
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(it, EnvType.CLIENT))
+            tree.emit(UMFWriter.write(it, EnvType.CLIENT))
             it.readUtf8()
         }
 
@@ -93,10 +100,10 @@ c	b	net/minecraft/src/World	_
     """.trimIndent()
 
 
-    suspend fun readMCPClasses(): MemoryMappingTree {
+    suspend fun readMCPClasses(): MutableMappingTree {
         return Buffer().use {
             it.writeUtf8(mcpClasses)
-            MCPv3ClassesReader.read(it, EnvType.CLIENT)
+            MCPv3ClassesReader.read(it, settings = FormatReaderSettings(envType = EnvType.CLIENT))
         }
     }
 
@@ -105,7 +112,7 @@ c	b	net/minecraft/src/World	_
         val tree = readMCPClasses()
 
         val out = Buffer().use {
-            tree.accept(UMFWriter.write(it, EnvType.CLIENT), sort = true)
+            tree.emit(UMFWriter.write(it, EnvType.CLIENT), sort = true)
             it.readUtf8()
         }
 

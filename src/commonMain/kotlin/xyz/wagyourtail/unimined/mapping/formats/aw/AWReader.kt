@@ -14,10 +14,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.AddRemove
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object AWReader: FormatReader {
 
@@ -29,7 +34,7 @@ object AWReader: FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         // check content begins with "accessWidener"
         return input.peek().readUtf8Line()?.startsWith("accessWidener") ?: false
     }
@@ -65,17 +70,17 @@ object AWReader: FormatReader {
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-
+        val envType = settings.envType
+        
         val (namespace, targets) = readData(input)
 
-        into.use {
-            into.visitHeader(nsMapping[namespace.name] ?: namespace.name)
+        with (into) {
+            header(listOf(nsMapping[namespace.name]?.let { Namespace(it) } ?: namespace))
             val ns = nsMapping[namespace.name]?.let { Namespace(it) } ?: namespace
 
             for ((access, target) in targets.filterIsInstance<AWData>()) {
@@ -130,45 +135,45 @@ object AWReader: FormatReader {
                 }
 
                 if (member == null) {
-                    into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
+                    pushed(MutableClassMapping(mapOf(ns to cls.getInternalName()))) {
                         for ((flag, conditions) in addAccess) {
-                            visitAccess(AddRemove.ADD, flag, conditions)?.visitEnd()
+                            pushed(AccessElement(AddRemove.ADD, flag, conditions)) {}
                         }
                         for ((flag, conditions) in removeAccess) {
-                            visitAccess(AddRemove.REMOVE, flag, conditions)?.visitEnd()
+                            pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {}
                         }
                     }
                 } else {
                     if (member is MethodNameAndDescriptor) {
-                        into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
+                        pushed(MutableClassMapping(mapOf(ns to cls.getInternalName()))) {
                             var removeClsFinal = false
-                            visitMethod(mapOf(ns to member))?.use {
+                            pushed(MutableMethodMapping(mapOf(ns to member))) {
                                 for ((flag, conditions) in addAccess) {
-                                    visitAccess(AddRemove.ADD, flag, conditions)?.visitEnd()
+                                    pushed(AccessElement(AddRemove.ADD, flag, conditions)) {}
                                 }
                                 for ((flag, conditions) in removeAccess) {
-                                    visitAccess(AddRemove.REMOVE, flag, conditions)?.visitEnd()
+                                    pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {}
                                     if (flag == AccessFlag.FINAL) {
                                         removeClsFinal = true
                                     }
                                 }
                             }
                             if (removeClsFinal) {
-                                visitAccess(
+                                pushed(AccessElement(
                                     AddRemove.REMOVE,
                                     AccessFlag.FINAL,
                                     AccessConditions.ALL,
-                                )?.visitEnd()
+                                )) {}
                             }
                         }
                     } else {
-                        into.visitClass(mapOf(ns to cls.getInternalName()))?.use {
-                            visitField(mapOf(ns to member as FieldNameAndDescriptor))?.use {
+                        pushed(MutableClassMapping(mapOf(ns to cls.getInternalName()))) {
+                            pushed(MutableFieldMapping(mapOf(ns to member as FieldNameAndDescriptor))) {
                                 for ((flag, conditions) in addAccess) {
-                                    visitAccess(AddRemove.ADD, flag, conditions)?.visitEnd()
+                                    pushed(AccessElement(AddRemove.ADD, flag, conditions)) {}
                                 }
                                 for ((flag, conditions) in removeAccess) {
-                                    visitAccess(AddRemove.REMOVE, flag, conditions)?.visitEnd()
+                                    pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {}
                                 }
                             }
                         }
@@ -176,6 +181,7 @@ object AWReader: FormatReader {
                 }
             }
         }
+        into.end()
     }
 
     fun readData(input: CharReader<*>): AWMappings {

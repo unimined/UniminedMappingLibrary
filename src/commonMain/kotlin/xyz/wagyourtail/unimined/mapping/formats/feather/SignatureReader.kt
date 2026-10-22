@@ -15,10 +15,15 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSign
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.tree.AbstractMappingTree
-import xyz.wagyourtail.unimined.mapping.visitor.ClassMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.RootMappingVisitor
-import xyz.wagyourtail.unimined.mapping.visitor.use
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object SignatureReader : FormatReader {
 
@@ -27,24 +32,24 @@ object SignatureReader : FormatReader {
     @Deprecated("set within the settings argument instead")
     override var leinient: Boolean = false
 
-    override fun isFormat(fileName: String, input: BufferedSource, envType: EnvType): Boolean {
+    override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         return fileName.endsWith(".sigs")
     }
 
     override suspend fun read(
         input: CharReader<*>,
-        context: AbstractMappingTree?,
-        into: RootMappingVisitor,
-        envType: EnvType,
+        context: MappingTree?,
+        into: MappingSink,
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings
     ) {
-        val ns = Namespace(nsMapping["source"] ?: "source")
+        val envType = settings.envType
+                val ns = Namespace(nsMapping["source"] ?: "source")
 
-        into.use {
-            visitHeader(ns.name)
+        with (into) {
+            header(listOf(ns))
 
-            var cls: ClassMappingVisitor? = null
+            var cls: MappingElement? = null
 
             while (!input.exhausted()) {
                 if (input.peek() == '\n') {
@@ -54,11 +59,11 @@ object SignatureReader : FormatReader {
                 val whitespace = input.takeWhitespace()
                 if (whitespace.isEmpty()) {
                     val name = InternalName.read(input.takeNextLiteral()!!.translateEscapes())
-                    cls?.visitEnd()
-                    cls = visitClass(mapOf(ns to name))
+                    cls?.let { pop(it) }
+                    cls = push(MutableClassMapping(mapOf(ns to name)))
                     val sig = input.takeNextLiteral()
                     if (sig != null) {
-                        cls?.visitSignature(ClassSignature.read(sig.translateEscapes()), ns)
+                        pushed(SignatureElement(ClassSignature.read(sig.translateEscapes()), ns)) {}
                     }
                 } else {
                     if (whitespace.length != 1) {
@@ -68,18 +73,19 @@ object SignatureReader : FormatReader {
                     val desc = FieldOrMethodDescriptor.read(input.takeNextLiteral()!!.translateEscapes())
                     val sig = input.takeNextLiteral()!!.translateEscapes()
                     if (desc.isMethodDescriptor()) {
-                        cls?.visitMethod(mapOf(ns to MethodNameAndDescriptor(mName, desc.getMethodDescriptor())))?.use {
-                            visitSignature(MethodSignature.read(sig), ns)
+                        pushed(MutableMethodMapping(mapOf(ns to MethodNameAndDescriptor(mName, desc.getMethodDescriptor())))) {
+                            pushed(SignatureElement(MethodSignature.read(sig), ns)) {}
                         }
                     } else {
-                        cls?.visitField(mapOf(ns to FieldNameAndDescriptor(mName, desc.getFieldDescriptor())))?.use {
-                            visitSignature(FieldSignature.read(sig), ns)
+                        pushed(MutableFieldMapping(mapOf(ns to FieldNameAndDescriptor(mName, desc.getFieldDescriptor())))) {
+                            pushed(SignatureElement(FieldSignature.read(sig), ns)) {}
                         }
                     }
                 }
 
             }
         }
+        into.end()
     }
 
 }
