@@ -4,13 +4,14 @@ package xyz.wagyourtail.unimined.mapping.tree.impl
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
+import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutablePackageMapping
-import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.MetadataElementData
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.mergeMetadata
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.serialization.NamespaceSerializer
 import xyz.wagyourtail.unimined.mapping.serialization.PackageNameSerializer
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
 
 @Serializable
 data class PackageMappingData(

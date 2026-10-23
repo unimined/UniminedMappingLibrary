@@ -3,9 +3,13 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.ParameterMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.WildcardMapping
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 object MCPv6ParamWriter : FormatWriter {

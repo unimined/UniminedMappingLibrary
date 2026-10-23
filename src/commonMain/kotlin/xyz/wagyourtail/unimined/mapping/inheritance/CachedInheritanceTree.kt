@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.inheritance
 
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader.takeNextUMF
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader.takeRemainingFixedOnLine
@@ -10,7 +11,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.MappingTree
 
 class CachedInheritanceTree(tree: MappingTree, data: CharReader<*>): InheritanceTree() {
 

@@ -1,10 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.sink
 
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.NsBoundMetadata
+import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 /**
  * wraps [this] sink, keeping only elements whose namespace keys intersect [namespaces].

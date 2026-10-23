@@ -1,16 +1,11 @@
 package xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one
 
+import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.jvms.Type
 import xyz.wagyourtail.unimined.mapping.jvms.TypeCompanion
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.BaseType
-import xyz.wagyourtail.commonskt.reader.CharReader
-import xyz.wagyourtail.unimined.mapping.jvms.Type
 import kotlin.jvm.JvmInline
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * JavaTypeSignature:

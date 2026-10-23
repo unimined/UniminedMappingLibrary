@@ -401,9 +401,3 @@ c evi$a net/minecraft/class_310$class_311 net/minecraft/client/Minecraft$Example
  i i Lnet/minecraft/class_310;
  * "this is a comment about the inner class"
 ```
-## Metadata entry reference
-
-Per-element key/argument tables are generated from the `@MetadataElementSpec`
-annotations — see [umf-reference.generated.md](umf-reference.generated.md)
-(produced by `ksp-processor`; refreshed via `./gradlew syncFormatDocs` or any
-`build`).

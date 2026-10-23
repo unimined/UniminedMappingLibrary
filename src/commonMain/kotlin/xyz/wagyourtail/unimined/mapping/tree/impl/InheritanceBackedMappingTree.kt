@@ -1,21 +1,24 @@
 package xyz.wagyourtail.unimined.mapping.tree.impl
 
+import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.WildcardType
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
+import xyz.wagyourtail.unimined.mapping.element.metadata.MutableMetadataParent
+import xyz.wagyourtail.unimined.mapping.element.metadata.SyntheticBridgeElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.SyntheticBridgeElementData
+import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
+import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree
+import xyz.wagyourtail.unimined.mapping.inheritance.PropagationStrategy
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
-import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree
-import xyz.wagyourtail.unimined.mapping.inheritance.PropagationStrategy
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.walkMappings
-import xyz.wagyourtail.unimined.mapping.newSmallSet
+import xyz.wagyourtail.unimined.mapping.sink.emit
 
 /**
  * member identity for propagation lookups — (name, desc) in the inheritance tree's base namespace
@@ -24,25 +27,40 @@ data class MemberKey(val name: UnqualifiedName, val desc: FieldOrMethodDescripto
 
 /**
  * tree that propagates member name assignments through the class hierarchy immediately
- * on assignment/creation, instead of requiring a batch [InheritanceTree.propagate] pass.
+ * on assignment/creation, instead of requiring a batch propagation pass.
  *
  * usage: wrap a [MutableMappingTree]; build the [InheritanceTree] first (e.g. via Propagator
  * or CachedInheritanceTree), then writes through [clazz]/[MutableClassMapping.method]/etc.
  * flow down to descendants automatically. names written through this wrapper are treated as
  * explicitly-set and are not overwritten by later inherited values.
  */
-class InheritanceBackedMappingTree(
+class InheritanceBackedMappingTree private constructor(
     private val delegate: MutableMappingTree,
     val inheritance: InheritanceTree,
     /**
      * how propagated-vs-existing name disagreements resolve — see [PropagationStrategy].
      */
-    val strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT
+    val strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
 ) : MutableMappingTree by delegate {
 
     /** explicit-assignment provenance: class fns-name -> member -> namespaces with explicit names.
      *  lookup-heavy at member scale — stays LinkedHashMap regardless of [MappingCollections.useSmallCollections] */
     internal val explicit = LinkedHashMap<InternalName, MutableMap<MemberKey, MutableSet<Namespace>>>()
+
+    /**
+     * wrap [source]'s contents: the whole tree is emitted through this sink —
+     * pushes propagate incrementally, and declared access changes fold into
+     * the scan first. The passed tree is only read; this tree's storage is
+     * private so nothing can write around the propagating factories.
+     */
+    constructor(
+        source: MappingTree,
+        inheritance: InheritanceTree,
+        strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
+    ) : this(MutableMappingTree(source.namespaces), inheritance, strategy) {
+        inheritance.applyAccessChanges(source)
+        source.emit(this)
+    }
 
     private fun markExplicit(cls: InternalName, key: MemberKey, nss: Collection<Namespace>) {
         explicit.getOrPut(cls) { LinkedHashMap() }.getOrPut(key) { newSmallSet() }.addAll(nss)
@@ -52,16 +70,109 @@ class InheritanceBackedMappingTree(
         explicit[cls]?.get(key)?.contains(ns) == true
 
     /**
-     * run the batch propagation pass on the wrapped tree (for targets not yet covered
-     * by incremental writes — e.g. bulk-loaded mappings).
+     * The delegate's `push` attaches elements via raw `attachTop`/`attachTo`,
+     * which bypass the propagating wrappers — so after the delegate has merged
+     * the element, member elements are re-attached through [clazz]/`method`/`field`
+     * to fire pullDown/propagateDown like a direct write would.
      */
-    suspend fun propagate(targets: Set<Namespace>) = inheritance.propagate(delegate, targets)
+    /** shadow of the delegate's element stack holding *propagating* class
+     *  wrappers — member pushes re-drive through them so [push] can't bypass
+     *  propagation (delegate.attachTop/attachTo call raw factories). */
+    private val pushedClasses = ArrayDeque<MutableClassMapping?>()
+
+    override fun push(element: xyz.wagyourtail.unimined.mapping.element.MappingElement): xyz.wagyourtail.unimined.mapping.element.MappingElement? {
+        val retained = delegate.push(element)
+        if (element is ClassMapping) {
+            pushedClasses.addLast((retained as? MutableClassMapping)?.let { clazz(it.names) })
+        }
+        return retained
+    }
 
     /**
-     * emit only the classes/members present in the inheritance graph ([InheritanceTree.inMappings]).
+     * member rows propagate at pop — metadata (e.g. declared access changes)
+     * is pushed inside the element's own block, so only at pop is the row
+     * fully populated and the inheritability decision correct.
      */
-    fun filtered(output: xyz.wagyourtail.unimined.mapping.sink.MappingSink) =
-        inheritance.filtered(this, output)
+    override fun pop(element: xyz.wagyourtail.unimined.mapping.element.MappingElement) {
+        when (element) {
+            is MethodMapping -> pushedClasses.lastOrNull()?.let {
+                foldMemberAccess(it, element)
+                it.method(element.entries)
+            }
+            is FieldMapping -> pushedClasses.lastOrNull()?.let {
+                foldMemberAccess(it, element)
+                it.field(element.entries)
+            }
+            is WildcardMapping -> pushedClasses.lastOrNull()?.let { foldWildcardAccess(it) }
+            is ClassMapping -> pushedClasses.removeLastOrNull()
+        }
+        delegate.pop(element)
+    }
+
+    /** class-scoped fold for a just-pushed wildcard row: apply its declared
+     *  `AccessElement`s to every matching scanned member's flags, then re-drive
+     *  the class's existing member rows so the folded flags take effect in
+     *  propagation. */
+    private fun foldWildcardAccess(cls: MutableClassMapping) {
+        val info = inheritance.classes[cls.names[inheritance.fns] ?: return] ?: return
+        var changed = false
+        for (mi in info.methods) {
+            val els = cls.getWildcards(WildcardType.METHOD, inheritance.fns, mi.descriptor).flatMap { it.access }
+            if (els.isEmpty()) continue
+            val orig = AccessFlag.of(ElementType.METHOD, mi.access)
+            val acc = orig.toMutableSet()
+            els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
+            val n = AccessFlag.toInt(acc)
+            if (n != mi.access) { mi.access = n; changed = true }
+        }
+        for (fi in info.fields) {
+            val els = cls.getWildcards(WildcardType.FIELD, inheritance.fns, fi.descriptor).flatMap { it.access }
+            if (els.isEmpty()) continue
+            val orig = AccessFlag.of(ElementType.FIELD, fi.access)
+            val acc = orig.toMutableSet()
+            els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
+            val n = AccessFlag.toInt(acc)
+            if (n != fi.access) { fi.access = n; changed = true }
+        }
+        if (changed) {
+            for (m in cls.methods.toList()) cls.method(m.entries)
+            for (f in cls.fields.toList()) cls.field(f.entries)
+        }
+    }
+
+    /** fold a just-pushed row's declared `AccessElement`s into the scanned
+     *  member flags — the lazy per-row version of
+     *  [InheritanceTree.applyAccessChanges] for streamed pushes. Wildcard ATs
+     *  aren't handled here — bulk/whole-tree folds need [applyAccessChanges]
+     *  or the reader's `prepare` hook. */
+    private fun foldMemberAccess(cls: MutableClassMapping, element: xyz.wagyourtail.unimined.mapping.element.MappingElement) {
+        val info = inheritance.classes[cls.names[inheritance.fns] ?: return] ?: return
+        val els = (element as? MetadataParent)?.metadata?.filterIsInstance<xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement>() ?: return
+        if (els.isEmpty()) return
+        when (element) {
+            is MethodMapping -> {
+                val entry = element.entries[inheritance.fns] ?: return
+                for (mi in info.methods.filter {
+                    it.name == entry.name && (entry.descriptor == null || it.descriptor == entry.descriptor)
+                }) {
+                    val acc = AccessFlag.of(ElementType.METHOD, mi.access).toMutableSet()
+                    els.forEach { it.apply(acc) }
+                    mi.access = AccessFlag.toInt(acc)
+                }
+            }
+            is FieldMapping -> {
+                val entry = element.entries[inheritance.fns] ?: return
+                for (fi in info.fields.filter {
+                    it.name == entry.name && (entry.descriptor == null || it.descriptor == entry.descriptor)
+                }) {
+                    val acc = AccessFlag.of(ElementType.FIELD, fi.access).toMutableSet()
+                    els.forEach { it.apply(acc) }
+                    fi.access = AccessFlag.toInt(acc)
+                }
+            }
+            else -> {}
+        }
+    }
 
     override fun clazz(names: Map<Namespace, InternalName>): MutableClassMapping {
         val base = delegate.clazz(names)
@@ -74,6 +185,28 @@ class InheritanceBackedMappingTree(
      * push an inherited name down to matching members in descendant classes (BFS, visited-set
      * for diamonds). skips namespaces where the descendant's member has an explicit name.
      */
+    /**
+     * whether the member at [key] in [info] is inherited — folds the member
+     * mapping row's [AccessElement]s over the scanned bytecode flags, so e.g.
+     * a `private → protected` access-widener makes the member propagatable.
+     * Constructors/initializers and non-inherited (private/static) members
+     * never propagate.
+     */
+    /**
+     * whether the member at [key] in [info] propagates — uses scanned flags;
+     * declared [AccessElement]s are folded into [InheritanceTree.ClassInfo]
+     * flags before wrapping (see AsmRemapper.overlay).
+     */
+    private fun isInheritable(info: InheritanceTree.ClassInfo, key: MemberKey, isMethod: Boolean): Boolean {
+        if (key.name.value.startsWith("<")) return false
+        val scannedAccess = if (isMethod) {
+            info.methods.firstOrNull { it.name == key.name && it.descriptor == key.desc }?.access
+        } else {
+            info.fields.firstOrNull { it.name == key.name && it.descriptor == key.desc }?.access
+        } ?: return true // not in the scanned graph — nothing to check against
+        return AccessFlag.isInheritable(scannedAccess)
+    }
+
     private fun propagateDown(
         info: InheritanceTree.ClassInfo,
         key: MemberKey,
@@ -81,6 +214,7 @@ class InheritanceBackedMappingTree(
         name: UnqualifiedName,
         isMethod: Boolean
     ) {
+        if (!isInheritable(info, key, isMethod)) return
         val visited = mutableSetOf(info.name)
         val queue = ArrayDeque<InheritanceTree.ClassInfo>()
         queue.addAll(info.children)
@@ -121,7 +255,7 @@ class InheritanceBackedMappingTree(
         cls: InternalName,
         key: MemberKey,
         ns: Namespace,
-        name: UnqualifiedName
+        name: UnqualifiedName,
     ) {
         val existing = memberName()
         val explicitHere = isExplicit(cls, key, ns)
@@ -221,6 +355,7 @@ class InheritanceBackedMappingTree(
         bridgeTarget: MutableMetadataParent
     ) {
         for (parent in info.allParents) {
+            if (!isInheritable(parent, key, isMethod)) continue
             val pCls = delegate.getClass(inheritance.fns, parent.name) ?: continue
             val pEntries: Map<Namespace, out NameAndDescriptor> = (if (isMethod) {
                 pCls.methods.firstOrNull {

@@ -4,15 +4,17 @@ import kotlinx.coroutines.test.runTest
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.metadata.SyntheticBridgeElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.SyntheticBridgeElementData
 import xyz.wagyourtail.unimined.mapping.inheritance.CachedInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
 import xyz.wagyourtail.unimined.mapping.inheritance.PropagationStrategy
-import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.element.metadata.SyntheticBridgeElement
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.SyntheticBridgeElementData
+import xyz.wagyourtail.unimined.mapping.inheritance.propagate
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
+import xyz.wagyourtail.unimined.mapping.sink.emit
 import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,9 +46,12 @@ class TestInheritanceBackedMappingTree {
     private val named2 = Namespace("named2")
 
     private fun setup(strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT): Pair<MutableMappingTree, InheritanceBackedMappingTree> {
-        val delegate = MutableMappingTree()
-        val it = CachedInheritanceTree(delegate, StringCharReader(IT))
-        return delegate to InheritanceBackedMappingTree(delegate, it, strategy)
+        val source = MutableMappingTree()
+        val it = CachedInheritanceTree(source, StringCharReader(IT))
+        // both handles point at the backed tree — storage is private; writes
+        // must go through the propagating factories
+        val tree = InheritanceBackedMappingTree(source, it, strategy)
+        return tree to tree
     }
 
     private fun cls(tree: MutableMappingTree, name: String) =
@@ -280,8 +285,102 @@ class TestInheritanceBackedMappingTree {
         cls(delegate, "clsB").method(mapOf(
             intermediary to MethodNameAndDescriptor.unchecked("methodA;()V")
         ))
-        tree.propagate(setOf(named))
+        // the batch path is still the escape hatch for rows bulk-written before wrap
+        tree.inheritance.propagate(delegate, setOf(named))
         assertEquals("aM", methodEntries(delegate, "clsB", "methodA")[named])
+    }
+
+
+    /** emit-driven propagation: a tree emitted into an already-constructed
+     *  backed tree must propagate via the pop-time re-drive — and a declared
+     *  AccessElement on a pushed member row must fold into the scanned flags
+     *  before the propagation decision (streamed-AT ordering). */
+    @Test
+    fun propagateOnEmit() = runTest {
+        val (delegate, tree) = setup()
+
+        // a separate source tree — the streamed-read analog
+        val src = MutableMappingTree(setOf(intermediary, named))
+        val clsA = src.clazz(mapOf(intermediary to InternalName.unchecked("clsA")))
+        clsA.method(mapOf(
+            intermediary to MethodNameAndDescriptor.unchecked("methodA;()V"),
+            named to MethodNameAndDescriptor.unchecked("aM;()V")
+        ))
+        src.clazz(mapOf(intermediary to InternalName.unchecked("clsB")))
+            .method(mapOf(intermediary to MethodNameAndDescriptor.unchecked("methodA;()V")))
+
+        src.emit(tree)
+
+        assertEquals("aM", methodEntries(delegate, "clsB", "methodA")[named])
+    }
+
+
+    /** streamed AT fold: a private parent member widened by AccessElements on
+     *  its row must propagate once emit pushes the row — the pop-time fold
+     *  applies the flags to the scanned graph before propagateDown decides. */
+    @Test
+    fun emitFoldsAccessElementsBeforePropagation() = runTest {
+        val it2 = CachedInheritanceTree(MutableMappingTree(), StringCharReader("""
+            umf_it 1 0
+            intermediary
+            clsA
+             private methodP ()V
+            clsB clsA
+             private methodP ()V
+        """.trimIndent()))
+        val tree = InheritanceBackedMappingTree(MutableMappingTree(setOf(intermediary, named)), it2)
+
+        val src = MutableMappingTree(setOf(intermediary, named))
+        val clsA = src.clazz(mapOf(intermediary to InternalName.unchecked("clsA")))
+        val m = clsA.method(mapOf(
+            intermediary to MethodNameAndDescriptor.unchecked("methodP;()V"),
+            named to MethodNameAndDescriptor.unchecked("aP;()V")
+        )) as xyz.wagyourtail.unimined.mapping.element.mapping.MutableMethodMapping
+        m.addMetadata(xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement(
+            xyz.wagyourtail.unimined.mapping.element.AddRemove.REMOVE,
+            xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag.PRIVATE,
+            xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions.ALL))
+        m.addMetadata(xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement(
+            xyz.wagyourtail.unimined.mapping.element.AddRemove.ADD,
+            xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag.PROTECTED,
+            xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions.ALL))
+        src.clazz(mapOf(intermediary to InternalName.unchecked("clsB")))
+            .method(mapOf(intermediary to MethodNameAndDescriptor.unchecked("methodP;()V")))
+
+        src.emit(tree)
+
+        assertEquals("aP", methodEntries(tree, "clsB", "methodP")[named],
+            "widened private parent should propagate its name to the child override")
+    }
+
+
+    /** shadowing direction: a child row that exists *before* the parent's row
+     *  still gets the name when the parent member attaches (propagateDown),
+     *  and an explicit child name survives later parent propagation. */
+    @Test
+    fun childRowBeforeParentAndExplicitSurvives() = runTest {
+        val (delegate, tree) = setup()
+
+        // child row first — no parent row exists yet
+        cls(tree, "clsB").method(mapOf(intermediary to MethodNameAndDescriptor.unchecked("methodA;()V")))
+        // parent attaches after — propagateDown must reach the existing child row
+        cls(tree, "clsA").method(mapOf(
+            intermediary to MethodNameAndDescriptor.unchecked("methodA;()V"),
+            named to MethodNameAndDescriptor.unchecked("aM;()V")
+        ))
+        assertEquals("aM", methodEntries(delegate, "clsB", "methodA")[named])
+
+        // explicit child name survives a later parent write
+        val (delegate2, tree2) = setup()
+        cls(tree2, "clsB").method(mapOf(
+            intermediary to MethodNameAndDescriptor.unchecked("methodA;()V"),
+            named to MethodNameAndDescriptor.unchecked("bM;()V")
+        ))
+        cls(tree2, "clsA").method(mapOf(
+            intermediary to MethodNameAndDescriptor.unchecked("methodA;()V"),
+            named to MethodNameAndDescriptor.unchecked("aM;()V")
+        ))
+        assertEquals("bM", methodEntries(delegate2, "clsB", "methodA")[named])
     }
 
 }

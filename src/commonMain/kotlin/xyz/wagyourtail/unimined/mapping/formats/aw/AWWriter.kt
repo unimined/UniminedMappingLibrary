@@ -2,21 +2,28 @@ package xyz.wagyourtail.unimined.mapping.formats.aw
 
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.AddRemove
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.WildcardType
+import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.FieldMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.WildcardMapping
+import xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.jvms.ext.*
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.contains
 import xyz.wagyourtail.unimined.mapping.jvms.four.plus
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.MappingTree
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 object AWWriter : FormatWriter {
 

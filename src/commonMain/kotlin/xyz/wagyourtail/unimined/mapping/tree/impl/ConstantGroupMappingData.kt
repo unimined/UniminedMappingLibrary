@@ -14,11 +14,15 @@ package xyz.wagyourtail.unimined.mapping.tree.impl
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.InlineType
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableConstantGroupMapping
+import xyz.wagyourtail.unimined.mapping.element.metadata.ConstantElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.ExpressionElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.TargetElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.MetadataElementData
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.mergeMetadata
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant

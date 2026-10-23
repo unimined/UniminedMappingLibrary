@@ -7,11 +7,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.*
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
@@ -26,11 +22,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 private inline fun <T> stringSer(
     name: String,
@@ -52,6 +43,7 @@ object NameAndDescriptorSerializer : KSerializer<NameAndDescriptor> by stringSer
 object FieldOrMethodDescriptorSerializer : KSerializer<FieldOrMethodDescriptor> by stringSer("FieldOrMethodDescriptor", { FieldOrMethodDescriptor.read(it) }, { it.toString() })
 object FieldDescriptorSerializer : KSerializer<FieldDescriptor> by stringSer("FieldDescriptor", { FieldDescriptor.read(it) }, { it.value.value })
 object MethodDescriptorSerializer : KSerializer<MethodDescriptor> by stringSer("MethodDescriptor", { MethodDescriptor.read(it) }, { it.value })
+object JavadocSerializer : KSerializer<xyz.wagyourtail.unimined.mapping.jvms.ext.javadoc.Javadoc> by stringSer("Javadoc", { xyz.wagyourtail.unimined.mapping.jvms.ext.javadoc.Javadoc.unchecked(it) }, { it.toString() })
 object FullyQualifiedNameSerializer : KSerializer<FullyQualifiedName> by stringSer("FullyQualifiedName", { FullyQualifiedName.read(it) }, { it.value })
 object ClassTypeSignatureSerializer : KSerializer<ClassTypeSignature> by stringSer("ClassTypeSignature", { ClassTypeSignature.read(it) }, { it.value.toString() })
 object ClassSignatureSerializer : KSerializer<ClassSignature> by stringSer("ClassSignature", { ClassSignature.read(it) }, { it.value })

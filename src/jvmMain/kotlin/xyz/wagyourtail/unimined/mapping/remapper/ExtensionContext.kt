@@ -1,0 +1,94 @@
+package xyz.wagyourtail.unimined.mapping.remapper
+
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
+import xyz.wagyourtail.unimined.mapping.remapper
+
+/**
+ * Per-remap view handed to [AsmExtension] instances — the mapping tree plus
+ * ready-made [xyz.wagyourtail.unimined.mapping.NamespaceRemapper]s in both
+ * directions. Most extensions need member lookups beyond a flat rename (e.g.
+ * resolving mixin `target`/`method` annotation values against the tree), so
+ * both directions are provided.
+ */
+class ExtensionContext(
+    /** the (already overlaid + propagated) mapping tree in effect */
+    val tree: MappingTree,
+    /** the input jar's namespace */
+    val fns: Namespace,
+    /** the output jar's namespace */
+    val targetNs: Namespace,
+) {
+
+    /** source → target member/type remapper */
+    val remapper = tree.remapper(fns, targetNs)
+
+    /** target → source — for resolving names written in the target space */
+    val reverse = tree.remapper(targetNs, fns)
+
+    /** map a class internal name source → target (`base/Service` → `b`) */
+    fun mapClass(internalName: String): String = remapper.map(InternalName.unchecked(internalName)).value
+
+    /** map a method name source → target; [desc] disambiguates overloads, null
+     *  for desc-less lookup */
+    fun mapMethod(owner: String, name: String, desc: String? = null): String = remapper
+        .mapMethod(InternalName.unchecked(owner), UnqualifiedName.unchecked(name), desc?.let(MethodDescriptor::unchecked)).value
+
+    /** map a field name source → target; [desc] may be null for desc-less lookup */
+    fun mapField(owner: String, name: String, desc: String? = null): String = remapper
+        .mapField(InternalName.unchecked(owner), UnqualifiedName.unchecked(name), desc?.let(FieldDescriptor::unchecked)).value
+
+    /** remap the class refs inside a raw descriptor string ([isField] selects
+     *  field vs method descriptor parsing) */
+    fun mapDesc(desc: String, isField: Boolean): String =
+        if (isField) remapper.map(FieldDescriptor.unchecked(desc)).toString()
+        else remapper.map(MethodDescriptor.unchecked(desc)).toString()
+
+    /** number of member rows matching a desc-less lookup — `>1` means a
+     *  name-only ref is ambiguous */
+    fun memberCandidateCount(owner: String, name: String, isField: Boolean): Int {
+        val cls = tree.getClass(fns, InternalName.unchecked(owner)) ?: return 0
+        val n = UnqualifiedName.unchecked(name)
+        return with(tree) {
+            if (isField) cls.fields.count { it.names[fns] == n }
+            else cls.getMethods(fns, n, null).size
+        }
+    }
+
+    /** the resolved member's *source* desc remapped to target space — used to
+     *  render canonical refs when the written ref was desc-less */
+    fun resolveMemberDesc(owner: String, name: String, isField: Boolean): String? {
+        val cls = tree.getClass(fns, InternalName.unchecked(owner)) ?: return null
+        return with(tree) {
+            if (isField) {
+                cls.getField(fns, UnqualifiedName.unchecked(name), null)?.getDescriptor(fns)
+                    ?.let { remapper.map(it).toString() }
+            } else {
+                cls.getMethod(fns, UnqualifiedName.unchecked(name), null)?.getDescriptor(fns)
+                    ?.let { remapper.map(it).toString() }
+            }
+        }
+    }
+
+}
+
+/**
+ * A remap-time extension hook. Get one via [AsmExtensionFactory] — a fresh
+ * instance per [AsmRemapper.remap] call, so per-jar state just lives in fields.
+ *
+ * Lifecycle per remap:
+ *  1. [analyze] + [analyzeResource] — once per input class (raw, pre-remap
+ *     node) / once per input resource — collect state across the whole jar
+ *     (mixin targets, refmap entries, configs…)
+ *  2. [finishAnalysis] — after every input entry was analyzed
+ *  3. [postApply] — per output class, after `ClassRemapper` + `MetadataAdapter`
+ *     — the node carries targetNs names; mutate freely (annotation rewrites,
+ *     extra methods, …)
+ *  4. [transformResource] — per resource, after the standard manifest /
+ *     services / access-file fixups — replace contents (merge a stale refmap…)
+ *  5. [resources] — extra jar entries to append (refmap JSON, configs…)
+ */

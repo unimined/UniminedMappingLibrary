@@ -1,33 +1,30 @@
 package xyz.wagyourtail.unimined.mapping
 
 import xyz.wagyourtail.commonskt.utils.iterable
-import xyz.wagyourtail.commonskt.utils.mapNotNullValues
 import xyz.wagyourtail.commonskt.utils.maybeEscape
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.WildcardType
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.jvms.JVMS
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.ext.*
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.AnnotationElementName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.FieldExpression
-import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.Signature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.JavaTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.ClassSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.ThrowsSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ArrayTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 
 interface MappingTree : MappingElement {
@@ -62,67 +59,72 @@ interface MappingTree : MappingElement {
         }
     }
 
-    fun map(fromNs: Namespace, toNs: Namespace, descriptor: FieldOrMethodDescriptor): FieldOrMethodDescriptor {
+    /**
+     * Remaps every class reference inside a JVMS [Type] from [fromNs] to [toNs].
+     *
+     * [InternalName], [PackageName], and [FullyQualifiedName] use dedicated lookup
+     * paths (see their overloads); all other supported types are remapped by
+     * re-serializing through [remapAcceptor] and re-parsing. Supported types:
+     * descriptors, name-and-descriptor pairs, signatures and signature sub-types,
+     * annotations, expressions, [ObjectType], [UnqualifiedName]. Any other [Type]
+     * throws [IllegalArgumentException] — add an arm when a new mappable type is
+     * needed rather than silently passing it through.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Type> map(fromNs: Namespace, toNs: Namespace, value: T): T {
         checkNamespace(fromNs)
         checkNamespace(toNs)
-        if (fromNs == toNs) return descriptor
-        return FieldOrMethodDescriptor.unchecked(buildString {
-            descriptor.accept(descRemapAcceptor(fromNs, toNs))
-        })
-    }
-
-    fun map(fromNs: Namespace, toNs: Namespace, descriptor: FieldDescriptor): FieldDescriptor {
-        checkNamespace(fromNs)
-        checkNamespace(toNs)
-        if (fromNs == toNs) return descriptor
-        return FieldDescriptor.unchecked(buildString {
-            descriptor.accept(descRemapAcceptor(fromNs, toNs))
-        })
-    }
-
-    fun map(fromNs: Namespace, toNs: Namespace, descriptor: MethodDescriptor): MethodDescriptor {
-        checkNamespace(fromNs)
-        checkNamespace(toNs)
-        if (fromNs == toNs) return descriptor
-        return MethodDescriptor.unchecked(buildString {
-            descriptor.accept(descRemapAcceptor(fromNs, toNs))
-        })
+        if (fromNs == toNs) return value
+        fun Type.reserialized() = buildString { accept(remapAcceptor(fromNs, toNs)) }
+        return when (value) {
+            is InternalName -> map(fromNs, toNs, value)
+            is PackageName -> map(fromNs, toNs, value)
+            is FullyQualifiedName -> map(fromNs, toNs, value)
+            is ObjectType -> ObjectType(map(fromNs, toNs, value.getInternalName()))
+            is Annotation -> Annotation.unchecked(buildString {
+                val annCls = getClass(fromNs, value.getParts().first.getInternalName())
+                value.accept(remapAcceptor(fromNs, toNs, annCls))
+            })
+            // concrete descriptor arms must precede the FieldOrMethodDescriptor
+            // interface arm, or the unchecked cast back to T fails
+            is FieldDescriptor -> FieldDescriptor.unchecked(value.reserialized())
+            is MethodDescriptor -> MethodDescriptor.unchecked(value.reserialized())
+            is FieldOrMethodDescriptor -> FieldOrMethodDescriptor.unchecked(value.reserialized())
+            is FieldNameAndDescriptor -> FieldNameAndDescriptor.unchecked(value.reserialized())
+            is MethodNameAndDescriptor -> MethodNameAndDescriptor.unchecked(value.reserialized())
+            is Expression -> Expression.unchecked(value.reserialized())
+            is ClassSignature -> ClassSignature.unchecked(value.reserialized())
+            is MethodSignature -> MethodSignature.unchecked(value.reserialized())
+            is FieldSignature -> FieldSignature.unchecked(value.reserialized())
+            is ClassTypeSignature -> ClassTypeSignature.unchecked(value.reserialized())
+            is ReferenceTypeSignature -> ReferenceTypeSignature.unchecked(value.reserialized())
+            is ArrayTypeSignature -> ArrayTypeSignature.unchecked(value.reserialized())
+            is JavaTypeSignature -> JavaTypeSignature.unchecked(value.reserialized())
+            is ThrowsSignature -> ThrowsSignature.unchecked(value.reserialized())
+            is UnqualifiedName -> UnqualifiedName.unchecked(value.reserialized())
+            else -> throw IllegalArgumentException("Cannot map ${value::class.simpleName}")
+        } as T
     }
 
     fun mapClassSignature(fromNs: Namespace, toNs: Namespace, signature: String): String {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return signature
-        return buildString {
-            JVMS.parseClassSignature(signature).accept(signatureRemapAcceptor(fromNs, toNs))
-        }
+        return map(fromNs, toNs, JVMS.parseClassSignature(signature)).toString()
     }
 
     fun mapMethodSignature(fromNs: Namespace, toNs: Namespace, signature: String): String {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return signature
-        return buildString {
-            JVMS.parseMethodSignature(signature).accept(signatureRemapAcceptor(fromNs, toNs))
-        }
+        return map(fromNs, toNs, JVMS.parseMethodSignature(signature)).toString()
     }
 
     fun mapFieldSignature(fromNs: Namespace, toNs: Namespace, signature: String): String {
         checkNamespace(fromNs)
         checkNamespace(toNs)
         if (fromNs == toNs) return signature
-        return buildString {
-            JVMS.parseFieldSignature(signature).accept(signatureRemapAcceptor(fromNs, toNs))
-        }
-    }
-
-    fun mapAnnotation(fromNs: Namespace, toNs: Namespace, annotation: Annotation): Annotation {
-        checkNamespace(fromNs)
-        checkNamespace(toNs)
-        if (fromNs == toNs) return annotation
-        return Annotation.unchecked(buildString {
-            annotation.accept(annotationRemapAcceptor(fromNs , toNs, annotation))
-        })
+        return map(fromNs, toNs, JVMS.parseFieldSignature(signature)).toString()
     }
 
     fun map(fromNs: Namespace, toNs: Namespace, internalName: InternalName): InternalName {
@@ -190,44 +192,29 @@ interface MappingTree : MappingElement {
         return ObjectType(map(fromNs, toNs, objectType.getInternalName()))
     }
 
-    fun map(fromNs: Namespace, toNs: Namespace, expression: Expression): Expression {
-        checkNamespace(fromNs)
-        checkNamespace(toNs)
-        if (fromNs == toNs) return expression
-        return Expression.unchecked(buildString {
-            expression.accept(expressionRemapAcceptor(fromNs, toNs))
-        })
-    }
-
     // TODO: test
-    private fun StringBuilder.descRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
+    private fun StringBuilder.remapAcceptor(
+        fromNs: Namespace,
+        toNs: Namespace,
+        annotationCtx: ClassMapping? = null,
+    ): (Any, Boolean) -> Boolean {
         return { obj, leaf ->
             when (obj) {
                 is InternalName -> {
                     append(map(fromNs, toNs, obj))
                     false
                 }
-                else -> {
-                    if (leaf) {
-                        append(obj.toString())
-                    }
-                    true
+                // recursion through map() gives each nested annotation its own
+                // declaring-class context for element-name lookups
+                is Annotation -> {
+                    append(map(fromNs, toNs, obj))
+                    false
                 }
-            }
-        }
-    }
-
-    //TODO: test
-    private fun StringBuilder.signatureRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
-        return { obj, leaf ->
-            when (obj) {
-                is InternalName -> {
-                    val mapped = getClass(fromNs, obj)?.names[toNs]
-                    if (mapped != null) {
-                        append(mapped)
-                    } else {
-                        append(obj)
-                    }
+                is AnnotationElementName -> {
+                    val md = annotationCtx
+                        ?.getMethod(fromNs, UnqualifiedName.unchecked(obj.value.unescape()), null)
+                        ?.names[toNs]
+                    append(md?.value?.maybeEscape() ?: obj)
                     false
                 }
                 is ClassTypeSignature -> {
@@ -242,8 +229,9 @@ interface MappingTree : MappingElement {
                     val mappedBuilder = StringBuilder()
                     val mappedOuter = map(fromNs, toNs, InternalName.read(clsNameBuilder.toString()))
                     mappedBuilder.append(mappedOuter)
+                    append("L")
                     append(mappedOuter)
-                    types?.accept(signatureRemapAcceptor(fromNs, toNs))
+                    types?.accept(remapAcceptor(fromNs, toNs, annotationCtx))
                     for (suf in sufs) {
                         val (innerName, innerTypes) = suf.getParts().getParts()
                         clsNameBuilder.append("$").append(innerName)
@@ -253,63 +241,11 @@ interface MappingTree : MappingElement {
                         mappedBuilder.append(innerNameMapped)
                         append(".")
                         append(innerNameMapped)
-                        innerTypes?.accept(signatureRemapAcceptor(fromNs, toNs))
+                        innerTypes?.accept(remapAcceptor(fromNs, toNs, annotationCtx))
                     }
+                    append(";")
                     false
                 }
-                else -> {
-                    if (leaf) {
-                        append(obj.toString())
-                    }
-                    true
-                }
-            }
-        }
-    }
-
-    private fun StringBuilder.annotationRemapAcceptor(fromNs: Namespace, toNs: Namespace, annotation: Annotation): (Any, Boolean) -> Boolean {
-        val ann = annotation.getParts().first
-        val cls = getClass(fromNs, ann.getInternalName())
-        return { obj, leaf ->
-            when (obj) {
-                is Annotation -> {
-                    val mapped = mapAnnotation(fromNs, toNs, obj)
-                    append(mapped)
-                    false
-                }
-                is InternalName -> {
-                    val mapped = map(fromNs,  toNs, obj)
-                    append(mapped)
-                    false
-                }
-                is AnnotationElementName -> {
-                    if (cls != null) {
-                        val md = cls.getMethod(fromNs, UnqualifiedName.unchecked(obj.value.unescape()), null)?.names[toNs]
-                        if (md != null) {
-                            append(md.value.maybeEscape())
-                        } else {
-                            append(obj)
-                        }
-                        false
-                    } else {
-                        append(obj)
-                        false
-                    }
-                }
-                else -> {
-                    if (leaf) {
-                        append(obj.toString())
-                    }
-                    true
-                }
-            }
-        }
-    }
-
-
-    private fun StringBuilder.expressionRemapAcceptor(fromNs: Namespace, toNs: Namespace): (Any, Boolean) -> Boolean {
-        return { obj, leaf ->
-            when (obj) {
                 is FieldExpression -> {
                     val (owner, instance, nameAndDesc) = obj.getParts()
                     if (owner != null) {

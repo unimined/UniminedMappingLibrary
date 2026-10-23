@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+
 import java.net.URI
 
 plugins {
@@ -5,6 +7,7 @@ plugins {
     kotlin("plugin.serialization") version libs.versions.kotlin.asProvider()
     alias(libs.plugins.commons)
     alias(libs.plugins.kotlinx.atomicfu)
+    alias(libs.plugins.resources)
     `maven-publish`
 }
 
@@ -41,6 +44,9 @@ kotlin {
         nodejs()
         binaries.executable()
     }
+    linuxX64()
+    linuxArm64()
+    applyDefaultHierarchyTemplate()
 
     sourceSets {
         val commonMain by getting {
@@ -51,24 +57,43 @@ kotlin {
                 api(libs.jetbrains.annotations.kmp)
                 api(libs.kotlin.coroutines)
                 api(libs.kotlin.serialization.json)
+                api(libs.kmp.zip)
+                api(libs.kmp.zip.okio)
             }
+        }
+        val nonJvmMain by creating {
+            dependsOn(commonMain)
+        }
+        val webMain by getting {
+            dependsOn(nonJvmMain)
+        }
+        val nativeMain by getting {
+            dependsOn(nonJvmMain)
         }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
                 implementation(libs.kotlin.coroutines.tests)
+                implementation(libs.resources)
             }
         }
         val jvmMain by getting {
             dependencies {
-                api(libs.appache.commons.compress)
-
                 api(libs.asm)
                 api(libs.asm.tree)
+                api(libs.asm.commons)
+
+                api(libs.commons.asm)
+                api(libs.kotlin.metadata.jvm)
 
                 api(libs.slf4j.api)
                 api(libs.slf4j.simple)
+
+                // source remapper PSI engine — implementation (not api) so
+                // consumers can swap in a lighter engine (javac-only…) or
+                // exclude it entirely if they never touch SourceRemapper
+                implementation(libs.kotlin.compiler.embeddable)
             }
         }
         val jvmTest by getting {
@@ -77,11 +102,7 @@ kotlin {
                 implementation(kotlin("test-junit"))
             }
         }
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(npm("jszip", libs.versions.jszip.get()))
-            }
-        }
+        val wasmJsMain by getting
         val wasmJsTest by getting {
             dependencies {
                 implementation(kotlin("test-wasm-js"))

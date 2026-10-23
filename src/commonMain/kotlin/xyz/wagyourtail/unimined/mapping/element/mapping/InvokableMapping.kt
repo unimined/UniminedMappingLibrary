@@ -1,17 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.element.mapping
 
-import xyz.wagyourtail.commonskt.utils.mapNotNullValues
-import xyz.wagyourtail.unimined.mapping.tree.impl.MethodMappingData
-import xyz.wagyourtail.unimined.mapping.tree.impl.asData
-import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
-import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.InvokableMetadataParent
 
 /**
  * shared parent for elements that can own parameters/local variables

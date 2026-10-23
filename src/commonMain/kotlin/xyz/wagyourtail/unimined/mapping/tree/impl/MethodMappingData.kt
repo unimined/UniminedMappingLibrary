@@ -15,10 +15,13 @@ package xyz.wagyourtail.unimined.mapping.tree.impl
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableLocalVariableMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableMethodMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableParameterMapping
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.MetadataElementData
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.mergeMetadata
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName

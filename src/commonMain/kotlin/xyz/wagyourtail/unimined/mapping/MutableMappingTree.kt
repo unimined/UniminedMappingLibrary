@@ -1,15 +1,13 @@
 package xyz.wagyourtail.unimined.mapping
 
-import xyz.wagyourtail.unimined.mapping.tree.impl.MappingTreeData
+import xyz.wagyourtail.unimined.mapping.element.InlineType
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableClassMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableConstantGroupMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutablePackageMapping
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.tree.impl.MappingTreeData
 
 interface MutableMappingTree : MappingTree, MappingSink {
 

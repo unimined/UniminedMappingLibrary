@@ -285,6 +285,22 @@ Plain-text files inside Forge MCPConfig zips (`config/`):
   `accessible	field	net/minecraft/class_1	field_1	I`; found in
   `*.accesswidener` files inside fabric mod jars / yarn.
 
+## ClassTweaker
+
+FabricMC's class-tweaker format — a superset of AccessWidener directives:
+
+- Header: `classTweaker	v{1,2}	<namespace>`
+- Access directives share AW semantics (`accessible`/`mutable`/`extendable`
+  with explicit `class`/`field`/`method` targets and descriptors) plus
+  `transitive-*` variants; CT reader reuses the AW access pipeline.
+- `inject-interface <owner> <interface>` adds an interface to a class
+  (`InterfaceElement`); `transitive-inject-interface` propagates to subclasses.
+- `extend-enum <owner> <name>` (v2 only) appends an enum constant
+  (`EnumExtensionElement`); `transitive-extend-enum` likewise.
+- `CTWriter` emits the representable subset — unconditional access changes,
+  interface injections, enum extensions — and drops metadata CT can't
+  express (comments, per-namespace names, conditional access).
+
 ## Parchment (`parchment.json`)
 
 ParchmentMC's javadoc/parameter-name overlay for official mappings. JSON:

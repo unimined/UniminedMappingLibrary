@@ -7,8 +7,34 @@ combining Minecraft obfuscation/deobfuscation mappings.
 
 Supports SRG, CSRG, TSRG v1/v2, Tiny v1/v2, Proguard (Mojang), Feather
 (.nests/.excs/.sigs), Unpick, Retroguard, MCP csvs (v1/v3/v6+), MCP exceptions,
-MCPConfig side files, AccessTransformer/AccessWidener, Parchment, zip
-containers — plus UMF, the library's own superset format.
+MCPConfig side files, AccessTransformer/AccessWidener, ClassTweaker,
+Parchment, zip containers — plus UMF, the library's own superset format.
 
 See [FORMATS.md](software-engineering/external/FORMATS.md) for per-format
 examples, where each file type is found, and what produces it.
+
+## Remapping
+
+Bytecode and source jars remap through the same `MappingTree`/`ExtensionContext`
+model — a source jar always comes paired with its bytecode jar.
+
+- **`AsmRemapper`** — bytecode (`remapper/asm/`): jar → transformed `ClassNode`s.
+  `Options` + `AsmExtension` seam (analyze → transform → post-application →
+  resources) — mixin tables, annotation grammar (`ParamRemap`/`AnnotationTable`),
+  Kotlin metadata, javadoc/parchment, access transforms, unpick targets.
+- **`SourceRemapper`** — source (`remapper/source/`): src jar → remapped text.
+  `SourceEngine` seam (`PsiSourceEngine` today; `JavacSourceEngine` deferred).
+  `SourceExtension` seam mirrors `AsmExtension` — built-ins:
+  `MixinSourceExtension`, `InterfaceInjectionExtension`, `JavadocExtension`,
+  `UnpickSourceExtension`, `AccessSourceExtension`. Renames, file relocation,
+  import fixups, doc refs (`{@link}`/`KDoc`), linemap adjustments — all through
+  a shared `ChangeSet`.
+- **`remapPaired(srcJar, binJar, …)`** — source+bytecode pair is the expected
+  input (bytecode jar goes on the resolution classpath).
+- **`RemapSession`** — scan once (merged tree + libraries), then `remapJar` /
+  `remapSources` per jar — the mod-loader shape.
+- **Javadoc grammar** — `jvms/ext/javadoc/` is a real `Type`/`TypeCompanion`
+  grammar like the other `jvms` formats: `Javadoc`/`DocSegment`/`DocTag`/
+  `DocRef`/`DocMember`/`SourceType`. Typed in `JavadocElement.value` —
+  refs (`{@link}`/`@see`/`@throws`/`[x]`/`[x#m]`) remap across namespaces;
+  text/labels pass through. See `software-engineering/javadoc-serialization-format.md`.

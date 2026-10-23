@@ -4,13 +4,13 @@ import okio.BufferedSink
 import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.element.*
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 object UMFWriter : FormatWriter {
 
@@ -157,7 +157,7 @@ object UMFWriter : FormatWriter {
                 into(meta.condition.toString())
             }
             is JavadocElement -> writeLine(meta, UMFReader.EntryType.JAVADOC.key) {
-                into(meta.value.maybeEscape())
+                into(meta.value.toString().maybeEscape())
                 into("\t")
                 into(meta.baseNs.name.maybeEscape())
             }

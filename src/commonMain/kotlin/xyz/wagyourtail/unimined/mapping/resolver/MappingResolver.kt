@@ -13,6 +13,8 @@ import xyz.wagyourtail.commonskt.properties.FinalizeOnRead
 import xyz.wagyourtail.commonskt.properties.LazyMutable
 import xyz.wagyourtail.commonskt.utils.associateWithNonNull
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatProvider
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
@@ -20,15 +22,14 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
 import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree
-import xyz.wagyourtail.unimined.mapping.MappingTree
-import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.sink.emit
+import xyz.wagyourtail.unimined.mapping.sink.nsFiltered
+import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
 import xyz.wagyourtail.unimined.mapping.tree.impl.fillMissingNames
 import xyz.wagyourtail.unimined.mapping.tree.impl.renest
-import xyz.wagyourtail.unimined.mapping.util.*
-import xyz.wagyourtail.unimined.mapping.sink.emit
-import xyz.wagyourtail.unimined.mapping.sink.MappingSink
-import xyz.wagyourtail.unimined.mapping.sink.nsFiltered
-
+import xyz.wagyourtail.unimined.mapping.util.Scoped
+import xyz.wagyourtail.unimined.mapping.util.isZip
 import kotlin.js.JsName
 import kotlin.jvm.JvmOverloads
 import kotlin.time.measureTime
@@ -63,7 +64,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
         return entries.entries.sortedBy { it.key }.joinToString("-") { it.value.id }
     }
 
-    open suspend fun applyInheritanceTree(tree: MutableMappingTree, apply: suspend (InheritanceTree) -> Unit) {}
+    open suspend fun applyInheritanceTree(tree: MutableMappingTree, apply: suspend (InheritanceTree) -> MutableMappingTree): MutableMappingTree = tree
 
     fun checkedNsOrNull(name: String): Namespace? {
         val ns = Namespace(name)
@@ -236,12 +237,10 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
                 LOGGER.info { "Propagating..." }
 
                 measureTime {
-                    applyInheritanceTree(resolved) { pt ->
-                        for (namespace in sortedNs) {
-                            if (namespace in unmappedNs) continue
-                            if (namespace == pt.fns) continue
-                            pt.propagate(resolved as MutableMappingTree, setOf(namespace))
-                        }
+                    resolved = applyInheritanceTree(resolved) { pt ->
+                        // wrap: fold access changes, emit rows through the
+                        // propagating factories — incremental, no batch pass
+                        InheritanceBackedMappingTree(resolved as MutableMappingTree, pt)
                     }
                 }.also {
                     LOGGER.info { "Propagated in $it" }
@@ -280,7 +279,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
                 LOGGER.info { "Writing to cache" }
 
-                writeCache(cacheKey, resolved)
+                writeCache(cacheKey, checkNotNull(resolved))
             } else {
                 LOGGER.info { "Loaded from cache" }
             }
@@ -289,7 +288,7 @@ abstract class MappingResolver<T : MappingResolver<T>>(val name: String) : Forma
 
             this.namespaces = sorted.flatMap { it.provides }.associate { it.first to it.second }
 
-            this.resolved = resolved
+            this.resolved = checkNotNull(resolved)
             this.resolved
         }
     }

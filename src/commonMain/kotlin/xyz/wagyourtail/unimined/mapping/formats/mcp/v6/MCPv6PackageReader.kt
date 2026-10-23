@@ -2,18 +2,12 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
-import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableClassMapping
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.MappingTree
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
@@ -29,7 +23,7 @@ object MCPv6PackageReader : FormatReader {
         return input.peek().readUtf8Line()?.startsWith("class,package") ?: false
     }
 
-    override suspend fun read(
+    override suspend fun readImpl(
         input: CharReader<*>,
         context: MappingTree?,
         into: MappingSink,

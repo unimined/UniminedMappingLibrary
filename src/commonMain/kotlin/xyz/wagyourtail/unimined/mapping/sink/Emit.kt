@@ -1,9 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.sink
 
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
+import xyz.wagyourtail.unimined.mapping.element.metadata.NsBoundMetadata
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 /**
@@ -19,24 +23,27 @@ fun MappingTree.emit(
     sink: MappingSink,
     nsFilter: Collection<Namespace> = namespaces.toList(),
     sort: Boolean = false,
-    transform: (MappingElement) -> MappingElement? = { it }
+    /** rename namespaces while emitting — e.g. a reader's nsMapping. Applies
+     *  to the sink header and every emitted element's name keys. */
+    nsRenamer: (Namespace) -> Namespace = { it },
+    transform: (MappingElement) -> MappingElement? = { it },
 ) {
     val nsOrder = nsFilter.filter { it in namespaces }
-    sink.header(nsOrder)
+    sink.header(nsOrder.map(nsRenamer))
     fun <T> Iterable<T>.forEachSorted(body: (T) -> Unit) {
         val list = if (sort) sortedBy { (it as MappingElement).emitSortKey(nsOrder) } else this
         for (e in list) body(e)
     }
     packages.forEachSorted { pkg ->
-        emitElement(pkg, sink, nsFilter, sort, transform)
+        emitElement(pkg, sink, nsFilter, sort, transform, nsRenamer)
     }
     classes.forEachSorted { cls ->
-        emitElement(cls, sink, nsFilter, sort, transform)
+        emitElement(cls, sink, nsFilter, sort, transform, nsRenamer)
     }
     constantGroups.forEachSorted { group ->
         val head = transform(MutableConstantGroupMapping(group.type, group.name, group.baseNs)) ?: return@forEachSorted
         sink.pushed(head) {
-            emitAll(group, sink, nsFilter, sort, transform)
+            emitAll(group, sink, nsFilter, sort, transform, nsRenamer)
         }
     }
     sink.end()
@@ -69,41 +76,48 @@ private fun MappingElement.emitSortKey(nsOrder: List<Namespace>): String = when 
     else -> ""
 }
 
-internal fun emitAll(parent: MappingElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean, transform: (MappingElement) -> MappingElement?) {
+internal fun emitAll(parent: MappingElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean, transform: (MappingElement) -> MappingElement?, nsRenamer: (Namespace) -> Namespace) {
     if (parent is MetadataParent) {
-        val meta = if (sort) parent.metadata.sortedBy { it.toString() } else parent.metadata
+        val meta = if (sort) parent.metadata.sortedBy { it.toString() } else parent.metadata.toList()
         for (m in meta) {
             emitMeta(m, sink, nsFilter, sort)
         }
     }
     val children = if (sort) parent.contents.sortedWith(compareBy({ it.sortRank() }, { it.emitSortKey(nsFilter.toList()) })) else parent.contents
     for (child in children) {
-        emitElement(child, sink, nsFilter, sort, transform)
+        emitElement(child, sink, nsFilter, sort, transform, nsRenamer)
     }
 }
 
 internal fun emitMeta(meta: MetadataElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean) {
     if (meta is NsBoundMetadata && meta.baseNs !in nsFilter) return
-    sink.pushed(meta) {
+    // push a childless copy — sinks that retain the pushed element (trees) would
+    // otherwise see the children twice: once attached to the element, once via
+    // the explicit child pushes below
+    val head = when (meta) {
+        is InnerClassElement -> InnerClassElement(meta.type, meta.names)
+        else -> meta
+    }
+    sink.pushed(head) {
         if (meta is MetadataParent) {
-            val children = if (sort) meta.metadata.sortedBy { it.toString() } else meta.metadata
+            val children = if (sort) meta.metadata.sortedBy { it.toString() } else meta.metadata.toList()
             for (child in children) emitMeta(child, sink, nsFilter, sort)
         }
     }
 }
 
-internal fun emitElement(element: MappingElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean, transform: (MappingElement) -> MappingElement?) {
+internal fun emitElement(element: MappingElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean, transform: (MappingElement) -> MappingElement?, nsRenamer: (Namespace) -> Namespace) {
     val head: MappingElement = transform(when (element) {
-        is PackageMapping -> MutablePackageMapping(element.names.filterKeys { it in nsFilter })
-        is ClassMapping -> MutableClassMapping(element.names.filterKeys { it in nsFilter })
-        is MethodMapping -> MutableMethodMapping(element.emitEntries().filterKeys { it in nsFilter })
-        is FieldMapping -> MutableFieldMapping(element.emitEntries().filterKeys { it in nsFilter })
-        is WildcardMapping -> MutableWildcardMapping(element.type, element.descs.filterKeys { it in nsFilter })
-        is ParameterMapping -> MutableParameterMapping(element.index, element.lvOrd, element.names.filterKeys { it in nsFilter })
-        is LocalVariableMapping -> MutableLocalVariableMapping(element.lvOrd, element.startOp, element.names.filterKeys { it in nsFilter })
+        is PackageMapping -> MutablePackageMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is ClassMapping -> MutableClassMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is MethodMapping -> MutableMethodMapping(element.emitEntries().filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is FieldMapping -> MutableFieldMapping(element.emitEntries().filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is WildcardMapping -> MutableWildcardMapping(element.type, element.descs.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is ParameterMapping -> MutableParameterMapping(element.index, element.lvOrd, element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is LocalVariableMapping -> MutableLocalVariableMapping(element.lvOrd, element.startOp, element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
         // name-only copy — class/package/group heads carry no ns-scoped children worth filtering
-        is ClassMapping -> MutableClassMapping(element.names.filterKeys { it in nsFilter })
-        is PackageMapping -> MutablePackageMapping(element.names.filterKeys { it in nsFilter })
+        is ClassMapping -> MutableClassMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is PackageMapping -> MutablePackageMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
         is ConstantGroupMapping -> MutableConstantGroupMapping(element.type, element.name, element.baseNs)
         is MappingTree -> element
         else -> element
@@ -125,6 +139,6 @@ internal fun emitElement(element: MappingElement, sink: MappingSink, nsFilter: C
     }
     if (dropped) return
     sink.pushed(head) {
-        emitAll(element, sink, nsFilter, sort, transform)
+        emitAll(element, sink, nsFilter, sort, transform, nsRenamer)
     }
 }

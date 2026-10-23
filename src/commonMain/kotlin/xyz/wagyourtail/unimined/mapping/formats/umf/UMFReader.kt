@@ -1,35 +1,31 @@
 package xyz.wagyourtail.unimined.mapping.formats.umf
 
 import okio.BufferedSource
-import xyz.wagyourtail.unimined.mapping.EnvType
-import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.formats.FormatReader
-import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
-import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
-import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.commonskt.utils.filterNotNullValues
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.*
+import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
+import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
+import xyz.wagyourtail.unimined.mapping.jvms.ext.javadoc.Javadoc
+import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.`class`.ClassSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.field.FieldSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.MethodSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import kotlin.jvm.JvmStatic
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
-import xyz.wagyourtail.unimined.mapping.sink.pushed
+import kotlin.jvm.JvmStatic
 
 /**
  * Our format to represent everything.
@@ -96,7 +92,7 @@ object UMFReader : FormatReader {
         return literal
     }
 
-    override suspend fun read(
+    override suspend fun readImpl(
         input: CharReader<*>,
         context: MappingTree?,
         into: MappingSink,
@@ -332,7 +328,9 @@ object UMFReader : FormatReader {
                     into.push(EnumExtensionElement(type, name, names.next()))
                 }
                 EntryType.JAVADOC -> {
-                    val comment = input.takeNextUMF()!!
+                    val comment = input.takeNextUMF()!!.let {
+                        if (unchecked) Javadoc.unchecked(it) else Javadoc.read(it)
+                    }
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }
                     into.push(JavadocElement(comment, names.first()))
                 }

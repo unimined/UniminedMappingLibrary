@@ -17,8 +17,7 @@ package xyz.wagyourtail.unimined.mapping.element.metadata.impl
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.SyntheticBridgeElement
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
 

@@ -3,22 +3,14 @@ package xyz.wagyourtail.unimined.mapping.formats.at
 import io.github.oshai.kotlinlogging.KotlinLogging
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
-import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.ATData
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader.parseAccess
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.MappingTree
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
-import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * This reads AT files written in the format found in forge 1.3-1.6.4
@@ -38,7 +30,7 @@ object LegacyATReader : FormatReader {
         return (cfg && name.endsWith("_at"))
     }
 
-    override suspend fun read(
+    override suspend fun readImpl(
         input: CharReader<*>,
         context: MappingTree?,
         into: MappingSink,

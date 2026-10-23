@@ -17,11 +17,12 @@ package xyz.wagyourtail.unimined.mapping.element.metadata.impl
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.serialization.*
-
+import xyz.wagyourtail.unimined.mapping.element.InnerType
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.MutableMetadataParent
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.serialization.*
 
 @Serializable
 data class InnerClassElementData(

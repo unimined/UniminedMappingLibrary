@@ -1,10 +1,12 @@
 package xyz.wagyourtail.unimined.mapping.element.mapping
 
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.*
+
 interface ClassMapping : MappingElement, MetadataParent {
 
     val names: Map<Namespace, InternalName>

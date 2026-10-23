@@ -10,11 +10,6 @@ import xyz.wagyourtail.unimined.mapping.sink.emit
 import xyz.wagyourtail.unimined.mapping.tree.impl.fillMissingNames
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 class NameCopyTest {
 

@@ -1,11 +1,15 @@
 package xyz.wagyourtail.unimined.mapping.tree.impl
 
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.sink.MappingSink
-import xyz.wagyourtail.unimined.mapping.serialization.Umf
-import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.MappingCollections
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.*
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
+import xyz.wagyourtail.unimined.mapping.serialization.Umf
+import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 /**
  * low-RAM tree for memory-constrained environments (web visualizer).

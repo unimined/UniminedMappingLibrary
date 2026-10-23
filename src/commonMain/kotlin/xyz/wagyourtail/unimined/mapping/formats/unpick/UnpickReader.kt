@@ -3,9 +3,12 @@ package xyz.wagyourtail.unimined.mapping.formats.unpick
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.commonskt.reader.CharReader
-import xyz.wagyourtail.unimined.mapping.element.AddRemoveModify
-import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.AddRemoveModify
+import xyz.wagyourtail.unimined.mapping.element.InlineType
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableConstantGroupMapping
+import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
@@ -19,13 +22,6 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.MappingTree
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
@@ -48,7 +44,7 @@ object UnpickReader : FormatReader {
     data class UnpickTarget(val intlName: InternalName, val targetName: UnqualifiedName, val targetDesc: MethodDescriptor, val params: MutableList<UnpickParam>)
     data class UnpickParam(val index: Int, val group: String)
 
-    override suspend fun read(
+    override suspend fun readImpl(
         input: CharReader<*>,
         context: MappingTree?,
         into: MappingSink,

@@ -2,19 +2,15 @@ package xyz.wagyourtail.unimined.mapping.test
 
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
-import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
-import xyz.wagyourtail.unimined.mapping.element.mapping.walkMappings
-import xyz.wagyourtail.unimined.mapping.element.mapping.walkMetadata
-import xyz.wagyourtail.unimined.mapping.element.mapping.walkMetadataPairs
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.JavadocElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.JavadocElementData
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class TestWalk {
 
@@ -23,9 +19,9 @@ class TestWalk {
     private fun tree(): Pair<MutableMappingTree, Pair<ClassMapping, MethodMapping>> {
         val tree = MutableMappingTree()
         val clsA = tree.clazz(mapOf(intermediary to InternalName.unchecked("clsA")))
-        clsA.addMetadata(JavadocElementData("cls javadoc", intermediary))
+        clsA.addMetadata(JavadocElement("cls javadoc", intermediary))
         val method = clsA.method(mapOf(intermediary to MethodNameAndDescriptor.unchecked("methodA;()V")))
-        method.addMetadata(JavadocElementData("method javadoc", intermediary))
+        method.addMetadata(JavadocElement("method javadoc", intermediary))
         tree.clazz(mapOf(intermediary to InternalName.unchecked("clsB")))
         return tree to (clsA to method)
     }
@@ -57,8 +53,8 @@ class TestWalk {
         val (tree, _) = tree()
         val meta = tree.walkMetadata().toList()
         assertEquals(2, meta.size)
-        assertEquals("cls javadoc", (meta[0] as JavadocElement).value)
-        assertEquals("method javadoc", (meta[1] as JavadocElement).value)
+        assertEquals("cls javadoc", (meta[0] as JavadocElement).value.toString())
+        assertEquals("method javadoc", (meta[1] as JavadocElement).value.toString())
     }
 
     @Test

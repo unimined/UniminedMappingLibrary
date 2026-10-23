@@ -1,10 +1,15 @@
 package xyz.wagyourtail.unimined.mapping.tree.impl
 
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.InnerClassElementData
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.SyntheticBridgeElementData
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.asMetadataDataList
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 /**
  * lazy namespace-remap view — re-keys [Namespace]-keyed maps and [NsBoundMetadata.baseNs]

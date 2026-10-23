@@ -9,7 +9,8 @@
     AnnotationSerializer::class,
     AccessConditionsSerializer::class,
     ConstantSerializer::class,
-    ExpressionSerializer::class
+    ExpressionSerializer::class,
+    JavadocSerializer::class
 )
 
 package xyz.wagyourtail.unimined.mapping.element.metadata.impl
@@ -17,16 +18,12 @@ package xyz.wagyourtail.unimined.mapping.element.metadata.impl
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.JavadocElement
+import xyz.wagyourtail.unimined.mapping.jvms.ext.javadoc.Javadoc
 import xyz.wagyourtail.unimined.mapping.serialization.*
-
-import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 
 @Serializable
 data class JavadocElementData(
-    override val value: String,
+    override val value: Javadoc,
     override val baseNs: Namespace
 ) : MetadataElementData(), JavadocElement

@@ -3,12 +3,14 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 import xyz.wagyourtail.commonskt.utils.escape
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
+import xyz.wagyourtail.unimined.mapping.element.metadata.JavadocElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 object MCPv6MethodWriter : FormatWriter {
 
@@ -51,7 +53,7 @@ object MCPv6MethodWriter : FormatWriter {
             override fun push(meta: MetadataElement): MetadataElement? {
                 if (meta is JavadocElement) {
                     if (!writeComments) return null
-                    append(meta.value.maybeEscapeCol())
+                    append(meta.value.toString().maybeEscapeCol())
                 }
                 return null
             }

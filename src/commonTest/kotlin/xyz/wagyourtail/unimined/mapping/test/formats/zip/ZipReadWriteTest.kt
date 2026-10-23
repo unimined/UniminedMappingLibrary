@@ -1,31 +1,23 @@
 package xyz.wagyourtail.unimined.mapping.test.formats.zip
 
+import com.goncalossilva.resources.Resource
 import kotlinx.coroutines.test.runTest
 import okio.Buffer
 import okio.use
 import xyz.wagyourtail.unimined.mapping.formats.zip.ZipFS
 import kotlin.test.Test
-import kotlin.test.assertTrue
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
-
-expect suspend fun getResource(name: String): ByteArray?
+import kotlin.test.assertEquals
 
 class ZipReadWriteTest {
 
     @Test
     fun testZipRead() = runTest {
-        val zip = getResource("test.zip") ?: return@runTest
+        val zip = Resource("test.zip").readBytes()
         Buffer().write(zip).use { buf ->
             val fs = ZipFS(buf)
-            fs.getFiles().forEach {
-                println(it)
-            }
+            assertEquals(listOf("test.tiny"), fs.getFiles())
             fs.getContents("test.tiny").use {
-                assertTrue(it.readUtf8Line()?.startsWith("tiny") == true)
+                assertEquals(true, it.readUtf8Line()?.startsWith("tiny"))
             }
         }
     }

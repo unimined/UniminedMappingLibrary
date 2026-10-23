@@ -2,11 +2,19 @@ package xyz.wagyourtail.unimined.mapping.formats.aw
 
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
-import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.AddRemove
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableClassMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableFieldMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableMethodMapping
+import xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
-import xyz.wagyourtail.unimined.mapping.jvms.ext.*
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -14,20 +22,23 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.MappingTree
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 object AWReader: FormatReader {
 
-    @Suppress("MemberVisibilityCanBePrivate")
+    @Deprecated("set within the settings argument instead")
     var allowNonTransitive = true
+
+    /** [FormatReaderSettings] key for the allowNonTransitive tunable —
+     *  `FormatReaderSettings(extras = mapOf(ALLOW_NON_TRANSITIVE to false))` */
+    val ALLOW_NON_TRANSITIVE = FormatReaderSettings.SettingsKey<Boolean>("aw.allowNonTransitive")
+
+    /** settings-facing read for the tunable — `settings.allowNonTransitive` */
+    private val FormatReaderSettings.allowNonTransitive get() = this[ALLOW_NON_TRANSITIVE]
+
+    private fun awSettings(settings: FormatReaderSettings): Boolean =
+        settings.allowNonTransitive ?: allowNonTransitive
 
     @Deprecated("set within the settings argument instead")
     override var unchecked: Boolean = false
@@ -68,7 +79,7 @@ object AWReader: FormatReader {
         val targets: List<AWItem>
     )
 
-    override suspend fun read(
+    override suspend fun readImpl(
         input: CharReader<*>,
         context: MappingTree?,
         into: MappingSink,
@@ -77,114 +88,20 @@ object AWReader: FormatReader {
     ) {
         val envType = settings.envType
         
-        val (namespace, targets) = readData(input)
+        val (namespace, targets) = readData(input, awSettings(settings))
 
         with (into) {
             header(listOf(nsMapping[namespace.name]?.let { Namespace(it) } ?: namespace))
             val ns = nsMapping[namespace.name]?.let { Namespace(it) } ?: namespace
 
             for ((access, target) in targets.filterIsInstance<AWData>()) {
-                val addAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
-                val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
-
-                val (cls, member) = target.getParts()
-
-                if (!access.startsWith("transitive-")) {
-                    if (!allowNonTransitive) {
-                        continue
-                    }
-                }
-
-                when (access) {
-                    "accessible", "transitive-accessible" -> {
-                        if (member == null) {
-                            addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                        } else {
-                            val memberDesc = member.descriptor
-                            if (memberDesc!!.isMethodDescriptor()) {
-                                addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                                addAccess.add(AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}"))
-                            } else {
-                                addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                            }
-                        }
-                    }
-                    "mutable", "transitive-mutable" -> {
-                        if (member == null) {
-                            throw IllegalArgumentException("mutable is only valid for fields")
-                        }
-                        val memberDesc = member.descriptor
-                        if (memberDesc!!.isMethodDescriptor()) {
-                            throw IllegalArgumentException("mutable is only valid for fields")
-                        }
-                        removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                    }
-                    "extendable", "transitive-extendable" -> {
-                        if (member == null) {
-                            addAccess.add(AccessFlag.PUBLIC to AccessConditions.ALL)
-                            removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                        } else {
-                            val (memberName, memberDesc) = member.getParts()
-                            if (memberDesc!!.isFieldDescriptor()) {
-                                throw IllegalArgumentException("extendable is not valid for fields")
-                            }
-                            addAccess.add(AccessFlag.PROTECTED to AccessConditions.unchecked("-${AccessFlag.PUBLIC}"))
-                            removeAccess.add(AccessFlag.FINAL to AccessConditions.ALL)
-                        }
-                    }
-                }
-
-                if (member == null) {
-                    pushed(MutableClassMapping(mapOf(ns to cls.getInternalName()))) {
-                        for ((flag, conditions) in addAccess) {
-                            pushed(AccessElement(AddRemove.ADD, flag, conditions)) {}
-                        }
-                        for ((flag, conditions) in removeAccess) {
-                            pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {}
-                        }
-                    }
-                } else {
-                    if (member is MethodNameAndDescriptor) {
-                        pushed(MutableClassMapping(mapOf(ns to cls.getInternalName()))) {
-                            var removeClsFinal = false
-                            pushed(MutableMethodMapping(mapOf(ns to member))) {
-                                for ((flag, conditions) in addAccess) {
-                                    pushed(AccessElement(AddRemove.ADD, flag, conditions)) {}
-                                }
-                                for ((flag, conditions) in removeAccess) {
-                                    pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {}
-                                    if (flag == AccessFlag.FINAL) {
-                                        removeClsFinal = true
-                                    }
-                                }
-                            }
-                            if (removeClsFinal) {
-                                pushed(AccessElement(
-                                    AddRemove.REMOVE,
-                                    AccessFlag.FINAL,
-                                    AccessConditions.ALL,
-                                )) {}
-                            }
-                        }
-                    } else {
-                        pushed(MutableClassMapping(mapOf(ns to cls.getInternalName()))) {
-                            pushed(MutableFieldMapping(mapOf(ns to member as FieldNameAndDescriptor))) {
-                                for ((flag, conditions) in addAccess) {
-                                    pushed(AccessElement(AddRemove.ADD, flag, conditions)) {}
-                                }
-                                for ((flag, conditions) in removeAccess) {
-                                    pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {}
-                                }
-                            }
-                        }
-                    }
-                }
+                into.applyAccessWidener(target, access, ns, awSettings(settings))
             }
         }
         into.end()
     }
 
-    fun readData(input: CharReader<*>): AWMappings {
+    fun readData(input: CharReader<*>, allowNonTransitive: Boolean = this.allowNonTransitive): AWMappings {
         val aw = input.takeNextLiteral { it.isWhitespace() }
         input.takeWhitespace()
         val version = input.takeNextLiteral { it.isWhitespace() }
@@ -297,5 +214,73 @@ object AWReader: FormatReader {
             }
         }
         return AWMappings(Namespace(namespace), targets)
+    }
+}
+
+internal fun MappingSink.applyAccessWidener(
+    target: FullyQualifiedName,
+    access: String,
+    namespace: Namespace,
+    allowNonTransitive: Boolean,
+) {
+    if (!access.startsWith("transitive-") && !allowNonTransitive) return
+
+    val addAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
+    val removeAccess = mutableSetOf<Pair<AccessFlag, AccessConditions>>()
+    val (cls, member) = target.getParts()
+
+    when (access) {
+        "accessible", "transitive-accessible" -> {
+            addAccess += AccessFlag.PUBLIC to AccessConditions.ALL
+            if (member is MethodNameAndDescriptor) {
+                addAccess += AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}")
+            }
+        }
+        "mutable", "transitive-mutable" -> {
+            if (member !is FieldNameAndDescriptor) {
+                throw IllegalArgumentException("mutable is only valid for fields")
+            }
+            removeAccess += AccessFlag.FINAL to AccessConditions.ALL
+        }
+        "extendable", "transitive-extendable" -> {
+            if (member == null) {
+                addAccess += AccessFlag.PUBLIC to AccessConditions.ALL
+                removeAccess += AccessFlag.FINAL to AccessConditions.ALL
+            } else {
+                if (member !is MethodNameAndDescriptor) {
+                    throw IllegalArgumentException("extendable is not valid for fields")
+                }
+                addAccess += AccessFlag.PROTECTED to AccessConditions.unchecked("-${AccessFlag.PUBLIC}")
+                removeAccess += AccessFlag.FINAL to AccessConditions.ALL
+            }
+        }
+        else -> throw IllegalArgumentException("Unknown access widener operation $access")
+    }
+
+    if (member == null) {
+        pushed(MutableClassMapping(mapOf(namespace to cls.getInternalName()))) {
+            addAccess.forEach { (flag, conditions) -> pushed(AccessElement(AddRemove.ADD, flag, conditions)) {} }
+            removeAccess.forEach { (flag, conditions) -> pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {} }
+        }
+    } else when (member) {
+        is MethodNameAndDescriptor -> pushed(MutableClassMapping(mapOf(namespace to cls.getInternalName()))) {
+            var removeClassFinal = false
+            pushed(MutableMethodMapping(mapOf(namespace to member))) {
+                addAccess.forEach { (flag, conditions) -> pushed(AccessElement(AddRemove.ADD, flag, conditions)) {} }
+                removeAccess.forEach { (flag, conditions) ->
+                    pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {}
+                    if (flag == AccessFlag.FINAL) removeClassFinal = true
+                }
+            }
+            if (removeClassFinal) {
+                pushed(AccessElement(AddRemove.REMOVE, AccessFlag.FINAL, AccessConditions.ALL)) {}
+            }
+        }
+        is FieldNameAndDescriptor -> pushed(MutableClassMapping(mapOf(namespace to cls.getInternalName()))) {
+            pushed(MutableFieldMapping(mapOf(namespace to member))) {
+                addAccess.forEach { (flag, conditions) -> pushed(AccessElement(AddRemove.ADD, flag, conditions)) {} }
+                removeAccess.forEach { (flag, conditions) -> pushed(AccessElement(AddRemove.REMOVE, flag, conditions)) {} }
+            }
+        }
     }
 }

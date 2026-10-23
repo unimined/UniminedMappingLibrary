@@ -1,6 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.cli
 
-import com.github.ajalt.clikt.core.*
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.main
+import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.options.*
@@ -18,7 +20,8 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.cli.Main.Companion.LOGGER
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.FormatRegistry
-import xyz.wagyourtail.unimined.mapping.propogator.Propagator
+import xyz.wagyourtail.unimined.mapping.inheritance.ASMInheritanceTree
+import xyz.wagyourtail.unimined.mapping.inheritance.propagate
 import xyz.wagyourtail.unimined.mapping.sink.emit
 import xyz.wagyourtail.unimined.mapping.tree.impl.fillMissingNames
 import kotlin.time.measureTime
@@ -32,7 +35,9 @@ fun main(vararg args: String) {
     LOGGER.info { "Finished in ${totalTime.inWholeMilliseconds}ms" }
 }
 
-class Main: CliktCommand(printHelpOnEmptyArgs = true) {
+class Main : CliktCommand() {
+    override val printHelpOnEmptyArgs = true
+
     companion object {
         val LOGGER = KotlinLogging.logger { }
     }
@@ -69,7 +74,7 @@ class Main: CliktCommand(printHelpOnEmptyArgs = true) {
         if (prop.isNotEmpty() || cp.isNotEmpty()) {
             LOGGER.info { "Propagating..." }
             val t = measureTime {
-                Propagator(mappings, Namespace(propagationNs!!), prop + cp)
+                ASMInheritanceTree(mappings, Namespace(propagationNs!!), prop + cp)
                     .propagate(mappings, mappings.namespaces.toSet() - Namespace(propagationNs!!))
             }
             LOGGER.info { "Propagated in ${t.inWholeMilliseconds}ms" }

@@ -1,12 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.element.mapping
 
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.WildcardType
+import xyz.wagyourtail.unimined.mapping.element.metadata.impl.asMetadataDataList
+import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
+import xyz.wagyourtail.unimined.mapping.toSmallMap
 import xyz.wagyourtail.unimined.mapping.tree.impl.WildcardMappingData
 import xyz.wagyourtail.unimined.mapping.tree.impl.asData
-import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.toSmallMap
 
 interface MutableWildcardMapping : WildcardMapping, MutableInvokableMapping {
 

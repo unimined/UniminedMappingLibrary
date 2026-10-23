@@ -1,9 +1,11 @@
 package xyz.wagyourtail.unimined.mapping.element.mapping
 
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.*
+
 interface PackageMapping : MappingElement, MetadataParent {
 
     val names: Map<Namespace, PackageName>

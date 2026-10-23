@@ -7,13 +7,10 @@ import kotlinx.serialization.modules.EmptySerializersModule
 import okio.Buffer
 import okio.use
 import xyz.wagyourtail.commonskt.reader.StringCharReader
-import xyz.wagyourtail.unimined.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
-import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.sink.emit
@@ -46,7 +43,7 @@ class Umf(
         val text = Buffer().use { buf ->
             val sink = UMFWriter.write(buf, minimize)
             sink.header(namespaces)
-            emitElement(value, sink, namespaces, sort = false) { it }
+            emitElement(value, sink, namespaces, sort = false, transform = { it }, nsRenamer = { it })
             sink.end()
             buf.readUtf8()
         }

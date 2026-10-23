@@ -1,8 +1,8 @@
 package xyz.wagyourtail.unimined.mapping.element.metadata
 
+import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.InnerType
 import xyz.wagyourtail.unimined.mapping.element.MetadataElement
-import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.InnerClassElementData
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.toSmallMap

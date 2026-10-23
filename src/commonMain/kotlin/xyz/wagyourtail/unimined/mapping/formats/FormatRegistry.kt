@@ -1,8 +1,9 @@
 package xyz.wagyourtail.unimined.mapping.formats
 
 import okio.BufferedSource
-import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.csrg.CsrgReader
+import xyz.wagyourtail.unimined.mapping.formats.ct.CTReader
+import xyz.wagyourtail.unimined.mapping.formats.ct.CTWriter
 import xyz.wagyourtail.unimined.mapping.formats.feather.ExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.feather.NestReader
 import xyz.wagyourtail.unimined.mapping.formats.feather.SignatureReader
@@ -32,17 +33,13 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFReader
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.formats.unpick.UnpickReader
 import xyz.wagyourtail.unimined.mapping.formats.unsupported.UnsupportedWriter
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 object FormatRegistry {
 
     val builtinFormats = listOf(
 //        FormatProvider(ZipReader, null),
         FormatProvider(UMFReader, UMFWriter),
+        FormatProvider(CTReader, CTWriter),
         FormatProvider(TinyV2Reader, TinyV2Writer),
         FormatProvider(TinyV1Reader),
         FormatProvider(NestReader),
@@ -84,7 +81,6 @@ object FormatRegistry {
     init {
         val formatBuffer = mutableListOf<FormatProvider>()
         formatBuffer.addAll(builtinFormats)
-        formatBuffer.addAll(FormatSupplier().providers)
 
         // sort formats by mustBeAfter
         for (format in formatBuffer) {
@@ -120,12 +116,6 @@ object FormatRegistry {
 
 }
 
-@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-expect class FormatSupplier() {
-
-    val providers: List<FormatProvider>
-
-}
 
 class FormatProvider(val reader: FormatReader, val writer: FormatWriter = UnsupportedWriter, val mustBeAfter: List<String> = listOf()): FormatReader by reader, FormatWriter by writer {
 

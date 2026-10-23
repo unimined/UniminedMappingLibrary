@@ -1,15 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.tree.impl
 
+import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.InnerType
+import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
+import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
-import xyz.wagyourtail.unimined.mapping.*
 
 private fun MutableMappingTree.fixNest(target: ClassMapping, srcNs: Namespace, targetNs: Namespace): InternalName? {
     val srcName = target.names[srcNs] ?: return target.names[targetNs]

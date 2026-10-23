@@ -2,13 +2,14 @@ package xyz.wagyourtail.unimined.mapping.formats.tiny.v2
 
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.element.MappingElement
+import xyz.wagyourtail.unimined.mapping.element.MetadataElement
+import xyz.wagyourtail.unimined.mapping.element.mapping.*
+import xyz.wagyourtail.unimined.mapping.element.metadata.JavadocElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter.minus
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
+import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 object TinyV2Writer : FormatWriter {
 
@@ -113,7 +114,7 @@ object TinyV2Writer : FormatWriter {
                     if (indent.isEmpty()) throw IllegalStateException("Top level javadoc?")
                     append(indent)
                     append("c\t")
-                    append(meta.value.escape())
+                    append(meta.value.toString().escape())
                     append("\n")
                 }
                 return null

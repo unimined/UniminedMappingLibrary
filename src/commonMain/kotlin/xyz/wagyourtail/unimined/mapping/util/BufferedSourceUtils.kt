@@ -3,11 +3,6 @@ package xyz.wagyourtail.unimined.mapping.util
 import okio.BufferedSource
 import okio.ByteString.Companion.encodeUtf8
 import okio.use
-import xyz.wagyourtail.unimined.mapping.element.*
-import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.*
-import xyz.wagyourtail.unimined.mapping.element.metadata.impl.*
-import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 enum class TokenType {
     STRING,
