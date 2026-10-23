@@ -2,20 +2,22 @@ package xyz.wagyourtail.unimined.mapping.remapper.source
 
 import java.util.*
 
-/** collected `(offset-range → replacement)` edits applied back-to-front */
-class ChangeSet {
+/** collected `(offset-range → replacement)` edits applied back-to-front.
+ *  [linePreserving] eats newlines in replacements so edits never shift
+ *  line numbers (path-1 invariant) */
+class ChangeSet(private val linePreserving: Boolean = false) {
     private val changes = TreeMap<IntRange, () -> String>(compareBy({ it.first }, { it.last }))
 
     /** replace `[start, end)` with [text] */
     fun replace(start: Int, end: Int, text: String) {
-        changes.merge(start until end, { text }) { old, new -> { old() + new() } }
+        changes.merge(start until end, { if (linePreserving) text.replace('\n', ' ') else text }) { old, new -> { old() + new() } }
     }
 
     /** replace `[start, end)` lazily — [with] is evaluated at apply time, so
      *  it can observe state collected during the whole pass (e.g. wildcard
      *  imports expanding to every mapped name seen) */
     fun replaceLazy(start: Int, end: Int, with: () -> String) {
-        changes.merge(start until end, with) { old, new -> { old() + new() } }
+        changes.merge(start until end, { if (linePreserving) with().replace('\n', ' ') else with() }) { old, new -> { old() + new() } }
     }
 
     /** insert [text] at [offset] */

@@ -38,3 +38,34 @@ model — a source jar always comes paired with its bytecode jar.
   `DocRef`/`DocMember`/`SourceType`. Typed in `JavadocElement.value` —
   refs (`{@link}`/`@see`/`@throws`/`[x]`/`[x#m]`) remap across namespaces;
   text/labels pass through. See `software-engineering/javadoc-serialization-format.md`.
+
+## CLI
+
+The `cli/` module builds a fat jar
+(`cli/build/libs/*-cli-*-all.jar`, `java -jar …`, command name `uml`).
+Parent options load mappings through `MappingResolver` (format autodetect,
+zip expansion, `requires`/`provides` topological sort, inheritance
+propagation via `ASMInheritanceTree` over `--propagation`/`--classpath`
+jars); subcommands consume the resolved tree:
+
+```bash
+uml -i mappings.tiny --unmapped-ns obf --requires obf --provides named \
+    remap in.jar out.jar --from obf --to named --library dep.jar
+
+uml -i m.tiny --unmapped-ns obf --requires obf --provides named \
+    export tinyv2 out.tiny
+
+# path-1: authored sources paired with their bytecode jar
+uml -i m.tiny --unmapped-ns obf --requires obf --provides named \
+    remap-sources src.jar src-out.jar --bin bin.jar --from obf --to named
+
+# path-2: decompiled sources — metadata transforms + linemap adjustment
+uml -i m.tiny --unmapped-ns obf --requires obf --provides named \
+    transform-sources decompiled.jar fixed.jar --bin bin-named.jar \
+        --from obf --to named
+uml linemap bin-named.jar fixed.jar bin-linemapped.jar
+```
+
+`linemap` needs no mappings — it applies a sources jar's `0x4646` linemap
+extras back onto the bin jar's `LineNumberTable`. See
+`software-engineering/cli-plan.md` for the design.

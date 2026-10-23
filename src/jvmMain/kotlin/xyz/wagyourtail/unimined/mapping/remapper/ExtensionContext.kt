@@ -7,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.remapper
+import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
 
 /**
  * Per-remap view handed to [AsmExtension] instances — the mapping tree plus
@@ -59,17 +60,36 @@ class ExtensionContext(
         }
     }
 
+    /** the scanned classfile's actual desc for [name] on [owner] — the
+     *  bytecode-scan disambiguator for desc-less refs when >1 tree row
+     *  matches (desc-less `firstOrNull` picks wrong on overloads) */
+    private fun scannedDesc(owner: String, name: String, isField: Boolean): String? {
+        val info = (tree as? InheritanceBackedMappingTree)?.inheritance
+            ?.classes?.get(InternalName.unchecked(owner)) ?: return null
+        return if (isField) {
+            info.fields.firstOrNull { it.name.value == name }?.descriptor?.toString()
+        } else {
+            info.methods.firstOrNull { it.name.value == name }?.descriptor?.toString()
+        }
+    }
+
     /** the resolved member's *source* desc remapped to target space — used to
      *  render canonical refs when the written ref was desc-less */
     fun resolveMemberDesc(owner: String, name: String, isField: Boolean): String? {
         val cls = tree.getClass(fns, InternalName.unchecked(owner)) ?: return null
+        val n = UnqualifiedName.unchecked(name)
         return with(tree) {
+            // ambiguous name-only lookup — consult the bytecode scan for the
+            // member's real desc before falling back to firstOrNull
+            val resolved = if (memberCandidateCount(owner, name, isField) > 1) {
+                scannedDesc(owner, name, isField)
+            } else null
             if (isField) {
-                cls.getField(fns, UnqualifiedName.unchecked(name), null)?.getDescriptor(fns)
-                    ?.let { remapper.map(it).toString() }
+                cls.getField(fns, n, resolved?.let { FieldDescriptor.unchecked(it) })
+                    ?.getDescriptor(fns)?.let { remapper.map(it).toString() }
             } else {
-                cls.getMethod(fns, UnqualifiedName.unchecked(name), null)?.getDescriptor(fns)
-                    ?.let { remapper.map(it).toString() }
+                cls.getMethod(fns, n, resolved?.let { MethodDescriptor.unchecked(it) })
+                    ?.getDescriptor(fns)?.let { remapper.map(it).toString() }
             }
         }
     }

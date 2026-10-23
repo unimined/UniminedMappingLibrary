@@ -9,6 +9,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
 import xyz.wagyourtail.unimined.mapping.element.metadata.NsBoundMetadata
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
+import xyz.wagyourtail.unimined.mapping.tree.impl.remapNs
 
 /**
  * drive a [MappingSink] from a [MappingTree] — the inverse of pushing.
@@ -41,7 +42,7 @@ fun MappingTree.emit(
         emitElement(cls, sink, nsFilter, sort, transform, nsRenamer)
     }
     constantGroups.forEachSorted { group ->
-        val head = transform(MutableConstantGroupMapping(group.type, group.name, group.baseNs)) ?: return@forEachSorted
+        val head = transform(MutableConstantGroupMapping(group.type, group.name, nsRenamer(group.baseNs))) ?: return@forEachSorted
         sink.pushed(head) {
             emitAll(group, sink, nsFilter, sort, transform, nsRenamer)
         }
@@ -80,7 +81,7 @@ internal fun emitAll(parent: MappingElement, sink: MappingSink, nsFilter: Collec
     if (parent is MetadataParent) {
         val meta = if (sort) parent.metadata.sortedBy { it.toString() } else parent.metadata.toList()
         for (m in meta) {
-            emitMeta(m, sink, nsFilter, sort)
+            emitMeta(m, sink, nsFilter, sort, nsRenamer)
         }
     }
     val children = if (sort) parent.contents.sortedWith(compareBy({ it.sortRank() }, { it.emitSortKey(nsFilter.toList()) })) else parent.contents
@@ -89,19 +90,23 @@ internal fun emitAll(parent: MappingElement, sink: MappingSink, nsFilter: Collec
     }
 }
 
-internal fun emitMeta(meta: MetadataElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean) {
+internal fun emitMeta(meta: MetadataElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean, nsRenamer: (Namespace) -> Namespace) {
     if (meta is NsBoundMetadata && meta.baseNs !in nsFilter) return
+    // emit-time ns rewrite — baseNs (and any ns-keyed name maps on the
+    // metadata itself, e.g. InnerClassElement.names) must land in the same
+    // renamed space as the element name keys
+    val renamed = meta.remapNs(nsRenamer)
     // push a childless copy — sinks that retain the pushed element (trees) would
     // otherwise see the children twice: once attached to the element, once via
     // the explicit child pushes below
-    val head = when (meta) {
-        is InnerClassElement -> InnerClassElement(meta.type, meta.names)
-        else -> meta
+    val head = when (renamed) {
+        is InnerClassElement -> InnerClassElement(renamed.type, renamed.names)
+        else -> renamed
     }
     sink.pushed(head) {
         if (meta is MetadataParent) {
             val children = if (sort) meta.metadata.sortedBy { it.toString() } else meta.metadata.toList()
-            for (child in children) emitMeta(child, sink, nsFilter, sort)
+            for (child in children) emitMeta(child, sink, nsFilter, sort, nsRenamer)
         }
     }
 }
@@ -118,7 +123,7 @@ internal fun emitElement(element: MappingElement, sink: MappingSink, nsFilter: C
         // name-only copy — class/package/group heads carry no ns-scoped children worth filtering
         is ClassMapping -> MutableClassMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
         is PackageMapping -> MutablePackageMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is ConstantGroupMapping -> MutableConstantGroupMapping(element.type, element.name, element.baseNs)
+        is ConstantGroupMapping -> MutableConstantGroupMapping(element.type, element.name, nsRenamer(element.baseNs))
         is MappingTree -> element
         else -> element
     }) ?: return

@@ -150,9 +150,23 @@ class MixinExtension(
                 putJsonObject(m) { e.forEach { (k, v) -> put(k, v) } }
             }
         }
+        // `data` alternate-environment sections — mixin keys re-key the same
+        // way (`ctx.mapClass`); the env-specific *values* stay verbatim
+        val data = (old?.get("data") as? JsonObject)?.let { oldData ->
+            buildJsonObject {
+                oldData.forEach { (env, envMap) ->
+                    putJsonObject(env) {
+                        (envMap as? JsonObject)?.forEach { (mixin, clsEntries) ->
+                            put(ctx.mapClass(mixin), clsEntries)
+                        }
+                    }
+                }
+            }
+        }
         return buildJsonObject {
-            old?.forEach { (k, v) -> if (k != "mappings") put(k, v) }
+            old?.forEach { (k, v) -> if (k != "mappings" && k != "data") put(k, v) }
             put("mappings", mappings)
+            if (data != null) put("data", data)
         }.toString().encodeToByteArray()
     }
 

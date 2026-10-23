@@ -52,6 +52,7 @@ class PsiSourceEngine(
     private val ctx: ExtensionContext,
     private val extensions: List<xyz.wagyourtail.unimined.mapping.remapper.source.SourceExtension> = emptyList(),
     jdkHome: File = File(System.getProperty("java.home")),
+    private val linePreserving: Boolean = false,
 ) : SourceEngine {
 
     private val disposable = Disposer.newDisposable()
@@ -60,6 +61,12 @@ class PsiSourceEngine(
     private val vfs: CoreLocalFileSystem
     private val bindingContext: BindingContext
     private val parsed = mutableMapOf<String, PsiFile>()
+    private val projectIndex: ProjectIndex by lazy {
+        // the tree lists every mapped class + every file is already parsed —
+        // index both so refs to classes missing from the classpath can still
+        // map (they'd otherwise fall through unresolved)
+        ProjectIndex.build(parsed, ctx.tree, ctx.fns)
+    }
 
     init {
         val config = CompilerConfiguration().apply {
@@ -121,6 +128,7 @@ class PsiSourceEngine(
             environment.configuration,
             { scope -> environment.createPackagePartProvider(scope) },
         ).bindingContext
+
     }
 
     override fun handles(path: String): Boolean = path.endsWith(".java") || path.endsWith(".kt")
@@ -129,7 +137,7 @@ class PsiSourceEngine(
 
     override fun remap(unit: SourceUnit, errors: MutableList<Pair<Int, String>>): String? {
         val file = parsed[unit.path] ?: return null
-        val visitor = PsiRemapVisitor(file, ctx, bindingContext, extensions)
+        val visitor = PsiRemapVisitor(file, ctx, bindingContext, extensions, linePreserving, projectIndex)
         val out = visitor.remap(errors)
         visitors[unit.path] = visitor
         return out

@@ -100,6 +100,8 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(kotlin("test-junit"))
+                // path-2 e2e — decompile → transform → linemap
+                implementation("org.vineflower:vineflower:1.10.1")
             }
         }
         val wasmJsMain by getting
@@ -126,4 +128,10 @@ publishing {
             }
         }
     }
+}
+// tests run on a newer JVM (vineflower, records) — main toolchain stays 8
+tasks.withType<Test>().configureEach {
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(org.gradle.jvm.toolchain.JavaLanguageVersion.of(21))
+    })
 }

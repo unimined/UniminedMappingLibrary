@@ -14,6 +14,7 @@ import java.nio.file.Path
 import javax.tools.ToolProvider
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /** source+bytecode pairs through the PSI engine: declarations, member access,
@@ -79,7 +80,8 @@ class SourceRemapTest {
                 .map { it.name to z.getInputStream(it).readBytes().decodeToString() }.toMap()
         }
         val use = text.getValue("b/Use.java")
-        assertTrue("x.Target t" in use, "fq ref + ctor: $use")
+        assertTrue("import x.Target;" in use, "fq ref + ctor: $use")
+        assertTrue("Target t" in use, "fq ref + ctor: $use")
         assertTrue("doIt()" in use, "method call: $use")
         assertTrue("mappedField" in use, "field access: $use")
         val targetSrc = text.getValue("x/Target.java")
@@ -263,7 +265,8 @@ class SourceRemapTest {
 
         val out = dir.resolve("out.jar")
         SourceRemapper.remap(srcJar2, out, treeOf(), obf, named, classpath = listOf(binJar),
-            options = xyz.wagyourtail.unimined.mapping.remapper.source.SourceOptions(extensions = listOf(headerStage)))
+            options = xyz.wagyourtail.unimined.mapping.remapper.source.SourceOptions(
+                extensions = listOf(headerStage), linePreserving = false))
 
         val extraOut = java.util.zip.ZipFile(out.toFile()).use { z ->
             z.getEntry("x/Target.java").extra
@@ -550,5 +553,222 @@ class Holder(val f_1: Int) {
         }
         assertTrue("public int f" in text && "public void m" in text, "public added: $text")
         assertTrue("private int f" !in text && "private void m" !in text, "private gone: $text")
+    }
+
+    /** path-2 e2e — real decompile → extensions → remap. Vineflower
+     *  decompiles the obf binJar (obf names in source), then SourceRemapper
+     *  renames to named through the same tree the bytecode used. */
+    @Test
+    fun vineflowerE2E() {
+        // vineflower is Java 11+ — skip on the JDK8 toolchain
+        if (System.getProperty("java.specification.version").removePrefix("1.").toInt() < 11) return
+        val dir = createTempDirectory()
+        val (srcJar, binJar) = buildPair(dir, mapOf(
+            "a/Target.java" to "package a; public class Target { public int f_1; public void m_1() {} }",
+            "a/Use.java" to "package a; public class Use { public void call() { new a.Target().m_1(); } }",
+        ))
+        val tree = treeOf()
+        val target = tree.cls("a/Target", "x/Target")
+        target.field("f_1;I", "mappedField;I")
+        target.method("m_1;()V", "doIt;()V")
+
+        // decompile the bytecode jar — produces obf-named source
+        val decompDir = dir.resolve("decomp")
+        java.nio.file.Files.createDirectories(decompDir)
+        org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler.main(
+            arrayOf("-log=WARN", binJar.toString(), decompDir.toString())
+        )
+        // the decompiled dir is a jar — zip it into a srcJar
+        val decompJar = dir.resolve("decompiled.jar")
+        java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(decompJar)).use { z ->
+            decompDir.toFile().walkTopDown().filter { it.isFile }.forEach { f ->
+                z.putNextEntry(java.util.zip.ZipEntry(f.relativeTo(decompDir.toFile()).invariantSeparatorsPath))
+                z.write(f.readBytes())
+                z.closeEntry()
+            }
+        }
+
+        val out = dir.resolve("out.jar")
+        SourceRemapper.remap(decompJar, out, tree, obf, named, classpath = listOf(binJar))
+
+        // obf-named decompiled source → named output
+        val entries = java.util.zip.ZipFile(out.toFile()).use { z ->
+            z.entries().asSequence().filter { it.name.endsWith(".java") }
+                .associate { it.name to z.getInputStream(it).readBytes().decodeToString() }
+        }
+        assertTrue(entries.isNotEmpty(), "decompiled+remapped source exists")
+        val all = entries.values.joinToString("\n")
+        assertTrue("doIt" in all || "mappedField" in all,
+            "named members in remapped decompiled source: $all")
+    }
+
+    /** desc-less member refs disambiguate via the scanned bytecode —
+     *  `m_1` appears twice in the tree (`()V` real + `(I)V` stale) but the
+     *  classfile only has `()V` — scannedDesc picks the real row. */
+    @Test
+    fun scannedDescResolution() {
+        val dir = createTempDirectory()
+        val (_, binJar) = buildPair(dir, mapOf(
+            "a/Target.java" to "package a; public class Target { public void m_1() {} }",
+        ))
+        val tree = treeOf()
+        val target = tree.cls("a/Target", "x/Target")
+        target.method("m_1;()V", "doIt;()V")
+        target.method("m_1;(I)V", "doIt;(I)V")  // stale row — no such member
+
+        val graph = xyz.wagyourtail.unimined.mapping.inheritance.ASMInheritanceTree(obf, setOf(binJar))
+        val wrapped = xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree(
+            tree, graph,
+            xyz.wagyourtail.unimined.mapping.inheritance.PropagationStrategy.KEEP_EXPLICIT)
+        val ctx = xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext(wrapped, obf, named)
+        assertEquals(2, ctx.memberCandidateCount("a/Target", "m_1", false))
+        assertEquals("()V", ctx.resolveMemberDesc("a/Target", "m_1", false))
+    }
+
+    /** auto-imports — fq refs and unqualified same-package refs emit
+     *  `import x.Target;` + simple names after remap */
+    @Test
+    fun autoImports() {
+        val dir = createTempDirectory()
+        val (srcJar, binJar) = buildPair(dir, mapOf(
+            "a/Target.java" to "package a; public class Target { public void m_1() {} }",
+            "a/Use.java" to "package a; public class Use { public void go() { new a.Target().m_1(); Target t = null; } }",
+        ))
+        val tree = treeOf()
+        val target = tree.cls("a/Target", "x/Target")
+        target.method("m_1;()V", "doIt;()V")
+        // a/Use stays in package a (no row) — `x.Target` crosses packages
+
+        val out = dir.resolve("out.jar")
+        SourceRemapper.remap(srcJar, out, tree, obf, named, classpath = listOf(binJar))
+
+        val text = java.util.zip.ZipFile(out.toFile()).use { z ->
+            z.getInputStream(z.getEntry("a/Use.java")).readBytes().decodeToString()
+        }
+        assertTrue("import x.Target;" in text, "auto-import: $text")
+        assertTrue("new Target()" in text, "simple ref: $text")
+        assertTrue("Target t" in text, "unqualified ref: $text")
+        assertTrue("a.Target" !in text, "obf name gone: $text")
+    }
+
+    /** `import static` members — bare `m_1()` static call maps to
+     *  `import static x.Target.doIt;` + `doIt()` */
+    @Test
+    fun staticImports() {
+        val dir = createTempDirectory()
+        val (srcJar, binJar) = buildPair(dir, mapOf(
+            "a/Target.java" to "package a; public class Target { public static void m_1() {} }",
+            "a/Use.java" to "package a; import static a.Target.m_1; public class Use { public void go() { m_1(); } }",
+        ))
+        val tree = treeOf()
+        val target = tree.cls("a/Target", "x/Target")
+        target.method("m_1;()V", "doIt;()V")
+
+        val out = dir.resolve("out.jar")
+        SourceRemapper.remap(srcJar, out, tree, obf, named, classpath = listOf(binJar))
+
+        val text = java.util.zip.ZipFile(out.toFile()).use { z ->
+            z.getInputStream(z.getEntry("a/Use.java")).readBytes().decodeToString()
+        }
+        assertTrue("import static x.Target.doIt;" in text, "static import: $text")
+        assertTrue("doIt()" in text, "call: $text")
+    }
+
+    /** project-scan fallback — `dep.Missing` is on neither the classpath nor
+     *  in the sources (javac couldn't compile this), so PSI can't resolve it;
+     *  the mapping tree's class list still carries it */
+    @Test
+    fun projectScanFallback() {
+        val dir = createTempDirectory()
+        val srcJar = dir.resolve("src.jar")
+        writeJar(srcJar, mapOf(
+            "b/Use.java" to "package b; public class Use { public dep.Missing m; public Missing n; }"
+                .toByteArray(),
+        ))
+        val tree = treeOf()
+        tree.cls("dep/Missing", "x/Found")
+
+        val out = dir.resolve("out.jar")
+        SourceRemapper.remap(srcJar, out, tree, obf, named)
+
+        val text = java.util.zip.ZipFile(out.toFile()).use { z ->
+            z.getInputStream(z.getEntry("b/Use.java")).readBytes().decodeToString()
+        }
+        assertTrue("import x.Found;" in text, "auto-import: $text")
+        assertTrue("Found m" in text, "fq ref collapsed: $text")
+        assertTrue("Found n" in text, "bare ref mapped: $text")
+        assertTrue("Missing" !in text, "obf name gone: $text")
+    }
+
+    /** auto-imports insert lines — a linemap extra must shift its entries
+     *  past the inserted `import` (the path-2 invariant: decompiled→orig
+     *  line keys track inserted text) */
+    @Test
+    fun autoImportLinemapShift() {
+        val dir = createTempDirectory()
+        val (srcJar, binJar) = buildPair(dir, mapOf(
+            "a/Target.java" to "package a; public class Target {}",
+            "a/Use.java" to "package a;\npublic class Use {\n    void go() { new a.Target(); }\n}",
+        ))
+        val tree = treeOf()
+        tree.cls("a/Target", "x/Target")
+
+        // linemap: decompiled lines 2-4 → original lines — insert at line 2 shifts them
+        val lm = xyz.wagyourtail.unimined.mapping.remapper.source.Linemap
+            .replace(null, mapOf(2 to 20, 3 to 30, 4 to 40))
+        val srcJar2 = dir.resolve("src-lm.jar")
+        java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(srcJar2)).use { zout ->
+            java.util.zip.ZipFile(srcJar.toFile()).use { zin ->
+                for (e in zin.entries().asSequence()) {
+                    zout.putNextEntry(java.util.zip.ZipEntry(e.name).apply {
+                        time = 0L
+                        if (e.name == "a/Use.java") setExtra(lm)
+                    })
+                    zout.write(zin.getInputStream(e).readBytes())
+                    zout.closeEntry()
+                }
+            }
+        }
+
+        val out = dir.resolve("out.jar")
+        SourceRemapper.remap(srcJar2, out, tree, obf, named, classpath = listOf(binJar))
+        val extraOut = java.util.zip.ZipFile(out.toFile()).use { z ->
+            z.getEntry("a/Use.java").extra
+        }
+        // linePreserving: the import insert's newlines collapse — no shift
+        val shifted = xyz.wagyourtail.unimined.mapping.remapper.source.Linemap.parse(extraOut).orEmpty()
+        assertEquals(mapOf(2 to 20, 3 to 30, 4 to 40), shifted,
+            "linemap unchanged: imports land on one line")
+    }
+
+    /** Kotlin `as` alias on collision — `x.Target` + `y.Target` can't both
+     *  import `Target` → `import x.Target as XTarget` + `XTarget` in code */
+    @Test
+    fun kotlinAliasImport() {
+        val dir = createTempDirectory()
+        val (srcJar, binJar) = buildPair(dir, mapOf(
+            "a/Target.java" to "package a; public class Target {}",
+            "b/Target.java" to "package b; public class Target {}",
+        ))
+        // .kt source referencing both obf classes
+        val ktJar = dir.resolve("kt.jar")
+        java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(ktJar)).use { z ->
+            z.putNextEntry(java.util.zip.ZipEntry("m/Use.kt"))
+            z.write("""package m
+fun go() { val t = a.Target(); val u = b.Target(); }
+""".toByteArray())
+            z.closeEntry()
+        }
+        val tree = treeOf()
+        tree.cls("a/Target", "x/Target")
+        tree.cls("b/Target", "y/Target")
+
+        val out = dir.resolve("out.jar")
+        SourceRemapper.remap(ktJar, out, tree, obf, named, classpath = listOf(binJar))
+        val text = java.util.zip.ZipFile(out.toFile()).use { z ->
+            z.getInputStream(z.getEntry("m/Use.kt")).readBytes().decodeToString()
+        }
+        assertTrue("import x.Target as XTarget" in text ||
+                   "import y.Target as YTarget" in text, "alias: $text")
     }
 }

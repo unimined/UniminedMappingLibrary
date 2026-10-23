@@ -34,8 +34,10 @@ class PsiRemapVisitor(
     private val ctx: ExtensionContext,
     private val bindingContext: BindingContext,
     private val extensions: List<xyz.wagyourtail.unimined.mapping.remapper.source.SourceExtension> = emptyList(),
+    private val linePreserving: Boolean = false,
+    private val projectIndex: ProjectIndex? = null,
 ) {
-    private val changeSet = xyz.wagyourtail.unimined.mapping.remapper.source.ChangeSet()
+    private val changeSet = xyz.wagyourtail.unimined.mapping.remapper.source.ChangeSet(linePreserving)
     private val errors = mutableListOf<Pair<Int, String>>()
     private val ambiguousImports = mutableMapOf<String, MutableSet<String>>()
 
@@ -45,6 +47,92 @@ class PsiRemapVisitor(
         private set
     private val ambiguousImportStatics = mutableMapOf<String, MutableSet<String>>()
     private val aliased = mutableSetOf<String>()
+
+    // ---- auto-imports ---------------------------------------------------
+    /** mapped fq names refs resolved to (dotted) — lazy import candidates */
+    private val usedClassFqs = LinkedHashSet<String>()
+    /** `owner.member` static member fqs used unqualified — `import static` candidates */
+    private val usedStatics = LinkedHashSet<String>()
+    private val existingStatics = mutableSetOf<String>()
+    /** top-level class names declared in this file — shadow detection */
+    private val declaredTopLevel = mutableSetOf<String>()
+    private val existingImports = mutableSetOf<String>()
+
+    /** fq → emitted form: simple name when imported (or same-package/
+     *  java.lang), fq when colliding/shadowed */
+    private fun computePlan(fqs: Set<String>): Map<String, String> {
+        val filePkg = mappedPackage ?: ""
+        val claim = mutableMapOf<String, String>()
+        val colliding = mutableSetOf<String>()
+        for (fq in fqs) {
+            val simple = fq.substringAfterLast('.')
+            if (claim.putIfAbsent(simple, fq) != null && claim[simple] != fq) colliding += simple
+        }
+        return fqs.mapNotNull { fq ->
+            val pkg = fq.substringBeforeLast('.')
+            val simple = fq.substringAfterLast('.')
+            if (pkg == "java.lang" || pkg == filePkg) return@mapNotNull null
+            if (simple in colliding || simple in declaredTopLevel) {
+                // kotlin resolves collisions with `import … as` aliases —
+                // `x.Target` + `y.Target` → `XTarget`/`YTarget`
+                if (file is KtFile) {
+                    val alias = (pkg.substringAfterLast('.').take(1).uppercase() + simple)
+                    return@mapNotNull fq to "as $alias"
+                }
+                return@mapNotNull null
+            }
+            fq to simple
+        }.toMap()
+    }
+
+    private val emitPlan: Map<String, String> by lazy { computePlan(usedClassFqs) }
+    private val emitStaticPlan: Map<String, String> by lazy { computePlan(usedStatics) }
+
+    /** emitted form for a mapped fq — simple name when imported, fq otherwise */
+    private fun emitForm(mappedFq: String) =
+        emitPlan[mappedFq]?.removePrefix("as ") ?: mappedFq
+    private fun emitStaticForm(fq: String) = emitStaticPlan[fq] ?: fq
+
+    /** new import lines, deduped against existing imports */
+    /** import block — `import x.Y;\n` lines at the anchor; when
+     *  [ChangeSet] is `linePreserving` the newlines collapse to spaces
+     *  (path-1 invariant) */
+    private val newImports: String by lazy {
+        val kt = file is KtFile
+        val classes = emitPlan.keys.minus(existingImports).sorted()
+        val statics = emitStaticPlan.keys.minus(existingStatics).sorted()
+        val lines = classes.map { fq ->
+            val form = emitPlan[fq]!!
+            if (form.startsWith("as ")) "import $fq ${form}" else "import $fq;"
+        } + statics.map { if (kt) "import $it" else "import static $it;" }
+        lines.joinToString("") { if (kt) "$it\n" else "$it;\n" }
+    }
+
+    /** insertion offset for [newImports] — tail of existing imports, else
+     *  after the package statement, else file start */
+    private fun importAnchor(): Int {
+        val java = file as? PsiJavaFile
+        if (java != null) {
+            java.importList?.let { return it.textRange.endOffset }
+            java.packageStatement?.let { return it.textRange.endOffset }
+            return 0
+        }
+        val kt = file as? KtFile
+        kt?.importDirectives?.lastOrNull()?.let { return it.textRange.endOffset }
+        kt?.packageDirective?.let { return it.textRange.endOffset }
+        return 0
+    }
+
+    /** bare `m_1()`/`f_1` — no receiver/qualifier — needs `import static` */
+    private fun unqualified(e: PsiElement): Boolean = when (e) {
+        is PsiReferenceExpression -> e.qualifierExpression == null
+        is KtSimpleNameExpression -> (e.parent as? KtDotQualifiedExpression)?.receiverExpression == null
+        else -> false
+    }
+
+    /** refs inside an `import` declaration can't auto-import */
+    private fun inImportContext(e: PsiElement) =
+        PsiTreeUtil.getParentOfType(e, PsiImportStatement::class.java, KtImportDirective::class.java) != null
 
     private fun error(at: PsiElement, message: String) {
         errors += StringUtil.offsetToLineNumber(file.text, at.textOffset) to message
@@ -164,8 +252,16 @@ class PsiRemapVisitor(
         }
         val mapped = mapMethodName(method) ?: return
         if (method.hasModifierProperty(PsiModifier.STATIC)) {
-            method.containingClass?.qualifiedName?.let {
-                ambiguousImportStatics.getOrPut(it) { mutableSetOf() } += mapped
+            method.containingClass?.qualifiedName?.let { ownerFq ->
+                ambiguousImportStatics.getOrPut(ownerFq) { mutableSetOf() } += mapped
+                // bare `m_1()` → `import static x.Target.doIt` (or stay
+                // qualified on collision)
+                if (!inImportContext(expr) && unqualified(expr) && expr is PsiReferenceExpression) {
+                    val fq = "${ownerFq}.${mapped}"
+                    usedStatics += fq
+                    changeSet.replaceLazy(expr.textRange.startOffset, expr.textRange.endOffset) { emitStaticForm(fq) }
+                    return
+                }
             }
         }
         val getterProp = propertyNameByGetMethodName(Name.identifier(mapped))
@@ -218,8 +314,15 @@ class PsiRemapVisitor(
         // record for wildcard-import collapsing
         cls.qualifiedName?.substringBeforeLast('.')?.let { ambiguousImports.getOrPut(it) { mutableSetOf() } += mapped }
 
-        // fully-qualified occurrence — rewrite the whole text
-        if (expr.text == fqName || expr.text == dollarName) { replace(expr, mapped); return }
+        // fully-qualified occurrence — auto-import emits the simple form
+        // + `import x.Target`, unless colliding/shadowed (then fq stays)
+        if (expr.text == fqName || expr.text == dollarName) {
+            if (!inImportContext(expr)) {
+                usedClassFqs += mapped
+                changeSet.replaceLazy(expr.textRange.startOffset, expr.textRange.endOffset) { emitForm(mapped) }
+            } else replace(expr, mapped)
+            return
+        }
 
         // `qualifier.Simple` split form — map qualifier too
         val qualifierExpr = when (val parent = expr.parent) {
@@ -230,15 +333,62 @@ class PsiRemapVisitor(
         val simpleName = fqName.substringAfterLast('.')
         val qualifierName = fqName.substringBeforeLast('.')
         if (expr.text == simpleName && qualifierExpr?.text == qualifierName) {
-            if (valid(qualifierExpr)) replace(qualifierExpr, mapped.substringBeforeLast('.'))
-            replaceIdentifier(expr, mapped.substringAfterLast('.'))
+            // split `qualifier.Simple` — collapse to the simple form + import
+            if (!inImportContext(expr)) {
+                usedClassFqs += mapped
+                changeSet.replaceLazy(qualifierExpr.textRange.startOffset, expr.textRange.endOffset) { emitForm(mapped) }
+            } else {
+                if (valid(qualifierExpr)) replace(qualifierExpr, mapped.substringBeforeLast('.'))
+                replaceIdentifier(expr, mapped.substringAfterLast('.'))
+            }
             return
         }
         if (qualifierExpr == null && expr.text in aliased) return
-        replaceIdentifier(expr, mapped.substringAfterLast('.'))
+        if (!inImportContext(expr) && expr.text == simpleName) {
+            usedClassFqs += mapped
+            changeSet.replaceLazy(expr.textRange.startOffset, expr.textRange.endOffset) { emitForm(mapped) }
+        } else replaceIdentifier(expr, mapped.substringAfterLast('.'))
+    }
+
+    /**
+     * project-scan fallback — PSI couldn't resolve the ref (the class isn't on
+     * the engine classpath); the source jar's own top-level classes are the
+     * candidates we can still see. Fq refs (`a.b.C`/`a/b/C`) match the index
+     * directly; bare names need a unique candidate — the mapped fq still goes
+     * through the auto-import plan.
+     */
+    private fun mapProjectRef(expr: PsiElement) {
+        val index = projectIndex ?: return
+        if (inImportContext(expr)) return
+        val filePkgInternal = (mappedPackage ?: filePkgName()).replace('.', '/')
+        // `a.A` split form on a KtUserType — replace the whole type range,
+        // matching the split-form collapse in mapClassExpr. Refs inside the
+        // qualifier chain (package segments — parent userType is itself a
+        // qualifier) aren't classes; skip them
+        val parentType = expr.parent as? KtUserType
+        if (parentType?.parent is KtUserType) return
+        val splitType = parentType?.takeIf { it.qualifier != null && it.qualifier != expr }
+        val lookupText = splitType?.text ?: expr.text
+        val candidate = index.resolve(lookupText, filePkgInternal) ?: return
+        val mapped = ctx.mapClass(candidate)
+        if (mapped == candidate) return
+        val fqMapped = mapped.replace('/', '.')
+        usedClassFqs += fqMapped
+        val start = splitType?.textRange?.startOffset ?: expr.textRange.startOffset
+        changeSet.replaceLazy(start, expr.textRange.endOffset) { emitForm(fqMapped) }
+    }
+
+    private fun filePkgName(): String = when (val f = file) {
+        is PsiJavaFile -> f.packageName
+        is KtFile -> f.packageFqName.asString()
+        else -> ""
     }
 
     private fun mapResolved(expr: PsiElement, resolved: PsiElement?) {
+        if (resolved == null) {
+            mapProjectRef(expr)
+            return
+        }
         when (resolved) {
             is PsiMethod -> mapMemberExpr(expr, resolved)
             is PsiField -> mapMemberExpr(expr, resolved)
@@ -258,8 +408,15 @@ class PsiRemapVisitor(
                 val internal = fq.asString().replace('.', '/')
                 val mapped = ctx.mapClass(internal)
                 if (mapped != internal) {
-                    if (expr.text == fq.asString()) replace(expr, mapped.replace('/', '.'))
-                    else replaceIdentifier(expr, mapped.substringAfterLast('/'))
+                    if (!inImportContext(expr)) {
+                        usedClassFqs += mapped.replace('/', '.')
+                        changeSet.replaceLazy(expr.textRange.startOffset, expr.textRange.endOffset) {
+                            emitForm(mapped.replace('/', '.'))
+                        }
+                    } else {
+                        if (expr.text == fq.asString()) replace(expr, mapped.replace('/', '.'))
+                        else replaceIdentifier(expr, mapped.substringAfterLast('/'))
+                    }
                 }
             }
         }
@@ -284,6 +441,13 @@ class PsiRemapVisitor(
     fun remap(errors: MutableList<Pair<Int, String>>): String {
         if (file is KtFile) {
             file.importDirectives.mapNotNull { it.aliasName }.forEach { aliased += it }
+            file.importDirectives.mapNotNull { it.importedFqName?.asString() }.forEach { existingImports += it }
+        } else {
+            (file as? PsiJavaFile)?.importList?.allImportStatements?.forEach { st ->
+                if (st.isOnDemand) return@forEach
+                val fq = st.importReference?.qualifiedName ?: return@forEach
+                if (st is PsiImportStaticStatement) existingStatics += fq else existingImports += fq
+            }
         }
 
 
@@ -292,6 +456,7 @@ class PsiRemapVisitor(
             override fun visitClass(c: PsiClass) {
                 // class declaration rename
                 c.nameIdentifier?.let { id ->
+                    if (c.containingClass == null) c.name?.let { declaredTopLevel += it }
                     if (valid(id)) {
                         val src = internalName(c)
                         if (src != null) {
@@ -389,8 +554,9 @@ class PsiRemapVisitor(
                         } else {
                             ambiguousImportStatics[fq] = mutableSetOf()
                             changeSet.replaceLazy(importStatic.parent.textRange.startOffset, importStatic.parent.textRange.endOffset) {
+                                val owner = ctx.mapClass(fq.replace('.', '/')).replace('/', '.')
                                 ambiguousImportStatics.getValue(fq).joinToString("") {
-                                    "import static ${fq.substringBeforeLast('.')}.$it;\n"
+                                    "import static $owner.$it;\n"
                                 }
                             }
                         }
@@ -505,10 +671,13 @@ class PsiRemapVisitor(
                                 val psi = (target as? CallableMemberDescriptor)
                                     ?.takeIf { it.kind != CallableMemberDescriptor.Kind.SYNTHESIZED }
                                     ?.findPsi()
-                                if (psi != null) mapResolved(expr, psi)
-                                else (target as? FunctionDescriptor)?.overriddenDescriptors
-                                    ?.firstNotNullOfOrNull { it.findPsi() }
-                                    ?.let { mapResolved(expr, it) }
+                                when {
+                                    psi != null -> mapResolved(expr, psi)
+                                    else -> (target as? FunctionDescriptor)?.overriddenDescriptors
+                                        ?.firstNotNullOfOrNull { it.findPsi() }
+                                        ?.let { mapResolved(expr, it) }
+                                        ?: mapProjectRef(expr)
+                                }
                             }
                         }
                     }
@@ -531,6 +700,11 @@ class PsiRemapVisitor(
                 }
             }
         }
+
+        // auto-imports — new `import` lines at the anchor, lazily evaluated
+        // after all used fqs + mappedPackage are known
+        val anchor = importAnchor()
+        changeSet.replaceLazy(anchor, anchor) { newImports }
         errors += this.errors
         return result()
     }

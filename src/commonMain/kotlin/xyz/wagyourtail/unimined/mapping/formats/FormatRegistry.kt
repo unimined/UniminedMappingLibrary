@@ -1,6 +1,10 @@
 package xyz.wagyourtail.unimined.mapping.formats
 
 import okio.BufferedSource
+import xyz.wagyourtail.unimined.mapping.formats.at.ATReader
+import xyz.wagyourtail.unimined.mapping.formats.at.ATWriter
+import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader
+import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
 import xyz.wagyourtail.unimined.mapping.formats.csrg.CsrgReader
 import xyz.wagyourtail.unimined.mapping.formats.ct.CTReader
 import xyz.wagyourtail.unimined.mapping.formats.ct.CTWriter
@@ -47,6 +51,8 @@ object FormatRegistry {
         FormatProvider(SignatureReader),
         FormatProvider(UnpickReader),
         FormatProvider(SrgReader, SrgWriter),
+        FormatProvider(AWReader, AWWriter),
+        FormatProvider(ATReader, ATWriter),
         FormatProvider(RetroguardReader),
         FormatProvider(MCPv1MethodReader, mustBeAfter = listOf(RetroguardReader)),
         FormatProvider(MCPv1FieldReader, mustBeAfter = listOf(RetroguardReader)),
