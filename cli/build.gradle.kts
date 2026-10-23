@@ -12,6 +12,12 @@ dependencies {
     implementation(libs.slf4j.api)
     implementation(libs.slf4j.simple)
 
+    testImplementation(kotlin("test"))
+
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 val shadowJar by tasks.registering(ShadowJar::class) {
