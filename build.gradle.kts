@@ -78,31 +78,13 @@ kotlin {
                 implementation(libs.resources)
             }
         }
-        val jvmMain by getting {
-            dependencies {
-                api(libs.asm)
-                api(libs.asm.tree)
-                api(libs.asm.commons)
-                implementation(libs.asm.analysis)
-
-                api(libs.commons.asm)
-                api(libs.kotlin.metadata.jvm)
-
-                api(libs.slf4j.api)
-                api(libs.slf4j.simple)
-
-                // source remapper PSI engine — implementation (not api) so
-                // consumers can swap in a lighter engine (javac-only…) or
-                // exclude it entirely if they never touch SourceRemapper
-                implementation(libs.kotlin.compiler.embeddable)
-            }
-        }
+        val jvmMain by getting
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(kotlin("test-junit"))
-                // path-2 e2e — decompile → transform → linemap
-                implementation("org.vineflower:vineflower:1.10.1")
+                implementation(libs.slf4j.api)
+                implementation(libs.slf4j.simple)
             }
         }
         val wasmJsMain by getting
@@ -130,16 +112,9 @@ publishing {
         }
     }
 }
-// tests run on a newer JVM (vineflower, records) — main toolchain stays 8
+// tests run on a newer JVM (records) — main toolchain stays 8
 tasks.withType<Test>().configureEach {
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion.set(org.gradle.jvm.toolchain.JavaLanguageVersion.of(21))
     })
-    // perf harness knobs: -Dasmremap.perf.jar/.mappings, -Ptest.heap=4g
-    providers.systemProperty("asmremap.perf.jar").orNull?.let { systemProperty("asmremap.perf.jar", it) }
-    providers.systemProperty("asmremap.perf.mappings").orNull?.let { systemProperty("asmremap.perf.mappings", it) }
-    providers.gradleProperty("test.heap").orNull?.let { maxHeapSize = it }
-    providers.gradleProperty("test.jfr").orNull?.let {
-        jvmArgs("-XX:StartFlightRecording=duration=300s,filename=$it")
-    }
 }

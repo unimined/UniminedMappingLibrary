@@ -114,7 +114,11 @@ class ConstantGroupSourceExtension(private val ns: Namespace? = null) : SourceEx
                 val mOwner = method.containingClass?.let { dollarName(it)?.replace('.', '/') } ?: continue
                 if (mOwner != owner) continue
                 val mDesc = runCatching { ClassUtil.getAsmMethodSignature(method) }.getOrNull() ?: continue
-                if (member != "${method.name}$mDesc" && member != method.name) continue
+                // canonical FQNs render `name;desc` — normalize the `;` that
+                // separates member name from desc before comparing
+                val memberNorm = member.replace(";(", "(")
+                val memberName = member.substringBefore(';').substringBefore('(')
+                if (memberNorm != "${method.name}$mDesc" && memberName != method.name) continue
                 if (target.paramIdx != null) {
                     val idx = argList.expressions.indexOfFirst { it == lit }
                     if (idx != target.paramIdx) continue
@@ -144,7 +148,7 @@ class ConstantGroupSourceExtension(private val ns: Namespace? = null) : SourceEx
                     lit, org.jetbrains.kotlin.psi.KtValueArgument::class.java) ?: continue
                 val call = org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil.getParentOfType(
                     arg, org.jetbrains.kotlin.psi.KtCallExpression::class.java) ?: continue
-                val methodName = member.substringBefore('(')
+                val methodName = member.substringBefore(';').substringBefore('(')
                 if (call.calleeExpression?.text != methodName) continue
                 if (target.paramIdx != null &&
                     call.valueArguments.indexOf(arg) != target.paramIdx) continue

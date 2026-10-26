@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     implementation(project(":"))
+    implementation(project(":remapper"))
 
     implementation(libs.clikt)
 

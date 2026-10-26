@@ -12,5 +12,6 @@ plugins {
 }
 
 include("cli")
+include("remapper")
 
 rootProject.name = "unimined-mapping-library"
