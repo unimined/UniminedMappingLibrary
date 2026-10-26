@@ -26,7 +26,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.impl.mergeMetadata
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 @Serializable
 data class WildcardMappingData(
@@ -45,7 +45,7 @@ data class WildcardMappingData(
     }
 
     override fun parameter(index: Int?, lvOrd: Int?, names: Map<Namespace, UnqualifiedName>): MutableParameterMapping {
-        val incoming = ParameterMappingData(index, lvOrd, names.toSmallMap())
+        val incoming = ParameterMappingData(index, lvOrd, names.toNsMap())
         for (existing in parameters) {
             if (incoming.mergeInto(existing)) return existing
         }
@@ -60,7 +60,7 @@ data class WildcardMappingData(
                 return existing
             }
         }
-        val node = LocalVariableMappingData(lvOrd, startOp, names.toSmallMap())
+        val node = LocalVariableMappingData(lvOrd, startOp, names.toNsMap())
         localVariables.add(node)
         return node
     }
@@ -77,7 +77,7 @@ data class WildcardMappingData(
         }
         if (existing.descs.isNotEmpty() && descs.isNotEmpty()) {
             val descNs = existing.descs.keys.intersect(descs.keys).firstOrNull() ?: descs.keys.first()
-            if (descIn(existing.descs, descNs, descRemapper) == descs[descNs]) {
+            if (existing.descs.descInDesc(descNs, descRemapper) == descs[descNs]) {
                 existing.setDescriptors(descs)
                 mergeChildrenInto(existing)
                 return true

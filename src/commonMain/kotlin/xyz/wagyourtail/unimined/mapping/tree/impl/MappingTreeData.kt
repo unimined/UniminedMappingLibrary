@@ -24,7 +24,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.serialization.InternalNameSerializer
 import xyz.wagyourtail.unimined.mapping.serialization.NamespaceSerializer
 import xyz.wagyourtail.unimined.mapping.serialization.PackageNameSerializer
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 @Serializable
 class MappingTreeData(
@@ -44,6 +44,15 @@ class MappingTreeData(
     private val stack = ArrayDeque<Any>()
 
     override fun getClass(namespace: Namespace, name: InternalName): ClassMappingData? {
+        // the index is transient — after deserialization it re-derives lazily from
+        // the serialized class rows (every class always has >= 1 namespace name, so
+        // a populated class list with an empty index only occurs post-decode)
+        if (byNamespace.isEmpty() && classes.isNotEmpty()) {
+            for (cls in classes) {
+                cls.descRemapper = { from, to, desc -> map(from, to, desc) }
+                for ((ns, n) in cls.names) byNamespace[ns][n] = cls
+            }
+        }
         return byNamespace[namespace][name]
     }
 
@@ -68,7 +77,7 @@ class MappingTreeData(
                 return existing
             }
         }
-        val node = PackageMappingData(names.toSmallMap())
+        val node = PackageMappingData(names.toNsMap())
         packages.add(node)
         return node
     }
@@ -88,7 +97,7 @@ class MappingTreeData(
                 return existing
             }
         }
-        val node = ClassMappingData(names.toSmallMap())
+        val node = ClassMappingData(names.toNsMap())
         node.descRemapper = { from, to, desc -> map(from, to, desc) }
         for ((ns, name) in names) {
             byNamespace[ns][name] = node

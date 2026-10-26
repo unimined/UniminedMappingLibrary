@@ -16,7 +16,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.emit
 import xyz.wagyourtail.unimined.mapping.sink.pushed
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 object MCPv6MethodReader : FormatReader {
@@ -81,7 +81,7 @@ object MCPv6MethodReader : FormatReader {
                     val entries = element.emitEntries()
                     val ns = entries[srcNs] ?: return null
                     val mData = data[ns.name] ?: return null
-                    val nameMap = entries.toSmallMap()
+                    val nameMap = entries.toNsMap()
                     nameMap[dstNs] = MethodNameAndDescriptor(mData.first, null)
                     val pushed = into.push(MutableMethodMapping(nameMap)) ?: return null
                     if (mData.second != null) {

@@ -83,6 +83,7 @@ kotlin {
                 api(libs.asm)
                 api(libs.asm.tree)
                 api(libs.asm.commons)
+                implementation(libs.asm.analysis)
 
                 api(libs.commons.asm)
                 api(libs.kotlin.metadata.jvm)
@@ -134,4 +135,11 @@ tasks.withType<Test>().configureEach {
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion.set(org.gradle.jvm.toolchain.JavaLanguageVersion.of(21))
     })
+    // perf harness knobs: -Dasmremap.perf.jar/.mappings, -Ptest.heap=4g
+    providers.systemProperty("asmremap.perf.jar").orNull?.let { systemProperty("asmremap.perf.jar", it) }
+    providers.systemProperty("asmremap.perf.mappings").orNull?.let { systemProperty("asmremap.perf.mappings", it) }
+    providers.gradleProperty("test.heap").orNull?.let { maxHeapSize = it }
+    providers.gradleProperty("test.jfr").orNull?.let {
+        jvmArgs("-XX:StartFlightRecording=duration=300s,filename=$it")
+    }
 }

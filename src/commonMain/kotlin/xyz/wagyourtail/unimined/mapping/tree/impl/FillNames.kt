@@ -3,7 +3,7 @@ package xyz.wagyourtail.unimined.mapping.tree.impl
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 /**
  * fills missing names from dependent namespaces.
@@ -12,7 +12,7 @@ import xyz.wagyourtail.unimined.mapping.toSmallMap
 fun MutableMappingTree.fillMissingNames(vararg toFill: Pair<Namespace, Set<Namespace>>) {
     fun <T> fill(names: Map<Namespace, T>): Map<Namespace, T> {
         if (toFill.isEmpty()) return names
-        val out = names.toSmallMap()
+        val out = names.toNsMap()
         for ((from, targets) in toFill) {
             val src = out[from] ?: continue
             for (t in targets) {

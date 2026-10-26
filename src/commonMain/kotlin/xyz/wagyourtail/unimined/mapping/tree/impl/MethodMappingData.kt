@@ -26,7 +26,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 @Serializable
 data class MethodMappingData(
@@ -65,7 +65,7 @@ data class MethodMappingData(
     }
 
     override fun parameter(index: Int?, lvOrd: Int?, names: Map<Namespace, UnqualifiedName>): MutableParameterMapping {
-        val incoming = ParameterMappingData(index, lvOrd, names.toSmallMap())
+        val incoming = ParameterMappingData(index, lvOrd, names.toNsMap())
         for (existing in parameters) {
             if (incoming.mergeInto(existing)) return existing
         }
@@ -80,7 +80,7 @@ data class MethodMappingData(
                 return existing
             }
         }
-        val node = LocalVariableMappingData(lvOrd, startOp, names.toSmallMap())
+        val node = LocalVariableMappingData(lvOrd, startOp, names.toNsMap())
         localVariables.add(node)
         return node
     }
@@ -91,28 +91,28 @@ data class MethodMappingData(
 
     /** merge this (incoming) into [existing]; ported from FieldMethodResolvable.merge */
     internal fun mergeInto(existing: MethodMappingData): Boolean {
-        val matched = namesMatch(names, existing.names)
+        val matched = entries.namesMatch(existing.entries)
         if (matched == NameMatch.NONE) {
             // disjoint namespace keys are still the same member when descriptors verify
-            if (hasNameConflict(names, existing.names)) return false
-            if (descs.isNotEmpty() && existing.hasDescriptor()) {
-                val descNs = existing.descs.keys.intersect(descs.keys).firstOrNull() ?: descs.keys.first()
-                if (descIn(existing.descs, descNs, descRemapper) == descs[descNs]) {
-                    existing.setNames(names)
-                    existing.setDescriptors(descs)
+            if (entries.hasNameConflict(existing.entries)) return false
+            if (entries.anyDesc() && existing.entries.anyDesc()) {
+                val descNs = existing.entries.pickDescNs(entries)
+                if (existing.entries.descMatches(entries, descNs, descRemapper)) {
+                    existing.copyNamesFrom(entries)
+                    existing.copyDescriptorsFrom(entries)
                     mergeChildrenInto(existing)
                     return true
                 }
             }
             return false
         }
-        if (existing.hasDescriptor()) {
-            if (descs.isNotEmpty()) {
-                val descNs = existing.descs.keys.intersect(descs.keys).firstOrNull() ?: descs.keys.first()
-                if (descIn(existing.descs, descNs, descRemapper) == descs[descNs]) {
+        if (existing.entries.anyDesc()) {
+            if (entries.anyDesc()) {
+                val descNs = existing.entries.pickDescNs(entries)
+                if (existing.entries.descMatches(entries, descNs, descRemapper)) {
                     if (matched == NameMatch.PARTIAL) logPartialMerge(this, existing)
-                    existing.setNames(names)
-                    existing.setDescriptors(descs)
+                    existing.copyNamesFrom(entries)
+                    existing.copyDescriptorsFrom(entries)
                     mergeChildrenInto(existing)
                     return true
                 }
@@ -121,14 +121,27 @@ data class MethodMappingData(
             mergeDescMismatch(existing, this)
             return false
         }
-        if (descs.isNotEmpty()) {
+        if (entries.anyDesc()) {
             mergeDescMismatch(this, existing)
             return false
         }
         if (matched == NameMatch.PARTIAL) logPartialMerge(this, existing)
-        existing.setNames(names)
+        existing.copyNamesFrom(entries)
         mergeChildrenInto(existing)
         return true
+    }
+
+    private fun copyNamesFrom(incoming: Map<Namespace, MethodNameAndDescriptor>) {
+        for ((ns, e) in incoming) {
+            entries[ns] = e.name.withMethodDesc(entries[ns]?.descriptor)
+        }
+    }
+
+    private fun copyDescriptorsFrom(incoming: Map<Namespace, MethodNameAndDescriptor>) {
+        for ((ns, e) in incoming) {
+            val desc = e.descriptor ?: continue
+            entries[ns]?.let { entries[ns] = it.name.withMethodDesc(desc) }
+        }
     }
 
     internal fun mergeChildrenInto(target: MethodMappingData) {

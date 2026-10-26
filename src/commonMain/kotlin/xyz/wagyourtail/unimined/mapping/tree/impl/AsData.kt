@@ -16,28 +16,36 @@ import kotlinx.serialization.UseSerializers
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.asMetadataDataList
 import xyz.wagyourtail.unimined.mapping.serialization.*
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 internal fun mergeDescMismatch(hasDesc: MethodMappingData, noDesc: MethodMappingData) {
-    hasDesc.setNames(noDesc.names.filter { it.key !in hasDesc.names })
-    noDesc.setNames(hasDesc.names.filter { it.key !in noDesc.names })
+    for ((ns, e) in noDesc.entries) {
+        if (ns !in hasDesc.entries) hasDesc.entries[ns] = e
+    }
+    for ((ns, e) in hasDesc.entries) {
+        if (ns !in noDesc.entries) noDesc.entries[ns] = e.name.withMethodDesc(null)
+    }
     noDesc.mergeChildrenInto(hasDesc)
 }
 
 internal fun mergeDescMismatch(hasDesc: FieldMappingData, noDesc: FieldMappingData) {
-    hasDesc.setNames(noDesc.names.filter { it.key !in hasDesc.names })
-    noDesc.setNames(hasDesc.names.filter { it.key !in noDesc.names })
+    for ((ns, e) in noDesc.entries) {
+        if (ns !in hasDesc.entries) hasDesc.entries[ns] = e
+    }
+    for ((ns, e) in hasDesc.entries) {
+        if (ns !in noDesc.entries) noDesc.entries[ns] = e.name.withFieldDesc(null)
+    }
     noDesc.mergeChildrenInto(hasDesc)
 }
 
 // ---- foreign-impl -> default-impl conversions for factories/wrappers ----
 
 internal fun PackageMapping.asData() = this as? PackageMappingData
-    ?: PackageMappingData(names.toSmallMap(), metadata.asMetadataDataList())
+    ?: PackageMappingData(names.toNsMap(), metadata.asMetadataDataList())
 
 internal fun ClassMapping.asData() = this as? ClassMappingData
     ?: ClassMappingData(
-        names.toSmallMap(),
+        names.toNsMap(),
         methods.map { it.asData() }.toMutableList(),
         fields.map { it.asData() }.toMutableList(),
         wildcards.map { it.asData() }.toMutableList(),
@@ -46,29 +54,29 @@ internal fun ClassMapping.asData() = this as? ClassMappingData
 
 internal fun MethodMapping.asData() = this as? MethodMappingData
     ?: MethodMappingData(
-        entries.toSmallMap(),
+        entries.toNsMap(),
         parameters.map { it.asData() }.toMutableList(),
         localVariables.map { it.asData() }.toMutableList(),
         metadata.asMetadataDataList()
     )
 
 internal fun FieldMapping.asData() = this as? FieldMappingData
-    ?: FieldMappingData(entries.toSmallMap(), metadata.asMetadataDataList())
+    ?: FieldMappingData(entries.toNsMap(), metadata.asMetadataDataList())
 
 internal fun WildcardMapping.asData() = this as? WildcardMappingData
     ?: WildcardMappingData(
         type,
-        descs.toSmallMap(),
+        descs.toNsMap(),
         parameters.map { it.asData() }.toMutableList(),
         localVariables.map { it.asData() }.toMutableList(),
         metadata.asMetadataDataList()
     )
 
 internal fun ParameterMapping.asData() = this as? ParameterMappingData
-    ?: ParameterMappingData(index, lvOrd, names.toSmallMap(), metadata.asMetadataDataList())
+    ?: ParameterMappingData(index, lvOrd, names.toNsMap(), metadata.asMetadataDataList())
 
 internal fun LocalVariableMapping.asData() = this as? LocalVariableMappingData
-    ?: LocalVariableMappingData(lvOrd, startOp, names.toSmallMap(), metadata.asMetadataDataList())
+    ?: LocalVariableMappingData(lvOrd, startOp, names.toNsMap(), metadata.asMetadataDataList())
 
 internal fun ConstantGroupMapping.asData() = this as? ConstantGroupMappingData
     ?: ConstantGroupMappingData(type, name, baseNs, metadata.asMetadataDataList())

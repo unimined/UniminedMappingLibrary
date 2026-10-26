@@ -29,6 +29,12 @@ value class UnqualifiedName private constructor(val value: String) : Type {
             append(value)
         }
 
+        /** char-scan fast path — validates and wraps [value] directly */
+        override fun read(value: String, unchecked: Boolean): UnqualifiedName {
+            if (!unchecked) JVMS.checkUnqualifiedName(value)
+            return UnqualifiedName(value)
+        }
+
         override fun unchecked(value: String) = UnqualifiedName(value)
 
     }

@@ -2,13 +2,19 @@ package xyz.wagyourtail.unimined.mapping.remapper.asm
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.objectweb.asm.ClassReader
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.commons.ClassRemapper
+import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.tree.ClassNode
+import xyz.wagyourtail.unimined.mapping.GraphNamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.NamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.inheritance.ASMInheritanceTree
+import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
+import xyz.wagyourtail.unimined.mapping.inheritance.MemberGroups
 import xyz.wagyourtail.unimined.mapping.inheritance.PropagationStrategy
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext
@@ -18,6 +24,7 @@ import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.jar.Manifest
+import java.util.stream.Collectors
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
@@ -42,9 +49,18 @@ data class Options(
     val invalidLvNamePattern: Regex? = null,
     /** Invalid-named locals reuse a sibling LV entry's name at the same index+desc. */
     val inferNameFromSameLvIndex: Boolean = false,
-    /** Remap-time extension hooks (mixin refmaps, extra transforms…). Each gets a
-     *  fresh [AsmExtension] instance per remap — see [ExtensionContext]. */
-    val extensions: List<AsmExtensionFactory> = emptyList(),
+    /** Apply `ConstantGroupMapping` unpick at bytecode level — literal loads
+     *  matching a group constant are replaced with instructions evaluating the
+     *  group's expression. See [ConstantGroupEmitter]. */
+    val unpickConstants: Boolean = true,
+    /** Remap-time extension hooks — pipeline order. Defaults to
+     *  [BuiltinAsmExtensions.defaults] (source-file rebuild, metadata
+     *  application, constant-group unpick); disable a builtin by removing
+     *  it, e.g. `extensions - BuiltinAsmExtensions.CONSTANT_GROUPS`, and
+     *  add hooks (mixin refmaps, extra transforms…) by appending. Each
+     *  factory gets a fresh [AsmExtension] per remap — see
+     *  [ExtensionContext]. */
+    val extensions: List<AsmExtensionFactory> = BuiltinAsmExtensions.defaults(),
 )
 
 /**
@@ -81,7 +97,31 @@ object AsmRemapper {
         fns: Namespace,
         targetNs: Namespace,
         options: Options = Options(),
-    ) = writeJar(output, remap(input, tree, fns, targetNs, options))
+    ) {
+        if (allPerClass(options)) {
+            remapStreaming(input, output, MappingRemapper(tree.nsBoundRemapper(fns, targetNs)), tree, fns, targetNs, options)
+        } else {
+            writeJar(output, remap(input, tree, fns, targetNs, options))
+        }
+    }
+
+    /** every extension is a pure per-class transform — streaming eligible */
+    private fun allPerClass(options: Options): Boolean =
+        options.extensions.all { it.perClass }
+
+    /** install the origin-row resolver on [ctx] when [nsRemapper] is
+     *  graph-backed — propagated names come from an ancestor's row, which is
+     *  where the param/lvar children live */
+    private fun attachMethodOrigin(ctx: ExtensionContext, nsRemapper: NamespaceRemapper?, tree: MappingTree, fns: Namespace) {
+        val g = nsRemapper as? GraphNamespaceRemapper ?: return
+        ctx.methodOrigin = { owner, name, desc ->
+            g.methodOrigin(owner, name, desc)?.let { m ->
+                tree.getClass(fns, m.cls.name)?.let { c ->
+                    with(tree) { c.getMethod(fns, m.info.name, m.info.descriptor) }
+                }
+            }
+        }
+    }
 
     /**
      * Overlay convenience for multi-layer remaps — e.g. base mappings (MC) under
@@ -89,9 +129,14 @@ object AsmRemapper {
      * (access transforms etc.) from every layer accumulates.
      *
      * [libraries] — jars to scan for the inheritance pass (classpath deps +
-     * inputs); [input] is included automatically. Propagated rows are written
-     * into the merged tree before remapping, so overrides in classes the
-     * mappings don't know about still rename correctly.
+     * inputs); [input] is included automatically. Member names propagate
+     * through a [MemberGroups] component graph and resolve at lookup time —
+     * no row materialization — so overrides in classes the mappings don't
+     * know about still rename correctly.
+     *
+     * [strategy] — [PropagationStrategy.BRIDGE] still takes the materializing
+     * [InheritanceBackedMappingTree] path (bridges live as row metadata);
+     * [PropagationStrategy.STRICT] throws on member-name conflicts.
      */
     suspend fun remap(
         input: Path,
@@ -102,7 +147,25 @@ object AsmRemapper {
         libraries: Set<Path> = emptySet(),
         options: Options = Options(),
         strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
-    ) = remap(input, output, overlay(trees, fns, libraries.plusElement(input), strategy), fns, targetNs, options)
+    ) {
+        if (strategy == PropagationStrategy.BRIDGE) {
+            return remap(input, output, overlay(trees, fns, libraries.plusElement(input), strategy), fns, targetNs, options)
+        }
+        val merged = mergeTrees(trees)
+        val inheritance = ASMInheritanceTree(fns, libraries.plusElement(input))
+        val groups = MemberGroups(inheritance)
+        val conflicts = groups.propagate(merged)
+        if (strategy == PropagationStrategy.STRICT && conflicts > 0) {
+            throw InheritanceConflictException("$conflicts member-name conflicts during propagation")
+        }
+        if (conflicts > 0) LOGGER.warn { "$conflicts member-name conflicts resolved deterministically" }
+        val graphRemapper = GraphNamespaceRemapper(merged, inheritance, groups, fns, targetNs)
+        if (allPerClass(options)) {
+            remapStreaming(input, output, MappingRemapper(graphRemapper), merged, fns, targetNs, options)
+        } else {
+            writeJar(output, remap(input, graphRemapper, merged, fns, targetNs, options))
+        }
+    }
 
     /**
      * Merge [trees] into one mutable tree — later entries override earlier ones.
@@ -118,10 +181,16 @@ object AsmRemapper {
         libraries: Set<Path> = emptySet(),
         strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
     ): MutableMappingTree {
-        val merged = MutableMappingTree(trees.flatMap { it.namespaces }.toSet())
-        for (t in trees) t.emit(merged)
+        val merged = mergeTrees(trees)
         if (fns == null || libraries.isEmpty()) return merged
         return overlay(merged, ASMInheritanceTree(fns, libraries), strategy)
+    }
+
+    /** Merge [trees] into one mutable tree — later entries override earlier. */
+    private fun mergeTrees(trees: List<MappingTree>): MutableMappingTree {
+        val merged = MutableMappingTree(trees.flatMap { it.namespaces }.toSet())
+        for (t in trees) t.emit(merged)
+        return merged
     }
 
     /**
@@ -144,62 +213,216 @@ object AsmRemapper {
         fns: Namespace,
         targetNs: Namespace,
         options: Options = Options(),
+    ): Result = remap(input, tree.nsBoundRemapper(fns, targetNs), tree, fns, targetNs, options)
+
+    /**
+     * Remap with a pre-resolved [NamespaceRemapper] — the graph-propagation
+     * path. [tree] still supplies class rows and metadata lookups
+     * ([MetadataAdapter], [ConstantGroupEmitter], [ExtensionContext]).
+     */
+    fun remap(
+        input: Path,
+        remapper: NamespaceRemapper,
+        tree: MappingTree,
+        fns: Namespace,
+        targetNs: Namespace,
+        options: Options = Options(),
     ): Result {
-        val remapper = MappingRemapper(tree.nsBoundRemapper(fns, targetNs))
+        val asmRemapper = MappingRemapper(remapper)
         val readerFlags = if (options.removeFrames) ClassReader.SKIP_FRAMES else 0
-        val ctx = ExtensionContext(tree, fns, targetNs)
-        val exts = options.extensions.map { it.create(ctx) }
+        val ctx = ExtensionContext(tree, fns, targetNs, options)
+        attachMethodOrigin(ctx, remapper, tree, fns)
+        // (factory, instance) pairs — perClass factories run postApply inside
+        // the parallel worker; the rest run serially after collection
+        val exts = options.extensions.map { f -> f to f.create(ctx) }
+        val perClassExts = exts.filter { it.first.perClass }.map { it.second }
+        val serialExts = exts.filterNot { it.first.perClass }.map { it.second }
 
         // pass 1: read all entries (classes held in memory — the package-access
         // fixup pass needs them all before write anyway) + extension analysis
-        val classes = mutableListOf<Pair<String, ClassNode>>() // entry path → node
         val resources = mutableListOf<Pair<String, ByteArray>>()
-
+        val rawClasses = mutableListOf<Pair<String, ByteArray>>()
         ZipFile(input.toFile()).use { zin ->
             for (entry in zin.entries().asSequence().sortedBy { it.name }) {
                 if (entry.isDirectory) continue
-                val bytes = zin.getInputStream(entry).readBytes()
                 when {
-                    entry.name.endsWith(".class") -> {
-                        val node = ClassNode()
-                        ClassReader(bytes).accept(node, readerFlags)
-                        classes += entry.name to node
-                        exts.forEach { it.analyze(node) }
-                    }
+                    entry.name.endsWith(".class") ->
+                        rawClasses += entry.name to zin.getInputStream(entry).readBytes()
                     options.stripSignatures && JarFixups.isSignatureFile(entry.name) -> Unit // drop
                     else -> {
+                        val bytes = zin.getInputStream(entry).readBytes()
                         resources += entry.name to bytes
-                        exts.forEach { it.analyzeResource(entry.name, bytes) }
+                        exts.forEach { it.second.analyzeResource(entry.name, bytes) }
                     }
                 }
             }
         }
-        exts.forEach { it.finishAnalysis() }
+        // ClassNode parses are independent — parallel; ordered stream keeps
+        // output deterministic. analyze()/fieldValues run after, serially,
+        // since extensions may hold shared per-remap state.
+        val classes = rawClasses.parallelStream().map { e ->
+            val node = ClassNode()
+            ClassReader(e.second).accept(node, readerFlags)
+            e.first to node
+        }.collect(Collectors.toList())
+        // "owner.name" → (ConstantValue, field desc) — for constant-group
+        // expression evaluation in ConstantGroupEmitter
+        val fieldValues = mutableMapOf<String, Pair<Any, String>>()
+        for ((_, node) in classes) {
+            exts.forEach { it.second.analyze(node) }
+            for (f in node.fields) {
+                if (f.value != null && f.access and Opcodes.ACC_STATIC != 0) {
+                    fieldValues["${node.name}.${f.name}"] = f.value to f.desc
+                }
+            }
+        }
+        exts.forEach { it.second.finishAnalysis() }
+        ctx.fieldValues = fieldValues
 
-        // pass 2: remap names, then apply metadata in targetNs
-        val outClasses = ArrayList<Pair<String, ClassNode>>(classes.size)
-        for ((entryName, node) in classes) {
+        // pass 2: remap names, then per-class stages (source files, metadata,
+        // constant groups, other perClass extensions) — independent per class,
+        // so run parallel; non-perClass postApply runs serially afterwards
+        val outClasses = classes.parallelStream().map { e ->
+            val (entryName, node) = e
             val cls = tree.getClass(fns, InternalName.unchecked(node.name))
             val outNode = ClassNode()
-            node.accept(ClassRemapper(outNode, remapper))
-            if (options.rebuildSourceFilenames && outNode.sourceFile != null) {
-                outNode.sourceFile = outNode.name.substringAfterLast('/') + ".java"
-            }
-            MetadataAdapter.apply(outNode, cls, tree, targetNs, options)
-            exts.forEach { it.postApply(node, outNode, cls) }
+            node.accept(MappingClassRemapper(outNode, asmRemapper))
+            perClassExts.forEach { it.postApply(node, outNode, cls) }
             val prefix = if (entryName.startsWith("META-INF/versions/")) {
                 entryName.substring(0, entryName.indexOf('/', "META-INF/versions/".length) + 1)
             } else ""
-            outClasses += "$prefix${outNode.name}.class" to outNode
-        }
+            Triple("$prefix${outNode.name}.class", outNode, node to cls)
+        }.collect(Collectors.toList()).also { out ->
+            for ((_, outNode, input) in out) {
+                serialExts.forEach { it.postApply(input.first, outNode, input.second) }
+            }
+        }.map { it.first to it.second }
 
         // pass 3: package-access check/fix across the whole output set
         if (options.packageAccess != PackageAccess.NONE) {
-            JarFixups.checkPackageAccess(outClasses.map { it.second }, remapper, options, LOGGER)
+            JarFixups.checkPackageAccess(outClasses.map { it.second }, asmRemapper, options, LOGGER)
         }
 
         // resource fixups: manifest attrs + service-provider files, then
         // extension transforms (refmap merges…) over the fixup output
+        val outResources = resources.map { (name, bytes) ->
+            val fixed = when {
+                name.equals("META-INF/MANIFEST.MF", ignoreCase = true) ->
+                    name to JarFixups.remapManifest(Manifest(bytes.inputStream()), asmRemapper).toBytes()
+                name.startsWith("META-INF/services/") ->
+                    JarFixups.remapServiceName(name, asmRemapper) to JarFixups.remapServiceContents(bytes, asmRemapper)
+                name.endsWith(".accesswidener", ignoreCase = true) ||
+                    name.endsWith("accesstransformer.cfg", ignoreCase = true) ->
+                    name to JarFixups.remapAccessFile(name, bytes, asmRemapper, targetNs.name)
+                else -> name to bytes
+            }
+            exts.firstNotNullOfOrNull { it.second.transformResource(fixed.first, fixed.second) }
+                ?.let { fixed.first to it } ?: fixed
+        }
+
+        // extension-emitted entries (refmaps etc.) come last — written verbatim
+        return Result(outClasses, outResources + exts.flatMap { it.second.resources() })
+    }
+
+    /**
+     * Streaming jar remap — per-class workers go parse → remap → metadata →
+     * access-summary → serialize in one pass, retaining only bytes +
+     * [JarFixups.AccessSummary] (no `ClassNode` residency). The
+     * package-access check collates summaries afterward and
+     * [PackageAccess.FIX] patches flags in serialized bytes via
+     * [JarFixups.patchClassAccess].
+     *
+     * Requires every extension factory to be `perClass` — `analyze`/
+     * `finishAnalysis` never run here (they need whole-`ClassNode` access
+     * across the jar), and extension instances are per-worker-thread.
+     */
+    fun remapStreaming(
+        input: Path,
+        output: Path,
+        remapper: Remapper,
+        tree: MappingTree,
+        fns: Namespace,
+        targetNs: Namespace,
+        options: Options = Options(),
+    ) {
+        require(allPerClass(options)) { "streaming path requires all extensions to be perClass" }
+        val readerFlags = if (options.removeFrames) ClassReader.SKIP_FRAMES else 0
+        val ctx = ExtensionContext(tree, fns, targetNs, options)
+        attachMethodOrigin(ctx, (remapper as? MappingRemapper)?.remapper, tree, fns)
+        val factories = options.extensions
+        // per-worker-thread instances; only postApply/transformResource/
+        // resources run here (analyze*/finishAnalysis are node-path only)
+        val extInstances = java.util.concurrent.ConcurrentLinkedQueue<AsmExtension>()
+        val threadExts = ThreadLocal.withInitial {
+            factories.map { it.create(ctx) }.also(extInstances::addAll)
+        }
+
+        val resources = mutableListOf<Pair<String, ByteArray>>()
+        val rawClasses = mutableListOf<Pair<String, ByteArray>>()
+        ZipFile(input.toFile()).use { zin ->
+            for (entry in zin.entries().asSequence().sortedBy { it.name }) {
+                if (entry.isDirectory) continue
+                when {
+                    entry.name.endsWith(".class") ->
+                        rawClasses += entry.name to zin.getInputStream(entry).readBytes()
+                    options.stripSignatures && JarFixups.isSignatureFile(entry.name) -> Unit
+                    else -> resources += entry.name to zin.getInputStream(entry).readBytes()
+                }
+            }
+        }
+
+        // constant-group expressions resolve static-final values across the
+        // whole input — collect in a cheap pre-pass only when unpick runs
+        val fieldValues = if (options.unpickConstants && tree.constantGroups.iterator().hasNext()) {
+            rawClasses.parallelStream().flatMap { e ->
+                val node = ClassNode()
+                ClassReader(e.second).accept(node, readerFlags)
+                node.fields.filter { it.value != null && it.access and Opcodes.ACC_STATIC != 0 }
+                    .map { "${node.name}.${it.name}" to (it.value to it.desc) }.stream()
+            }.collect(Collectors.toMap({ it.first }, { it.second }, { a, _ -> a }))
+        } else emptyMap()
+        ctx.fieldValues = fieldValues
+
+        // single pass per class: parse → remap → metadata → summary → bytes
+        val processed = rawClasses.parallelStream().map { e ->
+            val (entryName, bytes) = e
+            val node = ClassNode()
+            ClassReader(bytes).accept(node, readerFlags)
+            val outNode = ClassNode()
+            node.accept(MappingClassRemapper(outNode, remapper))
+            val cls = tree.getClass(fns, InternalName.unchecked(node.name))
+            threadExts.get().forEach { it.postApply(node, outNode, cls) }
+            val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
+            outNode.accept(writer)
+            val summary = if (options.packageAccess != PackageAccess.NONE) {
+                JarFixups.summarize(outNode)
+            } else null
+            val prefix = if (entryName.startsWith("META-INF/versions/")) {
+                entryName.substring(0, entryName.indexOf('/', "META-INF/versions/".length) + 1)
+            } else ""
+            Triple("$prefix${outNode.name}.class", writer.toByteArray(), summary)
+        }.collect(Collectors.toList())
+
+        if (options.packageAccess == PackageAccess.FIX) {
+            val violations = JarFixups.checkPackageAccess(processed.mapNotNull { it.third }, options, LOGGER)
+            if (!violations.isEmpty) {
+                val byName = processed.associateBy { it.third!!.name }
+                for (target in violations.brokenClasses.keys) {
+                    val p = byName.getValue(target)
+                    JarFixups.patchClassAccess(
+                        p.second, Opcodes.ACC_PUBLIC,
+                        violations.memberPatchesByClass[target] ?: emptySet()
+                    )
+                }
+                for ((owner, memberKeys) in violations.memberPatchesByClass) {
+                    if (violations.brokenClasses.containsKey(owner)) continue // already patched
+                    JarFixups.patchClassAccess(byName.getValue(owner).second, 0, memberKeys)
+                }
+            }
+        } else if (options.packageAccess == PackageAccess.WARN) {
+            JarFixups.checkPackageAccess(processed.mapNotNull { it.third }, options, LOGGER)
+        }
+
         val outResources = resources.map { (name, bytes) ->
             val fixed = when {
                 name.equals("META-INF/MANIFEST.MF", ignoreCase = true) ->
@@ -211,16 +434,33 @@ object AsmRemapper {
                     name to JarFixups.remapAccessFile(name, bytes, remapper, targetNs.name)
                 else -> name to bytes
             }
-            exts.firstNotNullOfOrNull { it.transformResource(fixed.first, fixed.second) }
+            threadExts.get().firstNotNullOfOrNull { it.transformResource(fixed.first, fixed.second) }
                 ?.let { fixed.first to it } ?: fixed
         }
 
-        // extension-emitted entries (refmaps etc.) come last — written verbatim
-        return Result(outClasses, outResources + exts.flatMap { it.resources() })
+        ZipOutputStream(Files.newOutputStream(output).buffered()).use { zout ->
+            for ((name, bytes) in processed) {
+                zout.putNextEntry(ZipEntry(name))
+                zout.write(bytes)
+                zout.closeEntry()
+            }
+            for ((name, bytes) in outResources + extInstances.flatMap { it.resources() }) {
+                zout.putNextEntry(ZipEntry(name))
+                zout.write(bytes)
+                zout.closeEntry()
+            }
+        }
     }
 
     /** Serialize a [Result] to a jar at [output]. */
     fun writeJar(output: Path, result: Result) {
+        // ClassWriter(COMPUTE_MAXS) is per-class independent work — serialize
+        // in parallel, then stream the zip in deterministic order
+        val classBytes = result.classes.parallelStream().map { e ->
+            val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
+            e.second.accept(writer)
+            e.first to writer.toByteArray()
+        }.collect(Collectors.toList())
         ZipOutputStream(Files.newOutputStream(output).buffered()).use { zout ->
             fun put(name: String, write: (java.io.OutputStream) -> Unit) {
                 zout.putNextEntry(ZipEntry(name).apply { time = 0L })
@@ -231,12 +471,8 @@ object AsmRemapper {
                 // manifest first so streaming readers see it early
                 if (name.equals("META-INF/MANIFEST.MF", ignoreCase = true)) put(name) { it.write(bytes) }
             }
-            for ((name, node) in result.classes) {
-                put(name) { stream ->
-                    val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
-                    node.accept(writer)
-                    stream.write(writer.toByteArray())
-                }
+            for ((name, bytes) in classBytes) {
+                put(name) { it.write(bytes) }
             }
             for ((name, bytes) in result.resources) {
                 if (!name.equals("META-INF/MANIFEST.MF", ignoreCase = true)) put(name) { it.write(bytes) }

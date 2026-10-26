@@ -14,7 +14,7 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
  *
  * ASM gives no help here — `Remapper` has no LV hook and
  * `MethodRemapper.visitLocalVariable` passes names through unchanged, so names
- * are rewritten on the node model directly (tiny-remapper's `processLocals`):
+ * are rewritten on the node model directly:
  *
  * - `MethodParameters` and LVT arg entries are merged into one `args[]` model —
  *   [ParameterMapping] names (by `index`, or `lvOrd` converted to arg index)

@@ -40,8 +40,8 @@ class AnnotationTable(
     val mixinMarkers: Set<String> = setOf("Lorg/spongepowered/asm/mixin/Mixin;"),
 ) {
 
-    /** `remap = false` disables processing for that annotation (mirrors
-     *  tiny-remapper's per-annotation escape hatch) */
+    /** `remap = false` disables processing for that annotation
+     *  (per-annotation escape hatch, as used by mixin processors) */
     fun isRemapEnabled(ann: AnnotationNode): Boolean {
         val values = ann.values ?: return true
         var i = 0

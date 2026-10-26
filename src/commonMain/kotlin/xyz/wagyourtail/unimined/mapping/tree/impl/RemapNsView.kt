@@ -9,7 +9,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.InnerClassElementData
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.SyntheticBridgeElementData
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.asMetadataDataList
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 /**
  * lazy namespace-remap view — re-keys [Namespace]-keyed maps and [NsBoundMetadata.baseNs]
@@ -28,11 +28,11 @@ fun MetadataElement.remapNs(fn: (Namespace) -> Namespace): MetadataElement = whe
     is EnumExtensionElement -> EnumExtensionElement(type, name, fn(baseNs))
     is InnerClassElement -> InnerClassElementData(
         type,
-        names.remapNsKeys(fn).toSmallMap(),
+        names.remapNsKeys(fn).toNsMap(),
         metadata.asMetadataDataList()
     )
     // group-relative (constant group carries the baseNs) or ns-free — unchanged
-    is SyntheticBridgeElement -> SyntheticBridgeElementData(names.remapNsKeys(fn).toSmallMap())
+    is SyntheticBridgeElement -> SyntheticBridgeElementData(names.remapNsKeys(fn).toNsMap())
     is AccessElement, is ConstantElement, is TargetElement, is ExpressionElement -> this
     else -> this
 }

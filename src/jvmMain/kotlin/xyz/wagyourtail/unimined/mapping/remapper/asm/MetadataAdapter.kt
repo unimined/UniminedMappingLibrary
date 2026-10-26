@@ -16,6 +16,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.ElementType
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.Type as JvmType
 
@@ -28,7 +29,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.Type as JvmType
  * are mapped to `targetNs` through [MappingTree.map] before application.
  *
  * Unpick elements (`ConstantElement`/`TargetElement`/`ExpressionElement`) are
- * intentionally skipped — constant rewriting is phase B. `SyntheticBridgeElement`
+ * handled by [ConstantGroupEmitter] (instruction substitution, not metadata). `SyntheticBridgeElement`
  * is handled by [BridgeEmitter]; parameter/local names by [LocalVarRemapper].
  */
 object MetadataAdapter {
@@ -41,6 +42,8 @@ object MetadataAdapter {
         tree: MappingTree,
         targetNs: Namespace,
         options: Options = Options(),
+        input: ClassNode? = null,
+        methodOrigin: ((owner: InternalName, name: UnqualifiedName, desc: MethodDescriptor) -> MethodMapping?)? = null,
     ) {
         if (cls == null) return
         val meta = cls.metadata.toList()
@@ -63,7 +66,7 @@ object MetadataAdapter {
             for (fm in fms) applyMember(field, fm, tree, targetNs)
         }
 
-        for (method in node.methods.toTypedArray()) { // snapshot — BridgeEmitter appends
+        for ((i, method) in node.methods.toTypedArray().withIndex()) { // snapshot — BridgeEmitter appends
             val desc = MethodDescriptor.unchecked(method.desc)
             // methods can be split across rows — apply metadata from all of them
             val mms = with(tree) { cls.getMethods(targetNs, UnqualifiedName.unchecked(method.name), desc) }
@@ -72,7 +75,14 @@ object MetadataAdapter {
                 applyExceptions(method, mm, tree, targetNs)
                 BridgeEmitter.emit(node, method, mm, targetNs)
             }
-            val mm = mms.firstOrNull()
+            // param/lvar rows live on the originating member's row — when the
+            // name propagated from an ancestor, resolve through the input
+            // method's fns identity (methods pair index-wise with [input])
+            val mm = if (input != null && methodOrigin != null && i < input.methods.size) {
+                val im = input.methods[i]
+                methodOrigin(InternalName.unchecked(input.name), UnqualifiedName.unchecked(im.name), MethodDescriptor.unchecked(im.desc))
+                    ?: mms.firstOrNull()
+            } else mms.firstOrNull()
             // wildcards group params/lvars by descriptor — consulted for LV names too
             val wildcards = with(tree) { cls.getWildcards(WildcardType.METHOD, targetNs, desc) }
             LocalVarRemapper.apply(method, mm, targetNs, options, wildcards)

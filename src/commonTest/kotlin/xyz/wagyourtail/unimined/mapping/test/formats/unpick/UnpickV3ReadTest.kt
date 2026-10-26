@@ -63,26 +63,33 @@ u	bitfield	SetBlockFlag	source
 	@	+	Lunimined/unpick/DataType;	value="int"	source
 	n	net/minecraft/world/level/block/Block	UPDATE_ALL
 	n	net/minecraft/world/level/block/Block	UPDATE_NEIGHBORS
+	e	Lnet/minecraft/world/level/block/Block;UPDATE_ALL	Lnet/minecraft/world/level/block/Block;UPDATE_ALL
+	e	Lnet/minecraft/world/level/block/Block;UPDATE_NEIGHBORS	Lnet/minecraft/world/level/block/Block;UPDATE_NEIGHBORS
 u	plain	_	source
 	@	+	Lunimined/unpick/DataType;	value="float"	source
 	@	+	Lunimined/unpick/Strict;	_	source
 	n	net/minecraft/util/Mth	PI
-	e	"net.minecraft.util.Mth.PI / 3"	"net.minecraft.util.Mth.PI / 3"
+	e	"Lnet/minecraft/util/Mth;PI / 3"	"Lnet/minecraft/util/Mth;PI / 3"
+	e	Lnet/minecraft/util/Mth;PI	Lnet/minecraft/util/Mth;PI
 	*	"apply to floats in the default group globally"	source
 u	plain	ARGBColor	source
 	@	+	Lunimined/unpick/DataType;	value="int"	source
 	@	+	Lunimined/unpick/Format;	value="hex"	source
 	@	+	Lunimined/unpick/Scope;	type="class",target="net.minecraft.client.gui.GuiGraphics"	source
+	@	+	Lunimined/unpick/TargetAnnotation;	value="Lnet/minecraft/SomeAnnotation;"	source
 	n	net/minecraft/util/CommonColors	BLACK
 	n	net/minecraft/util/CommonColors	WHITE
+	e	Lnet/minecraft/util/CommonColors;BLACK	Lnet/minecraft/util/CommonColors;BLACK
+	e	Lnet/minecraft/util/CommonColors;WHITE	Lnet/minecraft/util/CommonColors;WHITE
 	*	"apply to ints with the group \"ARGBColor\""	source
-	t	Lnet/minecraft/SomeAnnotation;	_
+	t	Lnet/minecraft/client/gui/GuiGraphics;	_
 	t	Lnet/minecraft/client/gui/GuiGraphics;fill;(IIIII)V	4
 	t	Lnet/minecraft/core/particles/ColorParticleOption;color;I	_
 	t	Lnet/minecraft/util/ARGB;color;(IIII)I	-1
 u	plain	LevelEvents	source
 	@	+	Lunimined/unpick/DataType;	value="int"	source
 	n	net/minecraft/world/level/block/LevelEvent	*
+	e	Lnet/minecraft/world/level/block/LevelEvent;*	Lnet/minecraft/world/level/block/LevelEvent;*
             """.trimIndent(),
             output.trimEnd()
         )

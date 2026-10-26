@@ -23,7 +23,8 @@ interface TypeCompanion<T: Type> {
             unchecked(value)
         } else {
             StringCharReader(value).let { buf ->
-                val readVal = read(buf)
+                // parse only to validate; the canonical form is the input itself
+                read(buf) { }
                 if (!buf.exhausted()) {
                     throw IllegalArgumentException(
                         "Invalid ${unchecked("null")::class.simpleName}: \"${value.escape()}\", not fully read, remaining: \"${
@@ -32,7 +33,7 @@ interface TypeCompanion<T: Type> {
                         }\""
                     )
                 }
-                readVal
+                unchecked(value)
             }
         }
     } catch (e: Exception) {

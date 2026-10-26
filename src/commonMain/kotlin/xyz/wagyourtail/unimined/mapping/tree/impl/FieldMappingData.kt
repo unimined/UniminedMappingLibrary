@@ -55,28 +55,28 @@ data class FieldMappingData(
     }
 
     internal fun mergeInto(existing: FieldMappingData): Boolean {
-        val matched = namesMatch(names, existing.names)
+        val matched = entries.namesMatch(existing.entries)
         if (matched == NameMatch.NONE) {
             // disjoint namespace keys are still the same member when descriptors verify
-            if (hasNameConflict(names, existing.names)) return false
-            if (descs.isNotEmpty() && existing.hasDescriptor()) {
-                val descNs = existing.descs.keys.intersect(descs.keys).firstOrNull() ?: descs.keys.first()
-                if (descIn(existing.descs, descNs, descRemapper) == descs[descNs]) {
-                    existing.setNames(names)
-                    existing.setDescriptors(descs)
+            if (entries.hasNameConflict(existing.entries)) return false
+            if (entries.anyDesc() && existing.entries.anyDesc()) {
+                val descNs = existing.entries.pickDescNs(entries)
+                if (existing.entries.descMatches(entries, descNs, descRemapper)) {
+                    existing.copyNamesFrom(entries)
+                    existing.copyDescriptorsFrom(entries)
                     mergeChildrenInto(existing)
                     return true
                 }
             }
             return false
         }
-        if (existing.hasDescriptor()) {
-            if (descs.isNotEmpty()) {
-                val descNs = existing.descs.keys.intersect(descs.keys).firstOrNull() ?: descs.keys.first()
-                if (descIn(existing.descs, descNs, descRemapper) == descs[descNs]) {
+        if (existing.entries.anyDesc()) {
+            if (entries.anyDesc()) {
+                val descNs = existing.entries.pickDescNs(entries)
+                if (existing.entries.descMatches(entries, descNs, descRemapper)) {
                     if (matched == NameMatch.PARTIAL) logPartialMerge(this, existing)
-                    existing.setNames(names)
-                    existing.setDescriptors(descs)
+                    existing.copyNamesFrom(entries)
+                    existing.copyDescriptorsFrom(entries)
                     mergeChildrenInto(existing)
                     return true
                 }
@@ -85,14 +85,27 @@ data class FieldMappingData(
             mergeDescMismatch(existing, this)
             return false
         }
-        if (descs.isNotEmpty()) {
+        if (entries.anyDesc()) {
             mergeDescMismatch(this, existing)
             return false
         }
         if (matched == NameMatch.PARTIAL) logPartialMerge(this, existing)
-        existing.setNames(names)
+        existing.copyNamesFrom(entries)
         mergeChildrenInto(existing)
         return true
+    }
+
+    private fun copyNamesFrom(incoming: Map<Namespace, FieldNameAndDescriptor>) {
+        for ((ns, e) in incoming) {
+            entries[ns] = e.name.withFieldDesc(entries[ns]?.descriptor)
+        }
+    }
+
+    private fun copyDescriptorsFrom(incoming: Map<Namespace, FieldNameAndDescriptor>) {
+        for ((ns, e) in incoming) {
+            val desc = e.descriptor ?: continue
+            entries[ns]?.let { entries[ns] = it.name.withFieldDesc(desc) }
+        }
     }
 
     internal fun mergeChildrenInto(target: FieldMappingData) {

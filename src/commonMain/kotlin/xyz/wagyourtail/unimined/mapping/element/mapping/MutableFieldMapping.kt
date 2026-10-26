@@ -7,7 +7,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.impl.asMetadataDataList
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 import xyz.wagyourtail.unimined.mapping.tree.impl.FieldMappingData
 
 interface MutableFieldMapping : FieldMapping, MutableMetadataParent {
@@ -22,7 +22,7 @@ interface MutableFieldMapping : FieldMapping, MutableMetadataParent {
         operator fun invoke(
             entries: Map<Namespace, FieldNameAndDescriptor> = emptyMap(),
             metadata: Iterable<MetadataElement> = emptyList()
-        ): MutableFieldMapping = FieldMappingData(entries.toSmallMap(), metadata.asMetadataDataList())
+        ): MutableFieldMapping = FieldMappingData(entries.toNsMap(), metadata.asMetadataDataList())
     }
 
 }

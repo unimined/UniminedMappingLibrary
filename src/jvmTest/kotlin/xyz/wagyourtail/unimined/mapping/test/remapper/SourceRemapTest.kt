@@ -502,7 +502,7 @@ class Holder(val f_1: Int) {
         val out = dir.resolve("out.jar")
         SourceRemapper.remap(srcJar, out, tree, obf, named, classpath = listOf(binJar),
             options = xyz.wagyourtail.unimined.mapping.remapper.source.SourceOptions(extensions = listOf(
-                xyz.wagyourtail.unimined.mapping.remapper.source.psi.UnpickSourceExtension(),
+                xyz.wagyourtail.unimined.mapping.remapper.source.psi.ConstantGroupSourceExtension(),
             )))
 
         val text = java.util.zip.ZipFile(out.toFile()).use { z ->

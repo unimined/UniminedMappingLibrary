@@ -19,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
+import xyz.wagyourtail.unimined.mapping.newNsMap
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 /**
@@ -109,62 +110,53 @@ object TinyV2Reader : FormatReader {
                     input.take()
                     continue
                 }
-                var col = input.takeNextLiteral() ?: continue
+                val line = input.takeLine()
+                if (line.isEmpty()) continue
                 var indent = 0
-                while (col.isEmpty()) {
-                    indent++
-                    col = input.takeNextLiteral() ?: continue@outer
-                }
+                while (indent < line.length && line[indent] == '\t') indent++
                 if (indent > stack.size - 1) {
                     throw IllegalArgumentException("Invalid tinyv2 file, found double indent")
                 }
                 while (indent < stack.size - 1) {
                     stack.removeLast()?.let { pop(it) }
                 }
-                val type = col
+                val rest = line.substring(indent)
+                val cells = rest.split('\t')
+                val type = cells[0]
+                val nsIter = namespaces.iterator()
+                fun cell(i: Int) = cells[i].let { if (escaped) it.translateEscapes() else it }
                 val next: Element? = when (type) {
                     "c" -> {
                         if (indent == 0) {
                             // class
-                            val names = mutableListOf<String>()
-                            while (true) {
-                                names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
-                                    ?: break)
+                            if (cells.size < 2) {
+                                throw IllegalArgumentException("Invalid tinyv2 file, class without src name")
                             }
-                            val nameIter = names.iterator()
-                            val nsIter = namespaces.iterator()
-                            val nameMap = mutableMapOf<Namespace, InternalName>()
-                            nameMap[nsIter.next()] = InternalName.read(nameIter.next())
-                            while (nameIter.hasNext()) {
+                            val nameMap = newNsMap<InternalName>()
+                            nameMap[nsIter.next()] = InternalName.read(cell(1))
+                            for (i in 2 until cells.size) {
                                 val ns = nsIter.next()
-                                val name = nameIter.next()
+                                val name = cell(i)
                                 if (name.isNotEmpty()) {
                                     nameMap[ns] = InternalName.read(name)
                                 }
                             }
                             push(MutableClassMapping(nameMap))
                         } else {
-                            // comment
-                            val comment = input.takeLine().removePrefix("\t").translateEscapes()
+                            // comment — raw text after the type cell; tabs inside are part of it
+                            val comment = rest.substringAfter('\t', "").translateEscapes()
                             push(JavadocElement(comment, namespaces.first()))
                         }
                     }
 
                     "f" -> {
                         // field
-                        val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
-                        val names = mutableListOf<String>()
-                        while (true) {
-                            names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
-                                ?: break)
-                        }
-                        val nameIter = names.iterator()
-                        val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, FieldNameAndDescriptor>()
-                        nameMap[nsIter.next()] = UnqualifiedName.read(nameIter.next()).withFieldDesc(FieldDescriptor.read(desc))
-                        while (nameIter.hasNext()) {
+                        val desc = cell(1)
+                        val nameMap = newNsMap<FieldNameAndDescriptor>()
+                        nameMap[nsIter.next()] = UnqualifiedName.read(cell(2)).withFieldDesc(FieldDescriptor.read(desc))
+                        for (i in 3 until cells.size) {
                             val ns = nsIter.next()
-                            val name = nameIter.next()
+                            val name = cell(i)
                             if (name.isNotEmpty()) {
                                 nameMap[ns] = UnqualifiedName.read(name).withFieldDesc(null)
                             }
@@ -174,19 +166,12 @@ object TinyV2Reader : FormatReader {
 
                     "m" -> {
                         // method
-                        val desc = input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }!!
-                        val names = mutableListOf<String>()
-                        while (true) {
-                            names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
-                                ?: break)
-                        }
-                        val nameIter = names.iterator()
-                        val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, MethodNameAndDescriptor>()
-                        nameMap[nsIter.next()] = UnqualifiedName.read(nameIter.next()).withMethodDesc(MethodDescriptor.read(desc))
-                        while (nameIter.hasNext()) {
+                        val desc = cell(1)
+                        val nameMap = newNsMap<MethodNameAndDescriptor>()
+                        nameMap[nsIter.next()] = UnqualifiedName.read(cell(2)).withMethodDesc(MethodDescriptor.read(desc))
+                        for (i in 3 until cells.size) {
                             val ns = nsIter.next()
-                            val name = nameIter.next()
+                            val name = cell(i)
                             if (name.isNotEmpty()) {
                                 nameMap[ns] = UnqualifiedName.read(name).withMethodDesc(null)
                             }
@@ -196,18 +181,11 @@ object TinyV2Reader : FormatReader {
 
                     "p" -> {
                         // parameter
-                        val lvOrd = input.takeNextLiteral()?.toIntOrNull()
-                        val names = mutableListOf<String>()
-                        while (true) {
-                            names.add(input.takeNextLiteral()?.let { if (escaped) it.translateEscapes() else it }
-                                ?: break)
-                        }
-                        val nameIter = names.iterator()
-                        val nsIter = namespaces.iterator()
-                        val nameMap = mutableMapOf<Namespace, UnqualifiedName>()
-                        while (nameIter.hasNext()) {
+                        val lvOrd = cells.getOrNull(1)?.toIntOrNull()
+                        val nameMap = newNsMap<UnqualifiedName>()
+                        for (i in 2 until cells.size) {
                             val ns = nsIter.next()
-                            val name = nameIter.next()
+                            val name = cell(i)
                             if (name.isNotEmpty()) {
                                 nameMap[ns] = UnqualifiedName.read(name)
                             }

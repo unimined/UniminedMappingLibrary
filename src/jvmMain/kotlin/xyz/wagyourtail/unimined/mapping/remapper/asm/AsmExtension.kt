@@ -35,5 +35,14 @@ interface AsmExtension {
 /** Factory for per-remap [AsmExtension] instances — extension state is per-jar,
  *  so a new instance is created for each [AsmRemapper.remap] call. */
 fun interface AsmExtensionFactory {
+
+    /**
+     * Pure per-class transform: `postApply` is safe to call concurrently and
+     * the extension needs none of [AsmExtension.analyze]/[finishAnalysis]
+     * (which are never called on the streaming path). Eligible for
+     * [AsmRemapper.remapStreaming], where instances are per-worker-thread.
+     */
+    val perClass: Boolean get() = false
+
     fun create(ctx: ExtensionContext): AsmExtension
 }

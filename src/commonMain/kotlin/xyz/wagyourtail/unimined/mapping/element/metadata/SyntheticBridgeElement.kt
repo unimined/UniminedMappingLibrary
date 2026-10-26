@@ -4,7 +4,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.SyntheticBridgeElementData
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 /**
  * Marks a member that needs synthetic bridge/delegate methods generated at
@@ -24,7 +24,7 @@ interface SyntheticBridgeElement : MetadataElement, BytecodeTransform {
 
     companion object {
         operator fun invoke(names: Map<Namespace, UnqualifiedName>): SyntheticBridgeElement =
-            SyntheticBridgeElementData(names.toSmallMap())
+            SyntheticBridgeElementData(names.toNsMap())
     }
 
 }

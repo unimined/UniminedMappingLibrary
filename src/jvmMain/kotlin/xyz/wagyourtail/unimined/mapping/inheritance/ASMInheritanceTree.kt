@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import java.io.InputStream
 import java.nio.file.Path
+import java.util.stream.Collectors
 import kotlin.streams.asSequence
 import kotlin.streams.asStream
 
@@ -25,15 +26,20 @@ class ASMInheritanceTree(override val fns: Namespace, jars: Set<Path>): Inherita
     private fun scanJar(jar: Path): Sequence<Pair<InternalName, ClassInfo>> {
         // read the whole jar — fileSeekableSource round-trips through a String
         // path; a plain byte read avoids any path-resolution surprises
-        ZipFile(java.nio.file.Files.readAllBytes(jar)).use { zf ->
-            return zf.entries.asSequence().map {
-                return@map if (!it.isDirectory && !it.name.startsWith("META-INF/versions") && it.name.endsWith(".class")) {
-                    zf.getInputStream(it).use { stream -> scanClass(it.name, stream) }
+        val raw = ZipFile(java.nio.file.Files.readAllBytes(jar)).use { zf ->
+            zf.entries.asSequence().mapNotNull {
+                if (!it.isDirectory && !it.name.startsWith("META-INF/versions") && it.name.endsWith(".class")) {
+                    it.name to zf.getInputStream(it).use { stream -> stream.readBytes() }
                 } else {
                     null
                 }
-            }.toList().asSequence().filterNotNull()
+            }.toList()
         }
+        // ClassReader parses are independent — parallelize per class, not just
+        // per jar (a single merged jar dominates real inputs)
+        return raw.parallelStream().map {
+            scanClass(it.first, it.second.inputStream())
+        }.collect(Collectors.toList()).asSequence()
     }
 
     private fun scanClass(path: String, input: InputStream): Pair<InternalName, ClassInfo> {

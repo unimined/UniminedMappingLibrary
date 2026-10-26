@@ -43,3 +43,18 @@ internal fun <K, V> Map<K, V>.toSmallMap(): MutableMap<K, V> =
 
 internal fun <E> Iterable<E>.toSmallSet(): MutableSet<E> =
     newSmallSet<E>().also { it.addAll(this) }
+
+/**
+ * ns-keyed storage — always [NamespaceArrayMap] (dense ordinal-indexed
+ * array): O(1) lookup and less memory than either `useSmallCollections`
+ * variant. Used for every `entries`/`names`/`descs` row in the tree.
+ */
+internal fun <V> newNsMap(): MutableMap<Namespace, V> = NamespaceArrayMap()
+
+/**
+ * copy into [NamespaceArrayMap] storage — always copies: callers may keep
+ * mutating the source map, and row-merge code relies on the copy for
+ * isolation between rows.
+ */
+internal fun <V> Map<Namespace, V>.toNsMap(): MutableMap<Namespace, V> =
+    NamespaceArrayMap(this)

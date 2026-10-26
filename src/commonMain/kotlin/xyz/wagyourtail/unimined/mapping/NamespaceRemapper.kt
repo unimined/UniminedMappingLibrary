@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping
 
 import xyz.wagyourtail.unimined.mapping.jvms.Type
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -29,6 +30,16 @@ interface NamespaceRemapper {
 
     /** Maps a method name within [owner]; desc disambiguates overloads. */
     fun mapMethod(owner: InternalName, name: UnqualifiedName, desc: MethodDescriptor?): UnqualifiedName
+
+    /**
+     * Maps a method name within [owner] when the descriptor is only known by
+     * prefix — for arbitrary-invokedynamic bsm names and other contexts
+     * where the full desc isn't available.
+     * [member]'s descriptor may be a desc prefix (e.g. `name;()`), not a
+     * full [MethodDescriptor]. Resolves only on a unique match; default
+     * keeps the source name.
+     */
+    fun mapMethodPrefixDesc(owner: InternalName, member: MethodNameAndDescriptor): UnqualifiedName = member.name
 
     /** Remaps every class reference inside an arbitrary [Type] (descriptors, signatures, etc.). */
     fun <T : Type> map(value: T): T
@@ -63,6 +74,17 @@ private class NamespaceRemapperImpl(
         if (identity) return name
         val cls = tree.getClass(from, owner) ?: return name
         return with(tree) { cls.getMethod(from, name, desc) }?.names[to] ?: name
+    }
+
+    override fun mapMethodPrefixDesc(owner: InternalName, member: MethodNameAndDescriptor): UnqualifiedName {
+        if (identity) return member.name
+        val cls = tree.getClass(from, owner) ?: return member.name
+        val descPrefix = member.descriptor?.value
+        val match = cls.methods.singleOrNull { m ->
+            val e = m.entries[from]
+            e?.name == member.name && (descPrefix == null || e.descriptor?.value?.startsWith(descPrefix) == true)
+        } ?: return member.name
+        return match.names[to] ?: member.name
     }
 
     override fun <T : Type> map(value: T): T =

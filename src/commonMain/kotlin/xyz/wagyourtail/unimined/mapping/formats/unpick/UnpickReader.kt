@@ -3,6 +3,8 @@ package xyz.wagyourtail.unimined.mapping.formats.unpick
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.commonskt.reader.ParseException
+import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.AddRemoveModify
@@ -175,9 +177,6 @@ object UnpickReader : FormatReader {
 
     private fun binaryToInternal(name: String) = InternalName.read(name.replace('.', '/'))
 
-    private val v3FieldRef = Regex(
-        "^[a-zA-Z_\$][a-zA-Z0-9_\$]*(?:\\.[a-zA-Z_\$][a-zA-Z0-9_\$]*)*\\.([a-zA-Z_\$][a-zA-Z0-9_\$]*|\\*)(?::instance)?(?::[a-zA-Z_\$][a-zA-Z0-9_\$]*)?$"
-    )
     private val v3Types = mapOf(
         "byte" to "B", "short" to "S", "int" to "I", "long" to "J",
         "float" to "F", "double" to "D", "char" to "C",
@@ -211,6 +210,8 @@ object UnpickReader : FormatReader {
     ) {
         val groups = linkedMapOf<String, V3Group>()
         val targets = mutableListOf<UnpickTarget>()
+        /** group name → annotation binary class names (v4 `target_annotation`) */
+        val annotationTargets = mutableMapOf<String, MutableList<String>>()
         var currentGroup: V3Group? = null
         var currentTarget: UnpickTarget? = null
         val pendingDocs = mutableListOf<String>()
@@ -224,9 +225,11 @@ object UnpickReader : FormatReader {
             input.takeWhitespace()
             val raw = input.takeLine()
             if (raw.startsWith("#") || raw.isBlank() && raw.contains('#')) {
-                // comment-only line: candidate doc comment for the next item
-                val text = raw.substring(raw.indexOf('#') + 1).trim()
-                if (text.isNotEmpty()) pendingDocs.add(text)
+                // comment-only line: doc comment for the next item; `#:` is the
+                // spec's javadoc convention (colon stripped), plain `#` kept too
+                var text = raw.substring(raw.indexOf('#') + 1)
+                if (text.startsWith(":")) text = text.substring(1)
+                if (text.trim().isNotEmpty()) pendingDocs.add(text.trim())
                 continue
             }
             val line = raw.substringBefore('#').trim()
@@ -272,12 +275,7 @@ object UnpickReader : FormatReader {
                             throw IllegalArgumentException("target_annotation is not supported in unpick format version $version")
                         }
                         pendingDocs.clear()
-                        targets.add(UnpickTarget(
-                            binaryToInternal(parts[1]),
-                            UnqualifiedName.unchecked(""),
-                            MethodDescriptor.unchecked("()V"),
-                            mutableListOf(UnpickParam(ANNOTATION_TARGET, parts[2]))
-                        ))
+                        annotationTargets.getOrPut(parts[2]) { mutableListOf() }.add(parts[1])
                         currentGroup = null
                         currentTarget = null
                     }
@@ -320,7 +318,22 @@ object UnpickReader : FormatReader {
                     }
                     pushed(AnnotationElement(AddRemoveModify.ADD, ns, Annotation.unchecked("@Lunimined/unpick/DataType;(value=\"${group.dataType}\")"))) {}
                     for (attr in group.attrs) {
-                        pushed(AnnotationElement(AddRemoveModify.ADD, ns, Annotation.unchecked(encodeV3Attr(attr)))) {}
+                        val ann = AnnotationElement(AddRemoveModify.ADD, ns, Annotation.unchecked(encodeV3Attr(attr)))
+                        pushed(ann) {}
+                        // class scopes are also real class-level targets — same
+                        // "literals inside that class" semantics
+                        if (attr.startsWith("@scope class ")) {
+                            pushed(TargetElement(
+                                FullyQualifiedName(
+                                    ObjectType(binaryToInternal(attr.removePrefix("@scope class ").substringBefore('#').trim())),
+                                    null
+                                ), null
+                            )) {}
+                        }
+                    }
+                    for (annCls in annotationTargets[key] ?: emptyList()) {
+                        pushed(AnnotationElement(AddRemoveModify.ADD, ns,
+                            Annotation.unchecked("@Lunimined/unpick/TargetAnnotation;(value=\"L${annCls.replace('.', '/')};\")"))) {}
                     }
                     for (const in group.consts) {
                         emitV3Const(this, const)
@@ -329,9 +342,6 @@ object UnpickReader : FormatReader {
                         for (param in target.params) {
                             if (param.group != key) continue
                             when (param.index) {
-                                ANNOTATION_TARGET -> pushed(TargetElement(
-                                    FullyQualifiedName(ObjectType(target.intlName), null), null
-                                )) {}
                                 FIELD_TARGET -> pushed(TargetElement(
                                     FullyQualifiedName(
                                         ObjectType(target.intlName),
@@ -354,7 +364,6 @@ object UnpickReader : FormatReader {
     }
 
     private const val FIELD_TARGET = -2
-    private const val ANNOTATION_TARGET = -3
 
     /** encode an unpick `@` attribute as a `Lunimined/unpick/...;` annotation literal */
     private fun encodeV3Attr(attr: String): String {
@@ -371,23 +380,174 @@ object UnpickReader : FormatReader {
         }
     }
 
+    /** datatype keyword → field descriptor, for `:`type suffixes */
+    private val v3DataTypes = setOf("byte", "short", "int", "long", "float", "double", "char", "String", "Class")
+
+    /** parse result for a single v3 const expression */
+    private class ParsedConst(
+        /** canonical internal-grammar form of the expression */
+        val canonical: String,
+        /** non-null when the whole expression is a single `Cls.FIELD[:instance][:type]` ref */
+        val fieldRef: FieldRef?,
+    ) {
+        class FieldRef(val owner: InternalName, val name: UnqualifiedName, val desc: FieldDescriptor?)
+    }
+
     /**
-     * emit one v3 group const. plain `Cls.FIELD[:type]` references (including
-     * `Cls.*` wildcards) become constant elements; `:instance` markers and any
-     * other expressions are preserved verbatim as expression elements.
+     * emit one v3 group const. Everything is normalized into the canonical
+     * internal expression grammar: `com.foo.Cls.FIELD` → `Lcom/foo/Cls;FIELD`,
+     * `(type)` casts → `<type>`, `:instance`/`:`type markers preserved,
+     * `'c'` char literals → int values. Whole-line static field refs (incl.
+     * `Cls.*` wildcards) also get a `ConstantElement` (with the `:`type
+     * descriptor when given) so `this.` resolution and field declaration work.
      */
     private fun emitV3Const(into: MappingSink, expr: String) {
+        val const = parseV3Const(expr)
         with (into) {
-            if (expr.endsWith(":instance") || !v3FieldRef.matches(expr)) {
-                pushed(ExpressionElement(Constant.unchecked(expr), Expression.unchecked(expr))) {}
-                return@with
+            if (const.fieldRef != null && !expr.endsWith(":instance")) {
+                pushed(ConstantElement(
+                    const.fieldRef.owner,
+                    const.fieldRef.name.withFieldDesc(const.fieldRef.desc)
+                )) {}
             }
-            val m = v3FieldRef.matchEntire(expr) ?: return@with
-            val (cls, field) = expr.substringBeforeLast('.') to expr.substringAfterLast('.').substringBefore(':')
-            pushed(ConstantElement(
-                InternalName.read(cls.replace('.', '/')),
-                UnqualifiedName.read(field).withFieldDesc(null)
-            )) {}
+            pushed(ExpressionElement(Constant.unchecked(const.canonical), Expression.unchecked(const.canonical))) {}
+        }
+    }
+
+    /**
+     * parse one v3/v4 const expression, normalizing it into canonical internal
+     * form. Tokenizes respecting string/char literals, rewrites:
+     * - `'c'` char literals → their int value
+     * - `( dtype )` casts → `<dtype>`
+     * - `com.foo.Cls.FIELD[:instance][:type]` → `Lcom/foo/Cls;FIELD[:desc][:instance]`
+     *   (incl. `Cls.*` wildcards → `Lcls;*`)
+     * - everything else (numbers incl. 0x/0b/0 octal, ops, parens, `this.`)
+     *   passes through — the grammar is the same precedence structure
+     */
+    private fun parseV3Const(expr: String): ParsedConst {
+        val reader = StringCharReader(expr)
+        val out = StringBuilder()
+        var fieldRef: ParsedConst.FieldRef? = null
+        while (!reader.exhausted()) {
+            when (reader.peek()) {
+                '"' -> out.append(reader.takeLiteral('"')) // verbatim incl. escapes
+                '\'' -> { // char literal → int value
+                    val lit = reader.takeLiteral('\'')
+                    if (lit.length > 2 && lit.last() == '\'') {
+                        out.append(charValue(lit.substring(1, lit.length - 1)).toString())
+                    } else {
+                        out.append(lit)
+                    }
+                }
+                '(' -> { // `( dtype )` cast → `<dtype>`; other parens pass through
+                    reader.mark()
+                    reader.take()
+                    reader.takeWhitespace()
+                    val word = reader.takeWhile { it.isV3IdentPart() }
+                    reader.takeWhitespace()
+                    val cast = word in v3DataTypes && reader.peek() == ')' && run {
+                        reader.take()
+                        val next = reader.peek()
+                        next != null && (next.isV3IdentStart() || next in "(~-'0123456789")
+                    }
+                    if (cast) out.append('<').append(word).append('>')
+                    else {
+                        reader.reset()
+                        out.append(reader.take()!!)
+                    }
+                }
+                else -> {
+                    if (!reader.peek()!!.isV3IdentStart()) {
+                        out.append(reader.take()!!)
+                        continue
+                    }
+                    val onlyToken = out.isEmpty()
+                    val ref = parseV3FieldToken(reader, out)
+                    if (onlyToken && ref != null && reader.exhausted()) fieldRef = ref
+                }
+            }
+        }
+        return ParsedConst(out.toString(), fieldRef)
+    }
+
+    /**
+     * parse one dotted-identifier token into [out] — `a.b.Cls.FIELD[:instance][:type]`
+     * → `La/b/Cls;FIELD[:desc][:instance]`, `a.b.Cls.*` → `La/b/Cls;*`. Bare
+     * (undotted) tokens pass through verbatim, `:`suffixes included.
+     * Returns the ref form when the token itself was a `Cls.FIELD` ref —
+     * the caller decides whether it was also the whole expression.
+     */
+    private fun parseV3FieldToken(reader: CharReader<*>, out: StringBuilder): ParsedConst.FieldRef? {
+        val chain = reader.takeWhile { it.isV3IdentPart() || it == '.' }
+        val suffixes = mutableListOf<String>()
+        fun takeSuffixes() {
+            while (reader.peek() == ':') {
+                reader.take()
+                suffixes += reader.takeWhile { it.isV3IdentPart() }
+            }
+        }
+        takeSuffixes()
+        // `Cls.*` wildcard — `*` immediately after a dotted chain
+        val wildcard = chain.endsWith('.') && reader.peek() == '*'
+        if (wildcard) {
+            reader.take()
+            takeSuffixes()
+        }
+        if ('.' !in chain && !wildcard) {
+            out.append(chain)
+            for (s in suffixes) out.append(':').append(s)
+            return null
+        }
+        val cls: String
+        val field: String
+        if (wildcard) { cls = chain.dropLast(1); field = "*" }
+        else { cls = chain.substringBeforeLast('.'); field = chain.substringAfterLast('.') }
+        val type = suffixes.firstOrNull { it in v3DataTypes }
+        out.append("L${cls.replace('.', '/')};$field")
+        if (type != null) out.append(';').append(v3Types[type]!!)
+        if ("instance" in suffixes) out.append(":instance")
+        // the spec's plain ref shape — non-empty `FIELD`/`*`, then at most
+        // `:instance` followed by a single `:`type
+        if (field.isEmpty() || suffixes.any { it.isEmpty() } ||
+            !(suffixes.size <= 1 || suffixes.size == 2 && suffixes[0] == "instance")) return null
+        return ParsedConst.FieldRef(
+            InternalName.read(cls.replace('.', '/')),
+            UnqualifiedName.read(field),
+            type?.let { FieldDescriptor.unchecked(v3Types[it]!!) }
+        )
+    }
+
+    /** take a [quote]-delimited literal verbatim, incl. quotes; lenient — unterminated input runs to EOS */
+    private fun CharReader<*>.takeLiteral(quote: Char): String {
+        mark()
+        try {
+            return takeString(noTranslateEscapes = true, quote = quote.toString())
+        } catch (_: ParseException) {
+            reset()
+        }
+        return buildString {
+            append(take()!!) // opening quote
+            while (true) {
+                val c = take() ?: break
+                append(c)
+                if (c == '\\') take()?.let { append(it) } else if (c == quote) break
+            }
+        }
+    }
+
+    /** java-identifier checks without the JVM-only Char methods (commonMain) */
+    private fun Char.isV3IdentStart() = isLetter() || this == '_' || this == '$'
+    private fun Char.isV3IdentPart() = isLetterOrDigit() || this == '_' || this == '$'
+
+    /** JLS char literal body → int value (escapes incl. \uXXXX and octal) */
+    private fun charValue(body: String): Int {
+        if (!body.startsWith("\\")) return body.first().code
+        return when (val c = body[1]) {
+            'n' -> '\n'.code; 't' -> '\t'.code; 'r' -> '\r'.code
+            'b' -> '\b'.code; 'f' -> '\u000C'.code
+            '\'' -> '\''.code; '"' -> '"'.code; '\\' -> '\\'.code
+            'u' -> body.substring(2).toInt(16)
+            else -> body.substring(1).toInt(8) // octal escape
         }
     }
 }

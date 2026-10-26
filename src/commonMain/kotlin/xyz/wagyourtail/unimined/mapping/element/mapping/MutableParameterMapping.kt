@@ -5,7 +5,7 @@ import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.MutableMetadataParent
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.asMetadataDataList
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 import xyz.wagyourtail.unimined.mapping.tree.impl.ParameterMappingData
 
 interface MutableParameterMapping : ParameterMapping, MutableMetadataParent {
@@ -25,7 +25,7 @@ interface MutableParameterMapping : ParameterMapping, MutableMetadataParent {
         ): MutableParameterMapping = ParameterMappingData(
             index,
             lvOrd,
-            names.toSmallMap(),
+            names.toNsMap(),
             metadata.asMetadataDataList()
         )
     }

@@ -100,14 +100,18 @@ value class FieldExpression(val value: String) : Type {
         } else {
             null to value
         }
-        val instance = rest.startsWith("this.")
-        val (name, desc) = rest.removePrefix("this.").split(';', limit = 2)
+        val isInstance = rest.endsWith(":instance")
+        val stripped = rest.removeSuffix(":instance")
+        val instance = stripped.startsWith("this.")
+        val nameDesc = stripped.removePrefix("this.").split(';', limit = 2)
+        val name = nameDesc[0]
+        val desc = nameDesc.getOrElse(1) { "" }
         val fieldDesc = if (desc.isNotEmpty()) {
             FieldDescriptor.unchecked(desc)
         } else {
             null
         }
-        return Triple(owner, instance, UnqualifiedName.unchecked(name) to fieldDesc)
+        return Triple(owner, instance || isInstance, UnqualifiedName.unchecked(name) to fieldDesc)
     }
 
     fun asFullyQualifiedName(): FullyQualifiedName? {

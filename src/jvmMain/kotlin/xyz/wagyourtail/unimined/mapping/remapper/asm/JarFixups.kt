@@ -63,48 +63,84 @@ object JarFixups {
     }
 
     /**
-     * Pass-3 package-private access check. Renaming moves classes across
-     * packages; a reference to a package-private class that lands in a
-     * different mapped package silently breaks (`IllegalAccessError`).
-     *
-     * [PackageAccess.WARN] logs; [PackageAccess.FIX] upgrades the target
-     * class's access to public instead.
+     * Per-class data [checkPackageAccess] needs, extracted in the remap
+     * worker so the output [ClassNode] itself can be dropped — the
+     * streaming path retains these (~bytes per class) instead of nodes.
      */
-    fun checkPackageAccess(out: List<ClassNode>, remapper: Remapper, options: Options, logger: KLogger) {
+    class AccessSummary(
+        val name: String,
+        val access: Int,
+        /** `"Mname desc"`/`"Fname desc"` → access */
+        val memberAccess: Map<String, Int>,
+        val classRefs: Set<String>,
+        /** `(owner, "Mname desc"/"Fname desc", isMethod)` */
+        val memberRefs: List<Triple<String, String, Boolean>>,
+    )
+
+    /** Build an [AccessSummary] for a remapped output node. */
+    fun summarize(node: ClassNode): AccessSummary {
+        val members = HashMap<String, Int>(node.methods.size + node.fields.size)
+        for (m in node.methods) members["M${m.name} ${m.desc}"] = m.access
+        for (f in node.fields) members["F${f.name} ${f.desc}"] = f.access
+        return AccessSummary(node.name, node.access, members, referencedClasses(node), referencedMembers(node))
+    }
+
+    /** package-private = none of public/protected/private set */
+    private fun isPackagePrivate(acc: Int) =
+        acc and (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_PROTECTED) == 0
+
+    private fun pkg(name: String) = name.substringBeforeLast('/', "")
+
+    /**
+     * Cross-package package-private violations found by [checkPackageAccess]
+     * — `brokenClasses`/`brokenMembers` map target → accessor names.
+     */
+    class AccessViolations(
+        val brokenClasses: Map<String, Set<String>>,
+        /** `"owner memberKey"` → accessors */
+        val brokenMembers: Map<String, Set<String>>,
+    ) {
+        val isEmpty get() = brokenClasses.isEmpty() && brokenMembers.isEmpty()
+
+        /** member keys per class — for flag patching */
+        val memberPatchesByClass: Map<String, Set<String>> by lazy {
+            brokenMembers.keys.groupBy { it.substringBefore(' ') }
+                .mapValues { it.value.mapTo(mutableSetOf()) { k -> k.substringAfter(' ') } }
+        }
+    }
+
+    /**
+     * Detect (and log) package-private violations over [AccessSummary]s.
+     * [PackageAccess.WARN] only logs; for [PackageAccess.FIX] the returned
+     * [AccessViolations] describes what to widen — the caller applies it to
+     * retained nodes or to serialized bytes via [patchClassAccess].
+     */
+    fun checkPackageAccess(out: List<AccessSummary>, options: Options, logger: KLogger): AccessViolations {
         // mappedName → access, built post-transform so metadata fixes are visible
         val access = HashMap<String, Int>(out.size)
         // owner → (name+desc) → access — for member-level package-private checks
-        val memberAccess = HashMap<String, MutableMap<String, Int>>(out.size)
-        val byName = HashMap<String, ClassNode>(out.size)
-        for (node in out) {
-            access[node.name] = node.access
-            byName[node.name] = node
-            val members = memberAccess.getOrPut(node.name, ::HashMap)
-            for (m in node.methods) members["M${m.name} ${m.desc}"] = m.access
-            for (f in node.fields) members["F${f.name} ${f.desc}"] = f.access
+        val memberAccess = HashMap<String, Map<String, Int>>(out.size)
+        for (s in out) {
+            access[s.name] = s.access
+            memberAccess[s.name] = s.memberAccess
         }
-
-        /** package-private = none of public/protected/private set */
-        fun isPackagePrivate(acc: Int) = acc and (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_PROTECTED) == 0
 
         fun isAccessible(target: String): Boolean {
             val acc = access[target] ?: return true // not in the output set — assume fine
             return acc and (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE) != 0
         }
 
-        fun pkg(name: String) = name.substringBeforeLast('/', "")
-
         val broken = LinkedHashMap<String, MutableSet<String>>() // target → accessors
         val brokenMembers = LinkedHashMap<String, MutableSet<String>>() // "owner member" → accessors
         for (accessor in out) {
-            for (target in referencedClasses(accessor)) {
+            for (target in accessor.classRefs) {
                 if (target == accessor.name || isAccessible(target)) continue
                 if (pkg(target) != pkg(accessor.name)) {
                     broken.getOrPut(target, ::mutableSetOf).add(accessor.name)
                 }
             }
             // member refs: package-private member on a class that moved packages breaks
-            for ((owner, member, isMethod) in referencedMembers(accessor)) {
+            for ((owner, member, _) in accessor.memberRefs) {
                 if (owner == accessor.name) continue
                 val acc = memberAccess[owner]?.get(member) ?: continue // member not in output set
                 if (isPackagePrivate(acc) && pkg(owner) != pkg(accessor.name)) {
@@ -113,33 +149,110 @@ object JarFixups {
             }
         }
 
+        val fix = options.packageAccess == PackageAccess.FIX
         for ((memberRef, accessors) in brokenMembers) {
-            val owner = memberRef.substringBefore(' ')
-            val member = memberRef.substringAfter(' ')
-            val ownerNode = byName.getValue(owner)
-            if (options.packageAccess == PackageAccess.FIX) {
-                val key = member.substring(1).split(' ')
-                if (member.startsWith('M')) {
-                    ownerNode.methods.firstOrNull { it.name == key[0] && it.desc == key[1] }
-                        ?.let { it.access = it.access or Opcodes.ACC_PUBLIC }
-                } else {
-                    ownerNode.fields.firstOrNull { it.name == key[0] && it.desc == key[1] }
-                        ?.let { it.access = it.access or Opcodes.ACC_PUBLIC }
-                }
+            if (fix) {
                 logger.warn { "packageAccess=FIX: made $memberRef public — accessed package-privately from ${accessors.joinToString()}" }
             } else {
                 logger.warn { "Invalid access to package-private member $memberRef after remapping, from ${accessors.joinToString()}" }
             }
         }
-
         for ((target, accessors) in broken) {
-            if (options.packageAccess == PackageAccess.FIX) {
-                byName.getValue(target).access = byName.getValue(target).access or Opcodes.ACC_PUBLIC
+            if (fix) {
                 logger.warn { "packageAccess=FIX: made $target public — accessed package-privately from ${accessors.joinToString()}" }
             } else {
                 logger.warn { "Invalid access to package-private $target after remapping, from ${accessors.joinToString()}" }
             }
         }
+        return AccessViolations(broken, brokenMembers)
+    }
+
+    /**
+     * Pass-3 package-private access check. Renaming moves classes across
+     * packages; a reference to a package-private class that lands in a
+     * different mapped package silently breaks (`IllegalAccessError`).
+     *
+     * [PackageAccess.WARN] logs; [PackageAccess.FIX] upgrades the target
+     * class's access to public instead.
+     */
+    fun checkPackageAccess(out: List<ClassNode>, remapper: Remapper, options: Options, logger: KLogger) {
+        val summaries = out.map(::summarize)
+        val violations = checkPackageAccess(summaries, options, logger)
+        if (options.packageAccess != PackageAccess.FIX || violations.isEmpty) return
+        val byName = out.associateBy { it.name }
+        for ((owner, memberKeys) in violations.memberPatchesByClass) {
+            val node = byName.getValue(owner)
+            for (member in memberKeys) {
+                val key = member.substring(1).split(' ')
+                if (member.startsWith('M')) {
+                    node.methods.firstOrNull { it.name == key[0] && it.desc == key[1] }
+                        ?.let { it.access = it.access or Opcodes.ACC_PUBLIC }
+                } else {
+                    node.fields.firstOrNull { it.name == key[0] && it.desc == key[1] }
+                        ?.let { it.access = it.access or Opcodes.ACC_PUBLIC }
+                }
+            }
+        }
+        for (target in violations.brokenClasses.keys) {
+            byName.getValue(target).access = byName.getValue(target).access or Opcodes.ACC_PUBLIC
+        }
+    }
+
+    /**
+     * Patch access flags in serialized class bytes — the streaming path's
+     * [PackageAccess.FIX] application. Parses just the constant pool and
+     * member headers (no ASM re-read), ORs `ACC_PUBLIC` into the class
+     * access flags and into each member in [memberKeys]
+     * (`"Mname desc"`/`"Fname desc"`). Mutates [bytes] in place.
+     */
+    fun patchClassAccess(bytes: ByteArray, classFlags: Int, memberKeys: Set<String>) {
+        fun u2(off: Int) = (bytes[off].toInt() and 0xFF shl 8) or (bytes[off + 1].toInt() and 0xFF)
+        fun u4(off: Int) = (u2(off) shl 16) or u2(off + 2)
+        fun putU2(off: Int, v: Int) {
+            bytes[off] = (v ushr 8).toByte(); bytes[off + 1] = v.toByte()
+        }
+
+        var off = 8
+        val cpCount = u2(off); off += 2
+        val utf8 = arrayOfNulls<String>(cpCount)
+        var i = 1
+        while (i < cpCount) {
+            when (bytes[off].toInt() and 0xFF) {
+                1 -> { // Utf8
+                    val len = u2(off + 1)
+                    utf8[i] = String(bytes, off + 3, len, Charsets.UTF_8)
+                    off += 3 + len
+                }
+                7, 8, 16, 19, 20 -> off += 3                     // Class, String, MethodHandle, Module, Package
+                3, 4, 9, 10, 11, 12, 17, 18 -> off += 5          // Int, Float, refs, N&T, Indy, Dyn
+                5, 6 -> { off += 9; i++ }                        // Long, Double (two slots)
+                15 -> off += 4                                   // MethodHandle: refKind u1 + refIndex u2
+                else -> throw IllegalArgumentException("bad cp tag ${bytes[off]} at $off")
+            }
+            i++
+        }
+
+        // access_flags / this_class / super_class / interfaces
+        putU2(off, u2(off) or classFlags)
+        off += 6
+        off += 2 * u2(off); off += 2
+
+        fun patchMembers(kind: Char) {
+            val count = u2(off); off += 2
+            repeat(count) {
+                val memberOff = off
+                val name = utf8[u2(off + 2)]
+                val desc = utf8[u2(off + 4)]
+                off += 6
+                val attrs = u2(off); off += 2
+                repeat(attrs) { off += 6 + u4(off + 2) }
+                if (name != null && desc != null && memberKeys.contains("$kind$name $desc")) {
+                    putU2(memberOff, u2(memberOff) or Opcodes.ACC_PUBLIC)
+                }
+            }
+        }
+        patchMembers('F')
+        patchMembers('M')
     }
 
     /** Internal names referenced by [node]: supertype, interfaces, member types, code refs. */

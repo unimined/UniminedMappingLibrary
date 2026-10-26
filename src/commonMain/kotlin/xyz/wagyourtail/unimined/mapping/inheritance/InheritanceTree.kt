@@ -20,6 +20,17 @@ abstract class InheritanceTree {
 
     abstract val classes: Map<InternalName, ClassInfo>
 
+    /** parent → direct-subclass index — built once; [ClassInfo.children]
+     *  must not re-scan [classes] per query (O(n) per class → O(n²) walks). */
+    internal val childrenIndex: Map<InternalName, List<ClassInfo>> by lazy {
+        val m = HashMap<InternalName, MutableList<ClassInfo>>()
+        for (c in classes.values) {
+            c.superType?.let { m.getOrPut(it) { mutableListOf() }.add(c) }
+            for (i in c.interfaces) m.getOrPut(i) { mutableListOf() }.add(c)
+        }
+        m
+    }
+
 
     /**
      * Fold declared [xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement]s
@@ -84,7 +95,7 @@ abstract class InheritanceTree {
         }
 
         val children: List<ClassInfo> by lazy {
-            classes.values.filter { it.superClass == this || it.interfaceClasses.contains(this) }
+            this@InheritanceTree.childrenIndex[name] ?: emptyList()
         }
 
         val allParents: List<ClassInfo> by lazy {

@@ -33,6 +33,16 @@ value class InternalName private constructor(val value: String) : Type {
             }
         }
 
+        /** char-scan fast path — validates and wraps [value] directly */
+        override fun read(value: String, unchecked: Boolean): InternalName {
+            if (!unchecked && (value.isEmpty() || value.contains("//") ||
+                    value.any { it == '.' || it == ';' || it == '[' })
+            ) {
+                throw IllegalArgumentException("Invalid internal name")
+            }
+            return InternalName(value)
+        }
+
         override fun unchecked(value: String) = InternalName(value)
 
         operator fun invoke(pkg: PackageName, name: UnqualifiedName) = InternalName("${pkg.value}${name.value}")

@@ -12,7 +12,7 @@ import xyz.wagyourtail.unimined.mapping.remapper.ext.annotation.ResolvedRef
 
 /**
  * Mixin remapping — in-place annotation rewrites (via [AnnotationTable]) plus
- * refmap JSON emission, mirroring unimined/tiny-remapper's `MixinRemapExtension`.
+ * refmap JSON emission.
  *
  * What it does per remap:
  *  1. **analyzeResource** — reads `*.mixins.json` configs (which classes are

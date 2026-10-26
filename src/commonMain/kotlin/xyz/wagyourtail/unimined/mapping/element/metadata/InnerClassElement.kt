@@ -5,7 +5,7 @@ import xyz.wagyourtail.unimined.mapping.element.InnerType
 import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.InnerClassElementData
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
-import xyz.wagyourtail.unimined.mapping.toSmallMap
+import xyz.wagyourtail.unimined.mapping.toNsMap
 
 interface InnerClassElement : MetadataElement, MetadataParent, SourceTransform, BytecodeTransform {
 
@@ -17,7 +17,7 @@ interface InnerClassElement : MetadataElement, MetadataParent, SourceTransform, 
         operator fun invoke(
             type: InnerType,
             names: Map<Namespace, Pair<String, FullyQualifiedName?>> = emptyMap()
-        ): InnerClassElement = InnerClassElementData(type, names.toSmallMap())
+        ): InnerClassElement = InnerClassElementData(type, names.toNsMap())
     }
 
 }

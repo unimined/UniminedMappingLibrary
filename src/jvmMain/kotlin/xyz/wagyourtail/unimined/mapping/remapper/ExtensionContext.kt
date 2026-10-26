@@ -23,7 +23,22 @@ class ExtensionContext(
     val fns: Namespace,
     /** the output jar's namespace */
     val targetNs: Namespace,
+    /** the active remap options — builtin stages read their flags here */
+    val options: xyz.wagyourtail.unimined.mapping.remapper.asm.Options = xyz.wagyourtail.unimined.mapping.remapper.asm.Options(),
 ) {
+
+    /** `"owner.name"` → (ConstantValue, descriptor) of static fields in the
+     *  input jar — populated by the pipeline before class transforms run,
+     *  consumed by constant-group unpick ([ConstantGroupEmitter]) */
+    var fieldValues: Map<String, Pair<Any, String>> = emptyMap()
+
+    /** resolve the member row that supplied a method's propagated name —
+     *  param/lvar and other member children live on the originating row.
+     *  Input is the method's fns identity. Set by the pipeline when
+     *  inheritance propagation is in effect (graph remapping); null for
+     *  flat remaps. */
+    var methodOrigin: ((owner: InternalName, name: UnqualifiedName, desc: MethodDescriptor) -> xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping?)? =
+        null
 
     /** source → target member/type remapper */
     val remapper = tree.remapper(fns, targetNs)

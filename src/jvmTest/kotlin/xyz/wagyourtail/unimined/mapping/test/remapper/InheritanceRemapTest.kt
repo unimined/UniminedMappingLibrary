@@ -3,11 +3,13 @@ package xyz.wagyourtail.unimined.mapping.test.remapper
 import kotlinx.coroutines.test.runTest
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree.ParameterNode
 import xyz.wagyourtail.unimined.mapping.element.AddRemove
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableMethodMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.remapper.asm.AsmRemapper
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.classBytes
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.cls
@@ -99,6 +101,47 @@ class InheritanceRemapTest {
             listOf("mappedMethod"), modOut.methods.map { it.name },
             "a private (non-inherited) member must not push its name into the child",
         )
+    }
+
+    @Test
+    fun paramNamesPropagateFromOriginatingMethod() = runTest {
+        val dir = createTempDirectory()
+        val mc = dir.resolve("mc.jar"); val mod = dir.resolve("mod.jar"); val out = dir.resolve("out.jar")
+
+        // Mod is mapped but its override has no row — the name (and the
+        // param names) must resolve through the originating Example row
+        val t = treeOf()
+        t.cls("cob", "pkg/Mod")
+        val m = t.cls("eqm", "net/minecraft/Example")
+            .method("method_1;(I)V", "mappedMethod;(I)V") as MutableMethodMapping
+        m.parameter(0, 1, mapOf(
+            named to UnqualifiedName.unchecked("value"),
+            obf to UnqualifiedName.unchecked("a"),
+        ))
+
+        writeJar(mc, mapOf(
+            "net/minecraft/Example.class" to classBytes("net/minecraft/Example") {
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC, "mappedMethod", "(I)V", null, null).apply {
+                    parameters = mutableListOf(ParameterNode("value", 0))
+                    visitCode(); visitInsn(Opcodes.RETURN); visitMaxs(0, 2); visitEnd()
+                })
+            },
+        ))
+        writeJar(mod, mapOf(
+            "pkg/Mod.class" to classBytes("pkg/Mod") {
+                superName = "net/minecraft/Example"
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC, "mappedMethod", "(I)V", null, null).apply {
+                    parameters = mutableListOf(ParameterNode("inputArg", 0))
+                    visitCode(); visitInsn(Opcodes.RETURN); visitMaxs(0, 2); visitEnd()
+                })
+            },
+        ))
+
+        AsmRemapper.remap(mod, out, listOf(t), named, obf, libraries = setOf(mc))
+
+        val method = readClasses(out).getValue("cob").methods.single { it.name == "method_1" }
+        assertEquals("a", method.parameters?.single()?.name,
+            "the unmapped override's param name comes from the originating row")
     }
 
 }

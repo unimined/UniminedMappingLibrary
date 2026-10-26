@@ -31,7 +31,7 @@ import xyz.wagyourtail.unimined.mapping.remapper.source.SourceFileView
  * to the context's `fns` — unpick groups describe obf-space constants that
  * decompiled sources replaced with named refs).
  */
-class UnpickSourceExtension(private val ns: Namespace? = null) : SourceExtension {
+class ConstantGroupSourceExtension(private val ns: Namespace? = null) : SourceExtension {
 
     override fun transform(file: SourceFileView, ctx: ExtensionContext, changes: ChangeSet, errors: MutableList<Pair<Int, String>>) {
         if (file !is PsiFileView) return
