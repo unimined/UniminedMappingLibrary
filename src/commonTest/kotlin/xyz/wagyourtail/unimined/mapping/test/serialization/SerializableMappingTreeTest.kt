@@ -20,7 +20,7 @@ class SerializableMappingTreeTest {
     private val json = Json { prettyPrint = false }
 
     private val doc = """
-        umf	1	2
+        umf	1	3
         intermediary	named	extra
         k	com/mojang/	_
         c	net/minecraft/class_310	net/minecraft/client/MinecraftClient	_

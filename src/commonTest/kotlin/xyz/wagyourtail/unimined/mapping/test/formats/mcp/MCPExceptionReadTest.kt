@@ -27,7 +27,7 @@ class MCPExceptionReadTest {
 
         assertEquals(
             """
-umf	1	2
+umf	1	3
 searge
 c	a
 	m	b;()V

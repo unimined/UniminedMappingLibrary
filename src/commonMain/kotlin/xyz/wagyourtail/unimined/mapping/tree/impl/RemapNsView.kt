@@ -22,6 +22,7 @@ fun MetadataElement.remapNs(fn: (Namespace) -> Namespace): MetadataElement = whe
     is JavadocElement -> JavadocElement(value, fn(baseNs))
     is SignatureElement -> SignatureElement(value, fn(baseNs))
     is AnnotationElement -> AnnotationElement(type, fn(baseNs), annotation)
+    is ConstantAttributeElement -> ConstantAttributeElement(key, value, fn(baseNs))
     is ExceptionElement -> ExceptionElement(type, exception, fn(baseNs))
     is SealElement -> SealElement(type, name, fn(baseNs))
     is InterfaceElement -> InterfaceElement(type, name, fn(baseNs))

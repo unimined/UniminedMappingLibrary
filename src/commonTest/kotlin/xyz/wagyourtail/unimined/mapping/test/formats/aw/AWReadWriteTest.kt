@@ -48,7 +48,7 @@ class AWReadWriteTest {
         }
 
         assertEquals("""
-umf	1	2
+umf	1	3
 intermediary
 c	net/minecraft/class_3720
 	a	+	public	*

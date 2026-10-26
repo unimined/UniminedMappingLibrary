@@ -15,7 +15,7 @@ import kotlin.test.assertEquals
 class TestUMFBridge {
 
     private val input = """
-        umf	1	2
+        umf	1	3
         intermediary	named
         c	clsA	ClsA
         	m	methodA;()V	aM

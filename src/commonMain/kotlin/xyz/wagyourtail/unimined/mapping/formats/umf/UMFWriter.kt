@@ -14,7 +14,7 @@ import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 object UMFWriter : FormatWriter {
 
-    val EMPTY ="umf\t1\t2\n"
+    val EMPTY ="umf\t1\t3\n"
 
     var global_minimize = false
 
@@ -266,6 +266,13 @@ object UMFWriter : FormatWriter {
                 into(meta.value.value.maybeEscape())
                 into("\t")
                 into(meta.expression.toString().maybeEscape())
+            }
+            is ConstantAttributeElement -> writeLine(meta, UMFReader.EntryType.CONSTANT_ATTRIBUTE.key) {
+                into(meta.key.maybeEscape())
+                into("\t")
+                into(meta.value.maybeEscape())
+                into("\t")
+                into(meta.baseNs.name.maybeEscape())
             }
             else -> null
         }

@@ -121,7 +121,7 @@ object UMFReader : FormatReader {
         }
         token = input.takeNext()!!
         val minorVersion = token.toInt()
-        if (minorVersion > 2) {
+        if (minorVersion > 3) {
             throw IllegalArgumentException("unsupported UMF minor version ${token}")
         }
         if (input.peek() == '\n') {
@@ -389,6 +389,12 @@ object UMFReader : FormatReader {
                     }
                     into.push(SyntheticBridgeElement(names))
                 }
+                EntryType.CONSTANT_ATTRIBUTE -> {
+                    val key = input.takeNextUMF()!!
+                    val value = input.takeNextUMF()
+                    val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
+                    into.push(ConstantAttributeElement(key, value, names.next()))
+                }
                 EntryType.SIGNATURE -> {
                     val sig = input.takeNextUMF()!!
                     val names = input.takeRemainingFixedOnLine().filterNotNull().map { Namespace(it) }.iterator()
@@ -432,7 +438,8 @@ object UMFReader : FormatReader {
         INTERFACE('j'),
         SEAL('s'),
         ENUM('z'),
-        SYNTHETIC_BRIDGE('b')
+        SYNTHETIC_BRIDGE('b'),
+        CONSTANT_ATTRIBUTE('q')
         ;
 
         companion object {

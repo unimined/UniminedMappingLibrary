@@ -39,7 +39,7 @@ import xyz.wagyourtail.unimined.mapping.remapper.source.SourceRemapper
 import xyz.wagyourtail.unimined.mapping.remapper.source.psi.AccessSourceExtension
 import xyz.wagyourtail.unimined.mapping.remapper.source.psi.InterfaceInjectionExtension
 import xyz.wagyourtail.unimined.mapping.remapper.source.psi.JavadocExtension
-import xyz.wagyourtail.unimined.mapping.remapper.source.psi.UnpickSourceExtension
+import xyz.wagyourtail.unimined.mapping.remapper.source.psi.ConstantGroupSourceExtension
 import xyz.wagyourtail.unimined.mapping.resolver.ContentProvider
 import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.time.measureTime
@@ -256,7 +256,7 @@ class TransformSources(main: Main) : SourceCommand(main, "transform-sources") {
             extensions = buildList {
                 if (!noIfaceInject) add(InterfaceInjectionExtension())
                 if (!noJavadoc) add(JavadocExtension())
-                if (!noUnpick) add(UnpickSourceExtension())
+                if (!noUnpick) add(ConstantGroupSourceExtension())
                 if (!noAccess) add(AccessSourceExtension())
             },
         )

@@ -7,7 +7,6 @@ import xyz.wagyourtail.commonskt.reader.ParseException
 import xyz.wagyourtail.commonskt.reader.StringCharReader
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
-import xyz.wagyourtail.unimined.mapping.element.AddRemoveModify
 import xyz.wagyourtail.unimined.mapping.element.InlineType
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableConstantGroupMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
@@ -16,7 +15,6 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
-import xyz.wagyourtail.unimined.mapping.jvms.ext.annotation.Annotation
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.Expression
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -193,7 +191,7 @@ object UnpickReader : FormatReader {
      * mapping into the element model:
      * - contiguous `#` comment lines before a group become group javadoc
      * - the group's data type and `@scope`/`@strict`/`@format` attributes become
-     *   `Lunimined/unpick/...;` annotations on the group
+     *   `ConstantAttributeElement`s on the group
      * - `@flags` maps to a bitfield group
      * - plain `Cls.FIELD[:type]` references (incl. `Cls.*` wildcards) become
      *   constant elements; `:instance` markers and any other expressions are
@@ -316,10 +314,15 @@ object UnpickReader : FormatReader {
                     if (group.docs.isNotEmpty()) {
                         pushed(JavadocElement(group.docs.joinToString("\n"), ns)) {}
                     }
-                    pushed(AnnotationElement(AddRemoveModify.ADD, ns, Annotation.unchecked("@Lunimined/unpick/DataType;(value=\"${group.dataType}\")"))) {}
+                    pushed(ConstantAttributeElement("data-type", group.dataType, ns)) {}
                     for (attr in group.attrs) {
-                        val ann = AnnotationElement(AddRemoveModify.ADD, ns, Annotation.unchecked(encodeV3Attr(attr)))
-                        pushed(ann) {}
+                        // `@name rest...` → key `name`, value `rest...` verbatim (null for markers)
+                        val body = attr.removePrefix("@")
+                        pushed(ConstantAttributeElement(
+                            body.substringBefore(' '),
+                            body.substringAfter(' ', "").ifEmpty { null },
+                            ns
+                        )) {}
                         // class scopes are also real class-level targets — same
                         // "literals inside that class" semantics
                         if (attr.startsWith("@scope class ")) {
@@ -332,8 +335,7 @@ object UnpickReader : FormatReader {
                         }
                     }
                     for (annCls in annotationTargets[key] ?: emptyList()) {
-                        pushed(AnnotationElement(AddRemoveModify.ADD, ns,
-                            Annotation.unchecked("@Lunimined/unpick/TargetAnnotation;(value=\"L${annCls.replace('.', '/')};\")"))) {}
+                        pushed(ConstantAttributeElement("target-annotation", "L${annCls.replace('.', '/')};", ns)) {}
                     }
                     for (const in group.consts) {
                         emitV3Const(this, const)
@@ -364,21 +366,6 @@ object UnpickReader : FormatReader {
     }
 
     private const val FIELD_TARGET = -2
-
-    /** encode an unpick `@` attribute as a `Lunimined/unpick/...;` annotation literal */
-    private fun encodeV3Attr(attr: String): String {
-        val parts = attr.removePrefix("@").split(Regex("\\s+"))
-        return when (parts[0]) {
-            "strict" -> "@Lunimined/unpick/Strict;()"
-            "format" -> "@Lunimined/unpick/Format;(value=\"${parts[1]}\")"
-            "scope" -> when (parts[1]) {
-                "package", "class" -> "@Lunimined/unpick/Scope;(type=\"${parts[1]}\",target=\"${parts[2]}\")"
-                "method" -> "@Lunimined/unpick/Scope;(type=\"method\",target=\"${parts[2]}\",name=\"${parts[3]}\",desc=\"${parts[4]}\")"
-                else -> "@Lunimined/unpick/Scope;(value=\"${parts.drop(1).joinToString(" ")}\")"
-            }
-            else -> "@Lunimined/unpick/Attribute;(value=\"${attr.removePrefix("@")}\")"
-        }
-    }
 
     /** datatype keyword → field descriptor, for `:`type suffixes */
     private val v3DataTypes = setOf("byte", "short", "int", "long", "float", "double", "char", "String", "Class")

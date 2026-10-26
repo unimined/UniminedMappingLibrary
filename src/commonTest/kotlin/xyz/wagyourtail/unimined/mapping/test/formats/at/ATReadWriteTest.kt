@@ -47,7 +47,7 @@ class ATReadWriteTest {
     """.trimIndent()
 
     val umfText = """
-        umf	1	2
+        umf	1	3
         source
         c	net/minecraft/class_3720
         	a	+	final	*

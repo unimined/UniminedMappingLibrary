@@ -30,7 +30,7 @@ class ProguardReadTest {
 
         assertEquals(
             """
-umf	1	2
+umf	1	3
 source	target
 c	net/minecraft/src/Minecraft	a
 	f	field1;I	a

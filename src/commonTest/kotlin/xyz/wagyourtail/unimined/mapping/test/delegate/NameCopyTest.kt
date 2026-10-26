@@ -24,7 +24,7 @@ class NameCopyTest {
         """.trimIndent()
 
     val FILLED_EXTRA = """
-        umf 1 2
+        umf 1 3
         intermediary named extra
         c a b b
          f a;Z b b

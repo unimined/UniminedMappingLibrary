@@ -31,7 +31,7 @@ class NestReadTest {
             output.readUtf8()
         }
         assertEquals("""
-umf	1	2
+umf	1	3
 source
 c	aba
 	i	i	aba;Laez;

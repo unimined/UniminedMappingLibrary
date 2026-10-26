@@ -18,7 +18,7 @@ internal fun MutableList<MetadataElementData>.mergeMetadata(meta: MetadataElemen
         is SignatureElement, is AccessElement, is AnnotationElement, is ExceptionElement,
         is SealElement, is InterfaceElement, is EnumExtensionElement,
         is ConstantElement, is TargetElement, is ExpressionElement,
-        is SyntheticBridgeElement -> add(meta)
+        is SyntheticBridgeElement, is ConstantAttributeElement -> add(meta)
     }
 }
 
@@ -39,6 +39,7 @@ internal fun MetadataElement.asMetadataData(): MetadataElementData {
         is TargetElement -> TargetElementData(target, paramIdx)
         is ExpressionElement -> ExpressionElementData(value, expression)
         is SyntheticBridgeElement -> SyntheticBridgeElementData(names.toNsMap())
+        is ConstantAttributeElement -> ConstantAttributeElementData(key, value, baseNs)
         else -> error("no default impl for ${this::class}")
     }
 }

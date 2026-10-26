@@ -29,7 +29,7 @@ class TinyV1ReadTest {
 
         assertEquals(
             """
-umf	1	2
+umf	1	3
 notch	searge	mcp
 c	a	net/minecraft/src/Minecraft	Minecraft
 	f	a;I	field_1	field1

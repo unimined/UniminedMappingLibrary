@@ -30,7 +30,7 @@ class FeatherReadTest {
 
         assertEquals(
             """
-umf	1	2
+umf	1	3
 source
 c	a
 	m	m;()V
@@ -61,7 +61,7 @@ c	b
 
         assertEquals(
             """
-umf	1	2
+umf	1	3
 source
 c	a
 	g	<T:Ljava/lang/Object;>Ljava/lang/Object;	source

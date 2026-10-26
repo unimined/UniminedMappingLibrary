@@ -21,7 +21,7 @@ class TestNamespaceRemapper {
 
     private suspend fun remapper() = UMFReader.read(
         """
-            umf	1	2
+            umf	1	3
             intermediary	named
             k	com/old/	com/new/
             c	eqm	net/minecraft/Example
@@ -88,7 +88,7 @@ class TestNamespaceRemapper {
     fun identityRemapperIsCheap() = runTest {
         val identity = UMFReader.read(
             """
-                umf	1	2
+                umf	1	3
                 intermediary	named
                 c	eqm	net/minecraft/Example
             """.trimIndent()
@@ -103,7 +103,7 @@ class TestNamespaceRemapper {
     fun genericMapOnTreeMatchesRemapper() = runTest {
         val tree = UMFReader.read(
             """
-                umf	1	2
+                umf	1	3
                 intermediary	named
                 c	eqm	net/minecraft/Example
             """.trimIndent()

@@ -23,6 +23,7 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.InlineType
 import xyz.wagyourtail.unimined.mapping.element.mapping.ConstantGroupMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.AnnotationElement
+import xyz.wagyourtail.unimined.mapping.element.metadata.ConstantAttributeElement
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.constant.Constant
 import xyz.wagyourtail.unimined.mapping.jvms.ext.expression.AdditiveExpression
@@ -138,23 +139,46 @@ object ConstantGroupEmitter {
     private var currentMethod: MethodNode? = null
 
     /**
-     * `Lunimined/unpick/<name>;` annotations on a group → `<name>` to element
-     * map (`key` → unquoted value). Synthetic metadata emitted by `UnpickReader`.
+     * unpick directives on a group → `key` → raw value (marker attrs → null).
+     * Real elements win; pre-2.1 trees carrying the attrs as synthetic
+     * `Lunimined/unpick/...;` annotations still contribute.
      */
-    private fun unpickAttrs(group: ConstantGroupMapping): Map<String, Map<String, String>> =
-        group.metadata.filterIsInstance<AnnotationElement>().mapNotNull {
-            val (obj, elements, _) = runCatching { it.annotation.getParts() }.getOrNull() ?: return@mapNotNull null
-            val name = obj.value.removeSurrounding("L", ";")
-                .takeIf { n -> n.startsWith("unimined/unpick/") }
-                ?.removePrefix("unimined/unpick/") ?: return@mapNotNull null
-            name to (runCatching {
-                elements?.getParts()?.associate { e ->
-                    val (k, v) = e.getParts()
-                    k.toString() to (v.takeIf { v2 -> v2.isConstant() }?.getConstant()?.getValue()?.toString()
-                        ?: v.toString())
-                } ?: emptyMap()
-            }.getOrDefault(emptyMap()))
-        }.toMap()
+    private fun unpickAttrs(group: ConstantGroupMapping): Map<String, String?> {
+        val attrs = mutableMapOf<String, String?>()
+        // first wins; `value` may legitimately be null so getOrPut/putIfAbsent
+        // (which treat null as absent) can't be used
+        fun setIfAbsent(key: String, value: String?) {
+            if (key !in attrs) attrs[key] = value
+        }
+        for (meta in group.metadata) {
+            when (meta) {
+                is ConstantAttributeElement -> setIfAbsent(meta.key, meta.value)
+                is AnnotationElement -> {
+                    val (obj, elements, _) = runCatching { meta.annotation.getParts() }.getOrNull() ?: continue
+                    val name = obj.value.removeSurrounding("L", ";")
+                        .takeIf { it.startsWith("unimined/unpick/") }
+                        ?.removePrefix("unimined/unpick/") ?: continue
+                    fun elem(k: String): String? = runCatching {
+                        elements?.getParts()?.firstOrNull { it.getParts().first.toString() == k }
+                            ?.getParts()?.second?.takeIf { it.isConstant() }
+                            ?.getConstant()?.getValue()?.toString()
+                    }.getOrNull()
+                    when (name) {
+                        "DataType" -> setIfAbsent("data-type", elem("value"))
+                        "Strict" -> setIfAbsent("strict", null)
+                        "Format" -> setIfAbsent("format", elem("value"))
+                        "TargetAnnotation" -> setIfAbsent("target-annotation", elem("value"))
+                        "Scope" -> setIfAbsent("scope",
+                            listOfNotNull(elem("type"), elem("target"), elem("name"), elem("desc"))
+                                .joinToString(" ").ifEmpty { elem("value") })
+                        else -> setIfAbsent(name.lowercase(), elem("value"))
+                    }
+                }
+                else -> {}
+            }
+        }
+        return attrs
+    }
 
     private fun groupCtx(
         group: ConstantGroupMapping,
@@ -163,9 +187,12 @@ object ConstantGroupEmitter {
         fieldValues: Map<String, Pair<Any, String>>,
     ): GroupCtx? {
         val attrs = unpickAttrs(group)
-        val unpick = attrs.isNotEmpty()
-        val dataType = attrs["DataType"]?.get("value")
-        val strict = "Strict" in attrs
+        // unpick provenance: declared directives (v3+) or declared constants (v2
+        // unpick files only carry `n`/`t` rows — the field-value lookup is what
+        // makes them work at all)
+        val unpick = attrs.isNotEmpty() || group.constants.iterator().hasNext()
+        val dataType = attrs["data-type"]
+        val strict = "strict" in attrs
         val allowedSorts = dataType?.let { dt ->
             val base = when (dt) {
                 "byte", "short", "char", "int" -> Type.INT
