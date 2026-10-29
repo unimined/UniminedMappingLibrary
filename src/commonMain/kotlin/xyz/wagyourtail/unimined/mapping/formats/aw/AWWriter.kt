@@ -14,6 +14,7 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.WildcardMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions
@@ -34,7 +35,8 @@ object AWWriter : FormatWriter {
      * use [AWWriter.remapMappings] to convert to the correct mappings,
      * and [AWWriter.writeData] to write the mappings
      */
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
         var ns: Namespace? = null
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null

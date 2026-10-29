@@ -56,8 +56,26 @@ data class ClassMappingData(
     override fun method(entries: Map<Namespace, MethodNameAndDescriptor>): MutableMethodMapping {
         val incoming = MethodMappingData(entries.toNsMap())
         incoming.descRemapper = descRemapper
+        // name-keyed merges are unambiguous and always win — desc-only
+        // matching is a fallback that must not outrun a name match later
+        // in the list (record accessors hit this: hashCode's ()I desc
+        // matches the searchDistance accessor's, but the accessor's own
+        // row already carries the shared intermediary name)
+        // snapshot before any merge attempts — push-time desc-mismatch
+        // splices mutate entries and bump mergeVersion, so a bumped row at
+        // pop means "revisit siblings" not "unchanged"
+        incoming.pushedMergeVersion = incoming.mergeVersion
         for (existing in methods) {
-            if (incoming.mergeInto(existing)) return existing
+            if (incoming.mergeInto(existing) { false }) return existing
+        }
+        // desc-only merges additionally require a unique candidate — with
+        // several same-descriptor siblings the first match wins by
+        // iteration order and cross-wires names (unobfuscated members
+        // never seen by one source, e.g. forge's
+        // Schema#registerEntities/registerBlockEntities)
+        val unique = methods.count { incoming.descMergeable(it) } == 1
+        for (existing in methods) {
+            if (incoming.mergeInto(existing) { unique }) return existing
         }
         methods.add(incoming)
         return incoming
@@ -66,8 +84,14 @@ data class ClassMappingData(
     override fun field(entries: Map<Namespace, FieldNameAndDescriptor>): MutableFieldMapping {
         val incoming = FieldMappingData(entries.toNsMap())
         incoming.descRemapper = descRemapper
+        // see method(): name-keyed merges first, unique desc-only second
+        incoming.pushedMergeVersion = incoming.mergeVersion
         for (existing in fields) {
-            if (incoming.mergeInto(existing)) return existing
+            if (incoming.mergeInto(existing) { false }) return existing
+        }
+        val unique = fields.count { incoming.descMergeable(it) } == 1
+        for (existing in fields) {
+            if (incoming.mergeInto(existing) { unique }) return existing
         }
         fields.add(incoming)
         return incoming

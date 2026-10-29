@@ -9,6 +9,8 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.JavadocElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
@@ -16,11 +18,16 @@ object MCPv6MethodWriter : FormatWriter {
 
     var writeComments = true
 
+    /** writer tunable — emit comment columns */
+    val WRITE_COMMENTS = FormatReaderSettings.SettingsKey<Boolean>("writeComments")
+
     fun String.maybeEscapeCol(): String {
         return if (this.contains(Regex("[\\n,]"))) this.escape(doubleQuote = true) else this
     }
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
+        val writeComments = settings[WRITE_COMMENTS] ?: this.writeComments
         lateinit var ns: List<Namespace>
 
         return object : MappingSink {

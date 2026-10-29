@@ -82,7 +82,27 @@ class MemberGroups(val inheritance: InheritanceTree) {
     private fun union(a: MethodMember, b: MethodMember) {
         val ra = find(a)
         val rb = find(b)
-        if (ra != rb) uf[rb] = ra
+        if (ra != rb) {
+            uf[rb] = ra
+            // late unions (lazy trees materializing supertypes mid-query):
+            // relocate the losing component's stamps to the new canonical —
+            // otherwise names/candidates stamped under `rb` are orphaned
+            groups[rb]?.let { loser ->
+                val winner = groups.getOrPut(ra) { MethodGroup() }
+                // put-if-absent: earlier stamps win (MutableMap.putIfAbsent
+                // is JVM-only; this is commonMain)
+                loser.names.forEach { (ns, n) -> if (ns !in winner.names) winner.names[ns] = n }
+                loser.origins.forEach { (ns, m) -> if (ns !in winner.origins) winner.origins[ns] = m }
+                loser.candidates.forEach { (ns, s) ->
+                    winner.candidates.getOrPut(ns) { mutableSetOf() }.addAll(s)
+                }
+                loser.candidateMembers.forEach { (ns, m) ->
+                    val wm = winner.candidateMembers.getOrPut(ns) { mutableMapOf() }
+                    m.forEach { (n, mm) -> if (n !in wm) wm[n] = mm }
+                }
+                groups.remove(rb)
+            }
+        }
     }
 
     private fun inheritableVirtual(m: InheritanceTree.MethodInfo) =
@@ -132,9 +152,17 @@ class MemberGroups(val inheritance: InheritanceTree) {
         if (built) return
         lock.withLock {
             if (built) return
-            for (c in inheritance.classes.values) {
-                for (mi in c.methods) {
-                    resolve(c, mi)
+            // resolve to a fixpoint: lazy trees materialize supertypes
+            // while resolve walks rings, growing `classes` mid-iteration —
+            // every materialized class's members must be resolved before
+            // groups are populated (eager trees converge in one pass)
+            var seen = -1
+            while (seen != inheritance.classes.size) {
+                seen = inheritance.classes.size
+                for (c in inheritance.classes.values.toList()) {
+                    for (mi in c.methods) {
+                        resolve(c, mi)
+                    }
                 }
             }
             for (c in inheritance.classes.values) {
@@ -156,10 +184,14 @@ class MemberGroups(val inheritance: InheritanceTree) {
         }
     }
 
-    /** The [MethodGroup] [mi] belongs to — triggers [build] on first use. */
+    /** The [MethodGroup] [mi] belongs to — triggers [build] on first use.
+     *  Resolves on demand: a lazy tree may materialize [mi]'s class only
+     *  when queried (post-build), so its member isn't guaranteed to be in
+     *  [groups] yet. */
     fun methodGroup(info: InheritanceTree.ClassInfo, mi: InheritanceTree.MethodInfo): MethodGroup {
         build()
-        return groups.getValue(find(MethodMember(info, mi)))
+        resolve(info, mi)
+        return groups.getOrPut(find(MethodMember(info, mi))) { MethodGroup() }
     }
 
     /**
@@ -207,7 +239,8 @@ class MemberGroups(val inheritance: InheritanceTree) {
                 val mi = info.methods.firstOrNull {
                     it.name == entry.name && it.descriptor == desc
                 } ?: continue
-                val group = groups.getValue(find(MethodMember(info, mi)))
+                resolve(info, mi)
+                val group = groups.getOrPut(find(MethodMember(info, mi))) { MethodGroup() }
                 for ((ns, e) in mm.entries) {
                     group.candidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
                     group.candidateMembers.getOrPut(ns) { mutableMapOf() }.let { m ->

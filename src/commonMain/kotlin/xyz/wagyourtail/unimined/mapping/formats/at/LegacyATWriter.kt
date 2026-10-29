@@ -2,10 +2,12 @@ package xyz.wagyourtail.unimined.mapping.formats.at
 
 import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 object LegacyATWriter : FormatWriter {
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
         return ATWriter.assembleAts {
             writeData(it, append)
         }

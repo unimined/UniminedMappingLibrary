@@ -61,6 +61,11 @@ data class Options(
      *  factory gets a fresh [AsmExtension] per remap — see
      *  [ExtensionContext]. */
     val extensions: List<AsmExtensionFactory> = BuiltinAsmExtensions.defaults(),
+    /** Optional progress callback — invoked from worker threads as
+     *  `(phase, done, total)` with phase in `parse`/`remap`/`write`; called
+     *  once per work unit, so throttle inside the callback. Must be
+     *  thread-safe. */
+    val onProgress: ((phase: String, done: Int, total: Int) -> Unit)? = null,
 )
 
 /**
@@ -101,7 +106,7 @@ object AsmRemapper {
         if (allPerClass(options)) {
             remapStreaming(input, output, MappingRemapper(tree.nsBoundRemapper(fns, targetNs)), tree, fns, targetNs, options)
         } else {
-            writeJar(output, remap(input, tree, fns, targetNs, options))
+            writeJar(output, remap(input, tree, fns, targetNs, options), options.onProgress)
         }
     }
 
@@ -152,7 +157,43 @@ object AsmRemapper {
             return remap(input, output, overlay(trees, fns, libraries.plusElement(input), strategy), fns, targetNs, options)
         }
         val merged = mergeTrees(trees)
-        val inheritance = ASMInheritanceTree(fns, libraries.plusElement(input))
+        return remapGraph(input, output, merged, ASMInheritanceTree(fns, libraries.plusElement(input)), fns, targetNs, options, strategy)
+    }
+
+    /**
+     * [remap] with a prebuilt inheritance [graph] — for callers that
+     * share a classpath scan across remaps (`ASMInheritanceTree.scan`
+     * + [ASMInheritanceTree.ScanData]); [input]'s own classes must
+     * already be folded into [graph]. Propagation mutates the graph's
+     * member data, so each call needs a graph built for it — share the
+     * underlying `ScanData`, not the tree.
+     */
+    suspend fun remap(
+        input: Path,
+        output: Path,
+        trees: List<MappingTree>,
+        fns: Namespace,
+        targetNs: Namespace,
+        graph: xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree,
+        options: Options = Options(),
+        strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
+    ) {
+        if (strategy == PropagationStrategy.BRIDGE) {
+            return remap(input, output, overlay(mergeTrees(trees), graph, strategy), fns, targetNs, options)
+        }
+        return remapGraph(input, output, mergeTrees(trees), graph, fns, targetNs, options, strategy)
+    }
+
+    private suspend fun remapGraph(
+        input: Path,
+        output: Path,
+        merged: MutableMappingTree,
+        inheritance: xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree,
+        fns: Namespace,
+        targetNs: Namespace,
+        options: Options,
+        strategy: PropagationStrategy,
+    ) {
         val groups = MemberGroups(inheritance)
         val conflicts = groups.propagate(merged)
         if (strategy == PropagationStrategy.STRICT && conflicts > 0) {
@@ -163,7 +204,7 @@ object AsmRemapper {
         if (allPerClass(options)) {
             remapStreaming(input, output, MappingRemapper(graphRemapper), merged, fns, targetNs, options)
         } else {
-            writeJar(output, remap(input, graphRemapper, merged, fns, targetNs, options))
+            writeJar(output, remap(input, graphRemapper, merged, fns, targetNs, options), options.onProgress)
         }
     }
 
@@ -260,9 +301,11 @@ object AsmRemapper {
         // ClassNode parses are independent — parallel; ordered stream keeps
         // output deterministic. analyze()/fieldValues run after, serially,
         // since extensions may hold shared per-remap state.
+        val parseCount = java.util.concurrent.atomic.AtomicInteger()
         val classes = rawClasses.parallelStream().map { e ->
             val node = ClassNode()
             ClassReader(e.second).accept(node, readerFlags)
+            options.onProgress?.invoke("parse", parseCount.incrementAndGet(), rawClasses.size)
             e.first to node
         }.collect(Collectors.toList())
         // "owner.name" → (ConstantValue, field desc) — for constant-group
@@ -282,12 +325,14 @@ object AsmRemapper {
         // pass 2: remap names, then per-class stages (source files, metadata,
         // constant groups, other perClass extensions) — independent per class,
         // so run parallel; non-perClass postApply runs serially afterwards
+        val remapCount = java.util.concurrent.atomic.AtomicInteger()
         val outClasses = classes.parallelStream().map { e ->
             val (entryName, node) = e
             val cls = tree.getClass(fns, InternalName.unchecked(node.name))
             val outNode = ClassNode()
             node.accept(MappingClassRemapper(outNode, asmRemapper))
             perClassExts.forEach { it.postApply(node, outNode, cls) }
+            options.onProgress?.invoke("remap", remapCount.incrementAndGet(), classes.size)
             val prefix = if (entryName.startsWith("META-INF/versions/")) {
                 entryName.substring(0, entryName.indexOf('/', "META-INF/versions/".length) + 1)
             } else ""
@@ -313,7 +358,7 @@ object AsmRemapper {
                     JarFixups.remapServiceName(name, asmRemapper) to JarFixups.remapServiceContents(bytes, asmRemapper)
                 name.endsWith(".accesswidener", ignoreCase = true) ||
                     name.endsWith("accesstransformer.cfg", ignoreCase = true) ->
-                    name to JarFixups.remapAccessFile(name, bytes, asmRemapper, targetNs.name)
+                    name to JarFixups.remapAccessFile(name, bytes, tree, fns, targetNs)
                 else -> name to bytes
             }
             exts.firstNotNullOfOrNull { it.second.transformResource(fixed.first, fixed.second) }
@@ -384,6 +429,7 @@ object AsmRemapper {
         ctx.fieldValues = fieldValues
 
         // single pass per class: parse → remap → metadata → summary → bytes
+        val remapCount = java.util.concurrent.atomic.AtomicInteger()
         val processed = rawClasses.parallelStream().map { e ->
             val (entryName, bytes) = e
             val node = ClassNode()
@@ -400,6 +446,7 @@ object AsmRemapper {
             val prefix = if (entryName.startsWith("META-INF/versions/")) {
                 entryName.substring(0, entryName.indexOf('/', "META-INF/versions/".length) + 1)
             } else ""
+            options.onProgress?.invoke("remap", remapCount.incrementAndGet(), rawClasses.size)
             Triple("$prefix${outNode.name}.class", writer.toByteArray(), summary)
         }.collect(Collectors.toList())
 
@@ -431,7 +478,7 @@ object AsmRemapper {
                     JarFixups.remapServiceName(name, remapper) to JarFixups.remapServiceContents(bytes, remapper)
                 name.endsWith(".accesswidener", ignoreCase = true) ||
                     name.endsWith("accesstransformer.cfg", ignoreCase = true) ->
-                    name to JarFixups.remapAccessFile(name, bytes, remapper, targetNs.name)
+                    name to JarFixups.remapAccessFile(name, bytes, tree, fns, targetNs)
                 else -> name to bytes
             }
             threadExts.get().firstNotNullOfOrNull { it.transformResource(fixed.first, fixed.second) }
@@ -439,30 +486,71 @@ object AsmRemapper {
         }
 
         ZipOutputStream(Files.newOutputStream(output).buffered()).use { zout ->
-            for ((name, bytes) in processed) {
+            // synthesize missing `dir/` parents — classloaders need them
+            // for package resource enumeration (log4j `packages=` scan,
+            // FML discovery, ...)
+            val emittedDirs = HashSet<String>()
+            fun putEntry(name: String, write: (java.io.OutputStream) -> Unit) {
+                var i = name.indexOf('/')
+                while (i != -1) {
+                    val dir = name.substring(0, i + 1)
+                    if (emittedDirs.add(dir)) {
+                        zout.putNextEntry(ZipEntry(dir).apply { time = 0L })
+                        zout.closeEntry()
+                    }
+                    i = name.indexOf('/', i + 1)
+                }
+                // explicit `dir/` input entry — the parent loop already
+                // emitted it; writing it again would be a duplicate
+                if (name.endsWith('/')) return
                 zout.putNextEntry(ZipEntry(name))
-                zout.write(bytes)
+                write(zout)
                 zout.closeEntry()
             }
+            val total = processed.size + outResources.size
+            var writeCount = 0
+            for ((name, bytes) in processed) {
+                putEntry(name) { it.write(bytes) }
+                options.onProgress?.invoke("write", ++writeCount, total)
+            }
             for ((name, bytes) in outResources + extInstances.flatMap { it.resources() }) {
-                zout.putNextEntry(ZipEntry(name))
-                zout.write(bytes)
-                zout.closeEntry()
+                putEntry(name) { it.write(bytes) }
+                options.onProgress?.invoke("write", ++writeCount, total)
             }
         }
     }
 
     /** Serialize a [Result] to a jar at [output]. */
-    fun writeJar(output: Path, result: Result) {
+    fun writeJar(
+        output: Path,
+        result: Result,
+        onProgress: ((phase: String, done: Int, total: Int) -> Unit)? = null
+    ) {
         // ClassWriter(COMPUTE_MAXS) is per-class independent work — serialize
         // in parallel, then stream the zip in deterministic order
+        val writeCount = java.util.concurrent.atomic.AtomicInteger()
+        val total = result.classes.size + result.resources.size
         val classBytes = result.classes.parallelStream().map { e ->
             val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
             e.second.accept(writer)
+            onProgress?.invoke("write", writeCount.incrementAndGet(), total)
             e.first to writer.toByteArray()
         }.collect(Collectors.toList())
         ZipOutputStream(Files.newOutputStream(output).buffered()).use { zout ->
+            // synthesize `dir/` parents — needed for package resource
+            // enumeration under classloaders
+            val emittedDirs = HashSet<String>()
             fun put(name: String, write: (java.io.OutputStream) -> Unit) {
+                var i = name.indexOf('/')
+                while (i != -1) {
+                    val dir = name.substring(0, i + 1)
+                    if (emittedDirs.add(dir)) {
+                        zout.putNextEntry(ZipEntry(dir).apply { time = 0L })
+                        zout.closeEntry()
+                    }
+                    i = name.indexOf('/', i + 1)
+                }
+                if (name.endsWith('/')) return
                 zout.putNextEntry(ZipEntry(name).apply { time = 0L })
                 write(zout)
                 zout.closeEntry()

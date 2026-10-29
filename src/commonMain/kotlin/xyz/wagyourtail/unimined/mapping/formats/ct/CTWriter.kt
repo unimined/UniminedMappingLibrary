@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats.ct
 
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.AddRemove
 import xyz.wagyourtail.unimined.mapping.element.MappingElement
@@ -12,13 +13,71 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.EnumExtensionElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.InterfaceElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 /** Writes the access, interface-injection, and enum-extension subset supported by CT. */
 object CTWriter : FormatWriter {
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink = Sink(append)
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
+        return Sink(append)
+    }
+
+    fun remapMappings(mappings: CTReader.CTMappings, context: MappingTree, targetNs: Namespace): CTReader.CTMappings {
+        val sourceNs = mappings.namespace
+        return CTReader.CTMappings(mappings.version, targetNs, mappings.targets.map {
+            when (it) {
+                is CTReader.AccessDirective ->
+                    CTReader.AccessDirective(it.access, context.map(sourceNs, targetNs, it.target))
+                is CTReader.InterfaceDirective ->
+                    CTReader.InterfaceDirective(it.access, context.map(sourceNs, targetNs, it.owner), context.map(sourceNs, targetNs, it.signature))
+                is CTReader.EnumDirective ->
+                    // the enum constant is an addition, not a mapped name
+                    CTReader.EnumDirective(it.access, context.map(sourceNs, targetNs, it.owner), it.name)
+                else -> it
+            }
+        })
+    }
+
+    fun writeData(mappings: CTReader.CTMappings, append: (String) -> Unit) {
+        append("classTweaker\t${mappings.version}\t${mappings.namespace.name}\n")
+        for ((i, item) in mappings.targets.withIndex()) {
+            when (item) {
+                is CTReader.AccessDirective -> {
+                    if (i != 0) append("\n")
+                    val (cls, member) = item.target.getParts()
+                    if (member == null) {
+                        append("${item.access}\tclass\t${cls.getInternalName()}")
+                    } else {
+                        val (name, desc) = member.getParts()
+                        val kind = if (desc!!.isMethodDescriptor()) "method" else "field"
+                        append("${item.access}\t$kind\t${cls.getInternalName()}\t$name\t$desc")
+                    }
+                }
+                is CTReader.InterfaceDirective -> {
+                    if (i != 0) append("\n")
+                    val signature = item.signature.toString()
+                    require(signature.startsWith("L") && signature.endsWith(";")) {
+                        "Invalid injected-interface signature $signature"
+                    }
+                    append("${item.access}\t${item.owner}\t${signature.substring(1, signature.length - 1)}")
+                }
+                is CTReader.EnumDirective -> {
+                    if (i != 0) append("\n")
+                    append("${item.access}\t${item.owner}\t${item.name}")
+                }
+                is CTReader.CTComment -> {
+                    if (i != 0) append("\n")
+                    append(item.comment)
+                }
+                is CTReader.CTNewline -> append("\n")
+                else -> {}
+            }
+        }
+        append("\n")
+    }
 
     private data class MemberTarget(val kind: String, val name: String, val descriptor: String)
 

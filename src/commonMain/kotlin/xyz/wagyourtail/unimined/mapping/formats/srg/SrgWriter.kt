@@ -9,12 +9,14 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.FieldMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.PackageMapping
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 object SrgWriter : FormatWriter {
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
 
         return object : MappingSink {
             lateinit var namespaces: List<Namespace>

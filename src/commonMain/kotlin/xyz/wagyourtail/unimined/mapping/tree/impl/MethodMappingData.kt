@@ -39,8 +39,27 @@ data class MethodMappingData(
     @Transient
     internal var descRemapper: DescRemapper? = null
 
-    val isClinit get() = names.values.any { it.value == "<clinit>" }
-    val isInit get() = names.values.any { it.value == "<init>" }
+    /**
+     * mutation counter on [entries] — [MappingTreeData.pop] snapshots it at
+     * push and skips its sibling re-merge scan when nothing merged into the
+     * row during its subtree (entries are the only merge-candidacy state;
+     * params/lvars/metadata don't affect it)
+     */
+    @Transient
+    internal var mergeVersion = 0
+
+    @Transient
+    internal var pushedMergeVersion = -1
+
+    // entry values are `name;desc` (or bare `name`) — checking the stored
+    // string directly avoids materializing the `names` map (substring +
+    // map per access) in merge loops that inspect every sibling
+    val isClinit get() = entries.values.any {
+        it.value == "<clinit>" || it.value.startsWith("<clinit>;")
+    }
+    val isInit get() = entries.values.any {
+        it.value == "<init>" || it.value.startsWith("<init>;")
+    }
 
     override fun setNames(names: Map<Namespace, UnqualifiedName>) {
         if (isClinit && names.values.any { it.value != "<clinit>" }) {
@@ -52,16 +71,19 @@ data class MethodMappingData(
         for ((ns, name) in names) {
             entries[ns] = name.withMethodDesc(entries[ns]?.descriptor)
         }
+        mergeVersion++
     }
 
     override fun setDescriptors(descs: Map<Namespace, MethodDescriptor>) {
         for ((ns, desc) in descs) {
             entries[ns]?.let { entries[ns] = it.name.withMethodDesc(desc) }
         }
+        mergeVersion++
     }
 
     override fun setEntries(entries: Map<Namespace, MethodNameAndDescriptor>) {
         this.entries.putAll(entries)
+        mergeVersion++
     }
 
     override fun parameter(index: Int?, lvOrd: Int?, names: Map<Namespace, UnqualifiedName>): MutableParameterMapping {
@@ -89,20 +111,37 @@ data class MethodMappingData(
         metadata.mergeMetadata(meta)
     }
 
+    /**
+     * pure check for the disjoint-namespace-keys branch of [mergeInto]:
+     * true when this row and [existing] share no name keys, have no name
+     * conflict, and verify the same descriptor. callers use it to count
+     * candidate siblings before permitting a desc-only merge.
+     */
+    internal fun descMergeable(existing: MethodMappingData): Boolean {
+        if (isInit != existing.isInit || isClinit != existing.isClinit) return false
+        if (entries.namesMatch(existing.entries) != NameMatch.NONE) return false
+        if (entries.hasNameConflict(existing.entries)) return false
+        if (!entries.anyDesc() || !existing.entries.anyDesc()) return false
+        val descNs = existing.entries.pickDescNs(entries)
+        return existing.entries.descMatches(entries, descNs, descRemapper)
+    }
+
     /** merge this (incoming) into [existing]; ported from FieldMethodResolvable.merge */
-    internal fun mergeInto(existing: MethodMappingData): Boolean {
+    internal fun mergeInto(existing: MethodMappingData, descOnlyPermitted: () -> Boolean = { true }): Boolean {
+        // a ctor/clinit row can never be the same member as a named
+        // method — desc-only matching (`()V` etc.) would otherwise
+        // collapse them into a mixed row that violates the init-name
+        // invariant on the next setNames/fill
+        if (isInit != existing.isInit || isClinit != existing.isClinit) return false
         val matched = entries.namesMatch(existing.entries)
         if (matched == NameMatch.NONE) {
             // disjoint namespace keys are still the same member when descriptors verify
-            if (entries.hasNameConflict(existing.entries)) return false
-            if (entries.anyDesc() && existing.entries.anyDesc()) {
-                val descNs = existing.entries.pickDescNs(entries)
-                if (existing.entries.descMatches(entries, descNs, descRemapper)) {
-                    existing.copyNamesFrom(entries)
-                    existing.copyDescriptorsFrom(entries)
-                    mergeChildrenInto(existing)
-                    return true
-                }
+            if (!descOnlyPermitted()) return false
+            if (descMergeable(existing)) {
+                existing.copyNamesFrom(entries)
+                existing.copyDescriptorsFrom(entries)
+                mergeChildrenInto(existing)
+                return true
             }
             return false
         }
@@ -135,6 +174,7 @@ data class MethodMappingData(
         for ((ns, e) in incoming) {
             entries[ns] = e.name.withMethodDesc(entries[ns]?.descriptor)
         }
+        mergeVersion++
     }
 
     private fun copyDescriptorsFrom(incoming: Map<Namespace, MethodNameAndDescriptor>) {
@@ -142,6 +182,7 @@ data class MethodMappingData(
             val desc = e.descriptor ?: continue
             entries[ns]?.let { entries[ns] = it.name.withMethodDesc(desc) }
         }
+        mergeVersion++
     }
 
     internal fun mergeChildrenInto(target: MethodMappingData) {

@@ -30,7 +30,7 @@ class MCPv3ReadTest {
         )
 
         val out = Buffer().use {
-            tree.emit(UMFWriter.write(it, EnvType.CLIENT), sort = true)
+            tree.emit(UMFWriter.write(it, UMFWriter.withEnvType(EnvType.CLIENT)), sort = true)
             it.readUtf8()
         }
 
@@ -62,7 +62,7 @@ c	net/minecraft/src/World	_	_
         )
 
         val out = Buffer().use {
-            tree.emit(UMFWriter.write(it, EnvType.CLIENT), sort = true)
+            tree.emit(UMFWriter.write(it, UMFWriter.withEnvType(EnvType.CLIENT)), sort = true)
             it.readUtf8()
         }
 

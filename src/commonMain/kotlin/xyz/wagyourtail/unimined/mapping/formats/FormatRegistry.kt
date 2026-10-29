@@ -1,6 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.formats
 
 import okio.BufferedSource
+import xyz.wagyourtail.unimined.mapping.EnvType
 import xyz.wagyourtail.unimined.mapping.formats.at.ATReader
 import xyz.wagyourtail.unimined.mapping.formats.at.ATWriter
 import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader
@@ -134,5 +135,15 @@ class FormatProvider(val reader: FormatReader, val writer: FormatWriter = Unsupp
     }
     override val name: String
         get() = reader.name
+
+    /** combined settings: reader + writer tunables; reader wins envType */
+    override val envType: EnvType
+        get() = reader.envType
+
+    override val extras: Map<FormatReaderSettings.SettingsKey<*>, Any?>
+        get() = reader.extras + writer.extras
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> get(key: FormatReaderSettings.SettingsKey<T>): T? = extras[key] as? T
 
 }

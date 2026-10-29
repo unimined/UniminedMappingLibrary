@@ -441,12 +441,22 @@ class PsiRemapVisitor(
     fun remap(errors: MutableList<Pair<Int, String>>): String {
         if (file is KtFile) {
             file.importDirectives.mapNotNull { it.aliasName }.forEach { aliased += it }
-            file.importDirectives.mapNotNull { it.importedFqName?.asString() }.forEach { existingImports += it }
+            file.importDirectives.mapNotNull { it.importedFqName?.asString() }.forEach {
+                existingImports += it
+                // the import's own ref is remapped in place, so the
+                // emitted-import dedup must also see the mapped form
+                existingImports += ctx.mapClass(it.replace('.', '/')).replace('/', '.')
+            }
         } else {
             (file as? PsiJavaFile)?.importList?.allImportStatements?.forEach { st ->
                 if (st.isOnDemand) return@forEach
                 val fq = st.importReference?.qualifiedName ?: return@forEach
-                if (st is PsiImportStaticStatement) existingStatics += fq else existingImports += fq
+                if (st is PsiImportStaticStatement) {
+                    existingStatics += fq
+                } else {
+                    existingImports += fq
+                    existingImports += ctx.mapClass(fq.replace('.', '/')).replace('/', '.')
+                }
             }
         }
 

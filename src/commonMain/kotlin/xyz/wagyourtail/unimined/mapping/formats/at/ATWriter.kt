@@ -13,7 +13,9 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.FieldMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.WildcardMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
@@ -30,8 +32,12 @@ object ATWriter : FormatWriter {
 
     var defaultToPublic: Boolean = false
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
-        return assembleAts {
+    /** writer tunable — promote DEFAULT access rows to PUBLIC on write */
+    val DEFAULT_TO_PUBLIC = FormatReaderSettings.SettingsKey<Boolean>("defaultToPublic")
+
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
+        return assembleAts(settings[DEFAULT_TO_PUBLIC] ?: defaultToPublic) {
             writeData(it, append)
         }
     }
@@ -121,7 +127,10 @@ object ATWriter : FormatWriter {
             }
         }
 
-    fun assembleAts(finalizer: (List<ATReader.ATItem>) -> Unit): MappingSink {
+    fun assembleAts(
+        defaultToPublic: Boolean = this.defaultToPublic,
+        finalizer: (List<ATReader.ATItem>) -> Unit,
+    ): MappingSink {
         var ns: Namespace? = null
         var cls: InternalName? = null
         var member: NameAndDescriptor? = null

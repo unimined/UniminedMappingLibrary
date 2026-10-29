@@ -126,7 +126,7 @@ object SourceRemapper {
                             JarFixups.remapServiceContents(bytes, remapper)
                     name.endsWith(".accesswidener", ignoreCase = true) ||
                         name.endsWith("accesstransformer.cfg", ignoreCase = true) ->
-                        name to JarFixups.remapAccessFile(name, bytes, remapper, targetNs.name)
+                        name to JarFixups.remapAccessFile(name, bytes, tree, fns, targetNs)
                     else -> name to bytes
                 }
             }

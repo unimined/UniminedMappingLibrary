@@ -25,6 +25,8 @@ internal fun mergeDescMismatch(hasDesc: MethodMappingData, noDesc: MethodMapping
     for ((ns, e) in hasDesc.entries) {
         if (ns !in noDesc.entries) noDesc.entries[ns] = e.name.withMethodDesc(null)
     }
+    hasDesc.mergeVersion++
+    noDesc.mergeVersion++
     noDesc.mergeChildrenInto(hasDesc)
 }
 
@@ -35,6 +37,8 @@ internal fun mergeDescMismatch(hasDesc: FieldMappingData, noDesc: FieldMappingDa
     for ((ns, e) in hasDesc.entries) {
         if (ns !in noDesc.entries) noDesc.entries[ns] = e.name.withFieldDesc(null)
     }
+    hasDesc.mergeVersion++
+    noDesc.mergeVersion++
     noDesc.mergeChildrenInto(hasDesc)
 }
 

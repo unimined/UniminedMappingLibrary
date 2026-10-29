@@ -34,39 +34,60 @@ data class FieldMappingData(
     @Transient
     internal var descRemapper: DescRemapper? = null
 
+    /** see [MethodMappingData.mergeVersion] */
+    @Transient
+    internal var mergeVersion = 0
+
+    @Transient
+    internal var pushedMergeVersion = -1
+
     override fun setNames(names: Map<Namespace, UnqualifiedName>) {
         for ((ns, name) in names) {
             entries[ns] = name.withFieldDesc(entries[ns]?.descriptor)
         }
+        mergeVersion++
     }
 
     override fun setDescriptors(descs: Map<Namespace, FieldDescriptor>) {
         for ((ns, desc) in descs) {
             entries[ns]?.let { entries[ns] = it.name.withFieldDesc(desc) }
         }
+        mergeVersion++
     }
 
     override fun setEntries(entries: Map<Namespace, FieldNameAndDescriptor>) {
         this.entries.putAll(entries)
+        mergeVersion++
     }
 
     override fun addMetadata(meta: MetadataElement) {
         metadata.mergeMetadata(meta)
     }
 
-    internal fun mergeInto(existing: FieldMappingData): Boolean {
+    /**
+     * pure check for the disjoint-namespace-keys branch of [mergeInto]:
+     * true when this row and [existing] share no name keys, have no name
+     * conflict, and verify the same descriptor. callers use it to count
+     * candidate siblings before permitting a desc-only merge.
+     */
+    internal fun descMergeable(existing: FieldMappingData): Boolean {
+        if (entries.namesMatch(existing.entries) != NameMatch.NONE) return false
+        if (entries.hasNameConflict(existing.entries)) return false
+        if (!entries.anyDesc() || !existing.entries.anyDesc()) return false
+        val descNs = existing.entries.pickDescNs(entries)
+        return existing.entries.descMatches(entries, descNs, descRemapper)
+    }
+
+    internal fun mergeInto(existing: FieldMappingData, descOnlyPermitted: () -> Boolean = { true }): Boolean {
         val matched = entries.namesMatch(existing.entries)
         if (matched == NameMatch.NONE) {
             // disjoint namespace keys are still the same member when descriptors verify
-            if (entries.hasNameConflict(existing.entries)) return false
-            if (entries.anyDesc() && existing.entries.anyDesc()) {
-                val descNs = existing.entries.pickDescNs(entries)
-                if (existing.entries.descMatches(entries, descNs, descRemapper)) {
-                    existing.copyNamesFrom(entries)
-                    existing.copyDescriptorsFrom(entries)
-                    mergeChildrenInto(existing)
-                    return true
-                }
+            if (!descOnlyPermitted()) return false
+            if (descMergeable(existing)) {
+                existing.copyNamesFrom(entries)
+                existing.copyDescriptorsFrom(entries)
+                mergeChildrenInto(existing)
+                return true
             }
             return false
         }
@@ -99,6 +120,7 @@ data class FieldMappingData(
         for ((ns, e) in incoming) {
             entries[ns] = e.name.withFieldDesc(entries[ns]?.descriptor)
         }
+        mergeVersion++
     }
 
     private fun copyDescriptorsFrom(incoming: Map<Namespace, FieldNameAndDescriptor>) {
@@ -106,6 +128,7 @@ data class FieldMappingData(
             val desc = e.descriptor ?: continue
             entries[ns]?.let { entries[ns] = it.name.withFieldDesc(desc) }
         }
+        mergeVersion++
     }
 
     internal fun mergeChildrenInto(target: FieldMappingData) {

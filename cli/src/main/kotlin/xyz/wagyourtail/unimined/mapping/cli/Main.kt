@@ -144,7 +144,7 @@ class ExportMappings(private val main: Main) : SuspendingCliktCommand(name = "ex
             output.parent?.toFile()?.mkdirs()
             output.toFile().sink().buffer().use { buf ->
                 tree.emit(
-                    format.write(buf, main.envType),
+                    format.write(buf, format.withEnvType(main.envType)),
                     nsFilter = filterNs?.let { listOf(it) } ?: tree.namespaces.toList(),
                     // single-ns writers throw on elements missing the name —
                     // drop them before the sink sees them

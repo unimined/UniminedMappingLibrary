@@ -7,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.JavadocElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter.minus
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
@@ -29,7 +30,8 @@ object TinyV2Writer : FormatWriter {
         }
     }
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
         return object : MappingSink {
             var indent = ""
             lateinit var namespaces: List<Namespace>

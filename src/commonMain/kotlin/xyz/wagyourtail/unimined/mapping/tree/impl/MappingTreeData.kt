@@ -184,24 +184,56 @@ class MappingTreeData(
         when (element) {
             is MethodMappingData -> {
                 val parent = stack.asReversed().firstOrNull { it is MutableClassMapping } as? MutableClassMapping
-                val siblings = (parent as? ClassMappingData)?.methods?.filterIsInstance<MethodMappingData>()
-                if (siblings != null) {
-                    for (existing in siblings) {
-                        if (existing !== element && element.mergeInto(existing)) {
-                            (parent as ClassMappingData).methods.remove(element)
-                            break
+                // the sibling re-scan matters only when merge candidacy
+                // changed during the subtree (entries bumped) or a push-time
+                // desc-mismatch splice deferred child merging — entries are
+                // immutable during a row's own emission, so unchanged
+                // entries + no revisit targets = same no-merge as at push
+                if (element.mergeVersion != element.pushedMergeVersion) {
+                    val siblings = (parent as? ClassMappingData)?.methods?.filterIsInstance<MethodMappingData>()
+                    if (siblings != null) {
+                        var merged = false
+                        // name-keyed merges first — see ClassMappingData.method
+                        for (existing in siblings) {
+                            if (existing !== element && element.mergeInto(existing) { false }) {
+                                (parent as ClassMappingData).methods.removeIdentity(element)
+                                merged = true
+                                break
+                            }
+                        }
+                        if (!merged) {
+                            val unique = siblings.count { it !== element && element.descMergeable(it) } == 1
+                            for (existing in siblings) {
+                                if (existing !== element && element.mergeInto(existing) { unique }) {
+                                    (parent as ClassMappingData).methods.removeIdentity(element)
+                                    break
+                                }
+                            }
                         }
                     }
                 }
             }
             is FieldMappingData -> {
                 val parent = stack.asReversed().firstOrNull { it is MutableClassMapping } as? MutableClassMapping
-                val siblings = (parent as? ClassMappingData)?.fields?.filterIsInstance<FieldMappingData>()
-                if (siblings != null) {
-                    for (existing in siblings) {
-                        if (existing !== element && element.mergeInto(existing)) {
-                            (parent as ClassMappingData).fields.remove(element)
-                            break
+                if (element.mergeVersion != element.pushedMergeVersion) {
+                    val siblings = (parent as? ClassMappingData)?.fields?.filterIsInstance<FieldMappingData>()
+                    if (siblings != null) {
+                        var merged = false
+                        for (existing in siblings) {
+                            if (existing !== element && element.mergeInto(existing) { false }) {
+                                (parent as ClassMappingData).fields.removeIdentity(element)
+                                merged = true
+                                break
+                            }
+                        }
+                        if (!merged) {
+                            val unique = siblings.count { it !== element && element.descMergeable(it) } == 1
+                            for (existing in siblings) {
+                                if (existing !== element && element.mergeInto(existing) { unique }) {
+                                    (parent as ClassMappingData).fields.removeIdentity(element)
+                                    break
+                                }
+                            }
                         }
                     }
                 }
@@ -212,7 +244,7 @@ class MappingTreeData(
                 if (siblings != null) {
                     for (existing in siblings) {
                         if (existing !== element && element.mergeInto(existing)) {
-                            (parent as ClassMappingData).wildcards.remove(element)
+                            (parent as ClassMappingData).wildcards.removeIdentity(element)
                             break
                         }
                     }
@@ -225,8 +257,8 @@ class MappingTreeData(
                 if (siblings != null) {
                     for (existing in siblings) {
                         if (existing !== element && element.mergeInto(existing)) {
-                            if (parent is MethodMappingData) parent.parameters.remove(element)
-                            else if (parent is WildcardMappingData) parent.parameters.remove(element)
+                            if (parent is MethodMappingData) parent.parameters.removeIdentity(element)
+                            else if (parent is WildcardMappingData) parent.parameters.removeIdentity(element)
                             break
                         }
                     }
@@ -240,8 +272,8 @@ class MappingTreeData(
                     for (existing in siblings) {
                         if (existing !== element && existing.lvOrd == element.lvOrd && existing.startOp == element.startOp) {
                             existing.setNames(element.names)
-                            if (parent is MethodMappingData) parent.localVariables.remove(element)
-                            else if (parent is WildcardMappingData) parent.localVariables.remove(element)
+                            if (parent is MethodMappingData) parent.localVariables.removeIdentity(element)
+                            else if (parent is WildcardMappingData) parent.localVariables.removeIdentity(element)
                             break
                         }
                     }
@@ -255,6 +287,21 @@ class MappingTreeData(
         val idx = stack.indexOfLast { it === meta }
         if (idx < 0) return
         while (stack.size > idx) stack.removeLast()
+    }
+
+    /**
+     * identity-based removal — `MutableList.remove(element)` runs the data
+     * class's deep `equals` against every sibling (entries/parameters/maps),
+     * which is per-element quadratic inside hot emit loops
+     */
+    private fun <T> MutableList<T>.removeIdentity(element: T) {
+        val it = listIterator()
+        while (it.hasNext()) {
+            if (it.next() === element) {
+                it.remove()
+                return
+            }
+        }
     }
 
     override fun end() {}

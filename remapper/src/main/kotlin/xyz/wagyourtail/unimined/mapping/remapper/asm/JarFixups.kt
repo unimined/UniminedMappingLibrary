@@ -6,6 +6,13 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.tree.*
+import xyz.wagyourtail.commonskt.reader.StringCharReader
+import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.formats.at.ATReader
+import xyz.wagyourtail.unimined.mapping.formats.at.ATWriter
+import xyz.wagyourtail.unimined.mapping.formats.aw.AWReader
+import xyz.wagyourtail.unimined.mapping.formats.aw.AWWriter
 import java.util.jar.Manifest
 
 /**
@@ -321,78 +328,29 @@ object JarFixups {
     /**
      * Remap access-widener / access-transformer file contents — class, method and
      * field targets inside the file must follow the same name mapping as the
-     * bytecode they describe, or the runtime AW/AT silently misses. Handles the
-     * line grammars of both formats; unknown lines pass through untouched.
+     * bytecode they describe, or the runtime AW/AT silently misses. Rounds the
+     * file through the format readers (`ATReader`/`AWReader`) and writers so
+     * comments, wildcards, desc-less field targets and blank lines survive —
+     * [ATWriter] also emits the `.`-separated class names FML's AT grammar
+     * requires.
      */
-    fun remapAccessFile(name: String, bytes: ByteArray, remapper: Remapper, targetNs: String): ByteArray {
-        val isAw = name.endsWith(".accesswidener", ignoreCase = true)
+    fun remapAccessFile(
+        name: String,
+        bytes: ByteArray,
+        tree: MappingTree,
+        sourceNs: Namespace,
+        targetNs: Namespace
+    ): ByteArray {
         val text = bytes.toString(Charsets.UTF_8)
         val out = StringBuilder()
-        for (line in text.lineSequence()) {
-            val trimmed = line.trim()
-            when {
-                trimmed.isEmpty() || trimmed.startsWith("#") -> out.append(line).append('\n')
-                trimmed.startsWith("accessWidener") -> {
-                    // header: "accessWidener vN <ns>" — ns follows the mapping target
-                    val parts = trimmed.split(Regex("\\s+"))
-                    out.append(if (parts.size >= 3) "accessWidener ${parts[1]} $targetNs" else line).append('\n')
-                }
-                isAw -> out.append(remapAwLine(trimmed, remapper)).append('\n')
-                else -> out.append(remapAtLine(trimmed, remapper)).append('\n')
-            }
+        if (name.endsWith(".accesswidener", ignoreCase = true)) {
+            val mappings = AWReader.readData(StringCharReader(text))
+            AWWriter.writeData(AWWriter.remapMappings(mappings, tree, targetNs)) { out.append(it) }
+        } else {
+            val items = ATReader.readData(StringCharReader(text), leinient = true)
+            ATWriter.writeData(ATWriter.remapMappings(items, tree, sourceNs, targetNs)) { out.append(it) }
         }
         return out.toString().toByteArray()
-    }
-
-    /** `<directive> class|method|field <owner> [name [desc]]` */
-    private fun remapAwLine(line: String, remapper: Remapper): String {
-        val parts = line.split(Regex("\\s+"))
-        if (parts.size < 3) return line
-        val kind = parts[1]
-        val owner = remapper.map(parts[2])
-        return when (kind) {
-            "class" -> "${parts[0]} class $owner"
-            "method" -> {
-                if (parts.size < 5) return line
-                val name = parts[3]
-                val desc = parts[4]
-                val n = if (name == "*" || name == "all" || name.startsWith("<")) name
-                        else remapper.mapMethodName(parts[2], name, desc)
-                "${parts[0]} method $owner $n ${remapper.mapMethodDesc(desc)}"
-            }
-            "field" -> {
-                if (parts.size < 5) return line
-                val name = parts[3]
-                val desc = parts[4]
-                val n = if (name == "*" || name == "all") name
-                        else remapper.mapFieldName(parts[2], name, desc)
-                "${parts[0]} field $owner $n ${remapper.mapDesc(desc)}"
-            }
-            else -> line
-        }
-    }
-
-    /** `<access>[-f] <owner>[ <member>][ <desc>]` — owner is dot-separated binary name. */
-    private fun remapAtLine(line: String, remapper: Remapper): String {
-        val comment = line.indexOf('#').let { if (it >= 0) line.substring(it) else "" }
-        val body = if (comment.isNotEmpty()) line.substring(0, line.indexOf('#')).trim() else line
-        val parts = body.split(Regex("\\s+")).filter { it.isNotEmpty() }
-        if (parts.size < 2) return line
-        val owner = parts[1].replace('.', '/')
-        if (parts.size == 2) return "${parts[0]} ${remapper.map(owner)}" + if (comment.isNotEmpty()) " $comment" else ""
-        // member target: name, or name(desc)
-        val member = parts[2]
-        val paren = member.indexOf('(')
-        return if (paren >= 0) {
-            val mname = member.substring(0, paren)
-            val desc = member.substring(paren)
-            val n = remapper.mapMethodName(owner, mname, desc)
-            "${parts[0]} ${remapper.map(owner)} $n${remapper.mapMethodDesc(desc)}" + if (comment.isNotEmpty()) " $comment" else ""
-        } else {
-            val desc = if (parts.size > 3) parts[3] else null
-            val n = remapper.mapFieldName(owner, member, desc)
-            "${parts[0]} ${remapper.map(owner)} $n" + (desc?.let { " ${remapper.mapDesc(it)}" } ?: "") + if (comment.isNotEmpty()) " $comment" else ""
-        }
     }
 
 }

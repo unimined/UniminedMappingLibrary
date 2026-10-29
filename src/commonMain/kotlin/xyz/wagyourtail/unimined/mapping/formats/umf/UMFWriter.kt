@@ -8,6 +8,8 @@ import xyz.wagyourtail.unimined.mapping.element.*
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.*
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
+import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
@@ -17,6 +19,9 @@ object UMFWriter : FormatWriter {
     val EMPTY ="umf\t1\t3\n"
 
     var global_minimize = false
+
+    /** writer tunable — emit minimized names (see [global_minimize]) */
+    val MINIMIZE = FormatReaderSettings.SettingsKey<Boolean>("minimize")
 
     fun String?.maybeEscape(): String {
         if (this == null) return "_"
@@ -32,8 +37,9 @@ object UMFWriter : FormatWriter {
 
     operator fun String.minus(s: String): String = this.removeSuffix(s)
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
-        return write(envType, append, global_minimize)
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
+        return write(envType, append, settings[MINIMIZE] ?: global_minimize)
     }
 
     fun write(into: BufferedSink, minimize: Boolean): MappingSink {

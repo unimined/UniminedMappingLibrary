@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.ParameterMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.WildcardMapping
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
+import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 object MCPv6ParamWriter : FormatWriter {
@@ -18,7 +19,8 @@ object MCPv6ParamWriter : FormatWriter {
         return if (this.contains(Regex("[\\n,]"))) this.escape(doubleQuote = true) else this
     }
 
-    override fun write(append: (String) -> Unit, envType: EnvType): MappingSink {
+    override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
+        val envType = settings.envType
         lateinit var ns: List<Namespace>
 
         return object : MappingSink {

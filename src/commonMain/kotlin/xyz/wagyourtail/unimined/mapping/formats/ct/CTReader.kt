@@ -44,14 +44,16 @@ object CTReader : FormatReader {
         nsMapping: Map<String, String>,
         settings: FormatReaderSettings,
     ) {
-        val (sourceNamespace, directives) = readData(input)
-        val namespace = nsMapping[sourceNamespace.name]?.let { Namespace(it) } ?: sourceNamespace
+        val mappings = readData(input)
+        val namespace = nsMapping[mappings.namespace.name]?.let { Namespace(it) } ?: mappings.namespace
         into.header(listOf(namespace))
 
-        for (directive in directives) {
+        for (directive in mappings.targets) {
             when (directive) {
-                is AccessDirective ->
-                    into.applyAccessWidener(directive.target, directive.access, namespace, allowNonTransitive)
+                is AccessDirective -> {
+                    if (include(directive.access))
+                        into.applyAccessWidener(directive.target, directive.access, namespace, allowNonTransitive)
+                }
                 is InterfaceDirective -> {
                     if (!include(directive.access)) continue
                     into.pushed(MutableClassMapping(mapOf(namespace to directive.owner))) {
@@ -64,6 +66,7 @@ object CTReader : FormatReader {
                         into.push(EnumExtensionElement(AddRemove.ADD, directive.name, namespace))
                     }
                 }
+                else -> {}
             }
         }
         into.end()
@@ -71,34 +74,57 @@ object CTReader : FormatReader {
 
     private fun include(access: String) = allowNonTransitive || access.startsWith("transitive-")
 
-    private sealed interface Directive
-    private data class AccessDirective(val access: String, val target: FullyQualifiedName) : Directive
-    private data class InterfaceDirective(
-        val access: String,
+    sealed interface CTItem
+
+    sealed interface CTDirective : CTItem {
+        val access: String
+    }
+
+    data class AccessDirective(override val access: String, val target: FullyQualifiedName) : CTDirective
+    data class InterfaceDirective(
+        override val access: String,
         val owner: InternalName,
         val signature: ClassTypeSignature,
-    ) : Directive
-    private data class EnumDirective(
-        val access: String,
+    ) : CTDirective
+    data class EnumDirective(
+        override val access: String,
         val owner: InternalName,
         val name: UnqualifiedName,
-    ) : Directive
+    ) : CTDirective
 
-    private fun readData(input: CharReader<*>): Pair<Namespace, List<Directive>> {
+    data class CTComment(
+        val comment: String
+    ) : CTItem
+
+    object CTNewline : CTItem
+
+    data class CTMappings(
+        val version: String,
+        val namespace: Namespace,
+        val targets: List<CTItem>
+    )
+
+    fun readData(input: CharReader<*>): CTMappings {
         val header = input.takeLine().trim().split(Regex("\\s+"))
         if (input.peek() == '\n') input.take()
         require(header.size == 3 && header[0] == "classTweaker") { "Invalid ClassTweaker header" }
         val version = header[1]
         require(version == "v1" || version == "v2") { "Unsupported ClassTweaker version $version" }
-        val directives = mutableListOf<Directive>()
+        val directives = mutableListOf<CTItem>()
 
         while (!input.exhausted()) {
             val line = input.takeLine().trim()
             if (input.peek() == '\n') input.take()
-            if (line.isEmpty() || line.startsWith("#")) continue
+            if (line.isEmpty()) {
+                directives += CTNewline
+                continue
+            }
+            if (line.startsWith("#")) {
+                directives += CTComment(line)
+                continue
+            }
             val fields = line.split(Regex("\\s+"))
             val access = fields[0]
-            if (!include(access)) continue
 
             when (access.removePrefix("transitive-")) {
                 "accessible", "extendable", "mutable" ->
@@ -117,7 +143,7 @@ object CTReader : FormatReader {
                 else -> throw IllegalArgumentException("Unknown ClassTweaker operation $access")
             }
         }
-        return Namespace(header[2]) to directives
+        return CTMappings(version, Namespace(header[2]), directives)
     }
 
     private fun parseAccessTarget(fields: List<String>): FullyQualifiedName {
