@@ -1,0 +1,7 @@
+umf	1	3
+source
+u	plain	flags	source
+	q	data-type	int	source
+	e	"CONSTANT_1 1"	"CONSTANT_1 1"
+	e	"CONSTANT_2 2"	"CONSTANT_2 2"
+	t	La/b;method;()V	0

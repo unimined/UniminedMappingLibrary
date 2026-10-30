@@ -23,6 +23,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: OrnitheMC feather mapping extras (`.sigs`); no public upstream parser — corpus is schema-derived.
+ */
 object SignatureReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

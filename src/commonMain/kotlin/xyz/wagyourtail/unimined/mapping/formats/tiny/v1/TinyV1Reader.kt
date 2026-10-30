@@ -19,6 +19,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: https://github.com/FabricMC/tiny-mappings-parser/blob/750be4e/src/main/java/net/fabricmc/mapping/tree/TinyMappingFactory.java; spec https://wiki.fabricmc.net/documentation:tiny
+ */
 object TinyV1Reader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

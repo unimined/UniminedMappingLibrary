@@ -1,0 +1,519 @@
+umf	1	3
+source	target	searge	mcp
+c	a	net/minecraft/util/text/TextFormatting	_	_
+	f	a	BLACK	_	_
+	f	b	DARK_BLUE	_	_
+	f	c	DARK_GREEN	_	_
+	f	d	DARK_AQUA	_	_
+	f	e	DARK_RED	_	_
+	f	f	DARK_PURPLE	_	_
+	f	g	GOLD	_	_
+	f	h	GRAY	_	_
+	f	i	DARK_GRAY	_	_
+	f	j	BLUE	_	_
+	f	k	GREEN	_	_
+	f	l	AQUA	_	_
+	f	m	RED	_	_
+	f	n	LIGHT_PURPLE	_	_
+	f	o	YELLOW	_	_
+	f	p	WHITE	_	_
+	f	q	OBFUSCATED	_	_
+	f	r	BOLD	_	_
+	f	s	STRIKETHROUGH	_	_
+	f	t	UNDERLINE	_	_
+	f	u	ITALIC	_	_
+	f	v	RESET	_	_
+	f	w	field_96331_x	_	_
+	f	x	field_96330_y	_	_
+	f	y	field_175748_y	_	_
+	f	z	field_96329_z	_	_
+	f	A	field_96303_A	_	_
+	f	B	field_96304_B	_	_
+	f	C	field_175747_C	_	_
+	f	D	$VALUES	_	_
+	m	a;(I)La;	func_175744_a	_	_
+	m	a;(Ljava/lang/String;)Ljava/lang/String;	func_110646_a	_	_
+	m	a;(ZZ)Ljava/util/Collection;	func_96296_a	_	_
+	m	b;()I	func_175746_b	_	_
+	m	b;(Ljava/lang/String;)La;	func_96300_b	_	_
+	m	c;()Z	func_96301_b	_	_
+	m	c;(Ljava/lang/String;)Ljava/lang/String;	func_175745_c	_	_
+	m	d;()Z	func_96302_c	_	_
+	m	e;()Ljava/lang/String;	func_96297_d	_	_
+	m	values;()[La;	values	_	_
+	m	toString;()Ljava/lang/String;	toString	_	_
+c	b	net/minecraft/crash/CrashReport	_	_
+	f	a	field_147150_a	_	_
+	f	b	field_71513_a	_	_
+	f	c	field_71511_b	_	_
+	f	d	field_85061_c	_	_
+	f	e	field_71512_c	_	_
+	f	f	field_71510_d	_	_
+	f	g	field_85059_f	_	_
+	f	h	field_85060_g	_	_
+	m	a;()Ljava/lang/String;	func_71501_a	_	_
+	m	a;(Ljava/io/File;)Z	func_147149_a	_	_
+	m	a;(Ljava/lang/String;)Lc;	func_85058_a	_	_
+	m	a;(Ljava/lang/String;I)Lc;	func_85057_a	_	_
+	m	a;(Ljava/lang/StringBuilder;)V	func_71506_a	_	_
+	m	a;(Ljava/lang/Throwable;Ljava/lang/String;)Lb;	func_85055_a	_	_
+	m	b;()Ljava/lang/Throwable;	func_71505_b	_	_
+	m	d;()Ljava/lang/String;	func_71498_d	_	_
+	m	e;()Ljava/lang/String;	func_71502_e	_	_
+	m	f;()Ljava/io/File;	func_71497_f	_	_
+	m	g;()Lc;	func_85056_g	_	_
+	m	h;()V	func_71504_g	_	_
+	m	i;()Ljava/lang/String;	func_71503_h	_	_
+c	b$1	net/minecraft/crash/CrashReport$1	_	_
+	f	a	field_71494_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$2	net/minecraft/crash/CrashReport$2	_	_
+	f	a	field_71496_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$3	net/minecraft/crash/CrashReport$3	_	_
+	f	a	field_71490_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$4	net/minecraft/crash/CrashReport$4	_	_
+	f	a	field_71492_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$5	net/minecraft/crash/CrashReport$5	_	_
+	f	a	field_71486_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$6	net/minecraft/crash/CrashReport$6	_	_
+	f	a	field_71488_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$7	net/minecraft/crash/CrashReport$7	_	_
+	f	a	field_83004_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	c	net/minecraft/crash/CrashReportCategory	_	_
+	f	a	field_85078_a	_	_
+	f	b	field_85076_b	_	_
+	f	c	field_85077_c	_	_
+	f	d	field_85075_d	_	_
+	m	a;()[Ljava/lang/StackTraceElement;	func_147152_a	_	_
+	m	a;(DDD)Ljava/lang/String;	func_85074_a	_	_
+	m	a;(I)I	func_85073_a	_	_
+	m	a;(III)Ljava/lang/String;	func_184876_a	_	_
+	m	a;(Lc;Let;Laow;I)V	func_180523_a	_	_
+	m	a;(Lc;Let;Lawt;)V	func_175750_a	_	_
+	m	a;(Let;)Ljava/lang/String;	func_180522_a	_	_
+	m	a;(Ljava/lang/StackTraceElement;Ljava/lang/StackTraceElement;)Z	func_85069_a	_	_
+	m	a;(Ljava/lang/String;Ld;)V	func_189529_a	_	_
+	m	a;(Ljava/lang/String;Ljava/lang/Object;)V	func_71507_a	_	_
+	m	a;(Ljava/lang/String;Ljava/lang/Throwable;)V	func_71499_a	_	_
+	m	a;(Ljava/lang/StringBuilder;)V	func_85072_a	_	_
+	m	b;(I)V	func_85070_b	_	_
+c	c$1	net/minecraft/crash/CrashReportCategory$1	_	_
+	f	a	field_85080_a	_	_
+	f	b	field_147151_b	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	c$2	net/minecraft/crash/CrashReportCategory$2	_	_
+	f	a	field_85063_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	c$3	net/minecraft/crash/CrashReportCategory$3	_	_
+c	_	_	net/minecraft/client/Minecraft$3	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1005_1_	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$11	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1007_1_	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$12	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1008_1_	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$13	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1009_1_	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$14	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1010_1_	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$15	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1011_1_	_
+c	_	_	net/minecraft/client/settings/GameSettings$Options	_
+	m	_	_	<init>;(Ljava/lang/String;ILjava/lang/String;ZZ)V	_
+		p	0	1	_	_	p_i1015_1_	_
+		p	1	2	_	_	p_i1015_2_	_
+		p	2	3	_	_	p_i1015_3_	_
+		p	3	4	_	_	p_i1015_4_	_
+		p	4	5	_	_	p_i1015_5_	_
+c	_	_	net/minecraft/client/LoadingScreenRenderer	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1017_1_	_
+c	_	_	net/minecraft/util/Timer	_
+	m	_	_	<init>;(F)V	_
+		p	0	1	_	_	p_i1018_1_	_
+c	_	_	net/minecraft/client/gui/GuiButton	_
+	m	_	_	<init>;(IIILjava/lang/String;)V	_
+		p	0	1	_	_	p_i1020_1_	_
+		p	1	2	_	_	p_i1020_2_	_
+		p	2	3	_	_	p_i1020_3_	_
+		p	3	4	_	_	p_i1020_4_	_
+c	_	_	net/minecraft/client/gui/GuiNewChat	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;)V	_
+		p	0	1	_	_	p_i1022_1_	_
+c	_	_	net/minecraft/client/gui/ScreenChatOptions	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/settings/GameSettings;)V	_
+		p	0	1	_	_	p_i1023_1_	_
+		p	1	2	_	_	p_i1023_2_	_
+c	_	_	net/minecraft/client/gui/GuiChat	_
+	m	_	_	<init>;(Ljava/lang/String;)V	_
+		p	0	1	_	_	p_i1024_1_	_
+c	_	_	net/minecraft/client/gui/GuiControls	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/settings/GameSettings;)V	_
+		p	0	1	_	_	p_i1027_1_	_
+		p	1	2	_	_	p_i1027_2_	_
+c	_	_	net/minecraft/client/gui/GuiCreateFlatWorld	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiCreateWorld;Ljava/lang/String;)V	_
+		p	0	1	_	_	p_i1029_1_	_
+		p	1	2	_	_	p_i1029_2_	_
+c	_	_	net/minecraft/client/gui/GuiScreenServerList	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/multiplayer/ServerData;)V	_
+		p	0	1	_	_	p_i1031_1_	_
+		p	1	2	_	_	p_i1031_2_	_
+c	_	_	net/minecraft/client/gui/GuiScreenAddServer	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/multiplayer/ServerData;)V	_
+		p	0	1	_	_	p_i1033_1_	_
+		p	1	2	_	_	p_i1033_2_	_
+c	_	_	net/minecraft/client/resources/data/PackMetadataSection	_
+	m	_	_	<init>;(Lnet/minecraft/util/text/ITextComponent;I)V	_
+		p	0	1	_	_	p_i1034_1_	_
+		p	1	2	_	_	p_i1034_2_	_
+c	_	_	net/minecraft/client/gui/FontRenderer	_
+	m	_	_	<init>;(Lnet/minecraft/client/settings/GameSettings;Lnet/minecraft/util/ResourceLocation;Lnet/minecraft/client/renderer/texture/TextureManager;Z)V	_
+		p	0	1	_	_	p_i1035_1_	_
+		p	1	2	_	_	p_i1035_2_	_
+		p	2	3	_	_	p_i1035_3_	_
+		p	3	4	_	_	p_i1035_4_	_
+c	_	_	net/minecraft/client/resources/SkinManager$3$1	_
+	m	_	_	<init>;(Lnet/minecraft/client/resources/SkinManager$3;Ljava/util/Map;)V	_
+		p	0	1	_	_	p_i1036_1_	_
+		p	1	2	_	_	p_i1036_2_	_
+c	_	_	net/minecraft/client/resources/SkinManager$3	_
+	m	_	_	<init>;(Lnet/minecraft/client/resources/SkinManager;Lcom/mojang/authlib/GameProfile;ZLnet/minecraft/client/resources/SkinManager$SkinAvailableCallback;)V	_
+		p	0	1	_	_	p_i1038_1_	_
+		p	1	2	_	_	p_i1038_2_	_
+		p	2	3	_	_	p_i1038_3_	_
+		p	3	4	_	_	p_i1038_4_	_
+c	_	_	net/minecraft/client/gui/GuiMultiplayer	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;)V	_
+		p	0	1	_	_	p_i1040_1_	_
+c	_	_	net/minecraft/client/gui/GuiButtonLanguage	_
+	m	_	_	<init>;(III)V	_
+		p	0	1	_	_	p_i1041_1_	_
+		p	1	2	_	_	p_i1041_2_	_
+		p	2	3	_	_	p_i1041_3_	_
+c	_	_	net/minecraft/client/resources/SkinManager$1	_
+	m	_	_	<init>;(Lnet/minecraft/client/resources/SkinManager;)V	_
+		p	0	1	_	_	p_i1042_1_	_
+c	_	_	net/minecraft/client/gui/GuiLanguage	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/settings/GameSettings;Lnet/minecraft/client/resources/LanguageManager;)V	_
+		p	0	1	_	_	p_i1043_1_	_
+		p	1	2	_	_	p_i1043_2_	_
+		p	2	3	_	_	p_i1043_3_	_
+c	_	_	net/minecraft/client/resources/SkinManager	_
+	m	_	_	<init>;(Lnet/minecraft/client/renderer/texture/TextureManager;Ljava/io/File;Lcom/mojang/authlib/minecraft/MinecraftSessionService;)V	_
+		p	0	1	_	_	p_i1044_1_	_
+		p	1	2	_	_	p_i1044_2_	_
+		p	2	3	_	_	p_i1044_3_	_
+c	_	_	net/minecraft/client/gui/GuiOptions	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/settings/GameSettings;)V	_
+		p	0	1	_	_	p_i1046_1_	_
+		p	1	2	_	_	p_i1046_2_	_
+c	_	_	net/minecraft/client/resources/ResourceIndex	_
+	m	_	_	<init>;(Ljava/io/File;Ljava/lang/String;)V	_
+		p	0	1	_	_	p_i1047_1_	_
+		p	1	2	_	_	p_i1047_2_	_
+c	_	_	net/minecraft/client/gui/GuiFlatPresets$ListSlot	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiFlatPresets;)V	_
+		p	0	1	_	_	p_i1048_1_	_
+c	_	_	net/minecraft/client/renderer/ThreadDownloadImageData	_
+	m	_	_	<init>;(Ljava/io/File;Ljava/lang/String;Lnet/minecraft/util/ResourceLocation;Lnet/minecraft/client/renderer/IImageBuffer;)V	_
+		p	0	1	_	_	p_i1049_1_	_
+		p	1	2	_	_	p_i1049_2_	_
+		p	2	3	_	_	p_i1049_3_	_
+		p	3	4	_	_	p_i1049_4_	_
+c	_	_	net/minecraft/client/shader/ShaderGroup	_
+	m	_	_	<init>;(Lnet/minecraft/client/renderer/texture/TextureManager;Lnet/minecraft/client/resources/IResourceManager;Lnet/minecraft/client/shader/Framebuffer;Lnet/minecraft/util/ResourceLocation;)V	_
+		p	0	1	_	_	p_i1050_1_	_
+		p	1	2	_	_	p_i1050_2_	_
+		p	2	3	_	_	p_i1050_3_	_
+		p	3	4	_	_	p_i1050_4_	_
+c	_	_	net/minecraft/client/gui/GuiSlot	_
+	m	_	_	<init>;(Lnet/minecraft/client/Minecraft;IIIII)V	_
+		p	0	1	_	_	p_i1052_1_	_
+		p	1	2	_	_	p_i1052_2_	_
+		p	2	3	_	_	p_i1052_3_	_
+		p	3	4	_	_	p_i1052_4_	_
+		p	4	5	_	_	p_i1052_5_	_
+		p	5	6	_	_	p_i1052_6_	_
+c	_	_	net/minecraft/client/multiplayer/ServerData$ServerResourceMode	_
+	m	_	_	<init>;(Ljava/lang/String;ILjava/lang/String;)V	_
+		p	0	1	_	_	p_i1053_1_	_
+		p	1	2	_	_	p_i1053_2_	_
+		p	2	3	_	_	p_i1053_3_	_
+c	_	_	net/minecraft/client/gui/GuiShareToLan	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;)V	_
+		p	0	1	_	_	p_i1055_1_	_
+c	_	_	net/minecraft/realms/RealmsSliderButton	_
+	m	_	_	<init>;(IIIIII)V	_
+		p	0	1	_	_	p_i1056_1_	_
+		p	1	2	_	_	p_i1056_2_	_
+		p	2	3	_	_	p_i1056_3_	_
+		p	3	4	_	_	p_i1056_4_	_
+		p	4	5	_	_	p_i1056_5_	_
+		p	5	6	_	_	p_i1056_6_	_
+	m	_	_	<init>;(IIIIIIFF)V	_
+		p	0	1	_	_	p_i1057_1_	_
+		p	1	2	_	_	p_i1057_2_	_
+		p	2	3	_	_	p_i1057_3_	_
+		p	3	4	_	_	p_i1057_4_	_
+		p	4	5	_	_	p_i1057_5_	_
+		p	5	6	_	_	p_i1057_6_	_
+		p	6	7	_	_	p_i1057_7_	_
+		p	7	8	_	_	p_i1057_8_	_
+c	_	_	net/minecraft/client/gui/GuiSnooper$List	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiSnooper;)V	_
+		p	0	1	_	_	p_i1060_1_	_
+c	_	_	net/minecraft/client/gui/GuiSnooper	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/settings/GameSettings;)V	_
+		p	0	1	_	_	p_i1061_1_	_
+		p	1	2	_	_	p_i1061_2_	_
+c	_	_	net/minecraft/client/gui/GuiVideoSettings	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/client/settings/GameSettings;)V	_
+		p	0	1	_	_	p_i1062_1_	_
+		p	1	2	_	_	p_i1062_2_	_
+c	_	_	net/minecraft/client/gui/achievement/GuiStats	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiScreen;Lnet/minecraft/stats/StatisticsManager;)V	_
+		p	0	1	_	_	p_i1071_1_	_
+		p	1	2	_	_	p_i1071_2_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiContainer	_
+	m	_	_	<init>;(Lnet/minecraft/inventory/Container;)V	_
+		p	0	1	_	_	p_i1072_1_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiBeacon$CancelButton	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/inventory/GuiBeacon;III)V	_
+		p	0	1	_	_	p_i1074_1_	_
+		p	1	2	_	_	p_i1074_2_	_
+		p	2	3	_	_	p_i1074_3_	_
+		p	3	4	_	_	p_i1074_4_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiBeacon$ConfirmButton	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/inventory/GuiBeacon;III)V	_
+		p	0	1	_	_	p_i1075_1_	_
+		p	1	2	_	_	p_i1075_2_	_
+		p	2	3	_	_	p_i1075_3_	_
+		p	3	4	_	_	p_i1075_4_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiBeacon$Button	_
+	m	_	_	<init>;(IIILnet/minecraft/util/ResourceLocation;II)V	_
+		p	0	1	_	_	p_i1077_1_	_
+		p	1	2	_	_	p_i1077_2_	_
+		p	2	3	_	_	p_i1077_3_	_
+		p	3	4	_	_	p_i1077_4_	_
+		p	4	5	_	_	p_i1077_5_	_
+		p	5	6	_	_	p_i1077_6_	_
+c	_	_	net/minecraft/realms/RealmsConnect	_
+	m	_	_	<init>;(Lnet/minecraft/realms/RealmsScreen;)V	_
+		p	0	1	_	_	p_i1079_1_	_
+c	_	_	net/minecraft/client/gui/GuiScreenBook	_
+	m	_	_	<init>;(Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/item/ItemStack;Z)V	_
+		p	0	1	_	_	p_i1080_1_	_
+		p	1	2	_	_	p_i1080_2_	_
+		p	2	3	_	_	p_i1080_3_	_
+c	_	_	net/minecraft/client/gui/GuiYesNo	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiYesNoCallback;Ljava/lang/String;Ljava/lang/String;I)V	_
+		p	0	1	_	_	p_i1082_1_	_
+		p	1	2	_	_	p_i1082_2_	_
+		p	2	3	_	_	p_i1082_3_	_
+		p	3	4	_	_	p_i1082_4_	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiYesNoCallback;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V	_
+		p	0	1	_	_	p_i1083_1_	_
+		p	1	2	_	_	p_i1083_2_	_
+		p	2	3	_	_	p_i1083_3_	_
+		p	3	4	_	_	p_i1083_4_	_
+		p	4	5	_	_	p_i1083_5_	_
+		p	5	6	_	_	p_i1083_6_	_
+c	_	_	net/minecraft/client/gui/GuiConfirmOpenLink	_
+	m	_	_	<init>;(Lnet/minecraft/client/gui/GuiYesNoCallback;Ljava/lang/String;IZ)V	_
+		p	0	1	_	_	p_i1084_1_	_
+		p	1	2	_	_	p_i1084_2_	_
+		p	2	3	_	_	p_i1084_3_	_
+		p	3	4	_	_	p_i1084_4_	_
+c	_	_	net/minecraft/client/gui/GuiSlotRealmsProxy	_
+	m	_	_	<init>;(Lnet/minecraft/realms/RealmsScrolledSelectionList;IIIII)V	_
+		p	0	1	_	_	p_i1085_1_	_
+		p	1	2	_	_	p_i1085_2_	_
+		p	2	3	_	_	p_i1085_3_	_
+		p	3	4	_	_	p_i1085_4_	_
+		p	4	5	_	_	p_i1085_5_	_
+		p	5	6	_	_	p_i1085_6_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiContainerCreative$ContainerCreative	_
+	m	_	_	<init>;(Lnet/minecraft/entity/player/EntityPlayer;)V	_
+		p	0	1	_	_	p_i1086_1_	_
+c	_	_	net/minecraft/client/gui/GuiScreenRealmsProxy	_
+	m	_	_	<init>;(Lnet/minecraft/realms/RealmsScreen;)V	_
+		p	0	1	_	_	p_i1087_1_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiContainerCreative	_
+	m	_	_	<init>;(Lnet/minecraft/entity/player/EntityPlayer;)V	_
+		p	0	1	_	_	p_i1088_1_	_
+c	_	_	net/minecraft/client/renderer/InventoryEffectRenderer	_
+	m	_	_	<init>;(Lnet/minecraft/inventory/Container;)V	_
+		p	0	1	_	_	p_i1089_1_	_
+c	_	_	net/minecraft/client/gui/GuiButtonRealmsProxy	_
+	m	_	_	<init>;(Lnet/minecraft/realms/RealmsButton;IIILjava/lang/String;II)V	_
+		p	0	1	_	_	p_i1090_1_	_
+		p	1	2	_	_	p_i1090_2_	_
+		p	2	3	_	_	p_i1090_3_	_
+		p	3	4	_	_	p_i1090_4_	_
+		p	4	5	_	_	p_i1090_5_	_
+		p	5	6	_	_	p_i1090_6_	_
+		p	6	7	_	_	p_i1090_7_	_
+c	_	_	net/minecraft/client/gui/GuiHopper	_
+	m	_	_	<init>;(Lnet/minecraft/entity/player/InventoryPlayer;Lnet/minecraft/inventory/IInventory;)V	_
+		p	0	1	_	_	p_i1092_1_	_
+		p	1	2	_	_	p_i1092_2_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiScreenHorseInventory	_
+	m	_	_	<init>;(Lnet/minecraft/inventory/IInventory;Lnet/minecraft/inventory/IInventory;Lnet/minecraft/entity/passive/AbstractHorse;)V	_
+		p	0	1	_	_	p_i1093_1_	_
+		p	1	2	_	_	p_i1093_2_	_
+		p	2	3	_	_	p_i1093_3_	_
+c	_	_	net/minecraft/client/gui/inventory/GuiInventory	_
+	m	_	_	<init>;(Lnet/minecraft/entity/player/EntityPlayer;)V	_
+		p	0	1	_	_	p_i1094_1_	_
+c	_	_	net/minecraft/client/gui/GuiMerchant$MerchantButton	_
+	m	_	_	<init>;(IIIZ)V	_
+		p	0	1	_	_	p_i1095_1_	_
+		p	1	2	_	_	p_i1095_2_	_
+		p	2	3	_	_	p_i1095_3_	_
+		p	3	4	_	_	p_i1095_4_	_
+c	_	_	net/minecraft/util/Session$Type	_
+	m	_	_	<init>;(Ljava/lang/String;ILjava/lang/String;)V	_
+		p	0	1	_	_	p_i1096_1_	_
+		p	1	2	_	_	p_i1096_2_	_
+		p	2	3	_	_	p_i1096_3_	_
+c	_	_	net/minecraft/advancements/Advancement$Builder	_
+	m	_	_	func_192060_b;(Lnet/minecraft/network/PacketBuffer;)Lnet/minecraft/advancements/Advancement$Builder;	_
+		x	+	java/io/IOException	searge
+		x	+	java/io/IOException	searge
+		p	0	1	_	_	p_192060_1	_
+c	_	_	net/minecraft/advancements/AdvancementManager$1	_
+	m	_	_	deserialize;(Lcom/google/gson/JsonElement;Ljava/lang/reflect/Type;Lcom/google/gson/JsonDeserializationContext;)Ljava/lang/Object;	_
+		x	+	com/google/gson/JsonParseException	searge
+	m	_	_	deserialize;(Lcom/google/gson/JsonElement;Ljava/lang/reflect/Type;Lcom/google/gson/JsonDeserializationContext;)Lnet/minecraft/advancements/Advancement$Builder;	_
+		x	+	com/google/gson/JsonParseException	searge
+c	_	_	net/minecraft/advancements/AdvancementProgress$Serializer	_
+	m	_	_	deserialize;(Lcom/google/gson/JsonElement;Ljava/lang/reflect/Type;Lcom/google/gson/JsonDeserializationContext;)Ljava/lang/Object;	_
+		x	+	com/google/gson/JsonParseException	searge
+	m	_	_	deserialize;(Lcom/google/gson/JsonElement;Ljava/lang/reflect/Type;Lcom/google/gson/JsonDeserializationContext;)Lnet/minecraft/advancements/AdvancementProgress;	_
+		x	+	com/google/gson/JsonParseException	searge
+c	_	_	net/minecraft/advancements/AdvancementRewards$Deserializer	_
+	m	_	_	deserialize;(Lcom/google/gson/JsonElement;Ljava/lang/reflect/Type;Lcom/google/gson/JsonDeserializationContext;)Ljava/lang/Object;	_
+		x	+	com/google/gson/JsonParseException	searge
+	m	_	_	deserialize;(Lcom/google/gson/JsonElement;Ljava/lang/reflect/Type;Lcom/google/gson/JsonDeserializationContext;)Lnet/minecraft/advancements/AdvancementRewards;	_
+		x	+	com/google/gson/JsonParseException	searge
+c	_	_	net/minecraft/advancements/DisplayInfo	_
+	m	_	_	func_192295_b;(Lnet/minecraft/network/PacketBuffer;)Lnet/minecraft/advancements/DisplayInfo;	_
+		x	+	java/io/IOException	searge
+		x	+	java/io/IOException	searge
+		p	0	1	_	_	p_192295_1	_
+c	_	_	net/minecraft/block/state/pattern/BlockPattern$CacheLoader	_
+	m	_	_	load;(Ljava/lang/Object;)Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	load;(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/BlockWorldState;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft	_
+	m	_	_	func_110441_Q;()V	_
+		x	+	org/lwjgl/LWJGLException	searge
+		x	+	org/lwjgl/LWJGLException	searge
+	m	_	_	func_152340_a;(Ljava/io/InputStream;)Ljava/nio/ByteBuffer;	_
+		x	+	java/io/IOException	searge
+		x	+	java/io/IOException	searge
+		p	0	1	_	_	p_152340_1	_
+	m	_	_	func_175605_an;()V	_
+		x	+	org/lwjgl/LWJGLException	searge
+		x	+	org/lwjgl/LWJGLException	searge
+	m	_	_	func_175609_am;()V	_
+		x	+	org/lwjgl/LWJGLException	searge
+		x	+	org/lwjgl/LWJGLException	searge
+	m	_	_	func_180510_a;(Lnet/minecraft/client/renderer/texture/TextureManager;)V	_
+		x	+	org/lwjgl/LWJGLException	searge
+		x	+	org/lwjgl/LWJGLException	searge
+		p	0	1	_	_	p_180510_1	_
+	m	_	_	func_184118_az;()V	_
+		x	+	java/io/IOException	searge
+		x	+	java/io/IOException	searge
+	m	_	_	func_184124_aB;()V	_
+		x	+	java/io/IOException	searge
+		x	+	java/io/IOException	searge
+	m	_	_	func_71384_a;()V	_
+		x	+	org/lwjgl/LWJGLException	searge
+		x	+	java/io/IOException	searge
+		x	+	org/lwjgl/LWJGLException	searge
+		x	+	java/io/IOException	searge
+	m	_	_	func_71407_l;()V	_
+		x	+	java/io/IOException	searge
+		x	+	java/io/IOException	searge
+	m	_	_	func_71411_J;()V	_
+		x	+	java/io/IOException	searge
+		x	+	java/io/IOException	searge
+c	_	_	net/minecraft/client/Minecraft$10	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$2	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$4	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$5	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+	m	_	_	call;()Ljava/lang/String;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$6	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/client/Minecraft$7	_
+	m	_	_	call;()Ljava/lang/Object;	_
+		x	+	java/lang/Exception	searge
+c	_	_	net/minecraft/src/Minecraft	_
+	m	_	_	func_1_a;()V	_
+		a	+	public	*
+		a	+	public	*
+c	_	_	net/minecraft/src/World	_
+	m	_	_	func_2_b;(I)V	_
+		a	+	protected	*
+		a	+	protected	*
+		p	0	0	_	_	p_2_0	_

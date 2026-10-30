@@ -20,6 +20,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * MCP's SRG format.
+ * First-party implementation: SrgUtils `IMappingFile.Format.SRG` (https://github.com/MinecraftForge/SrgUtils/blob/3c679e5/src/main/java/net/minecraftforge/srgutils/IMappingFile.java).
  */
 object SrgReader : FormatReader {
 

@@ -27,6 +27,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * FabricMC's unpick format to represent constant groups.
+ * First-party implementation: https://github.com/FabricMC/unpick/blob/c96a591/unpick-format-utils/src/main/java/daomephsta/unpick/constantmappers/datadriven/parser/v2/UnpickV2Reader.java + .../v3/UnpickV3Reader.java; spec https://github.com/FabricMC/unpick/issues/26
  */
 object UnpickReader : FormatReader {
 

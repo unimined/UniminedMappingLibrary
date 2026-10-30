@@ -1,0 +1,11 @@
+umf	1	3
+source	target	searge
+k	""	net/minecraft/src/	_
+c	a	net/minecraft/src/Minecraft	_
+	f	a	field_1724	_
+	m	a;()V	func_1_a	_
+c	_	_	a
+	m	_	_	a;()V
+		x	+	java/lang/Exception	searge
+		a	+	public	*
+		p	0	_	_	_	p_1_0_

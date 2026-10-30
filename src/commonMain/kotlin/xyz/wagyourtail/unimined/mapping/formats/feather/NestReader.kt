@@ -27,6 +27,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 /**
  * Ornithe's mapping format for adding inner class information to classes.
  *
+ * First-party implementation: OrnitheMC feather mapping extras (`.nests`); no public upstream parser — corpus is schema-derived.
  */
 object NestReader : FormatReader {
 

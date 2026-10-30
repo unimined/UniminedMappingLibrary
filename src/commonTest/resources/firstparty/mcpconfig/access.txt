@@ -1,0 +1,2 @@
+PUBLIC net/minecraft/src/Minecraft func_1_a ()V
+PROTECTED net/minecraft/src/World func_2_b (I)V

@@ -23,7 +23,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
-/** Reads ClassTweaker v1/v2 directives into mapping access and metadata elements. */
+/** Reads ClassTweaker v1/v2 directives into mapping access and metadata elements.
+ * First-party implementation: https://github.com/FabricMC/fabric-tooling/blob/b01b36a/class-tweaker/src/main/java/net/fabricmc/classtweaker/reader/ClassTweakerReaderImpl.java
+ */
 object CTReader : FormatReader {
     /** Whether to ignore non-transitive directives while reading. */
     var allowNonTransitive: Boolean = true

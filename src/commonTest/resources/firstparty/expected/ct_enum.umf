@@ -1,0 +1,5 @@
+umf	1	3
+somenamespace
+c	test/EnumTests
+	z	+	CONSTANT3	somenamespace
+	z	+	CONSTANT4	somenamespace

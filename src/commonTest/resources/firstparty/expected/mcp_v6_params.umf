@@ -1,0 +1,122 @@
+umf	1	3
+source	target	searge	mcp
+c	a	net/minecraft/util/text/TextFormatting	_	_
+	f	a	BLACK	_	_
+	f	b	DARK_BLUE	_	_
+	f	c	DARK_GREEN	_	_
+	f	d	DARK_AQUA	_	_
+	f	e	DARK_RED	_	_
+	f	f	DARK_PURPLE	_	_
+	f	g	GOLD	_	_
+	f	h	GRAY	_	_
+	f	i	DARK_GRAY	_	_
+	f	j	BLUE	_	_
+	f	k	GREEN	_	_
+	f	l	AQUA	_	_
+	f	m	RED	_	_
+	f	n	LIGHT_PURPLE	_	_
+	f	o	YELLOW	_	_
+	f	p	WHITE	_	_
+	f	q	OBFUSCATED	_	_
+	f	r	BOLD	_	_
+	f	s	STRIKETHROUGH	_	_
+	f	t	UNDERLINE	_	_
+	f	u	ITALIC	_	_
+	f	v	RESET	_	_
+	f	w	field_96331_x	_	_
+	f	x	field_96330_y	_	_
+	f	y	field_175748_y	_	_
+	f	z	field_96329_z	_	_
+	f	A	field_96303_A	_	_
+	f	B	field_96304_B	_	_
+	f	C	field_175747_C	_	_
+	f	D	$VALUES	_	_
+	m	a;(I)La;	func_175744_a	_	_
+	m	a;(Ljava/lang/String;)Ljava/lang/String;	func_110646_a	_	_
+	m	a;(ZZ)Ljava/util/Collection;	func_96296_a	_	_
+	m	b;()I	func_175746_b	_	_
+	m	b;(Ljava/lang/String;)La;	func_96300_b	_	_
+	m	c;()Z	func_96301_b	_	_
+	m	c;(Ljava/lang/String;)Ljava/lang/String;	func_175745_c	_	_
+	m	d;()Z	func_96302_c	_	_
+	m	e;()Ljava/lang/String;	func_96297_d	_	_
+	m	values;()[La;	values	_	_
+	m	toString;()Ljava/lang/String;	toString	_	_
+c	b	net/minecraft/crash/CrashReport	_	_
+	f	a	field_147150_a	_	_
+	f	b	field_71513_a	_	_
+	f	c	field_71511_b	_	_
+	f	d	field_85061_c	_	_
+	f	e	field_71512_c	_	_
+	f	f	field_71510_d	_	_
+	f	g	field_85059_f	_	_
+	f	h	field_85060_g	_	_
+	m	a;()Ljava/lang/String;	func_71501_a	_	_
+	m	a;(Ljava/io/File;)Z	func_147149_a	_	_
+	m	a;(Ljava/lang/String;)Lc;	func_85058_a	_	_
+	m	a;(Ljava/lang/String;I)Lc;	func_85057_a	_	_
+	m	a;(Ljava/lang/StringBuilder;)V	func_71506_a	_	_
+	m	a;(Ljava/lang/Throwable;Ljava/lang/String;)Lb;	func_85055_a	_	_
+	m	b;()Ljava/lang/Throwable;	func_71505_b	_	_
+	m	d;()Ljava/lang/String;	func_71498_d	_	_
+	m	e;()Ljava/lang/String;	func_71502_e	_	_
+	m	f;()Ljava/io/File;	func_71497_f	_	_
+	m	g;()Lc;	func_85056_g	_	_
+	m	h;()V	func_71504_g	_	_
+	m	i;()Ljava/lang/String;	func_71503_h	_	_
+c	b$1	net/minecraft/crash/CrashReport$1	_	_
+	f	a	field_71494_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$2	net/minecraft/crash/CrashReport$2	_	_
+	f	a	field_71496_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$3	net/minecraft/crash/CrashReport$3	_	_
+	f	a	field_71490_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$4	net/minecraft/crash/CrashReport$4	_	_
+	f	a	field_71492_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$5	net/minecraft/crash/CrashReport$5	_	_
+	f	a	field_71486_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$6	net/minecraft/crash/CrashReport$6	_	_
+	f	a	field_71488_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	b$7	net/minecraft/crash/CrashReport$7	_	_
+	f	a	field_83004_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	c	net/minecraft/crash/CrashReportCategory	_	_
+	f	a	field_85078_a	_	_
+	f	b	field_85076_b	_	_
+	f	c	field_85077_c	_	_
+	f	d	field_85075_d	_	_
+	m	a;()[Ljava/lang/StackTraceElement;	func_147152_a	_	_
+	m	a;(DDD)Ljava/lang/String;	func_85074_a	_	_
+	m	a;(I)I	func_85073_a	_	_
+	m	a;(III)Ljava/lang/String;	func_184876_a	_	_
+	m	a;(Lc;Let;Laow;I)V	func_180523_a	_	_
+	m	a;(Lc;Let;Lawt;)V	func_175750_a	_	_
+	m	a;(Let;)Ljava/lang/String;	func_180522_a	_	_
+	m	a;(Ljava/lang/StackTraceElement;Ljava/lang/StackTraceElement;)Z	func_85069_a	_	_
+	m	a;(Ljava/lang/String;Ld;)V	func_189529_a	_	_
+	m	a;(Ljava/lang/String;Ljava/lang/Object;)V	func_71507_a	_	_
+	m	a;(Ljava/lang/String;Ljava/lang/Throwable;)V	func_71499_a	_	_
+	m	a;(Ljava/lang/StringBuilder;)V	func_85072_a	_	_
+	m	b;(I)V	func_85070_b	_	_
+c	c$1	net/minecraft/crash/CrashReportCategory$1	_	_
+	f	a	field_85080_a	_	_
+	f	b	field_147151_b	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	c$2	net/minecraft/crash/CrashReportCategory$2	_	_
+	f	a	field_85063_a	_	_
+	m	a;()Ljava/lang/String;	call	_	_
+	m	call;()Ljava/lang/Object;	call	_	_
+c	c$3	net/minecraft/crash/CrashReportCategory$3	_	_

@@ -31,22 +31,27 @@ object MixinTables {
     /** `@At`-style pointcut annotations — `target` is a member ref
      *  (`Lowner;name(desc)` / `Lowner;name:desc` / `owner.name(desc)` /
      *  `name(desc)` forms), `args` a `key=value` list (`class=` remaps). */
-    val POINTCUT = annotationTable {
-        annotation("${P}injection/At;") {
+    val POINTCUT: AnnotationTable = annotationTable {
+        // every pointcut's `target` is a member ref
+        annotationPackage("${P}injection/") {
             param("target", ParamRemap.MethodRef)
+        }
+        annotation("${P}injection/At;") {
             param("args", ParamRemap.InjectionArgs)
         }
         annotation("${P}injection/Desc;") {
-            param("target", ParamRemap.MethodRef)
             param("owner", ParamRemap.ClassRef)
         }
-        annotation("${P}injection/Pointcut;") {
-            param("target", ParamRemap.MethodRef)
+        // @Slice's `from`/`to` hold nested pointcuts — self-nest so a @Slice
+        // inside `slice=` still gets its bounds rewritten
+        annotation("${P}injection/Slice;") {
+            param("from", ParamRemap.Nested { POINTCUT })
+            param("to", ParamRemap.Nested { POINTCUT })
         }
     }
 
     /** the full sponge mixin table */
-    val STANDARD = annotationTable {
+    val STANDARD: AnnotationTable = annotationTable {
         annotation("${P}Mixin;") {
             param("targets", ParamRemap.ClassRef)
             param("value", ParamRemap.ClassRef)
@@ -67,18 +72,20 @@ object MixinTables {
         }
         annotation("${P}Pseudo;") {}
 
-        // injection annotations sharing the method/at/slice grammar
-        for (desc in listOf(
-            "Inject", "ModifyArg", "ModifyArgs", "ModifyConstant",
-            "ModifyVariable", "ModifyExpressionValue", "ModifyReceiver",
-            "ModifyReturnValue", "Redirect", "Surrogate", "Group",
-        )) {
-            annotation("${P}injection/$desc;") {
-                param("method", ParamRemap.MethodRef)
-                param("at", ParamRemap.Nested(POINTCUT))
-                param("slice", ParamRemap.Nested(POINTCUT))
-                param("target", ParamRemap.Nested(POINTCUT))
-            }
+        // injection annotations share the method/at/slice/target grammar —
+        // the package rule covers Inject/ModifyArg/Redirect/etc. *and* any
+        // sponge additions; per-annotation entries below override params
+        // that break the grammar
+        annotationPackage("${P}injection/") {
+            param("method", ParamRemap.MethodRef)
+            param("at", ParamRemap.Nested(POINTCUT))
+            param("slice", ParamRemap.Nested(POINTCUT))
+            param("target", ParamRemap.Nested(POINTCUT))
+        }
+        // @Desc.target is a member ref (not a nested pointcut), `owner` a class
+        annotation("${P}injection/Desc;") {
+            param("target", ParamRemap.MethodRef)
+            param("owner", ParamRemap.ClassRef)
         }
 
         annotation("${P}gen/Accessor;") { param("value", ParamRemap.FieldRef) }
@@ -97,55 +104,14 @@ object MixinTables {
 
     /** MixinExtras (`com.llamalad7.mixinextras`) — injector annotations share
      *  the `method`/`at` grammar; `@Definition` binds an `id` to a member ref. */
-    val EXTRAS = annotationTable {
-        annotation("${E}injector/ModifyExpressionValue;") {
+    val EXTRAS: AnnotationTable = annotationTable {
+        // `method`/`at`/`slice` grammar covers every `injector/` annotation
+        // (WrapOperation, ModifyExpressionValue, v2/wrap* nested packages, …)
+        annotationPackage("${E}injector/") {
             param("method", ParamRemap.MethodRef)
             param("at", ParamRemap.Nested(POINTCUT))
             param("slice", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/ModifiesExpression;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/ModifyReceiver;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-            param("slice", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/ModifyReturnValue;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-            param("slice", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/WrapWithCondition;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-            param("slice", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/v2/WrapWithCondition;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-            param("slice", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/wrapoperation/WrapOperation;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-            param("slice", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/wrapmethod/WrapMethod;") {
-            param("method", ParamRemap.MethodRef)
-        }
-        annotation("${E}injector/ModifyArg;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/ModifyArgs;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
-        }
-        annotation("${E}injector/SugarWrapper;") {
-            param("method", ParamRemap.MethodRef)
-            param("at", ParamRemap.Nested(POINTCUT))
+            // additive — only SugarWrapper declares it
             param("signature", ParamRemap.MethodRef)
         }
 

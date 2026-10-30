@@ -29,6 +29,7 @@ import kotlin.jvm.JvmStatic
 
 /**
  * Our format to represent everything.
+ * First-party implementation: this library — spec `software-engineering/unimined-mapping-format.md`.
  */
 object UMFReader : FormatReader {
 

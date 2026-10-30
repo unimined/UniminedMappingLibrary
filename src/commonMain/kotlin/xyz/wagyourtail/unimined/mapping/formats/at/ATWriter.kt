@@ -28,6 +28,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
+/**
+ * First-party implementation: https://github.com/MinecraftForge/AccessTransformers/blob/15fa1e5/src/main/java/net/minecraftforge/accesstransformer/parser/AccessTransformerList.java
+ */
 object ATWriter : FormatWriter {
 
     var defaultToPublic: Boolean = false

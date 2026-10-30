@@ -1,4 +1,8 @@
-# Supported Mapping Formats
+# Support
+
+Upstream lineage and corpus-validation details (first-party parser links,
+corpus provenance, known divergences) live in [UPSTREAM-PARSERS.md](UPSTREAM-PARSERS.md).
+ed Mapping Formats
 
 A reference for each format this library reads/writes: what the files look
 like, where they come from, and who produces them.

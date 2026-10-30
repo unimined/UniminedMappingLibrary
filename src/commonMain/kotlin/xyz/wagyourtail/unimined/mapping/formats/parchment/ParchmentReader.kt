@@ -19,6 +19,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: https://github.com/ParchmentMC/Feather/tree/9ae3ddb/io-gson/src/main/java/org/parchmentmc/feather/io/gson (`MDCGsonAdapterFactory`).
+ */
 object ParchmentReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

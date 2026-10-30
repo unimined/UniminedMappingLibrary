@@ -1,0 +1,28 @@
+umf	1	3
+somenamespace
+c	pkg/AccessibleClass
+	a	+	public	*
+	f	field;I
+		a	+	public	*
+	f	finalField;I
+		a	-	final	*
+	m	method;()V
+		a	+	public	*
+		a	+	final	+PRIVATE
+c	pkg/ExtendableClass
+	a	+	public	*
+	a	-	final	*
+	a	-	final	*
+	m	method;()V
+		a	+	protected	-PUBLIC
+		a	-	final	*
+c	pkg/AccessibleExtendableClass
+	a	+	public	*
+	a	+	public	*
+	a	-	final	*
+	a	-	final	*
+	m	method;()V
+		a	+	public	*
+		a	+	final	+PRIVATE
+		a	+	protected	-PUBLIC
+		a	-	final	*

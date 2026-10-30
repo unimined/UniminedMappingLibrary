@@ -1,0 +1,40 @@
+searge,name,side,desc
+func_100011_g,getIsPotionDurationMax,0,Get the value of the isPotionDurationMax field.
+func_100012_b,setPotionDurationMax,0,Toggle the isPotionDurationMax field.
+func_100015_a,isKeyDown,0,Returns whether the specified key binding is currently being pressed.
+func_104002_bU,isNoDespawnRequired,2,Return the persistenceRequired field (whether this entity is allowed to naturally despawn)
+func_104055_i,setForceGamemode,1,Set the forceGamemode field (whether joining players will be put in their old gamemode or the default one)
+func_104056_am,getForceGamemode,2,Get the forceGamemode field (whether joining players will be put in their old gamemode or the default one)
+func_104112_b,flushToDisk,2,Flushes all pending chunks fully back to disk
+func_104140_m,flushToDisk,2,Flushes all pending chunks fully back to disk
+func_110121_a,isNotEmpty,0,Returns true if the given string is neither null nor empty.
+func_110124_au,getUniqueID,2,Returns the UUID of this entity.
+func_110128_b,onBroken,2,Called when this entity is broken. Entity parameter may be null.
+func_110131_b,removeFrameFromMap,2,Removes the dot representing this frame's position from the map when the item frame is broken.
+func_110132_b,removeInventoryChangeListener,2,removes the specified IInvBasic from receiving further change notices
+func_110133_a,setCustomName,2,Sets the name of this inventory. This is displayed to the client on opening.
+func_110134_a,addInventoryChangeListener,2,Add a listener that will be notified when any item in this inventory is modified.
+func_110138_aP,getMaxHealth,2,"Returns the maximum health of the entity (what it is able to regenerate up to, what it spawned with, etc)"
+func_110139_bj,getAbsorptionAmount,2,Returns the amount of health added by the Absorption effect.
+func_110140_aT,getAttributeMap,2,Returns this entity's attribute map (where all its attributes are stored)
+func_110142_aN,getCombatTracker,2,1.8.9
+func_110143_aJ,getHealth,2,
+func_110144_aD,getLastAttackedEntity,2,
+func_110145_l,dismountEntity,2,Moves the entity to a position out of the way of its mount.
+func_110146_f,updateDistance,2,
+func_110147_ax,applyEntityAttributes,2,
+func_110148_a,getEntityAttribute,2,
+func_110149_m,setAbsorptionAmount,2,
+func_110159_bB,updateLeashedState,2,"Applies logic related to leashes, for example dragging the entity or breaking the leash."
+func_110160_i,clearLeashed,2,Removes the leash from this entity
+func_110162_b,setLeashHolder,2,Sets the entity to be leashed to.
+func_110163_bv,enablePersistence,2,Enable the Entity persistence
+func_110165_bF,recreateLeash,2,
+func_110166_bE,getLeashHolder,2,
+func_110167_bD,getLeashed,2,
+func_110173_bK,isWithinHomeDistanceCurrentPosition,2,
+func_110174_bM,getMaximumHomeDistance,2,
+func_110175_bO,hasHome,2,Returns whether a home area is defined for this entity.
+func_110177_bN,detachHome,2,
+func_110182_bF,isAttacking,0,
+func_110195_a,addGrowth,2,Increases this entity's age. If the entity is an adult (if the entity's age is greater than or equal to 0) then the entity's age will be set to {@link #forcedAge}. This method does not update {@link #forcedAge}.

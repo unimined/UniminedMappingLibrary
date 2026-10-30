@@ -1,0 +1,54 @@
+umf	1	3
+somenamespace
+c	transitive/AccessibleClass
+	a	+	public	*
+	f	finalField;I
+		a	-	final	*
+	f	field;I
+		a	+	public	*
+	m	method;()V
+		a	+	public	*
+		a	+	final	+PRIVATE
+c	transitive/ExtendableClass
+	a	+	public	*
+	a	-	final	*
+	a	-	final	*
+	m	method;()V
+		a	+	protected	-PUBLIC
+		a	-	final	*
+c	transitive/AccessibleExtendableClass
+	a	+	public	*
+	a	+	public	*
+	a	-	final	*
+	a	-	final	*
+	m	method;()V
+		a	+	public	*
+		a	+	final	+PRIVATE
+		a	+	protected	-PUBLIC
+		a	-	final	*
+c	local/AccessibleClass
+	a	+	public	*
+	f	finalField;I
+		a	-	final	*
+	f	field;I
+		a	+	public	*
+	m	method;()V
+		a	+	public	*
+		a	+	final	+PRIVATE
+c	local/ExtendableClass
+	a	+	public	*
+	a	-	final	*
+	a	-	final	*
+	m	method;()V
+		a	+	protected	-PUBLIC
+		a	-	final	*
+c	local/AccessibleExtendableClass
+	a	+	public	*
+	a	+	public	*
+	a	-	final	*
+	a	-	final	*
+	m	method;()V
+		a	+	public	*
+		a	+	final	+PRIVATE
+		a	+	protected	-PUBLIC
+		a	-	final	*

@@ -14,6 +14,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
+/**
+ * First-party implementation: this library — spec `software-engineering/unimined-mapping-format.md`.
+ */
 object UMFWriter : FormatWriter {
 
     val EMPTY ="umf\t1\t3\n"

@@ -20,6 +20,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 /**
  * reads the constructor file
  * used in MCPConfig (mc 1.12.2+)
+ * First-party implementation: https://github.com/MinecraftForge/MCPConfig `config/exceptions.txt`.
  */
 object MCPConfigExceptionsReader : FormatReader{
 
@@ -29,12 +30,13 @@ object MCPConfigExceptionsReader : FormatReader{
     override var leinient: Boolean = false
 
     override fun isFormat(fileName: String, input: BufferedSource): Boolean {
-        if (fileName.substringAfterLast('/') != "constructors.txt") return false
+        if (fileName.substringAfterLast('/') != "exceptions.txt") return false
         val line = input.peek().readUtf8Line()?.split(" ") ?: return false
-        // check matches InternalName/unqualifiedName methodDescriptor {InternalName}
+        // check matches InternalName unqualifiedName methodDescriptor {InternalName}
         try {
             InternalName.read(line[0])
-            MethodDescriptor.read(line[1])
+            UnqualifiedName.read(line[1])
+            MethodDescriptor.read(line[2])
             return true
         } catch (e: Exception) {
             return false
@@ -59,9 +61,8 @@ object MCPConfigExceptionsReader : FormatReader{
                     continue
                 }
                 val line = input.takeLine().split(" ").iterator()
-                val srcName = line.next()
-                val srcCls = InternalName.read(srcName.substringBeforeLast('/'))
-                val srcMethod = UnqualifiedName.read(srcName.substringAfterLast('/'))
+                val srcCls = InternalName.read(line.next())
+                val srcMethod = UnqualifiedName.read(line.next())
                 val srcDesc = MethodDescriptor.read(line.next())
                 val exceptions = line.asSequence().map { InternalName.read(it) }.toList()
                 pushed(MutableClassMapping(mapOf(srcNs to srcCls))) {

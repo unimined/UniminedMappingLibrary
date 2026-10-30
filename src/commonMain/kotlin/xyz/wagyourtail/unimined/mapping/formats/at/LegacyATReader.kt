@@ -14,6 +14,7 @@ import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 /**
  * This reads AT files written in the format found in forge 1.3-1.6.4
+ * First-party implementation: pre-1.7 FML `cpw.mods.fml.common.asm.transformers.AccessTransformer` (`Class.member` target syntax).
  */
 object LegacyATReader : FormatReader {
     private val logger = KotlinLogging.logger {  }

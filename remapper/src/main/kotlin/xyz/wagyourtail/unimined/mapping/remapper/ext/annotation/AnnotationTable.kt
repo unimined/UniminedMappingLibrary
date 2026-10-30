@@ -28,6 +28,10 @@ import xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext
  */
 class AnnotationTable(
     val rules: Map<String, Map<String, ParamRemap>>,
+    /** descriptor-prefix → param rules — wildcard rules for annotation
+     *  families that share a param grammar (e.g. `…/injection/`). Exact
+     *  [rules] override matching prefix rules per-param. */
+    val packageRules: Map<String, Map<String, ParamRemap>> = emptyMap(),
     /** annotations marking "this member shadows a target member" — the
      *  member's own name remaps via the owning class's mixin targets */
     val shadowDescriptors: Set<String> = emptySet(),
@@ -57,11 +61,27 @@ class AnnotationTable(
     fun isInvoker(ann: AnnotationNode) = ann.desc in invokerDescriptors
     fun isMixinMarker(ann: AnnotationNode) = ann.desc in mixinMarkers
 
+    /** the effective param rules for [descriptor] — matching [packageRules]
+     *  (shorter prefixes first) overlaid by [rules]. Consumers walking
+     *  annotation params directly (e.g. the PSI source remapper) should use
+     *  this rather than [rules] so package rules apply. */
+    fun rulesFor(descriptor: String): Map<String, ParamRemap> {
+        val exact = rules[descriptor]
+        if (packageRules.isEmpty()) return exact.orEmpty()
+        val matches = packageRules.entries.filter { descriptor.startsWith(it.key) }
+        if (matches.isEmpty()) return exact.orEmpty()
+        return buildMap {
+            matches.sortedBy { it.key.length }.forEach { putAll(it.value) }
+            exact?.let { putAll(it) }
+        }
+    }
+
     /** rewrite [ann]'s matching param values in place — string/Type refs
      *  through the declared [rules]; `remap=false` on the annotation skips */
     fun rewrite(ann: AnnotationNode, ctx: ExtensionContext, ownerHints: List<String>, recorder: RefmapRecorder? = null) {
         if (!isRemapEnabled(ann)) return
-        val rules = rules[ann.desc] ?: return
+        val rules = rulesFor(ann.desc)
+        if (rules.isEmpty()) return
         val values = ann.values ?: return
         var i = 0
         while (i + 1 < values.size) {
@@ -151,8 +171,9 @@ class AnnotationTable(
     fun annotations(node: MethodNode) = (node.visibleAnnotations.orEmpty() + node.invisibleAnnotations.orEmpty())
     fun annotations(node: FieldNode) = (node.visibleAnnotations.orEmpty() + node.invisibleAnnotations.orEmpty())
 
-    /** mixin targets declared on the class — marker `targets`/`value` params,
-     *  strings and `Type`s, normalized to internal names */
+    /** mixin targets declared on the class — marker `targets`/`value`/`name`
+     *  params (mixin uses the first two, classtransform `@CTransformer` the
+     *  last two), strings and `Type`s, normalized to internal names */
     fun mixinTargets(node: ClassNode, ctx: ExtensionContext): List<String> =
         annotations(node).filter { it.desc in mixinMarkers }.flatMap { ann ->
             val vals = ann.values ?: emptyList<Any>()
@@ -160,7 +181,7 @@ class AnnotationTable(
             var i = 0
             while (i + 1 < vals.size) {
                 val v = vals[i + 1]
-                if (vals[i] == "targets" || vals[i] == "value") {
+                if (vals[i] == "targets" || vals[i] == "value" || vals[i] == "name") {
                     when (v) {
                         is String -> out += v.replace('.', '/')
                         is Type -> out += v.internalName
@@ -189,6 +210,7 @@ class AnnotationTable(
 
     class Builder {
         private val rules = mutableMapOf<String, MutableMap<String, ParamRemap>>()
+        private val pkgRules = mutableMapOf<String, MutableMap<String, ParamRemap>>()
         private val shadows = mutableSetOf<String>()
         private val accessors = mutableSetOf<String>()
         private val invokers = mutableSetOf<String>()
@@ -201,9 +223,19 @@ class AnnotationTable(
             return this
         }
 
+        /** wildcard rules for a whole annotation package — any descriptor
+         *  starting with [prefix] gets these param rules; `annotation()`
+         *  entries override individual params. Use for annotation families
+         *  with a shared param grammar (mixin/CT `injection/` packages). */
+        fun annotationPackage(prefix: String, block: RuleBuilder.() -> Unit): Builder {
+            pkgRules.getOrPut(prefix) { mutableMapOf() }.let { RuleBuilder(it).block() }
+            return this
+        }
+
         /** merge another table — its rules/descriptor sets fold into this one */
         fun include(table: AnnotationTable): Builder {
             table.rules.forEach { (desc, params) -> rules.getOrPut(desc) { mutableMapOf() }.putAll(params) }
+            table.packageRules.forEach { (prefix, params) -> pkgRules.getOrPut(prefix) { mutableMapOf() }.putAll(params) }
             shadows += table.shadowDescriptors
             accessors += table.accessorDescriptors
             invokers += table.invokerDescriptors
@@ -217,7 +249,7 @@ class AnnotationTable(
         fun mixinMarker(descriptor: String): Builder { markers += descriptor; return this }
 
         fun build(): AnnotationTable = AnnotationTable(
-            rules, shadows, accessors, invokers,
+            rules, pkgRules, shadows, accessors, invokers,
             markers.ifEmpty { setOf("Lorg/spongepowered/asm/mixin/Mixin;") },
         )
     }

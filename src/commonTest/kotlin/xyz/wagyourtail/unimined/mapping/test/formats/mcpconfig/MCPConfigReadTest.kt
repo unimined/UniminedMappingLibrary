@@ -82,8 +82,8 @@ c	b
         val tree = MutableMappingTree()
         MCPConfigExceptionsReader.read(
             """
-            a/func_1_a ()V java/lang/Exception
-            b/func_2_a (I)V java/io/IOException java/lang/Throwable
+            a func_1_a ()V java/lang/Exception
+            b func_2_a (I)V java/io/IOException java/lang/Throwable
             """.trimIndent(),
             tree,
         )

@@ -18,6 +18,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: https://github.com/md-5/SpecialSource/blob/c89b093/src/main/java/net/md_5/specialsource/writer/CompactSearge.java (producer); SrgUtils `IMappingFile.Format.CSRG` (consumer).
+ */
 object CsrgReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

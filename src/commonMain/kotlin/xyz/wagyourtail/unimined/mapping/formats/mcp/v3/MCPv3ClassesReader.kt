@@ -13,6 +13,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * this reads the classes.csv from mcp 3.0-5.6
+ * First-party implementation: MCP 3.0–5.6 `classes.csv` schema — no standalone upstream parser; corpus is schema-derived.
  */
 object MCPv3ClassesReader: FormatReader {
 

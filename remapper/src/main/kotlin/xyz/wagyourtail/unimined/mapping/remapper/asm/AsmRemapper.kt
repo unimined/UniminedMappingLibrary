@@ -340,7 +340,9 @@ object AsmRemapper {
         }.collect(Collectors.toList()).also { out ->
             for ((_, outNode, input) in out) {
                 serialExts.forEach { it.postApply(input.first, outNode, input.second) }
+                JarFixups.fixParamAnnotations(outNode)
             }
+            JarFixups.fixInnerClasses(out.map { it.first to it.second })
         }.map { it.first to it.second }
 
         // pass 3: package-access check/fix across the whole output set

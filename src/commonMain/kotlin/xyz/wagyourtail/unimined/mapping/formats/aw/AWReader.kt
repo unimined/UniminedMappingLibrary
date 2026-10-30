@@ -25,6 +25,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: https://github.com/FabricMC/access-widener/blob/30e2d00/src/main/java/net/fabricmc/accesswidener/AccessWidenerReader.java
+ */
 object AWReader: FormatReader {
 
     @Deprecated("set within the settings argument instead")

@@ -19,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 /**
  * reads the constructor file
  * used in MCPConfig (mc 1.12.2+)
+ * First-party implementation: https://github.com/MinecraftForge/MCPConfig `config/constructors.txt`.
  */
 object MCPConfigConstructorReader : FormatReader{
 

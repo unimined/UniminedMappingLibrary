@@ -1,0 +1,21 @@
+umf	1	3
+source
+c	net/minecraft/class_3720
+	a	+	public	*
+	a	+	final	*
+	w	f	_
+		a	+	public	*
+		a	-	final	*
+	w	m	_
+		a	+	public	*
+c	net/minecraft/class_3721
+	a	+	protected	*
+	a	-	final	*
+	f	field_19158
+		a	+	private	*
+	m	method_31659;(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
+		a	+	public	*
+		a	-	final	*
+c	net/minecraft/class_3722
+	a	+	default	*
+	a	-	final	*

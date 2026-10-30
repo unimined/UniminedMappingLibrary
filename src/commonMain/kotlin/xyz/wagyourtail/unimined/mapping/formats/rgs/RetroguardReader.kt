@@ -24,6 +24,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
  *
  * Because this one is special, and specifically for a minecraft format,
  * I'm going to hardcode the package mapping that's used from a random config file.
+ * First-party implementation: https://github.com/ModCoderPack/Retroguard/blob/be337bcfce238db2c6fc8a6a4737eb9f6e73582a/src/main/java/com/rl/obf/RgsEntryType.java
  */
 object RetroguardReader : FormatReader {
 

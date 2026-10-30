@@ -12,6 +12,9 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter.minus
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
+/**
+ * First-party implementation: https://github.com/FabricMC/tiny-mappings-parser/blob/750be4e/src/main/java/net/fabricmc/mapping/tree/TinyMappingFactory.java; spec https://wiki.fabricmc.net/documentation:tiny2
+ */
 object TinyV2Writer : FormatWriter {
 
     private fun String.escape(): String {

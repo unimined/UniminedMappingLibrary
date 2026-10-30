@@ -13,6 +13,9 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatWriter
 import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
+/**
+ * First-party implementation: MCP 6.0+ `params.csv` (MCPBot exports, `mcp_stable` zips).
+ */
 object MCPv6ParamWriter : FormatWriter {
 
     fun String.maybeEscapeCol(): String {

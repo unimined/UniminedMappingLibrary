@@ -1,0 +1,6 @@
+umf	1	3
+source
+c	a
+	m	m;()V
+		x	+	java/lang/Exception	source
+		x	+	java/lang/Throwable	source

@@ -1,0 +1,300 @@
+# (c) 2020 Microsoft Corporation. These mappings are provided "as-is" and you bear the risk of using them. You may copy and use the mappings for development purposes, but you may not redistribute the mappings complete and unmodified. Microsoft makes no warranties, express or implied, with respect to the mappings provided here.  Use and modification of this document or the source code (in any form) of Minecraft: Java Edition is governed by the Minecraft End User License Agreement available at https://account.mojang.com/documents/minecraft_eula.
+com.mojang.blaze3d.Blaze3D -> ega:
+    10:10:void <init>() -> <init>
+    12:13:void process(com.mojang.blaze3d.pipeline.RenderPipeline,float) -> a
+    16:17:void render(com.mojang.blaze3d.pipeline.RenderPipeline,float) -> b
+    21:22:void youJustLostTheGame() -> a
+    25:25:double getTime() -> b
+com.mojang.blaze3d.DontObfuscate -> egb:
+com.mojang.blaze3d.FieldsAreNonnullByDefault -> egc:
+com.mojang.blaze3d.MethodsReturnNonnullByDefault -> egd:
+com.mojang.blaze3d.audio.Channel -> ege:
+    org.slf4j.Logger LOGGER -> b
+    int QUEUED_BUFFER_COUNT -> c
+    int BUFFER_DURATION_SECONDS -> a
+    int source -> d
+    java.util.concurrent.atomic.AtomicBoolean initialized -> e
+    int streamingBufferSize -> f
+    net.minecraft.client.sounds.AudioStream stream -> g
+    31:37:com.mojang.blaze3d.audio.Channel create() -> a
+    22:42:void <init>(int) -> <init>
+    45:61:void destroy() -> b
+    64:65:void play() -> c
+    68:71:int getState() -> k
+    75:78:void pause() -> d
+    81:84:void unpause() -> e
+    87:91:void stop() -> f
+    94:94:boolean playing() -> g
+    98:98:boolean stopped() -> h
+    102:103:void setSelfPosition(net.minecraft.world.phys.Vec3) -> a
+    106:107:void setPitch(float) -> a
+    110:111:void setLooping(boolean) -> a
+    114:115:void setVolume(float) -> b
+    118:119:void disableAttenuation() -> i
+    122:126:void linearAttenuation(float) -> c
+    129:130:void setRelative(boolean) -> b
+    133:134:void attachStaticBuffer(com.mojang.blaze3d.audio.SoundBuffer) -> a
+    137:141:void attachBufferStream(net.minecraft.client.sounds.AudioStream) -> a
+    144:144:int calculateBufferSize(javax.sound.sampled.AudioFormat,int) -> a
+    148:161:void pumpBuffers(int) -> a
+    164:168:void updateStream() -> j
+    171:181:int removeProcessedBuffers() -> l
+    154:154:void lambda$pumpBuffers$1(int) -> b
+    133:133:void lambda$attachStaticBuffer$0(int) -> c
+    17:17:void <clinit>() -> <clinit>
+com.mojang.blaze3d.audio.Library -> egf:
+    org.slf4j.Logger LOGGER -> a
+    int NO_DEVICE -> b
+    int DEFAULT_CHANNEL_COUNT -> c
+    long currentDevice -> d
+    long context -> e
+    boolean supportsDisconnections -> f
+    java.lang.String defaultDeviceName -> g
+    com.mojang.blaze3d.audio.Library$ChannelPool EMPTY -> h
+    com.mojang.blaze3d.audio.Library$ChannelPool staticChannels -> i
+    com.mojang.blaze3d.audio.Library$ChannelPool streamingChannels -> j
+    com.mojang.blaze3d.audio.Listener listener -> k
+    143:150:void <init>() -> <init>
+    153:189:void init(java.lang.String,boolean) -> a
+    192:206:void setHrtf(boolean) -> a
+    209:234:int getChannelCount() -> i
+    239:247:java.lang.String getDefaultDeviceName() -> a
+    251:258:java.lang.String getCurrentDeviceName() -> b
+    262:267:boolean hasDefaultDeviceChanged() -> c
+    272:286:long openDeviceOrFallback(java.lang.String) -> a
+    290:296:java.util.OptionalLong tryOpenDevice(java.lang.String) -> b
+    300:307:void cleanup() -> d
+    310:310:com.mojang.blaze3d.audio.Listener getListener() -> e
+    315:315:com.mojang.blaze3d.audio.Channel acquireChannel(com.mojang.blaze3d.audio.Library$Pool) -> a
+    319:322:void releaseChannel(com.mojang.blaze3d.audio.Channel) -> a
+    325:325:java.lang.String getDebugString() -> f
+    329:333:java.util.List getAvailableSoundDevices() -> g
+    337:337:boolean isCurrentDeviceDisconnected() -> h
+    39:64:void <clinit>() -> <clinit>
+com.mojang.blaze3d.audio.Library$1 -> egf$1:
+    64:64:void <init>() -> <init>
+    68:68:com.mojang.blaze3d.audio.Channel acquire() -> a
+    73:73:boolean release(com.mojang.blaze3d.audio.Channel) -> a
+    78:78:void cleanup() -> b
+    82:82:int getMaxCount() -> c
+    87:87:int getUsedCount() -> d
+com.mojang.blaze3d.audio.Library$ChannelPool -> egf$a:
+    com.mojang.blaze3d.audio.Channel acquire() -> a
+    boolean release(com.mojang.blaze3d.audio.Channel) -> a
+    void cleanup() -> b
+    int getMaxCount() -> c
+    int getUsedCount() -> d
+com.mojang.blaze3d.audio.Library$CountingChannelPool -> egf$b:
+    int limit -> a
+    java.util.Set activeChannels -> b
+    93:97:void <init>(int) -> <init>
+    102:114:com.mojang.blaze3d.audio.Channel acquire() -> a
+    119:123:boolean release(com.mojang.blaze3d.audio.Channel) -> a
+    128:130:void cleanup() -> b
+    134:134:int getMaxCount() -> c
+    139:139:int getUsedCount() -> d
+com.mojang.blaze3d.audio.Library$Pool -> egf$c:
+    com.mojang.blaze3d.audio.Library$Pool STATIC -> a
+    com.mojang.blaze3d.audio.Library$Pool STREAMING -> b
+    com.mojang.blaze3d.audio.Library$Pool[] $VALUES -> c
+    33:33:com.mojang.blaze3d.audio.Library$Pool[] values() -> values
+    33:33:com.mojang.blaze3d.audio.Library$Pool valueOf(java.lang.String) -> valueOf
+    33:33:void <init>(java.lang.String,int) -> <init>
+    33:33:com.mojang.blaze3d.audio.Library$Pool[] $values() -> a
+    33:35:void <clinit>() -> <clinit>
+com.mojang.blaze3d.audio.Listener -> egg:
+    float gain -> a
+    net.minecraft.world.phys.Vec3 position -> b
+    7:9:void <init>() -> <init>
+    12:14:void setListenerPosition(net.minecraft.world.phys.Vec3) -> a
+    17:17:net.minecraft.world.phys.Vec3 getListenerPosition() -> a
+    21:22:void setListenerOrientation(org.joml.Vector3f,org.joml.Vector3f) -> a
+    25:27:void setGain(float) -> a
+    30:30:float getGain() -> b
+    34:36:void reset() -> c
+com.mojang.blaze3d.audio.OggAudioStream -> egh:
+    int EXPECTED_MAX_FRAME_SIZE -> a
+    long handle -> b
+    javax.sound.sampled.AudioFormat audioFormat -> c
+    java.io.InputStream input -> d
+    java.nio.ByteBuffer buffer -> e
+    71:103:void <init>(java.io.InputStream) -> <init>
+    106:122:boolean refillFromStream() -> c
+    127:141:void forwardBuffer() -> d
+    144:190:boolean readFrame(com.mojang.blaze3d.audio.OggAudioStream$OutputConcat) -> a
+    194:197:void convertMono(java.nio.FloatBuffer,com.mojang.blaze3d.audio.OggAudioStream$OutputConcat) -> a
+    200:204:void convertStereo(java.nio.FloatBuffer,java.nio.FloatBuffer,com.mojang.blaze3d.audio.OggAudioStream$OutputConcat) -> a
+    208:214:void close() -> close
+    218:218:javax.sound.sampled.AudioFormat getFormat() -> a
+    223:227:java.nio.ByteBuffer read(int) -> a
+    231:235:java.nio.ByteBuffer readAll() -> b
+com.mojang.blaze3d.audio.OggAudioStream$OutputConcat -> egh$a:
+    java.util.List buffers -> a
+    int bufferSize -> b
+    int byteCount -> c
+    java.nio.ByteBuffer currentBuffer -> d
+    26:35:void <init>(int) -> <init>
+    38:39:void createNewBuffer() -> b
+    42:51:void put(float) -> a
+    54:64:java.nio.ByteBuffer get() -> a
+com.mojang.blaze3d.audio.OpenAlUtil -> egi:
+    org.slf4j.Logger LOGGER -> a
+    10:10:void <init>() -> <init>
+    14:26:java.lang.String alErrorToString(int) -> a
+    31:36:boolean checkALError(java.lang.String) -> a
+    40:52:java.lang.String alcErrorToString(int) -> b
+    57:62:boolean checkALCError(long,java.lang.String) -> a
+    66:86:int audioFormatToOpenAl(javax.sound.sampled.AudioFormat) -> a
+    11:11:void <clinit>() -> <clinit>
+com.mojang.blaze3d.audio.SoundBuffer -> egj:
+    java.nio.ByteBuffer data -> a
+    javax.sound.sampled.AudioFormat format -> b
+    boolean hasAlBuffer -> c
+    int alBuffer -> d
+    19:22:void <init>(java.nio.ByteBuffer,javax.sound.sampled.AudioFormat) -> <init>
+    25:44:java.util.OptionalInt getAlBuffer() -> a
+    48:55:void discardAlBuffer() -> b
+    58:60:java.util.OptionalInt releaseAlBuffer() -> c
+com.mojang.blaze3d.audio.package-info -> egk:
+com.mojang.blaze3d.font.GlyphInfo -> egl:
+    float getAdvance() -> getAdvance
+    12:12:float getAdvance(boolean) -> a
+    16:16:float getBoldOffset() -> a
+    20:20:float getShadowOffset() -> b
+    net.minecraft.client.gui.font.glyphs.BakedGlyph bake(java.util.function.Function) -> bake
+com.mojang.blaze3d.font.GlyphInfo$SpaceGlyphInfo -> egl$a:
+    28:28:net.minecraft.client.gui.font.glyphs.BakedGlyph bake(java.util.function.Function) -> bake
+com.mojang.blaze3d.font.GlyphProvider -> egm:
+    11:11:void close() -> close
+    15:15:com.mojang.blaze3d.font.GlyphInfo getGlyph(int) -> a
+    it.unimi.dsi.fastutil.ints.IntSet getSupportedGlyphs() -> a
+com.mojang.blaze3d.font.SheetGlyphInfo -> egn:
+    int getPixelWidth() -> a
+    int getPixelHeight() -> b
+    void upload(int,int) -> a
+    boolean isColored() -> c
+    float getOversample() -> d
+    15:15:float getLeft() -> e
+    19:19:float getRight() -> f
+    23:23:float getUp() -> g
+    27:27:float getDown() -> h
+    31:31:float getBearingX() -> i
+    35:35:float getBearingY() -> j
+com.mojang.blaze3d.font.SpaceProvider -> ego:
+    it.unimi.dsi.fastutil.ints.Int2ObjectMap glyphs -> a
+    21:24:void <init>(java.util.Map) -> <init>
+    29:29:com.mojang.blaze3d.font.GlyphInfo getGlyph(int) -> a
+    34:34:it.unimi.dsi.fastutil.ints.IntSet getSupportedGlyphs() -> a
+    23:23:void lambda$new$1(java.lang.Integer,java.lang.Float) -> a
+    23:23:float lambda$new$0(java.lang.Float) -> a
+com.mojang.blaze3d.font.SpaceProvider$Definition -> ego$a:
+    java.util.Map advances -> c
+    com.mojang.serialization.MapCodec CODEC -> a
+    37:37:void <init>(java.util.Map) -> <init>
+    44:44:net.minecraft.client.gui.font.providers.GlyphProviderType type() -> a
+    49:50:com.mojang.datafixers.util.Either unpack() -> b
+    37:37:java.lang.String toString() -> toString
+    37:37:int hashCode() -> hashCode
+    37:37:boolean equals(java.lang.Object) -> equals
+    37:37:java.util.Map advances() -> c
+    49:49:com.mojang.blaze3d.font.GlyphProvider lambda$unpack$1(net.minecraft.server.packs.resources.ResourceManager) -> a
+    38:40:com.mojang.datafixers.kinds.App lambda$static$0(com.mojang.serialization.codecs.RecordCodecBuilder$Instance) -> a
+    38:38:void <clinit>() -> <clinit>
+com.mojang.blaze3d.font.TrueTypeGlyphProvider -> egp:
+    java.nio.ByteBuffer fontMemory -> a
+    org.lwjgl.stb.STBTTFontinfo font -> b
+    float oversample -> c
+    it.unimi.dsi.fastutil.ints.IntSet skip -> d
+    float shiftX -> e
+    float shiftY -> f
+    float pointScale -> g
+    float ascent -> h
+    27:54:void <init>(java.nio.ByteBuffer,org.lwjgl.stb.STBTTFontinfo,float,float,float,float,java.lang.String) -> <init>
+    59:92:com.mojang.blaze3d.font.GlyphInfo getGlyph(int) -> a
+    96:99:org.lwjgl.stb.STBTTFontinfo validateFontOpen() -> b
+    104:110:void close() -> close
+    115:115:it.unimi.dsi.fastutil.ints.IntSet getSupportedGlyphs() -> a
+    115:115:boolean lambda$getSupportedGlyphs$1(int) -> b
+    87:87:float lambda$getGlyph$0(float) -> a
+com.mojang.blaze3d.font.TrueTypeGlyphProvider$Glyph -> egp$a:
+    int width -> b
+    int height -> c
+    float bearingX -> d
+    float bearingY -> e
+    float advance -> f
+    int index -> g
+    com.mojang.blaze3d.font.TrueTypeGlyphProvider this$0 -> a
+    126:136:void <init>(com.mojang.blaze3d.font.TrueTypeGlyphProvider,int,int,int,int,float,float,int) -> <init>
+    140:140:float getAdvance() -> getAdvance
+    145:145:net.minecraft.client.gui.font.glyphs.BakedGlyph bake(java.util.function.Function) -> bake
+com.mojang.blaze3d.font.TrueTypeGlyphProvider$Glyph$1 -> egp$a$1:
+    com.mojang.blaze3d.font.TrueTypeGlyphProvider$Glyph this$1 -> a
+    145:145:void <init>(com.mojang.blaze3d.font.TrueTypeGlyphProvider$Glyph) -> <init>
+    148:148:int getPixelWidth() -> a
+    153:153:int getPixelHeight() -> b
+    158:158:float getOversample() -> d
+    163:163:float getBearingX() -> i
+    168:168:float getBearingY() -> j
+    173:181:void upload(int,int) -> a
+    185:185:boolean isColored() -> c
+com.mojang.blaze3d.font.package-info -> egq:
+com.mojang.blaze3d.package-info -> egr:
+com.mojang.blaze3d.pipeline.MainTarget -> egs:
+    int DEFAULT_WIDTH -> a
+    int DEFAULT_HEIGHT -> b
+    com.mojang.blaze3d.pipeline.MainTarget$Dimension DEFAULT_DIMENSIONS -> l
+    19:27:void <init>(int,int) -> <init>
+    30:62:void createFrameBuffer(int,int) -> b
+    65:86:com.mojang.blaze3d.pipeline.MainTarget$Dimension allocateAttachments(int,int) -> c
+    90:96:boolean allocateColorAttachment(com.mojang.blaze3d.pipeline.MainTarget$Dimension) -> a
+    100:106:boolean allocateDepthAttachment(com.mojang.blaze3d.pipeline.MainTarget$Dimension) -> b
+    23:23:void lambda$new$0(int,int) -> d
+    16:16:void <clinit>() -> <clinit>
+com.mojang.blaze3d.pipeline.MainTarget$AttachmentState -> egs$a:
+    com.mojang.blaze3d.pipeline.MainTarget$AttachmentState NONE -> a
+    com.mojang.blaze3d.pipeline.MainTarget$AttachmentState COLOR -> b
+    com.mojang.blaze3d.pipeline.MainTarget$AttachmentState DEPTH -> c
+    com.mojang.blaze3d.pipeline.MainTarget$AttachmentState COLOR_DEPTH -> d
+    com.mojang.blaze3d.pipeline.MainTarget$AttachmentState[] VALUES -> e
+    com.mojang.blaze3d.pipeline.MainTarget$AttachmentState[] $VALUES -> f
+    109:109:com.mojang.blaze3d.pipeline.MainTarget$AttachmentState[] values() -> values
+    109:109:com.mojang.blaze3d.pipeline.MainTarget$AttachmentState valueOf(java.lang.String) -> valueOf
+    109:109:void <init>(java.lang.String,int) -> <init>
+    118:118:com.mojang.blaze3d.pipeline.MainTarget$AttachmentState with(com.mojang.blaze3d.pipeline.MainTarget$AttachmentState) -> a
+    109:109:com.mojang.blaze3d.pipeline.MainTarget$AttachmentState[] $values() -> a
+    109:115:void <clinit>() -> <clinit>
+com.mojang.blaze3d.pipeline.MainTarget$Dimension -> egs$b:
+    int width -> a
+    int height -> b
+    126:129:void <init>(int,int) -> <init>
+    132:138:java.util.List listWithFallback(int,int) -> a
+    147:154:boolean equals(java.lang.Object) -> equals
+    159:159:int hashCode() -> hashCode
+    164:164:java.lang.String toString() -> toString
+com.mojang.blaze3d.pipeline.RenderCall -> egt:
+    void execute() -> execute
+com.mojang.blaze3d.pipeline.RenderPipeline -> egu:
+    java.util.List renderCalls -> a
+    boolean isRecording -> b
+    int recordingBuffer -> c
+    boolean isProcessing -> d
+    int processedBuffer -> e
+    int renderingBuffer -> f
+    19:28:void <init>() -> <init>
+    31:31:boolean canBeginRecording() -> a
+    35:44:boolean beginRecording() -> b
+    48:54:void recordRenderCall(com.mojang.blaze3d.pipeline.RenderCall) -> a
+    57:62:void endRecording() -> c
+    65:65:boolean canBeginProcessing() -> d
+    69:76:boolean beginProcessing() -> e
+    80:83:void processRecordedQueue() -> f
+    86:93:void endProcessing() -> g
+    96:96:java.util.concurrent.ConcurrentLinkedQueue startRendering() -> h
+    100:100:java.util.concurrent.ConcurrentLinkedQueue getRecordingQueue() -> i
+    104:104:java.util.concurrent.ConcurrentLinkedQueue getProcessedQueue() -> j
+com.mojang.blaze3d.pipeline.RenderTarget -> egv:
+    int RED_CHANNEL -> a
+    int GREEN_CHANNEL -> b
+    int BLUE_CHANNEL -> l
+    int ALPHA_CHANNEL -> m
+    int width -> c

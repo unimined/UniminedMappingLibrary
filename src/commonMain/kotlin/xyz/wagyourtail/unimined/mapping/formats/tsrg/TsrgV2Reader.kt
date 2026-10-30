@@ -15,11 +15,15 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: SrgUtils `IMappingFile.Format.TSRG2` (https://github.com/MinecraftForge/SrgUtils/blob/3c679e5/src/main/java/net/minecraftforge/srgutils/IMappingFile.java).
+ */
 object TsrgV2Reader : FormatReader {
 
     @Deprecated("set within the settings argument instead")
@@ -89,15 +93,18 @@ object TsrgV2Reader : FormatReader {
                             names.withIndex()
                                 .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withMethodDesc(srcDesc))))
                     } else {
-                        // field
-                        val names = mutableListOf<FieldNameAndDescriptor>()
+                        // field — tsrg2 field src desc is optional in practice
+                        // (e.g. mcp_config joined.tsrg omits it); discriminate by
+                        // token count: srcName + desc + one name per dst ns
+                        val tokens = mutableListOf<String>()
                         while (true) {
-                            val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
-                            names.add(name.withFieldDesc(null))
+                            tokens.add(input.takeNextLiteral(' ') ?: break)
                         }
+                        val srcDesc = if (tokens.size == ns.size) FieldDescriptor.read(tokens.removeAt(0)) else null
+                        val names = tokens.map { UnqualifiedName.read(it).withFieldDesc(null) }
                         pushed(MutableFieldMapping(
                             names.withIndex()
-                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withFieldDesc(null)))) {}
+                                .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withFieldDesc(srcDesc)))) {}
                         md = null
                     }
                 } else if (whitespace.length == 2) {

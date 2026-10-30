@@ -14,6 +14,9 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
+/**
+ * First-party implementation: MCP 6.0+ `fields.csv` (MCPBot exports, `mcp_stable` zips).
+ */
 object MCPv6FieldWriter : FormatWriter {
 
     var writeComments = true

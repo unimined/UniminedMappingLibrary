@@ -1,0 +1,521 @@
+umf	1	3
+source
+c	net/minecraft/client/audio/SoundManager
+	f	field_148622_c
+		a	+	public	*
+c	net/minecraft/block/Block
+	m	<init>;(Lnet/minecraft/block/material/Material;)V
+		a	+	public	*
+	m	func_149752_b;(F)Lnet/minecraft/block/Block;
+		a	+	public	*
+	m	func_149711_c;(F)Lnet/minecraft/block/Block;
+		a	+	public	*
+	m	func_149713_g;(I)Lnet/minecraft/block/Block;
+		a	+	public	*
+	m	func_149715_a;(F)Lnet/minecraft/block/Block;
+		a	+	public	*
+	m	func_149722_s;()Lnet/minecraft/block/Block;
+		a	+	public	*
+	m	func_149675_a;(Z)Lnet/minecraft/block/Block;
+		a	+	public	*
+	m	func_180637_b;(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;I)V
+		a	+	public	*
+c	net/minecraft/block/BlockFire
+	m	func_176532_c;(Lnet/minecraft/block/Block;)I
+		a	+	public	*
+	m	func_176534_d;(Lnet/minecraft/block/Block;)I
+		a	+	public	*
+c	net/minecraft/item/Item
+	m	func_77656_e;(I)Lnet/minecraft/item/Item;
+		a	+	public	*
+	m	func_77627_a;(Z)Lnet/minecraft/item/Item;
+		a	+	public	*
+c	net/minecraft/entity/player/EntityPlayer
+	m	func_71053_j;()V
+		a	+	public	*
+	m	func_184816_a;(Lnet/minecraft/entity/item/EntityItem;)Lnet/minecraft/item/ItemStack;
+		a	+	public	*
+c	net/minecraft/entity/EntityTrackerEntry
+	f	field_73134_o
+		a	+	public	*
+c	net/minecraft/world/chunk/storage/AnvilChunkLoader
+	f	field_75825_d
+		a	+	public	*
+c	net/minecraft/world/gen/ChunkProviderServer
+	f	field_73247_e
+		a	+	public	*
+	f	field_186029_c
+		a	+	public	*
+	f	field_73244_f
+		a	+	public	*
+	f	field_73251_h
+		a	+	public	*
+c	net/minecraft/world/World
+	f	field_72982_D
+		a	+	public	*
+		a	-	final	*
+	f	field_73003_n
+		a	+	public	*
+	f	field_73004_o
+		a	+	public	*
+	f	field_73017_q
+		a	+	public	*
+	f	field_73018_p
+		a	+	public	*
+	m	func_72923_a;(Lnet/minecraft/entity/Entity;)V
+		a	+	public	*
+	m	func_72847_b;(Lnet/minecraft/entity/Entity;)V
+		a	+	public	*
+	m	func_175701_a;(Lnet/minecraft/util/math/BlockPos;)Z
+		a	+	public	*
+	m	func_189509_E;(Lnet/minecraft/util/math/BlockPos;)Z
+		a	+	public	*
+c	net/minecraft/world/biome/Biome
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/BiomeForest
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/BiomeHills
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/BiomeMesa
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/BiomePlains
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/BiomeSavanna
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/BiomeSnow
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/BiomeTaiga
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/biome/Biome$BiomeProperties
+	w	m	_
+		a	+	public	*
+c	net/minecraft/world/gen/structure/MapGenStronghold
+	f	field_151546_e
+		a	+	public	*
+		a	+	final	*
+c	net/minecraft/world/gen/structure/MapGenVillage
+	f	field_75055_e
+		a	+	public	*
+		a	-	final	*
+c	net/minecraft/item/crafting/ShapedRecipes
+	f	field_77574_d
+		a	+	public	*
+		a	+	final	*
+	f	field_77576_b
+		a	+	public	*
+		a	+	final	*
+	f	field_77577_c
+		a	+	public	*
+		a	+	final	*
+c	net/minecraft/item/crafting/ShapelessRecipes
+	f	field_77579_b
+		a	+	public	*
+c	net/minecraft/inventory/ContainerRepair
+	f	field_82856_l
+		a	+	public	*
+c	net/minecraft/world/biome/BiomeDecorator
+	w	f	_
+		a	+	public	*
+c	net/minecraft/creativetab/CreativeTabs
+	f	field_78032_a
+		a	+	public	*
+		a	-	final	*
+c	net/minecraft/world/WorldServer
+	m	func_72923_a;(Lnet/minecraft/entity/Entity;)V
+		a	+	public	*
+	m	func_72847_b;(Lnet/minecraft/entity/Entity;)V
+		a	+	public	*
+c	net/minecraft/client/multiplayer/WorldClient
+	m	func_72923_a;(Lnet/minecraft/entity/Entity;)V
+		a	+	public	*
+	m	func_72847_b;(Lnet/minecraft/entity/Entity;)V
+		a	+	public	*
+c	net/minecraft/client/gui/GuiIngame
+	w	f	_
+		a	+	protected	*
+	w	m	_
+		a	+	protected	*
+c	net/minecraft/item/ItemStack
+	f	field_77991_e
+		a	+	default	*
+c	net/minecraft/world/gen/structure/MapGenStructureIO
+	m	func_143034_b;(Ljava/lang/Class;Ljava/lang/String;)V
+		a	+	public	*
+	m	func_143031_a;(Ljava/lang/Class;Ljava/lang/String;)V
+		a	+	public	*
+c	net/minecraft/world/gen/structure/StructureStrongholdPieces$Stronghold
+	a	+	public	*
+c	net/minecraft/network/play/server/SPacketBlockChange
+	f	field_148883_d
+		a	+	public	*
+c	net/minecraft/world/WorldType
+	f	field_77139_a
+		a	+	public	*
+		a	-	final	*
+c	net/minecraft/util/DamageSource
+	w	m	_
+		a	+	public	*
+c	net/minecraft/entity/ai/EntityAITasks
+	f	field_75782_a
+		a	+	public	*
+c	net/minecraft/entity/item/EntityXPOrb
+	f	field_70530_e
+		a	+	public	*
+c	net/minecraft/world/gen/structure/StructureVillagePieces$Village
+	a	+	public	*
+c	net/minecraft/client/renderer/entity/RenderEntityItem
+	m	func_177078_a;(Lnet/minecraft/item/ItemStack;)I
+		a	+	protected	*
+c	net/minecraft/item/crafting/RecipeTippedArrow
+	a	+	public	*
+c	net/minecraft/item/crafting/ShieldRecipes$Decoration
+	a	+	public	*
+c	net/minecraft/item/crafting/RecipesBanners$RecipeAddPattern
+	a	+	public	*
+c	net/minecraft/item/crafting/RecipesBanners$RecipeDuplicatePattern
+	a	+	public	*
+c	net/minecraft/block/state/BlockStateContainer$StateImplementation
+	a	+	public	*
+	f	field_177238_c
+		a	+	protected	*
+	m	<init>;(Lnet/minecraft/block/Block;Lcom/google/common/collect/ImmutableMap;)V
+		a	+	protected	*
+c	net/minecraft/client/renderer/block/model/ModelBlock
+	f	field_178318_c
+		a	+	public	*
+	f	field_178315_d
+		a	+	public	*
+	f	field_178322_i
+		a	+	public	*
+	m	func_187966_f;()Ljava/util/List;
+		a	+	public	*
+c	net/minecraft/client/renderer/block/model/ModelBakery
+	f	field_177602_b
+		a	+	protected	*
+	f	field_177598_f
+		a	+	protected	*
+	f	field_177599_g
+		a	+	protected	*
+	f	field_177609_j
+		a	+	protected	*
+	f	field_177610_k
+		a	+	protected	*
+	f	field_177605_n
+		a	+	protected	*
+	f	field_177606_o
+		a	+	protected	*
+	f	field_177616_r
+		a	+	protected	*
+	m	func_177569_a;(Lnet/minecraft/client/renderer/block/model/ModelBlockDefinition;Lnet/minecraft/client/renderer/block/model/ModelResourceLocation;)V
+		a	+	protected	*
+	m	func_177586_a;(Lnet/minecraft/util/ResourceLocation;)Lnet/minecraft/client/renderer/block/model/ModelBlockDefinition;
+		a	+	protected	*
+	m	func_177594_c;(Lnet/minecraft/util/ResourceLocation;)Lnet/minecraft/client/renderer/block/model/ModelBlock;
+		a	+	protected	*
+	m	func_177592_e;()V
+		a	+	protected	*
+	m	func_177596_a;(Lnet/minecraft/item/Item;)Ljava/util/List;
+		a	+	protected	*
+	m	func_177583_a;(Ljava/lang/String;)Lnet/minecraft/util/ResourceLocation;
+		a	+	protected	*
+	m	func_177585_a;(Lnet/minecraft/client/renderer/block/model/ModelBlock;)Ljava/util/Set;
+		a	+	protected	*
+	m	func_177581_b;(Lnet/minecraft/client/renderer/block/model/ModelBlock;)Z
+		a	+	protected	*
+	m	func_177587_c;(Lnet/minecraft/client/renderer/block/model/ModelBlock;)Z
+		a	+	protected	*
+	m	func_177582_d;(Lnet/minecraft/client/renderer/block/model/ModelBlock;)Lnet/minecraft/client/renderer/block/model/ModelBlock;
+		a	+	protected	*
+	m	func_177580_d;(Lnet/minecraft/util/ResourceLocation;)Lnet/minecraft/util/ResourceLocation;
+		a	+	protected	*
+	m	func_188640_b;()V
+		a	+	protected	*
+	m	func_177577_b;()V
+		a	+	protected	*
+	m	func_177590_d;()V
+		a	+	protected	*
+	m	func_177595_c;()V
+		a	+	protected	*
+	m	func_188637_e;()V
+		a	+	protected	*
+	m	func_188638_a;(Lnet/minecraft/client/renderer/block/model/ModelResourceLocation;Lnet/minecraft/client/renderer/block/model/VariantList;)V
+		a	+	protected	*
+c	net/minecraft/util/EnumFacing
+	f	field_82609_l
+		a	+	public	*
+	f	field_176754_o
+		a	+	public	*
+c	net/minecraft/client/renderer/BufferBuilder
+	m	func_78909_a;(I)I
+		a	+	public	*
+	m	func_178972_a;(IIII)V
+		a	+	public	*
+c	net/minecraft/network/status/server/SPacketServerInfo
+	f	field_149297_a
+		a	+	public	*
+c	net/minecraft/client/renderer/entity/RenderManager
+	f	field_78729_o
+		a	+	public	*
+c	net/minecraft/client/renderer/tileentity/TileEntityRendererDispatcher
+	f	field_147559_m
+		a	+	public	*
+	f	field_147557_n
+		a	+	public	*
+c	net/minecraft/client/renderer/EntityRenderer
+	m	func_175069_a;(Lnet/minecraft/util/ResourceLocation;)V
+		a	+	public	*
+c	net/minecraft/util/WeightedRandom$Item
+	f	field_76292_a
+		a	+	public	*
+c	net/minecraft/client/entity/EntityPlayerSP
+	m	func_184816_a;(Lnet/minecraft/entity/item/EntityItem;)Lnet/minecraft/item/ItemStack;
+		a	+	public	*
+c	net/minecraft/entity/player/EntityPlayerMP
+	f	field_71139_cq
+		a	+	public	*
+	m	func_71117_bO;()V
+		a	+	public	*
+c	net/minecraft/entity/ai/EntityAITasks$EntityAITaskEntry
+	a	+	public	*
+c	net/minecraft/entity/EntityLiving
+	f	field_70714_bg
+		a	+	public	*
+	f	field_70715_bh
+		a	+	public	*
+c	net/minecraft/entity/item/EntityMinecartContainer
+	f	field_94112_b
+		a	+	public	*
+c	net/minecraft/client/gui/GuiScreen
+	f	field_146297_k
+		a	+	public	*
+c	net/minecraft/client/Minecraft
+	f	field_71446_o
+		a	+	public	*
+	f	field_110450_ap
+		a	+	public	*
+	m	func_71370_a;(II)V
+		a	+	public	*
+	m	func_180510_a;(Lnet/minecraft/client/renderer/texture/TextureManager;)V
+		a	+	public	*
+	m	func_184119_a;(Lnet/minecraft/item/ItemStack;Lnet/minecraft/tileentity/TileEntity;)Lnet/minecraft/item/ItemStack;
+		a	+	public	*
+c	net/minecraft/server/dedicated/DedicatedServer
+	f	field_71341_l
+		a	+	public	*
+c	net/minecraft/world/storage/SaveFormatOld
+	f	field_75808_a
+		a	+	public	*
+c	net/minecraft/util/ObjectIntIdentityMap
+	f	field_148749_a
+		a	+	protected	*
+	f	field_148748_b
+		a	+	protected	*
+c	net/minecraft/client/gui/GuiButton
+	f	field_146120_f
+		a	+	public	*
+	f	field_146121_g
+		a	+	public	*
+c	net/minecraft/client/gui/GuiTextField
+	f	field_146218_h
+		a	+	public	*
+		a	-	final	*
+	f	field_146219_i
+		a	+	public	*
+		a	-	final	*
+c	net/minecraft/client/gui/GuiSlot
+	f	field_148149_f
+		a	+	public	*
+	f	field_148151_d
+		a	+	public	*
+	f	field_148152_e
+		a	+	public	*
+	f	field_148153_b
+		a	+	public	*
+	f	field_148154_c
+		a	+	public	*
+	f	field_148155_a
+		a	+	public	*
+	f	field_148158_l
+		a	+	public	*
+	f	field_148160_j
+		a	+	public	*
+c	net/minecraft/entity/passive/EntityVillager$EmeraldForItems
+	a	+	public	*
+c	net/minecraft/entity/passive/EntityVillager$ITradeList
+	a	+	public	*
+c	net/minecraft/entity/passive/EntityVillager$ItemAndEmeraldToItem
+	a	+	public	*
+c	net/minecraft/entity/passive/EntityVillager$ListEnchantedBookForEmeralds
+	a	+	public	*
+c	net/minecraft/entity/passive/EntityVillager$ListEnchantedItemForEmeralds
+	a	+	public	*
+c	net/minecraft/entity/passive/EntityVillager$ListItemForEmeralds
+	a	+	public	*
+c	net/minecraft/entity/passive/EntityVillager$PriceInfo
+	a	+	public	*
+c	net/minecraft/client/gui/FontRenderer
+	f	field_78286_d
+		a	+	protected	*
+	f	field_78287_e
+		a	+	protected	*
+	f	field_111273_g
+		a	+	protected	*
+	f	field_78295_j
+		a	+	protected	*
+	f	field_78296_k
+		a	+	protected	*
+	m	func_78266_a;(IZ)F
+		a	+	protected	*
+	m	func_78277_a;(CZ)F
+		a	+	protected	*
+c	net/minecraft/world/gen/ChunkGeneratorEnd
+	f	field_185969_i
+		a	+	private	*
+		a	-	final	*
+	f	field_185970_j
+		a	+	private	*
+		a	-	final	*
+	f	field_185971_k
+		a	+	private	*
+		a	-	final	*
+	f	field_185973_o
+		a	+	private	*
+		a	-	final	*
+c	net/minecraft/world/gen/ChunkGeneratorOverworld
+	f	field_185991_j
+		a	+	private	*
+		a	-	final	*
+	f	field_185992_k
+		a	+	private	*
+		a	-	final	*
+	f	field_185993_l
+		a	+	private	*
+		a	-	final	*
+	f	field_185994_m
+		a	+	private	*
+		a	-	final	*
+	f	field_185979_A
+		a	+	private	*
+		a	-	final	*
+	f	field_185980_B
+		a	+	private	*
+		a	-	final	*
+	f	field_186003_v
+		a	+	private	*
+		a	-	final	*
+	f	field_186004_w
+		a	+	private	*
+		a	-	final	*
+	f	field_186005_x
+		a	+	private	*
+		a	-	final	*
+	f	field_186006_y
+		a	+	private	*
+		a	-	final	*
+	f	field_186007_z
+		a	+	private	*
+		a	-	final	*
+c	net/minecraft/world/gen/ChunkGeneratorHell
+	f	field_185957_u
+		a	+	private	*
+		a	-	final	*
+	f	field_185958_v
+		a	+	private	*
+		a	-	final	*
+	f	field_185959_w
+		a	+	private	*
+		a	-	final	*
+	f	field_73177_m
+		a	+	private	*
+		a	-	final	*
+	f	field_73174_n
+		a	+	private	*
+		a	-	final	*
+	f	field_185946_g
+		a	+	public	*
+		a	-	final	*
+	f	field_185947_h
+		a	+	public	*
+		a	-	final	*
+	f	field_185939_I
+		a	+	private	*
+		a	-	final	*
+	f	field_73172_c
+		a	+	private	*
+		a	-	final	*
+c	net/minecraft/server/management/PlayerChunkMapEntry
+	f	field_187285_e
+		a	+	private	*
+		a	-	final	*
+c	net/minecraft/client/renderer/entity/RenderLivingBase
+	m	func_177094_a;(Lnet/minecraft/client/renderer/entity/layers/LayerRenderer;)Z
+		a	+	public	*
+c	net/minecraft/world/storage/loot/LootPool
+	f	field_186455_c
+		a	+	private	*
+		a	-	final	*
+	f	field_186456_d
+		a	+	private	*
+		a	-	final	*
+c	net/minecraft/nbt/NBTPrimitive
+	a	+	public	*
+c	net/minecraft/client/gui/GuiOverlayDebug
+	m	func_181554_e;()V
+		a	+	public	*
+c	net/minecraft/potion/PotionHelper$MixPredicate
+	a	+	public	*
+c	net/minecraft/potion/PotionHelper
+	m	func_193355_a;(Lnet/minecraft/item/ItemPotion;Lnet/minecraft/item/Item;Lnet/minecraft/item/ItemPotion;)V
+		a	+	public	*
+	m	func_193354_a;(Lnet/minecraft/item/ItemPotion;)V
+		a	+	public	*
+	m	func_193357_a;(Lnet/minecraft/potion/PotionType;Lnet/minecraft/item/Item;Lnet/minecraft/potion/PotionType;)V
+		a	+	public	*
+	m	func_193356_a;(Lnet/minecraft/potion/PotionType;Lnet/minecraft/item/crafting/Ingredient;Lnet/minecraft/potion/PotionType;)V
+		a	+	public	*
+c	net/minecraft/tileentity/TileEntity
+	m	func_190560_a;(Ljava/lang/String;Ljava/lang/Class;)V
+		a	+	public	*
+c	net/minecraft/tileentity/TileEntityHopper
+	m	func_174914_o;()Z
+		a	+	public	*
+	m	func_145896_c;(I)V
+		a	+	public	*
+	m	func_145887_i;()Z
+		a	+	protected	*
+c	net/minecraft/util/datafix/DataFixer
+	f	field_188262_d
+		a	+	public	*
+c	net/minecraft/entity/monster/AbstractSkeleton
+	m	func_190727_o;()Lnet/minecraft/util/SoundEvent;
+		a	+	protected	*
+c	net/minecraft/entity/monster/EntityWitherSkeleton
+	m	func_190727_o;()Lnet/minecraft/util/SoundEvent;
+		a	+	protected	*
+c	net/minecraft/entity/monster/EntityStray
+	m	func_190727_o;()Lnet/minecraft/util/SoundEvent;
+		a	+	protected	*
+c	net/minecraft/entity/monster/EntitySkeleton
+	m	func_190727_o;()Lnet/minecraft/util/SoundEvent;
+		a	+	protected	*
+c	net/minecraft/command/EntitySelector
+	m	func_190826_c;(Ljava/lang/String;)Ljava/lang/String;
+		a	+	public	*
+c	net/minecraft/world/Teleporter
+	f	field_85192_a
+		a	+	protected	*
+	f	field_77187_a
+		a	+	protected	*
+	f	field_85191_c
+		a	+	protected	*
+c	net/minecraft/util/ResourceLocation
+	m	func_177516_a;(Ljava/lang/String;)[Ljava/lang/String;
+		a	+	public	*

@@ -77,6 +77,8 @@ object JarFixups {
     class AccessSummary(
         val name: String,
         val access: Int,
+        /** superclass internal name (post-remap), null for java.lang.Object/interfaces */
+        val superName: String?,
         /** `"Mname desc"`/`"Fname desc"` → access */
         val memberAccess: Map<String, Int>,
         val classRefs: Set<String>,
@@ -89,7 +91,7 @@ object JarFixups {
         val members = HashMap<String, Int>(node.methods.size + node.fields.size)
         for (m in node.methods) members["M${m.name} ${m.desc}"] = m.access
         for (f in node.fields) members["F${f.name} ${f.desc}"] = f.access
-        return AccessSummary(node.name, node.access, members, referencedClasses(node), referencedMembers(node))
+        return AccessSummary(node.name, node.access, node.superName, members, referencedClasses(node), referencedMembers(node))
     }
 
     /** package-private = none of public/protected/private set */
@@ -137,6 +139,17 @@ object JarFixups {
             return acc and (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE) != 0
         }
 
+        // protected members are package-accessible too — but also reachable
+        // from subclasses in other packages, so those accessors are legal
+        val supers = HashMap<String, String?>(out.size)
+        for (s in out) supers[s.name] = s.superName
+        fun isSubclassOf(accessor: String, owner: String): Boolean {
+            var cur: String? = accessor
+            var hops = 0
+            while (cur != null && cur != owner && hops++ < 64) cur = supers[cur]
+            return cur == owner
+        }
+
         val broken = LinkedHashMap<String, MutableSet<String>>() // target → accessors
         val brokenMembers = LinkedHashMap<String, MutableSet<String>>() // "owner member" → accessors
         for (accessor in out) {
@@ -150,7 +163,10 @@ object JarFixups {
             for ((owner, member, _) in accessor.memberRefs) {
                 if (owner == accessor.name) continue
                 val acc = memberAccess[owner]?.get(member) ?: continue // member not in output set
-                if (isPackagePrivate(acc) && pkg(owner) != pkg(accessor.name)) {
+                if (pkg(owner) == pkg(accessor.name)) continue
+                if (isPackagePrivate(acc) ||
+                    (acc and Opcodes.ACC_PROTECTED != 0 && !isSubclassOf(accessor.name, owner))
+                ) {
                     brokenMembers.getOrPut("$owner $member", ::mutableSetOf).add(accessor.name)
                 }
             }
@@ -239,8 +255,12 @@ object JarFixups {
             i++
         }
 
-        // access_flags / this_class / super_class / interfaces
-        putU2(off, u2(off) or classFlags)
+        // access_flags / this_class / super_class / interfaces — replace
+        // the visibility bits, don't OR onto them (protected|public is illegal);
+        // classFlags == 0 means member-only patch — leave class flags untouched
+        if (classFlags != 0) {
+            putU2(off, (u2(off) and (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_PROTECTED).inv()) or classFlags)
+        }
         off += 6
         off += 2 * u2(off); off += 2
 
@@ -254,7 +274,10 @@ object JarFixups {
                 val attrs = u2(off); off += 2
                 repeat(attrs) { off += 6 + u4(off + 2) }
                 if (name != null && desc != null && memberKeys.contains("$kind$name $desc")) {
-                    putU2(memberOff, u2(memberOff) or Opcodes.ACC_PUBLIC)
+                    putU2(
+                        memberOff,
+                        (u2(memberOff) and (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_PROTECTED).inv()) or Opcodes.ACC_PUBLIC
+                    )
                 }
             }
         }
@@ -353,4 +376,103 @@ object JarFixups {
         return out.toString().toByteArray()
     }
 
+
+    /**
+     * Proguard mangles constructor parameter-annotation attributes:
+     * it strips the synthetic leading params (enum `String,int`;
+     * inner-class `this$0`) from the descriptor view but the emitted
+     * `Runtime[In]VisibleParameterAnnotations` counts/indices still
+     * reflect them, so annotation indices overflow the real param
+     * list. Port of 1.x `FixParamAnnotations` to ClassNode form —
+     * rewrites the annotable counts and drops the phantom leading
+     * entries on `<init>`s of enum/inner classes.
+     */
+    fun fixParamAnnotations(cn: ClassNode) {
+        val synthetic = syntheticParams(cn) ?: return
+        for (m in cn.methods) {
+            if (m.name != "<init>") continue
+            val realParams = org.objectweb.asm.Type.getArgumentTypes(m.desc).size - synthetic.size
+            fixAnnotationArray(m, true, realParams)
+            fixAnnotationArray(m, false, realParams)
+        }
+    }
+
+    /** Synthetic leading ctor params, or null when none expected
+     *  (not enum/inner). Mirrors 1.x `expectedSynthetic`. */
+    private fun syntheticParams(cn: ClassNode): List<String>? {
+        if (cn.access and Opcodes.ACC_ENUM != 0)
+            return listOf("Ljava/lang/String;", "I")
+        val info = cn.innerClasses?.firstOrNull { it.name == cn.name }
+            ?: return null
+        if (info.access and (Opcodes.ACC_STATIC or Opcodes.ACC_INTERFACE) != 0)
+            return null
+        if (info.innerName == null) return null // anonymous
+        if (info.outerName == null) {
+            val idx = cn.name.lastIndexOf('$')
+            if (idx == -1) return null
+            return listOf("L${cn.name.substring(0, idx)};")
+        }
+        return listOf("L${info.outerName};")
+    }
+
+    private fun fixAnnotationArray(m: MethodNode, visible: Boolean, realParams: Int) {
+        val count = if (visible) m.visibleAnnotableParameterCount
+        else m.invisibleAnnotableParameterCount
+        val anns = if (visible) m.visibleParameterAnnotations
+        else m.invisibleParameterAnnotations ?: return
+        val offset = count - realParams
+        if (offset <= 0 || anns == null) return
+        // proguard's phantom leading entries — shift the real ones left
+        for (i in 0 until anns.size - offset) {
+            anns[i] = anns[i + offset]
+        }
+        for (i in anns.size - offset until anns.size) {
+            anns[i] = null
+        }
+        if (visible) m.visibleAnnotableParameterCount = realParams
+        else m.invisibleAnnotableParameterCount = realParams
+    }
+
+    /**
+     * Rebuild missing `InnerClasses` attributes for named inner
+     * classes — old/proguard jars list `Foo$Bar` siblings without the
+     * attribute, so post-merge/remap the parent<->child linkage is
+     * broken. Port of 1.x `FixInnerClasses` (set-level: needs sibling
+     * visibility): for each top-level `Foo`, named `Foo$X` children
+     * (anonymous `$N` skipped) get `InnerClasses` entries with
+     * nearest named parent, added to BOTH sides, `ACC_STATIC` forced.
+     */
+    fun fixInnerClasses(classes: List<Pair<String, ClassNode>>) {
+        val anon = Regex("\\$\\d+")
+        for ((_, parent) in classes) {
+            val simpleName = parent.name.substringAfterLast('/')
+            if ('$' in simpleName) continue
+            val pkg = parent.name.substringBeforeLast('/', "")
+                .let { if (it.isEmpty()) "" else "$it/" }
+            val children = classes.map { it.second }.filter {
+                val s = it.name.substringAfterLast('/')
+                s.startsWith("$simpleName$") && !anon.containsMatchIn(s)
+            }
+            if (children.isEmpty()) continue
+            val childSimples = children.map { it.name.substringAfterLast('/') }.toSet()
+            val nodes = children.map { child ->
+                val childSimple = child.name.substringAfterLast('/')
+                var simpleParent = childSimple.substringBeforeLast('$')
+                while (simpleParent !in childSimples && simpleParent != simpleName)
+                    simpleParent = simpleParent.substringBeforeLast('$')
+                InnerClassNode(
+                    child.name, "$pkg$simpleParent",
+                    childSimple.removePrefix("$simpleParent$"),
+                    child.access or Opcodes.ACC_STATIC
+                )
+            }
+            fun merge(cn: ClassNode) {
+                if (cn.innerClasses == null) cn.innerClasses = mutableListOf()
+                val existing = cn.innerClasses.map { it.name }.toSet()
+                cn.innerClasses.addAll(nodes.filter { it.name !in existing })
+            }
+            merge(parent)
+            children.forEach(::merge)
+        }
+    }
 }

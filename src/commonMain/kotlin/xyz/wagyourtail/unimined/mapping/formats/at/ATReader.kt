@@ -25,6 +25,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 /**
  * This reads AT files written in the format found in forge 1.7-current
  * https://docs.minecraftforge.net/en/latest/advanced/accesstransformers/#examples
+ * First-party implementation: [https://github.com/MinecraftForge/AccessTransformers/blob/15fa1e5/src/main/java/net/minecraftforge/accesstransformer/parser/AccessTransformerList.java](https://github.com/MinecraftForge/AccessTransformers/blob/15fa1e5/src/main/java/net/minecraftforge/accesstransformer/parser/AccessTransformerList.java)
  */
 object ATReader : FormatReader {
     private val logger = KotlinLogging.logger {  }

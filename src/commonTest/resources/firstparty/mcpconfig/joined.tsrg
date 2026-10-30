@@ -1,0 +1,120 @@
+a net/minecraft/util/text/TextFormatting
+	a BLACK
+	b DARK_BLUE
+	c DARK_GREEN
+	d DARK_AQUA
+	e DARK_RED
+	f DARK_PURPLE
+	g GOLD
+	h GRAY
+	i DARK_GRAY
+	j BLUE
+	k GREEN
+	l AQUA
+	m RED
+	n LIGHT_PURPLE
+	o YELLOW
+	p WHITE
+	q OBFUSCATED
+	r BOLD
+	s STRIKETHROUGH
+	t UNDERLINE
+	u ITALIC
+	v RESET
+	w field_96331_x
+	x field_96330_y
+	y field_175748_y
+	z field_96329_z
+	A field_96303_A
+	B field_96304_B
+	C field_175747_C
+	D $VALUES
+	a (I)La; func_175744_a
+	a (Ljava/lang/String;)Ljava/lang/String; func_110646_a
+	a (ZZ)Ljava/util/Collection; func_96296_a
+	b ()I func_175746_b
+	b (Ljava/lang/String;)La; func_96300_b
+	c ()Z func_96301_b
+	c (Ljava/lang/String;)Ljava/lang/String; func_175745_c
+	d ()Z func_96302_c
+	e ()Ljava/lang/String; func_96297_d
+	values ()[La; values
+	toString ()Ljava/lang/String; toString
+b net/minecraft/crash/CrashReport
+	a field_147150_a
+	b field_71513_a
+	c field_71511_b
+	d field_85061_c
+	e field_71512_c
+	f field_71510_d
+	g field_85059_f
+	h field_85060_g
+	a ()Ljava/lang/String; func_71501_a
+	a (Ljava/io/File;)Z func_147149_a
+	a (Ljava/lang/String;)Lc; func_85058_a
+	a (Ljava/lang/String;I)Lc; func_85057_a
+	a (Ljava/lang/StringBuilder;)V func_71506_a
+	a (Ljava/lang/Throwable;Ljava/lang/String;)Lb; func_85055_a
+	b ()Ljava/lang/Throwable; func_71505_b
+	d ()Ljava/lang/String; func_71498_d
+	e ()Ljava/lang/String; func_71502_e
+	f ()Ljava/io/File; func_71497_f
+	g ()Lc; func_85056_g
+	h ()V func_71504_g
+	i ()Ljava/lang/String; func_71503_h
+b$1 net/minecraft/crash/CrashReport$1
+	a field_71494_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+b$2 net/minecraft/crash/CrashReport$2
+	a field_71496_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+b$3 net/minecraft/crash/CrashReport$3
+	a field_71490_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+b$4 net/minecraft/crash/CrashReport$4
+	a field_71492_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+b$5 net/minecraft/crash/CrashReport$5
+	a field_71486_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+b$6 net/minecraft/crash/CrashReport$6
+	a field_71488_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+b$7 net/minecraft/crash/CrashReport$7
+	a field_83004_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+c net/minecraft/crash/CrashReportCategory
+	a field_85078_a
+	b field_85076_b
+	c field_85077_c
+	d field_85075_d
+	a ()[Ljava/lang/StackTraceElement; func_147152_a
+	a (DDD)Ljava/lang/String; func_85074_a
+	a (I)I func_85073_a
+	a (III)Ljava/lang/String; func_184876_a
+	a (Lc;Let;Laow;I)V func_180523_a
+	a (Lc;Let;Lawt;)V func_175750_a
+	a (Let;)Ljava/lang/String; func_180522_a
+	a (Ljava/lang/StackTraceElement;Ljava/lang/StackTraceElement;)Z func_85069_a
+	a (Ljava/lang/String;Ld;)V func_189529_a
+	a (Ljava/lang/String;Ljava/lang/Object;)V func_71507_a
+	a (Ljava/lang/String;Ljava/lang/Throwable;)V func_71499_a
+	a (Ljava/lang/StringBuilder;)V func_85072_a
+	b (I)V func_85070_b
+c$1 net/minecraft/crash/CrashReportCategory$1
+	a field_85080_a
+	b field_147151_b
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+c$2 net/minecraft/crash/CrashReportCategory$2
+	a field_85063_a
+	a ()Ljava/lang/String; call
+	call ()Ljava/lang/Object; call
+c$3 net/minecraft/crash/CrashReportCategory$3

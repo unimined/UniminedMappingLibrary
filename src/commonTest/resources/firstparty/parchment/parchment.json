@@ -1,0 +1,1086 @@
+{
+  "version": "1.1.0",
+  "packages": [
+    {
+      "name": "com/mojang/blaze3d",
+      "javadoc": [
+        "Root package for the Blaze3D rendering library."
+      ]
+    },
+    {
+      "name": "net/minecraft/client",
+      "javadoc": [
+        "The client-only classes for Minecraft."
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "name": "com/mojang/blaze3d/Blaze3D",
+      "methods": [
+        {
+          "name": "process",
+          "descriptor": "(Lcom/mojang/blaze3d/pipeline/RenderPipeline;F)V",
+          "parameters": [
+            {
+              "index": 0,
+              "name": "pipeline"
+            },
+            {
+              "index": 1,
+              "name": "unknown"
+            }
+          ]
+        },
+        {
+          "name": "render",
+          "descriptor": "(Lcom/mojang/blaze3d/pipeline/RenderPipeline;F)V",
+          "parameters": [
+            {
+              "index": 0,
+              "name": "pipeline"
+            },
+            {
+              "index": 1,
+              "name": "unknown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/Channel",
+      "javadoc": [
+        "Represents an OpenAL audio channel."
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "descriptor": "(I)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "source"
+            }
+          ]
+        },
+        {
+          "name": "attachBufferStream",
+          "descriptor": "(Lnet/minecraft/client/sounds/AudioStream;)V",
+          "javadoc": [
+            "Attaches a buffer stream to the audio channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "stream",
+              "javadoc": "the stream to attach"
+            }
+          ]
+        },
+        {
+          "name": "attachStaticBuffer",
+          "descriptor": "(Lcom/mojang/blaze3d/audio/SoundBuffer;)V",
+          "javadoc": [
+            "Attaches a static buffer to the audio channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "buffer",
+              "javadoc": "the buffer to attach"
+            }
+          ]
+        },
+        {
+          "name": "calculateBufferSize",
+          "descriptor": "(Ljavax/sound/sampled/AudioFormat;I)I",
+          "javadoc": [
+            "Calculates the buffer size for an audio stream.",
+            "@return the buffer size"
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "format",
+              "javadoc": "the audio format of the stream"
+            },
+            {
+              "index": 1,
+              "name": "sampleAmount",
+              "javadoc": "the number of samples to buffer"
+            }
+          ]
+        },
+        {
+          "name": "create",
+          "descriptor": "()Lcom/mojang/blaze3d/audio/Channel;",
+          "javadoc": [
+            "Creates a new OpenAL audio channel.",
+            "{@return a new OpenAL audio channel or {@code null} if its creation failed}"
+          ]
+        },
+        {
+          "name": "destroy",
+          "descriptor": "()V",
+          "javadoc": [
+            "Stops the audio channel and releases resources."
+          ]
+        },
+        {
+          "name": "disableAttenuation",
+          "descriptor": "()V",
+          "javadoc": [
+            "Disables attenuation for the audio channel."
+          ]
+        },
+        {
+          "name": "getState",
+          "descriptor": "()I",
+          "javadoc": [
+            "{@return the state of the audio channel}"
+          ]
+        },
+        {
+          "name": "lambda$attachStaticBuffer$0",
+          "descriptor": "(I)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "value"
+            }
+          ]
+        },
+        {
+          "name": "lambda$pumpBuffers$1",
+          "descriptor": "(I)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "bufferName"
+            }
+          ]
+        },
+        {
+          "name": "linearAttenuation",
+          "descriptor": "(F)V",
+          "javadoc": [
+            "Sets linear attenuation for the audio channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "linearAttenuation",
+              "javadoc": "the linear attenuation of the audio channel"
+            }
+          ]
+        },
+        {
+          "name": "pause",
+          "descriptor": "()V",
+          "javadoc": [
+            "Pauses the audio channel."
+          ]
+        },
+        {
+          "name": "play",
+          "descriptor": "()V",
+          "javadoc": [
+            "Starts playing the audio channel."
+          ]
+        },
+        {
+          "name": "playing",
+          "descriptor": "()Z",
+          "javadoc": [
+            "{@return {@code true} if the audio channel is currently playing, {@code false} otherwise}"
+          ]
+        },
+        {
+          "name": "pumpBuffers",
+          "descriptor": "(I)V",
+          "javadoc": [
+            "Reads and queues audio buffers from the stream."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "readCount",
+              "javadoc": "the number of buffers to read and queue"
+            }
+          ]
+        },
+        {
+          "name": "removeProcessedBuffers",
+          "descriptor": "()I",
+          "javadoc": [
+            "Removes processed audio buffers from the audio channel.",
+            "@return the number of processed buffers removed"
+          ]
+        },
+        {
+          "name": "setLooping",
+          "descriptor": "(Z)V",
+          "javadoc": [
+            "Sets whether the audio channel should loop."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "looping",
+              "javadoc": "{@code true} if the audio channel should loop, {@code false} otherwise"
+            }
+          ]
+        },
+        {
+          "name": "setPitch",
+          "descriptor": "(F)V",
+          "javadoc": [
+            "Sets the pitch of the audio channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "pitch",
+              "javadoc": "the pitch of the audio channel"
+            }
+          ]
+        },
+        {
+          "name": "setRelative",
+          "descriptor": "(Z)V",
+          "javadoc": [
+            "Sets whether the audio channel should be relative to the listener's position."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "relative",
+              "javadoc": "{@code true} if the audio channel should be relative, {@code false} otherwise"
+            }
+          ]
+        },
+        {
+          "name": "setSelfPosition",
+          "descriptor": "(Lnet/minecraft/world/phys/Vec3;)V",
+          "javadoc": [
+            "Sets the position of the audio channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "source",
+              "javadoc": "the position of the audio channel"
+            }
+          ]
+        },
+        {
+          "name": "setVolume",
+          "descriptor": "(F)V",
+          "javadoc": [
+            "Sets the volume of the audio channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "volume",
+              "javadoc": "the volume of the audio channel"
+            }
+          ]
+        },
+        {
+          "name": "stop",
+          "descriptor": "()V",
+          "javadoc": [
+            "Stops playing the audio channel."
+          ]
+        },
+        {
+          "name": "stopped",
+          "descriptor": "()Z",
+          "javadoc": [
+            "{@return {@code true} if the audio channel is stopped, {@code false} otherwise}"
+          ]
+        },
+        {
+          "name": "unpause",
+          "descriptor": "()V",
+          "javadoc": [
+            "Resumes playing the audio channel if it was paused."
+          ]
+        },
+        {
+          "name": "updateStream",
+          "descriptor": "()V",
+          "javadoc": [
+            "Updates the audio stream by removing processed buffers and queuing new ones."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/Library",
+      "methods": [
+        {
+          "name": "acquireChannel",
+          "descriptor": "(Lcom/mojang/blaze3d/audio/Library$Pool;)Lcom/mojang/blaze3d/audio/Channel;",
+          "javadoc": [
+            "Acquires a sound channel based on the given mode."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "pool"
+            }
+          ]
+        },
+        {
+          "name": "cleanup",
+          "descriptor": "()V",
+          "javadoc": [
+            "Cleans up all resources used by the library."
+          ]
+        },
+        {
+          "name": "getAvailableSoundDevices",
+          "descriptor": "()Ljava/util/List;",
+          "javadoc": [
+            "{@return A list of strings representing the names of available sound devices, or an empty list if no devices are available.}"
+          ]
+        },
+        {
+          "name": "getChannelCount",
+          "descriptor": "()I",
+          "javadoc": [
+            "{@return the number of channels available for audio playback}"
+          ]
+        },
+        {
+          "name": "getCurrentDeviceName",
+          "descriptor": "()Ljava/lang/String;",
+          "javadoc": [
+            "{@return the name of the default audio device, or {@code null} if it cannot be determined}"
+          ]
+        },
+        {
+          "name": "getDefaultDeviceName",
+          "descriptor": "()Ljava/lang/String;",
+          "javadoc": [
+            "{@return the name of the currently selected audio device, or {@code Unknown} if it cannot be determined}"
+          ]
+        },
+        {
+          "name": "hasDefaultDeviceChanged",
+          "descriptor": "()Z",
+          "javadoc": [
+            "Checks if the default audio device has changed since the last time this method was called.",
+            "<p>",
+            "If the default device has changed, updates the stored default device name accordingly.",
+            "@return {@code true} if the default device has changed since the last time this method was called, {@code false} otherwise"
+          ]
+        },
+        {
+          "name": "init",
+          "descriptor": "(Ljava/lang/String;Z)V",
+          "javadoc": [
+            "Initializes the OpenAL device and context.",
+            "@throws IllegalStateException if an error occurs during initialization."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "deviceSpecifier",
+              "javadoc": "A string specifying the name of the audio device to use, or null to use the default device."
+            },
+            {
+              "index": 2,
+              "name": "enableHrtf",
+              "javadoc": "Whether to enable HRTF (head-related transfer function) for spatial audio."
+            }
+          ]
+        },
+        {
+          "name": "openDeviceOrFallback",
+          "descriptor": "(Ljava/lang/String;)J",
+          "javadoc": [
+            "Opens the specified audio device, or the default device if the specifier is null.",
+            "@return The handle of the opened device.",
+            "@throws IllegalStateException if the device cannot be opened."
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "deviceSpecifier",
+              "javadoc": "The name of the audio device to open, or null to open the default device."
+            }
+          ]
+        },
+        {
+          "name": "releaseChannel",
+          "descriptor": "(Lcom/mojang/blaze3d/audio/Channel;)V",
+          "javadoc": [
+            "Releases a channel.",
+            "@return whether the channel was successfully released"
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "channel",
+              "javadoc": "The channel to release."
+            }
+          ]
+        },
+        {
+          "name": "setHrtf",
+          "descriptor": "(Z)V",
+          "javadoc": [
+            "Sets the HRTF (head-related transfer function) for spatial audio, if it is supported by the current device."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "enableHrtf",
+              "javadoc": "Whether to enable HRTF."
+            }
+          ]
+        },
+        {
+          "name": "tryOpenDevice",
+          "descriptor": "(Ljava/lang/String;)Ljava/util/OptionalLong;",
+          "javadoc": [
+            "Attempts to open the specified audio device.",
+            "@return an {@linkplain OptionalLong} containing the handle of the opened device if successful, or empty if the device could not be opened"
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "deviceSpecifier",
+              "javadoc": "A string specifying the name of the audio device to open, or null to use the default device."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/Library$ChannelPool",
+      "methods": [
+        {
+          "name": "release",
+          "descriptor": "(Lcom/mojang/blaze3d/audio/Channel;)Z",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "channel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/Library$CountingChannelPool",
+      "methods": [
+        {
+          "name": "<init>",
+          "descriptor": "(I)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "limit"
+            }
+          ]
+        },
+        {
+          "name": "release",
+          "descriptor": "(Lcom/mojang/blaze3d/audio/Channel;)Z",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "channel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/Listener",
+      "javadoc": [
+        "The Listener class represents the listener in a 3D audio environment.",
+        "",
+        "The listener's position and orientation determine how sounds are perceived by the listener."
+      ],
+      "methods": [
+        {
+          "name": "getGain",
+          "descriptor": "()F",
+          "javadoc": [
+            "{@return the current gain value of the listener}"
+          ]
+        },
+        {
+          "name": "getListenerPosition",
+          "descriptor": "()Lnet/minecraft/world/phys/Vec3;",
+          "javadoc": [
+            "{@return the current position of the listener in a 3D space}"
+          ]
+        },
+        {
+          "name": "reset",
+          "descriptor": "()V",
+          "javadoc": [
+            "Resets the listener's position and orientation to default values."
+          ]
+        },
+        {
+          "name": "setGain",
+          "descriptor": "(F)V",
+          "javadoc": [
+            "Sets the listener's gain."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "gain",
+              "javadoc": "The gain to set for the listener."
+            }
+          ]
+        },
+        {
+          "name": "setListenerOrientation",
+          "descriptor": "(Lorg/joml/Vector3f;Lorg/joml/Vector3f;)V",
+          "javadoc": [
+            "Sets the listener's orientation."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "clientViewVector",
+              "javadoc": "The view vector indicating the direction the listener is facing."
+            },
+            {
+              "index": 2,
+              "name": "viewVectorRaised",
+              "javadoc": "The up vector indicating the listener's \"up\" direction."
+            }
+          ]
+        },
+        {
+          "name": "setListenerPosition",
+          "descriptor": "(Lnet/minecraft/world/phys/Vec3;)V",
+          "javadoc": [
+            "Sets the listener's position."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "position",
+              "javadoc": "A Vec3 representing the listener's position in 3D space."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/OggAudioStream",
+      "javadoc": [
+        "An implementation of the {@link AudioStream} interface that reads Ogg Vorbis audio data from an {@link InputStream}."
+      ],
+      "fields": [
+        {
+          "name": "EXPECTED_MAX_FRAME_SIZE",
+          "descriptor": "I",
+          "javadoc": [
+            "The expected maximum frame size in bytes."
+          ]
+        },
+        {
+          "name": "audioFormat",
+          "descriptor": "Ljavax/sound/sampled/AudioFormat;",
+          "javadoc": [
+            "The audio format of the Ogg Vorbis stream."
+          ]
+        },
+        {
+          "name": "buffer",
+          "descriptor": "Ljava/nio/ByteBuffer;",
+          "javadoc": [
+            "The buffer used to read data from the input stream."
+          ]
+        },
+        {
+          "name": "handle",
+          "descriptor": "J",
+          "javadoc": [
+            "The handle for the Ogg Vorbis stream."
+          ]
+        },
+        {
+          "name": "input",
+          "descriptor": "Ljava/io/InputStream;",
+          "javadoc": [
+            "The input stream containing the Ogg Vorbis data."
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "descriptor": "(Ljava/io/InputStream;)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "input"
+            }
+          ]
+        },
+        {
+          "name": "close",
+          "descriptor": "()V",
+          "javadoc": [
+            "Closes the audio stream. This method frees any resources associated with the stream, such as the handle for the Ogg Vorbis stream and the memory used to store the input buffer.",
+            "@throws IOException if an I/O error occurs while closing the stream"
+          ]
+        },
+        {
+          "name": "convertMono",
+          "descriptor": "(Ljava/nio/FloatBuffer;Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)V",
+          "javadoc": [
+            "Converts mono audio data from the specified channel to a byte buffer and appends it to the specified output buffer.",
+            "The method reads samples from the channel and adds them to the output buffer until there are no more samples remaining in the channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "channel",
+              "javadoc": "the channel containing the mono audio data to convert"
+            },
+            {
+              "index": 2,
+              "name": "output",
+              "javadoc": "the output buffer to which the converted audio data should be appended"
+            }
+          ]
+        },
+        {
+          "name": "convertStereo",
+          "descriptor": "(Ljava/nio/FloatBuffer;Ljava/nio/FloatBuffer;Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)V",
+          "javadoc": [
+            "Converts stereo audio data from the specified left and right channels to a byte buffer and appends it to the specified output buffer. The method reads samples from both channels and interleaves them in the output buffer until there are no more samples remaining in either channel."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "leftChannel",
+              "javadoc": "the channel containing the left audio data to convert"
+            },
+            {
+              "index": 2,
+              "name": "rightChannel",
+              "javadoc": "the channel containing the right audio data to convert"
+            },
+            {
+              "index": 3,
+              "name": "output",
+              "javadoc": "the output buffer to which the converted audio data should be appended"
+            }
+          ]
+        },
+        {
+          "name": "forwardBuffer",
+          "descriptor": "()V",
+          "javadoc": [
+            "Forwards the buffer to the next Ogg packet boundary."
+          ]
+        },
+        {
+          "name": "getFormat",
+          "descriptor": "()Ljavax/sound/sampled/AudioFormat;",
+          "javadoc": [
+            "{@return the {@linkplain AudioFormat} of the stream}"
+          ]
+        },
+        {
+          "name": "read",
+          "descriptor": "(I)Ljava/nio/ByteBuffer;",
+          "javadoc": [
+            "Reads audio data from the stream and returns a byte buffer containing at most the specified number of bytes.",
+            "The method reads audio frames from the stream and adds them to the output buffer until the buffer contains at least the specified number of bytes or the end fo the stream is reached.",
+            "@return a byte buffer containing at most the specified number of bytes to read",
+            "@throws IOException if an I/O error occurs while reading the audio data"
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "size",
+              "javadoc": "the maximum number of bytes to read"
+            }
+          ]
+        },
+        {
+          "name": "readAll",
+          "descriptor": "()Ljava/nio/ByteBuffer;",
+          "javadoc": [
+            "Reads all of the audio data from the stream and returns a byte buffer containing the entire audio data.",
+            "The method reads audio frames from the stream and adds them to the output buffer until the end of the stream is reached.",
+            "@return a byte buffer containing the entire audio data",
+            "@throws IOException if an I/O error occurs while reading the audio data"
+          ]
+        },
+        {
+          "name": "readFrame",
+          "descriptor": "(Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)Z",
+          "javadoc": [
+            "Reads the next audio frame from the Ogg Vorbis stream.",
+            "@return {@code true} if an audio frame was successfully read, {@code false} if the end of the stream was reached",
+            "@throws IOException if an I/O error occurs while reading the audio data"
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "output",
+              "javadoc": "the output buffer to which the audio data should be written"
+            }
+          ]
+        },
+        {
+          "name": "refillFromStream",
+          "descriptor": "()Z",
+          "javadoc": [
+            "Refills the buffer with data from the input stream.",
+            "@return {@code true} if the buffer was successfully refilled, {@code false} if the end of the input stream was reached",
+            "@throws IOException if an I/O error occurs while reading the data from the input stream"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/OggAudioStream$OutputConcat",
+      "javadoc": [
+        "An implementation of the {@link ByteBuffer} class that concatenates multiple byte buffers into a single buffer.",
+        "The class maintains a list of buffers and a byte count, and adds new data to the current buffer until it is full.",
+        "When the current buffer is full, it is added to the list and a new buffer is created. The `get()` method returns a single byte buffer containing all of the data from the list of buffers."
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "descriptor": "(I)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "size"
+            }
+          ]
+        },
+        {
+          "name": "createNewBuffer",
+          "descriptor": "()V",
+          "javadoc": [
+            "Creates a new buffer and sets it as the current buffer."
+          ]
+        },
+        {
+          "name": "get",
+          "descriptor": "()Ljava/nio/ByteBuffer;",
+          "javadoc": [
+            "{@return a single byte buffer containing all of the data from the list of buffers}"
+          ]
+        },
+        {
+          "name": "put",
+          "descriptor": "(F)V",
+          "javadoc": [
+            "Adds a sample to the current buffer. If the buffer is full, the buffer is added to the list of buffers and a new buffer is created."
+          ],
+          "parameters": [
+            {
+              "index": 1,
+              "name": "sample",
+              "javadoc": "the audio sample to add to the buffer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/OpenAlUtil",
+      "javadoc": [
+        "The OpenALUtil class provides utility functions for working with OpenAL audio."
+      ],
+      "methods": [
+        {
+          "name": "alErrorToString",
+          "descriptor": "(I)Ljava/lang/String;",
+          "javadoc": [
+            "Converts an OpenAL error code to a human-readable error message.",
+            "@return A String representing the error message for the given error code."
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "errorCode",
+              "javadoc": "The OpenAL error code to convert"
+            }
+          ]
+        },
+        {
+          "name": "alcErrorToString",
+          "descriptor": "(I)Ljava/lang/String;",
+          "javadoc": [
+            "Converts an ALC error code to a human-readable error message.",
+            "@return A String representing the error message for the given error code."
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "errorCode",
+              "javadoc": "The ALC error code to convert"
+            }
+          ]
+        },
+        {
+          "name": "audioFormatToOpenAl",
+          "descriptor": "(Ljavax/sound/sampled/AudioFormat;)I",
+          "javadoc": [
+            "Converts an AudioFormat object to the corresponding OpenAL audio format code.",
+            "@return An integer representing the corresponding OpenAL audio format code.",
+            "@throws IllegalArgumentException if the given AudioFormat is not a supported format."
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "format",
+              "javadoc": "The AudioFormat object to convert"
+            }
+          ]
+        },
+        {
+          "name": "checkALCError",
+          "descriptor": "(JLjava/lang/String;)Z",
+          "javadoc": [
+            "Checks for an ALC error and logs an error message if one is found.",
+            "@return true if an ALC error was found, false otherwise."
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "deviceHandle",
+              "javadoc": "The handle of the device to check for errors on"
+            },
+            {
+              "index": 2,
+              "name": "operationState",
+              "javadoc": "A String describing the operation being performed when the error occurred"
+            }
+          ]
+        },
+        {
+          "name": "checkALError",
+          "descriptor": "(Ljava/lang/String;)Z",
+          "javadoc": [
+            "Checks for an OpenAL error and logs an error message if one is found.",
+            "@return true if an OpenAL error was found, false otherwise."
+          ],
+          "parameters": [
+            {
+              "index": 0,
+              "name": "operationState",
+              "javadoc": "A String describing the operation being performed when the error occurred"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/audio/SoundBuffer",
+      "javadoc": [
+        "The SoundBuffer class represents an audio buffer containing audio data in a particular format.",
+        "",
+        "The audio data can be used to create an OpenAL buffer, which can be played in a 3D audio environment."
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "descriptor": "(Ljava/nio/ByteBuffer;Ljavax/sound/sampled/AudioFormat;)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "data"
+            },
+            {
+              "index": 2,
+              "name": "format"
+            }
+          ]
+        },
+        {
+          "name": "discardAlBuffer",
+          "descriptor": "()V",
+          "javadoc": [
+            "Deletes the OpenAL buffer associated with this SoundBuffer, if it exists."
+          ]
+        },
+        {
+          "name": "getAlBuffer",
+          "descriptor": "()Ljava/util/OptionalInt;",
+          "javadoc": [
+            "Returns an OptionalInt containing the OpenAL buffer handle for this SoundBuffer.",
+            "If the buffer has not been created yet, creates the buffer and returns the handle.",
+            "If the buffer cannot be created, returns an empty OptionalInt.",
+            "@return An OptionalInt containing the OpenAL buffer handle, or an empty OptionalInt if the buffer cannot be created."
+          ]
+        },
+        {
+          "name": "releaseAlBuffer",
+          "descriptor": "()Ljava/util/OptionalInt;",
+          "javadoc": [
+            "Releases the OpenAL buffer associated with this SoundBuffer and returns it as an OptionalInt.",
+            "If no buffer has been created yet, returns an empty OptionalInt.",
+            "@return an {@linkplain OptionalInt} containing the OpenAL buffer handle, or an empty one, if the buffer has not been created"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/font/GlyphInfo",
+      "methods": [
+        {
+          "name": "bake",
+          "descriptor": "(Ljava/util/function/Function;)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "glyphProvider"
+            }
+          ]
+        },
+        {
+          "name": "getAdvance",
+          "descriptor": "(Z)F",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "bold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/font/GlyphProvider",
+      "methods": [
+        {
+          "name": "getGlyph",
+          "descriptor": "(I)Lcom/mojang/blaze3d/font/GlyphInfo;",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/font/SheetGlyphInfo",
+      "methods": [
+        {
+          "name": "upload",
+          "descriptor": "(II)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "xOffset"
+            },
+            {
+              "index": 2,
+              "name": "yOffset"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/font/SpaceProvider",
+      "methods": [
+        {
+          "name": "<init>",
+          "descriptor": "(Ljava/util/Map;)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "glyphs"
+            }
+          ]
+        },
+        {
+          "name": "getGlyph",
+          "descriptor": "(I)Lcom/mojang/blaze3d/font/GlyphInfo;",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "character"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "com/mojang/blaze3d/font/TrueTypeGlyphProvider",
+      "methods": [
+        {
+          "name": "<init>",
+          "descriptor": "(Ljava/nio/ByteBuffer;Lorg/lwjgl/stb/STBTTFontinfo;FFFFLjava/lang/String;)V",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "fontMemory"
+            },
+            {
+              "index": 2,
+              "name": "font"
+            },
+            {
+              "index": 3,
+              "name": "height"
+            },
+            {
+              "index": 4,
+              "name": "oversample"
+            },
+            {
+              "index": 5,
+              "name": "shiftX"
+            },
+            {
+              "index": 6,
+              "name": "shiftY"
+            },
+            {
+              "index": 7,
+              "name": "skip"
+            }
+          ]
+        },
+        {
+          "name": "getGlyph",
+          "descriptor": "(I)Lcom/mojang/blaze3d/font/GlyphInfo;",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "character"
+            }
+          ]
+        },
+        {
+          "name": "lambda$getSupportedGlyphs$1",
+          "descriptor": "(I)Z",
+          "parameters": [
+            {
+              "index": 1,
+              "name": "codePoint"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

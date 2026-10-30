@@ -1,0 +1,60 @@
+tsrg2 obf srg id
+a net/minecraft/src/C_140945_ 140945
+	a f_142767_ 142767
+	b f_142768_ 142768
+	c f_142769_ 142769
+	d f_142770_ 142770
+	<init> ()V <init> 142771
+aa net/minecraft/src/C_5250_ 5250
+	<init> (Ljava/lang/String;)V <init> 135420
+		0 o p_135421_ 135421
+	<init> (Ljava/lang/String;Ljava/lang/Throwable;)V <init> 135422
+		0 o p_135423_ 135423
+		1 o p_135424_ 135424
+aaa net/minecraft/src/C_5382_ 5382
+	a f_138862_ 138862
+	b f_138863_ 138863
+	c f_138864_ 138864
+	d f_138865_ 138865
+	e f_138866_ 138866
+	f f_138867_ 138867
+	g f_138868_ 138868
+	h f_138869_ 138869
+	i f_138870_ 138870
+	j f_138871_ 138871
+	k f_138872_ 138872
+	l f_138873_ 138873
+	<clinit> ()V <clinit> 138874
+		static
+	<init> ()V <init> 142772
+	A (Lcom/mojang/brigadier/context/CommandContext;)I m_138875_ 138875
+		static
+		0 o p_138876_ 138876
+	a (Ldl;Ldnw;Ljava/util/Collection;)I m_138894_ 138894
+		static
+		0 o p_138895_ 138895
+		1 o p_138896_ 138896
+		2 o p_138897_ 138897
+	a (Ldl;Ldnw;Los;)I m_138902_ 138902
+		static
+		0 o p_138903_ 138903
+		1 o p_138904_ 138904
+		2 o p_138905_ 138905
+	a (Ldl;)I m_138881_ 138881
+		static
+		0 o p_138882_ 138882
+	a (Lcom/mojang/brigadier/CommandDispatcher;)V m_138877_ 138877
+		static
+		0 o p_138878_ 138878
+	a (Ldl;Ldnw;)I m_138883_ 138883
+		static
+		0 o p_138884_ 138884
+		1 o p_138885_ 138885
+	a (Ldl;Ldnw;Ldoa$b;)I m_138890_ 138890
+		static
+		0 o p_138891_ 138891
+		1 o p_138892_ 138892
+		2 o p_138893_ 138893
+	a (Ldl;Ldnw;Lp;)I m_138898_ 138898
+		static
+		0 o p_138899_ 138899

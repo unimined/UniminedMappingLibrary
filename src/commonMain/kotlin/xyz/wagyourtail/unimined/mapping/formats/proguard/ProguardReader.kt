@@ -18,6 +18,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: ProGuard ReTrace mapping reader (https://github.com/Guardsquare/proguard); Mojang `client_mappings.txt` is the canonical producer. Spec: https://www.guardsquare.com/manual/tools/retrace
+ */
 object ProguardReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

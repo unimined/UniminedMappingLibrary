@@ -1,0 +1,14 @@
+umf	1	3
+source
+c	net/minecraftforge/accesstransformer/testJar/ATTestClass
+	f	finalPrivateField
+		a	+	public	*
+		a	-	final	*
+	f	privateField
+		a	+	protected	*
+	m	privateMethod;()V
+		a	+	public	*
+c	net/minecraftforge/accesstransformer/testJar/DefaultClass
+	a	+	public	*
+c	net/minecraftforge/accesstransformer/testJar/DefaultClass$Inner
+	a	+	public	*

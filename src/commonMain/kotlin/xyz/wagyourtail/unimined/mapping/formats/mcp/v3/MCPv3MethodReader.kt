@@ -18,6 +18,7 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 
 /**
  * this reads the methods.csv from mcp 3.0-5.6
+ * First-party implementation: MCP 3.0–5.6 `methods.csv` schema — no standalone upstream parser; corpus is schema-derived.
  */
 object MCPv3MethodReader : FormatReader {
 

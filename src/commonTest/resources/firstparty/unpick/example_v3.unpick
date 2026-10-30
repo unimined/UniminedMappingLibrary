@@ -1,0 +1,6 @@
+unpick v3
+group int flags
+	CONSTANT_1 1
+	CONSTANT_2 2
+target_method a/b method ()V
+	param 0 flags

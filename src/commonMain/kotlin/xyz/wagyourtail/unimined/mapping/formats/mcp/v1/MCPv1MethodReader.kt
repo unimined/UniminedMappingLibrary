@@ -22,6 +22,7 @@ import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
 /**
  * this reads the MCP 1-2.12 method csv files
+ * First-party implementation: MCP pre-1.3 `methods.csv` schema — no standalone upstream parser; corpus is schema-derived.
  */
 object MCPv1MethodReader : FormatReader {
 

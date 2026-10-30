@@ -33,7 +33,7 @@ import xyz.wagyourtail.unimined.mapping.remapper.source.psi.PsiFileView
  * SourceOptions(extensions = listOf(MixinSourceExtension(refmap = true)))    // params only
  * ```
  */
-class MixinSourceExtension(
+open class MixinSourceExtension(
     private val table: AnnotationTable = MixinTables.ALL,
     private val refmap: Boolean = false,
 ) : SourceExtension {
@@ -51,9 +51,13 @@ class MixinSourceExtension(
     /** `@Mixin` target hints — `value`/`targets` class literals + strings,
      *  normalized to internal names */
     private fun targetHints(ann: PsiAnnotation): List<String> {
+        // hint params are the marker's ClassRef-declared params — `value`/
+        // `targets` on @Mixin, `value`/`name` on @CTransformer
+        val hintParams = table.rulesFor(desc(ann) ?: return emptyList())
+            .filterValues { it is ParamRemap.ClassRef }.keys
         val out = mutableListOf<String>()
         for (attr in ann.parameterList.attributes) {
-            if (attr.name != null && attr.name != "value" && attr.name != "targets") continue
+            if ((attr.name ?: "value") !in hintParams) continue
             val values = when (val v = attr.value) {
                 is PsiArrayInitializerMemberValue -> v.initializers.toList()
                 else -> listOfNotNull(v)
@@ -92,7 +96,8 @@ class MixinSourceExtension(
 
     private fun rewriteAnnotation(ann: PsiAnnotation, ctx: ExtensionContext, hints: List<String>, changes: ChangeSet) {
         if (!remapEnabled(ann)) return
-        val rules = table.rules[desc(ann) ?: return] ?: return
+        val rules = table.rulesFor(desc(ann) ?: return)
+        if (rules.isEmpty()) return
         for (attr in ann.parameterList.attributes) {
             val remap = rules[attr.name ?: "value"] ?: continue
             val values = when (val v = attr.value) {
@@ -340,7 +345,8 @@ class MixinSourceExtension(
         changes: ChangeSet,
         bc: org.jetbrains.kotlin.resolve.BindingContext?,
     ) {
-        val rules = table.rules[ktDesc(entry, bc) ?: return] ?: return
+        val rules = table.rulesFor(ktDesc(entry, bc) ?: return)
+        if (rules.isEmpty()) return
         for (arg in entry.valueArguments) {
             val remap = rules[arg.getArgumentName()?.asName?.asString() ?: "value"] ?: continue
             val expr = arg.getArgumentExpression()

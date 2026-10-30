@@ -1,0 +1,15 @@
+umf	1	3
+source	target	searge	mcp	notch
+k	""	net/minecraft/src/	_	_	_
+c	a	net/minecraft/src/Minecraft	_	_	_
+	f	a	field_1724	_	_	_
+	m	a;()V	func_1_a	_	_	_
+c	b	net/minecraft/src/World	_	_	_
+	f	a	field_1725	_	_	_
+	m	a;(I)V	func_2_b	_	_	_
+c	_	_	net/minecraft/src/net/minecraft/src/Minecraft	_	a
+c	_	_	a	_	_
+	m	_	_	a;()V	_	_
+		x	+	java/lang/Exception	searge
+		a	+	public	*
+		p	0	_	_	_	p_1_0_	_	_

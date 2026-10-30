@@ -22,6 +22,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: MCP conf-era `joined.exc` — no standalone upstream parser; schema corpus only.
+ */
 object MCPExceptionReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

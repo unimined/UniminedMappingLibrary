@@ -1,0 +1,8 @@
+umf	1	3
+source	target	target2
+c	class_1	class1Ns0Rename	class1Ns1Rename
+	f	field_1;I	field1Ns0Rename	field1Ns1Rename
+	m	method_1;()I	method1Ns0Rename	method1Ns1Rename
+c	class_1$class_2	class1Ns0Rename$class2Ns0Rename	class1Ns1Rename$class2Ns1Rename
+	f	field_2;Lcls;	field2Ns0Rename	field2Ns1Rename
+c	class_3	package_3/class3Ns0Rename	package_3/class3Ns1Rename

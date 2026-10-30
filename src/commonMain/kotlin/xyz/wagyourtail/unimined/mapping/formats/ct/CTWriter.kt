@@ -18,7 +18,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
-/** Writes the access, interface-injection, and enum-extension subset supported by CT. */
+/** Writes the access, interface-injection, and enum-extension subset supported by CT.
+ * First-party implementation: https://github.com/FabricMC/fabric-tooling/blob/b01b36a/class-tweaker/src/main/java/net/fabricmc/classtweaker/writer/ClassTweakerWriterImpl.java
+ */
 object CTWriter : FormatWriter {
     override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {
         val envType = settings.envType

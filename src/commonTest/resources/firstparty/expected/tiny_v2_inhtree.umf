@@ -1,0 +1,17 @@
+umf	1	3
+obf	deobf	third
+c	a	inh/Apple	_
+	f	a;Ljava/lang/String;	name	_
+		*	"A name for myself"	obf
+	m	a;()V	sayName	sayNameToo
+		*	"say the name."	obf
+	m	a;()Ljava/lang/String;	getSubName	getSubName2
+		*	"Gets the name for this thing."	obf
+c	b	inh/Bear	_
+c	c	inh/Supper	_
+	f	a;I	counter	_
+	m	b;()V	sayCounter	countSay
+		*	"Say about the counter."	obf
+c	d	inh/Avatar	_
+c	cuchaz/enigma/inputs/Keep	cuchaz/enigma/inputs/Keep	_
+	m	a;([Ljava/lang/String;)V	shoutOut	_

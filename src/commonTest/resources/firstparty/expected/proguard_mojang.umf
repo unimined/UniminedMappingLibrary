@@ -1,0 +1,301 @@
+umf	1	3
+source	target
+c	com/mojang/blaze3d/Blaze3D	ega
+	m	<init>;()V	<init>
+	m	process;(Lcom/mojang/blaze3d/pipeline/RenderPipeline;F)V	a
+	m	render;(Lcom/mojang/blaze3d/pipeline/RenderPipeline;F)V	b
+	m	youJustLostTheGame;()V	a
+	m	getTime;()D	b
+c	com/mojang/blaze3d/DontObfuscate	egb
+c	com/mojang/blaze3d/FieldsAreNonnullByDefault	egc
+c	com/mojang/blaze3d/MethodsReturnNonnullByDefault	egd
+c	com/mojang/blaze3d/audio/Channel	ege
+	f	LOGGER;Lorg/slf4j/Logger;	b
+	f	QUEUED_BUFFER_COUNT;I	c
+	f	BUFFER_DURATION_SECONDS;I	a
+	f	source;I	d
+	f	initialized;Ljava/util/concurrent/atomic/AtomicBoolean;	e
+	f	streamingBufferSize;I	f
+	f	stream;Lnet/minecraft/client/sounds/AudioStream;	g
+	m	create;()Lcom/mojang/blaze3d/audio/Channel;	a
+	m	<init>;(I)V	<init>
+	m	destroy;()V	b
+	m	play;()V	c
+	m	getState;()I	k
+	m	pause;()V	d
+	m	unpause;()V	e
+	m	stop;()V	f
+	m	playing;()Z	g
+	m	stopped;()Z	h
+	m	setSelfPosition;(Lnet/minecraft/world/phys/Vec3;)V	a
+	m	setPitch;(F)V	a
+	m	setLooping;(Z)V	a
+	m	setVolume;(F)V	b
+	m	disableAttenuation;()V	i
+	m	linearAttenuation;(F)V	c
+	m	setRelative;(Z)V	b
+	m	attachStaticBuffer;(Lcom/mojang/blaze3d/audio/SoundBuffer;)V	a
+	m	attachBufferStream;(Lnet/minecraft/client/sounds/AudioStream;)V	a
+	m	calculateBufferSize;(Ljavax/sound/sampled/AudioFormat;I)I	a
+	m	pumpBuffers;(I)V	a
+	m	updateStream;()V	j
+	m	removeProcessedBuffers;()I	l
+	m	lambda$pumpBuffers$1;(I)V	b
+	m	lambda$attachStaticBuffer$0;(I)V	c
+	m	<clinit>;()V	<clinit>
+c	com/mojang/blaze3d/audio/Library	egf
+	f	LOGGER;Lorg/slf4j/Logger;	a
+	f	NO_DEVICE;I	b
+	f	DEFAULT_CHANNEL_COUNT;I	c
+	f	currentDevice;J	d
+	f	context;J	e
+	f	supportsDisconnections;Z	f
+	f	defaultDeviceName;Ljava/lang/String;	g
+	f	EMPTY;Lcom/mojang/blaze3d/audio/Library$ChannelPool;	h
+	f	staticChannels;Lcom/mojang/blaze3d/audio/Library$ChannelPool;	i
+	f	streamingChannels;Lcom/mojang/blaze3d/audio/Library$ChannelPool;	j
+	f	listener;Lcom/mojang/blaze3d/audio/Listener;	k
+	m	<init>;()V	<init>
+	m	init;(Ljava/lang/String;Z)V	a
+	m	setHrtf;(Z)V	a
+	m	getChannelCount;()I	i
+	m	getDefaultDeviceName;()Ljava/lang/String;	a
+	m	getCurrentDeviceName;()Ljava/lang/String;	b
+	m	hasDefaultDeviceChanged;()Z	c
+	m	openDeviceOrFallback;(Ljava/lang/String;)J	a
+	m	tryOpenDevice;(Ljava/lang/String;)Ljava/util/OptionalLong;	b
+	m	cleanup;()V	d
+	m	getListener;()Lcom/mojang/blaze3d/audio/Listener;	e
+	m	acquireChannel;(Lcom/mojang/blaze3d/audio/Library$Pool;)Lcom/mojang/blaze3d/audio/Channel;	a
+	m	releaseChannel;(Lcom/mojang/blaze3d/audio/Channel;)V	a
+	m	getDebugString;()Ljava/lang/String;	f
+	m	getAvailableSoundDevices;()Ljava/util/List;	g
+	m	isCurrentDeviceDisconnected;()Z	h
+	m	<clinit>;()V	<clinit>
+c	com/mojang/blaze3d/audio/Library$1	egf$1
+	m	<init>;()V	<init>
+	m	acquire;()Lcom/mojang/blaze3d/audio/Channel;	a
+	m	release;(Lcom/mojang/blaze3d/audio/Channel;)Z	a
+	m	cleanup;()V	b
+	m	getMaxCount;()I	c
+	m	getUsedCount;()I	d
+c	com/mojang/blaze3d/audio/Library$ChannelPool	egf$a
+	m	acquire;()Lcom/mojang/blaze3d/audio/Channel;	a
+	m	release;(Lcom/mojang/blaze3d/audio/Channel;)Z	a
+	m	cleanup;()V	b
+	m	getMaxCount;()I	c
+	m	getUsedCount;()I	d
+c	com/mojang/blaze3d/audio/Library$CountingChannelPool	egf$b
+	f	limit;I	a
+	f	activeChannels;Ljava/util/Set;	b
+	m	<init>;(I)V	<init>
+	m	acquire;()Lcom/mojang/blaze3d/audio/Channel;	a
+	m	release;(Lcom/mojang/blaze3d/audio/Channel;)Z	a
+	m	cleanup;()V	b
+	m	getMaxCount;()I	c
+	m	getUsedCount;()I	d
+c	com/mojang/blaze3d/audio/Library$Pool	egf$c
+	f	STATIC;Lcom/mojang/blaze3d/audio/Library$Pool;	a
+	f	STREAMING;Lcom/mojang/blaze3d/audio/Library$Pool;	b
+	f	$VALUES;[Lcom/mojang/blaze3d/audio/Library$Pool;	c
+	m	values;()[Lcom/mojang/blaze3d/audio/Library$Pool;	values
+	m	valueOf;(Ljava/lang/String;)Lcom/mojang/blaze3d/audio/Library$Pool;	valueOf
+	m	<init>;(Ljava/lang/String;I)V	<init>
+	m	$values;()[Lcom/mojang/blaze3d/audio/Library$Pool;	a
+	m	<clinit>;()V	<clinit>
+c	com/mojang/blaze3d/audio/Listener	egg
+	f	gain;F	a
+	f	position;Lnet/minecraft/world/phys/Vec3;	b
+	m	<init>;()V	<init>
+	m	setListenerPosition;(Lnet/minecraft/world/phys/Vec3;)V	a
+	m	getListenerPosition;()Lnet/minecraft/world/phys/Vec3;	a
+	m	setListenerOrientation;(Lorg/joml/Vector3f;Lorg/joml/Vector3f;)V	a
+	m	setGain;(F)V	a
+	m	getGain;()F	b
+	m	reset;()V	c
+c	com/mojang/blaze3d/audio/OggAudioStream	egh
+	f	EXPECTED_MAX_FRAME_SIZE;I	a
+	f	handle;J	b
+	f	audioFormat;Ljavax/sound/sampled/AudioFormat;	c
+	f	input;Ljava/io/InputStream;	d
+	f	buffer;Ljava/nio/ByteBuffer;	e
+	m	<init>;(Ljava/io/InputStream;)V	<init>
+	m	refillFromStream;()Z	c
+	m	forwardBuffer;()V	d
+	m	readFrame;(Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)Z	a
+	m	convertMono;(Ljava/nio/FloatBuffer;Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)V	a
+	m	convertStereo;(Ljava/nio/FloatBuffer;Ljava/nio/FloatBuffer;Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)V	a
+	m	close;()V	close
+	m	getFormat;()Ljavax/sound/sampled/AudioFormat;	a
+	m	read;(I)Ljava/nio/ByteBuffer;	a
+	m	readAll;()Ljava/nio/ByteBuffer;	b
+c	com/mojang/blaze3d/audio/OggAudioStream$OutputConcat	egh$a
+	f	buffers;Ljava/util/List;	a
+	f	bufferSize;I	b
+	f	byteCount;I	c
+	f	currentBuffer;Ljava/nio/ByteBuffer;	d
+	m	<init>;(I)V	<init>
+	m	createNewBuffer;()V	b
+	m	put;(F)V	a
+	m	get;()Ljava/nio/ByteBuffer;	a
+c	com/mojang/blaze3d/audio/OpenAlUtil	egi
+	f	LOGGER;Lorg/slf4j/Logger;	a
+	m	<init>;()V	<init>
+	m	alErrorToString;(I)Ljava/lang/String;	a
+	m	checkALError;(Ljava/lang/String;)Z	a
+	m	alcErrorToString;(I)Ljava/lang/String;	b
+	m	checkALCError;(JLjava/lang/String;)Z	a
+	m	audioFormatToOpenAl;(Ljavax/sound/sampled/AudioFormat;)I	a
+	m	<clinit>;()V	<clinit>
+c	com/mojang/blaze3d/audio/SoundBuffer	egj
+	f	data;Ljava/nio/ByteBuffer;	a
+	f	format;Ljavax/sound/sampled/AudioFormat;	b
+	f	hasAlBuffer;Z	c
+	f	alBuffer;I	d
+	m	<init>;(Ljava/nio/ByteBuffer;Ljavax/sound/sampled/AudioFormat;)V	<init>
+	m	getAlBuffer;()Ljava/util/OptionalInt;	a
+	m	discardAlBuffer;()V	b
+	m	releaseAlBuffer;()Ljava/util/OptionalInt;	c
+c	com/mojang/blaze3d/audio/package-info	egk
+c	com/mojang/blaze3d/font/GlyphInfo	egl
+	m	getAdvance;()F	getAdvance
+	m	getAdvance;(Z)F	a
+	m	getBoldOffset;()F	a
+	m	getShadowOffset;()F	b
+	m	bake;(Ljava/util/function/Function;)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;	bake
+c	com/mojang/blaze3d/font/GlyphInfo$SpaceGlyphInfo	egl$a
+	m	bake;(Ljava/util/function/Function;)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;	bake
+c	com/mojang/blaze3d/font/GlyphProvider	egm
+	m	close;()V	close
+	m	getGlyph;(I)Lcom/mojang/blaze3d/font/GlyphInfo;	a
+	m	getSupportedGlyphs;()Lit/unimi/dsi/fastutil/ints/IntSet;	a
+c	com/mojang/blaze3d/font/SheetGlyphInfo	egn
+	m	getPixelWidth;()I	a
+	m	getPixelHeight;()I	b
+	m	upload;(II)V	a
+	m	isColored;()Z	c
+	m	getOversample;()F	d
+	m	getLeft;()F	e
+	m	getRight;()F	f
+	m	getUp;()F	g
+	m	getDown;()F	h
+	m	getBearingX;()F	i
+	m	getBearingY;()F	j
+c	com/mojang/blaze3d/font/SpaceProvider	ego
+	f	glyphs;Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;	a
+	m	<init>;(Ljava/util/Map;)V	<init>
+	m	getGlyph;(I)Lcom/mojang/blaze3d/font/GlyphInfo;	a
+	m	getSupportedGlyphs;()Lit/unimi/dsi/fastutil/ints/IntSet;	a
+	m	lambda$new$1;(Ljava/lang/Integer;Ljava/lang/Float;)V	a
+	m	lambda$new$0;(Ljava/lang/Float;)F	a
+c	com/mojang/blaze3d/font/SpaceProvider$Definition	ego$a
+	f	advances;Ljava/util/Map;	c
+	f	CODEC;Lcom/mojang/serialization/MapCodec;	a
+	m	<init>;(Ljava/util/Map;)V	<init>
+	m	type;()Lnet/minecraft/client/gui/font/providers/GlyphProviderType;	a
+	m	unpack;()Lcom/mojang/datafixers/util/Either;	b
+	m	toString;()Ljava/lang/String;	toString
+	m	hashCode;()I	hashCode
+	m	equals;(Ljava/lang/Object;)Z	equals
+	m	advances;()Ljava/util/Map;	c
+	m	lambda$unpack$1;(Lnet/minecraft/server/packs/resources/ResourceManager;)Lcom/mojang/blaze3d/font/GlyphProvider;	a
+	m	lambda$static$0;(Lcom/mojang/serialization/codecs/RecordCodecBuilder$Instance;)Lcom/mojang/datafixers/kinds/App;	a
+	m	<clinit>;()V	<clinit>
+c	com/mojang/blaze3d/font/TrueTypeGlyphProvider	egp
+	f	fontMemory;Ljava/nio/ByteBuffer;	a
+	f	font;Lorg/lwjgl/stb/STBTTFontinfo;	b
+	f	oversample;F	c
+	f	skip;Lit/unimi/dsi/fastutil/ints/IntSet;	d
+	f	shiftX;F	e
+	f	shiftY;F	f
+	f	pointScale;F	g
+	f	ascent;F	h
+	m	<init>;(Ljava/nio/ByteBuffer;Lorg/lwjgl/stb/STBTTFontinfo;FFFFLjava/lang/String;)V	<init>
+	m	getGlyph;(I)Lcom/mojang/blaze3d/font/GlyphInfo;	a
+	m	validateFontOpen;()Lorg/lwjgl/stb/STBTTFontinfo;	b
+	m	close;()V	close
+	m	getSupportedGlyphs;()Lit/unimi/dsi/fastutil/ints/IntSet;	a
+	m	lambda$getSupportedGlyphs$1;(I)Z	b
+	m	lambda$getGlyph$0;(F)F	a
+c	com/mojang/blaze3d/font/TrueTypeGlyphProvider$Glyph	egp$a
+	f	width;I	b
+	f	height;I	c
+	f	bearingX;F	d
+	f	bearingY;F	e
+	f	advance;F	f
+	f	index;I	g
+	f	this$0;Lcom/mojang/blaze3d/font/TrueTypeGlyphProvider;	a
+	m	<init>;(Lcom/mojang/blaze3d/font/TrueTypeGlyphProvider;IIIIFFI)V	<init>
+	m	getAdvance;()F	getAdvance
+	m	bake;(Ljava/util/function/Function;)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;	bake
+c	com/mojang/blaze3d/font/TrueTypeGlyphProvider$Glyph$1	egp$a$1
+	f	this$1;Lcom/mojang/blaze3d/font/TrueTypeGlyphProvider$Glyph;	a
+	m	<init>;(Lcom/mojang/blaze3d/font/TrueTypeGlyphProvider$Glyph;)V	<init>
+	m	getPixelWidth;()I	a
+	m	getPixelHeight;()I	b
+	m	getOversample;()F	d
+	m	getBearingX;()F	i
+	m	getBearingY;()F	j
+	m	upload;(II)V	a
+	m	isColored;()Z	c
+c	com/mojang/blaze3d/font/package-info	egq
+c	com/mojang/blaze3d/package-info	egr
+c	com/mojang/blaze3d/pipeline/MainTarget	egs
+	f	DEFAULT_WIDTH;I	a
+	f	DEFAULT_HEIGHT;I	b
+	f	DEFAULT_DIMENSIONS;Lcom/mojang/blaze3d/pipeline/MainTarget$Dimension;	l
+	m	<init>;(II)V	<init>
+	m	createFrameBuffer;(II)V	b
+	m	allocateAttachments;(II)Lcom/mojang/blaze3d/pipeline/MainTarget$Dimension;	c
+	m	allocateColorAttachment;(Lcom/mojang/blaze3d/pipeline/MainTarget$Dimension;)Z	a
+	m	allocateDepthAttachment;(Lcom/mojang/blaze3d/pipeline/MainTarget$Dimension;)Z	b
+	m	lambda$new$0;(II)V	d
+	m	<clinit>;()V	<clinit>
+c	com/mojang/blaze3d/pipeline/MainTarget$AttachmentState	egs$a
+	f	NONE;Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	a
+	f	COLOR;Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	b
+	f	DEPTH;Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	c
+	f	COLOR_DEPTH;Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	d
+	f	VALUES;[Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	e
+	f	$VALUES;[Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	f
+	m	values;()[Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	values
+	m	valueOf;(Ljava/lang/String;)Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	valueOf
+	m	<init>;(Ljava/lang/String;I)V	<init>
+	m	with;(Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;)Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	a
+	m	$values;()[Lcom/mojang/blaze3d/pipeline/MainTarget$AttachmentState;	a
+	m	<clinit>;()V	<clinit>
+c	com/mojang/blaze3d/pipeline/MainTarget$Dimension	egs$b
+	f	width;I	a
+	f	height;I	b
+	m	<init>;(II)V	<init>
+	m	listWithFallback;(II)Ljava/util/List;	a
+	m	equals;(Ljava/lang/Object;)Z	equals
+	m	hashCode;()I	hashCode
+	m	toString;()Ljava/lang/String;	toString
+c	com/mojang/blaze3d/pipeline/RenderCall	egt
+	m	execute;()V	execute
+c	com/mojang/blaze3d/pipeline/RenderPipeline	egu
+	f	renderCalls;Ljava/util/List;	a
+	f	isRecording;Z	b
+	f	recordingBuffer;I	c
+	f	isProcessing;Z	d
+	f	processedBuffer;I	e
+	f	renderingBuffer;I	f
+	m	<init>;()V	<init>
+	m	canBeginRecording;()Z	a
+	m	beginRecording;()Z	b
+	m	recordRenderCall;(Lcom/mojang/blaze3d/pipeline/RenderCall;)V	a
+	m	endRecording;()V	c
+	m	canBeginProcessing;()Z	d
+	m	beginProcessing;()Z	e
+	m	processRecordedQueue;()V	f
+	m	endProcessing;()V	g
+	m	startRendering;()Ljava/util/concurrent/ConcurrentLinkedQueue;	h
+	m	getRecordingQueue;()Ljava/util/concurrent/ConcurrentLinkedQueue;	i
+	m	getProcessedQueue;()Ljava/util/concurrent/ConcurrentLinkedQueue;	j
+c	com/mojang/blaze3d/pipeline/RenderTarget	egv
+	f	RED_CHANNEL;I	a
+	f	GREEN_CHANNEL;I	b
+	f	BLUE_CHANNEL;I	l
+	f	ALPHA_CHANNEL;I	m
+	f	width;I	c

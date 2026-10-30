@@ -1,0 +1,7 @@
+PK: . net/minecraft/src
+CL: a net/minecraft/src/Minecraft
+CL: b net/minecraft/src/World
+FD: a/a net/minecraft/src/Minecraft/field_1724
+FD: b/a net/minecraft/src/World/field_1725
+MD: a/a ()V net/minecraft/src/Minecraft/func_1_a ()V
+MD: b/a (I)V net/minecraft/src/World/func_2_b (I)V

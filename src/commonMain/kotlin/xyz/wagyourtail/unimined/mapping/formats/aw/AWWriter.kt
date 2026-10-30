@@ -26,6 +26,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
+/**
+ * First-party implementation: https://github.com/FabricMC/access-widener/blob/30e2d00/src/main/java/net/fabricmc/accesswidener/AccessWidenerWriter.java
+ */
 object AWWriter : FormatWriter {
 
     /**

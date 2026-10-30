@@ -11,6 +11,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: MCP 6.0+ `packages.csv` (MCPBot exports, `mcp_stable` zips).
+ */
 object MCPv6PackageReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

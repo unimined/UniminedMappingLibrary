@@ -38,9 +38,10 @@ class TsrgReadWriteTest {
         a net/minecraft/src/Minecraft
         	a ()V method_1507
         		0 param0_s param0_t
-        	a field_1724
+        	a I field_1724
         b net/minecraft/src/World
         	a (I)V method_1204
+        	b field_1725
     """.trimIndent()
 
     @Test
@@ -57,10 +58,11 @@ class TsrgReadWriteTest {
 umf	1	3
 obf	mcp
 c	a	net/minecraft/src/Minecraft
-	f	a	field_1724
+	f	a;I	field_1724
 	m	a;()V	method_1507
 		p	0	_	param0_s	param0_t
 c	b	net/minecraft/src/World
+	f	b	field_1725
 	m	a;(I)V	method_1204
             """.trimIndent(),
             out.trimEnd()

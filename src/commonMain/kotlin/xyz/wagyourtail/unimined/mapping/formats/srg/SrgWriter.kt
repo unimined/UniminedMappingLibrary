@@ -13,6 +13,9 @@ import xyz.wagyourtail.unimined.mapping.formats.FormatWriterSettings
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
+/**
+ * First-party implementation: SrgUtils `IMappingFile.Format.SRG` (https://github.com/MinecraftForge/SrgUtils/blob/3c679e5/src/main/java/net/minecraftforge/srgutils/IMappingFile.java).
+ */
 object SrgWriter : FormatWriter {
 
     override fun write(append: (String) -> Unit, settings: FormatWriterSettings): MappingSink {

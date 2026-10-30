@@ -5,6 +5,7 @@ import org.objectweb.asm.tree.ClassNode
 import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
 import xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext
 import xyz.wagyourtail.unimined.mapping.remapper.asm.AsmExtension
+import xyz.wagyourtail.unimined.mapping.remapper.ext.annotation.AnnotationApplyMode
 import xyz.wagyourtail.unimined.mapping.remapper.ext.annotation.AnnotationTable
 import xyz.wagyourtail.unimined.mapping.remapper.ext.annotation.AnnotationTableExtension
 import xyz.wagyourtail.unimined.mapping.remapper.ext.annotation.RefmapRecorder
@@ -43,10 +44,13 @@ class MixinExtension(
     private val emitRefmap: Boolean = true,
     /** mixin config paths whose refmap emission is suppressed */
     private val noRefmap: Set<String> = emptySet(),
+    /** RESOLVE = semantic rewrite (default); REFMAP = verbatim substitution
+     *  from shipped refmaps (mirrors JMA's RefmapAnnotationPreprocessor) */
+    private val mode: AnnotationApplyMode = AnnotationApplyMode.RESOLVE,
 ) : AsmExtension {
 
     private val recorder = Recorder()
-    private val delegate = AnnotationTableExtension(ctx, table, if (emitRefmap) recorder else null)
+    private val delegate = AnnotationTableExtension(ctx, table, if (emitRefmap) recorder else null, mode)
 
     /** config path → declared refmap path */
     private val configRefmaps = mutableMapOf<String, String>()

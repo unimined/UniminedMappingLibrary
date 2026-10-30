@@ -11,6 +11,9 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.pushed
 
+/**
+ * First-party implementation: Spigot BuildData `package.srg` produced via SpecialSource `https://github.com/md-5/SpecialSource/blob/c89b093/src/main/java/net/md_5/specialsource/JarMapping.java`.
+ */
 object PackageSrgReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")

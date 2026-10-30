@@ -127,9 +127,12 @@ sealed interface ParamRemap {
     }
 
     /** recurse into a nested annotation with its own rule set */
-    class Nested(val table: AnnotationTable) : ParamRemap {
+    /** rewrite nested annotation params through [table] — lazy so a table can
+     *  self-reference its own nested grammar (`Nested { STANDARD }`) */
+    class Nested(val table: () -> AnnotationTable) : ParamRemap {
+        constructor(table: AnnotationTable) : this({ table })
         override fun apply(value: Any?, ctx: ExtensionContext, ownerHints: List<String>, record: RefmapRecorder?): Any? {
-            if (value is AnnotationNode) { table.rewrite(value, ctx, ownerHints, record); return value }
+            if (value is AnnotationNode) { table().rewrite(value, ctx, ownerHints, record); return value }
             if (value is List<*>) return value.map { apply(it, ctx, ownerHints, record) }
             return value
         }

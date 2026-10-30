@@ -40,8 +40,13 @@ abstract class InheritanceTree {
      * name propagation. Runs against `fns`-namespace rows in [tree].
      */
     fun applyAccessChanges(tree: MappingTree) {
-        for (info in classes.values) {
-            val cls = tree.getClass(fns, info.name) ?: continue
+        // iterate the mapping rows and resolve through [classes] —
+        // get() materializes on lazy trees, so classpath entries the
+        // overlay widens are pulled in before flag folding; on eager
+        // trees this is the same materialized-set lookup as before
+        for (cls in tree.classes) {
+            val fnsName = cls.names[fns] ?: continue
+            val info = classes[fnsName] ?: continue
             for (mi in info.methods) {
                 val els = with(tree) {
                     cls.getMethods(fns, mi.name, mi.descriptor).flatMap { it.access } +

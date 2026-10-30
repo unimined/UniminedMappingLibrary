@@ -1,0 +1,40 @@
+searge,name,side,desc
+field_100013_f,isPotionDurationMax,0,"True if potion effect duration is at maximum, false otherwise."
+field_104024_v,openGLWarningLink,0,Link to the Mojang Support about minimum requirements
+field_104025_t,threadLock,0,The Object object utilized as a thread lock when performing non thread-safe operations
+field_104057_T,isGamemodeForced,2,
+field_110126_a,FOOTPRINT_TEXTURE,0,
+field_110127_a,EXPLOSION_TEXTURE,0,
+field_110150_bn,lastAttackedEntity,2,
+field_110151_bq,absorptionAmount,2,
+field_110153_bc,lastDamage,2,Damage taken in the last hit. Mobs are resistant to damage less than this for a short time after taking damage.
+field_110154_aX,onGroundSpeedFactor,2,
+field_110155_d,attributeMap,2,
+field_110156_b,SPRINTING_SPEED_BOOST_ID,2,
+field_110157_c,SPRINTING_SPEED_BOOST,2,
+field_110158_av,swingProgressInt,2,
+field_110168_bw,leashHolder,2,
+field_110169_bv,isLeashed,2,
+field_110170_bx,leashNBTTag,2,
+field_110179_h,FLEEING_SPEED_MODIFIER_UUID,2,
+field_110181_i,FLEEING_SPEED_MODIFIER,2,
+field_110184_bp,MODIFIER_UUID,2,
+field_110185_bq,MODIFIER,2,
+field_110186_bp,SPAWN_REINFORCEMENTS_CHANCE,2,The attribute which determines the chance that this mob will spawn reinforcements
+field_110187_bq,BABY_SPEED_BOOST_ID,2,
+field_110188_br,BABY_SPEED_BOOST,2,
+field_110189_bq,ATTACK_SPEED_BOOST_MODIFIER_UUID,2,
+field_110190_br,ATTACK_SPEED_BOOST_MODIFIER,2,
+field_110192_bp,ATTACKING_SPEED_BOOST_ID,2,
+field_110193_bq,ATTACKING_SPEED_BOOST,2,
+field_110268_bz,HORSE_TEXTURES,2,
+field_110269_bA,HORSE_TEXTURES_ABBR,2,
+field_110271_bv,JUMP_STRENGTH,2,
+field_110274_bs,temper,2,"""The higher this value, the more likely the horse is to be tamed next time a player rides it."""
+field_110275_br,horseJumping,2,
+field_110276_bu,IS_HORSE_BREEDING,2,
+field_110277_bt,jumpPower,2,
+field_110278_bp,tailCounter,2,
+field_110279_bq,sprintCounter,2,
+field_110280_bR,horseTexturesArray,2,
+field_110281_bL,rearingAmount,2,

@@ -1,0 +1,272 @@
+umf	1	3
+source
+k	com/mojang/blaze3d/
+	*	"Root package for the Blaze3D rendering library."	source
+k	net/minecraft/client/
+	*	"The client-only classes for Minecraft."	source
+c	com/mojang/blaze3d/Blaze3D
+	m	process;(Lcom/mojang/blaze3d/pipeline/RenderPipeline;F)V
+		p	_	0	pipeline
+		p	_	1	unknown
+	m	render;(Lcom/mojang/blaze3d/pipeline/RenderPipeline;F)V
+		p	_	0	pipeline
+		p	_	1	unknown
+c	com/mojang/blaze3d/audio/Channel
+	m	<init>;(I)V
+		p	_	1	source
+	m	attachBufferStream;(Lnet/minecraft/client/sounds/AudioStream;)V
+		*	"Attaches a buffer stream to the audio channel."	source
+		p	_	1	stream
+			*	"the stream to attach"	source
+	m	attachStaticBuffer;(Lcom/mojang/blaze3d/audio/SoundBuffer;)V
+		*	"Attaches a static buffer to the audio channel."	source
+		p	_	1	buffer
+			*	"the buffer to attach"	source
+	m	calculateBufferSize;(Ljavax/sound/sampled/AudioFormat;I)I
+		*	"Calculates the buffer size for an audio stream.\n@return the buffer size"	source
+		p	_	0	format
+			*	"the audio format of the stream"	source
+		p	_	1	sampleAmount
+			*	"the number of samples to buffer"	source
+	m	create;()Lcom/mojang/blaze3d/audio/Channel;
+		*	"Creates a new OpenAL audio channel.\n{@return a new OpenAL audio channel or {@code null} if its creation failed}"	source
+	m	destroy;()V
+		*	"Stops the audio channel and releases resources."	source
+	m	disableAttenuation;()V
+		*	"Disables attenuation for the audio channel."	source
+	m	getState;()I
+		*	"{@return the state of the audio channel}"	source
+	m	lambda$attachStaticBuffer$0;(I)V
+		p	_	1	value
+	m	lambda$pumpBuffers$1;(I)V
+		p	_	1	bufferName
+	m	linearAttenuation;(F)V
+		*	"Sets linear attenuation for the audio channel."	source
+		p	_	1	linearAttenuation
+			*	"the linear attenuation of the audio channel"	source
+	m	pause;()V
+		*	"Pauses the audio channel."	source
+	m	play;()V
+		*	"Starts playing the audio channel."	source
+	m	playing;()Z
+		*	"{@return {@code true} if the audio channel is currently playing, {@code false} otherwise}"	source
+	m	pumpBuffers;(I)V
+		*	"Reads and queues audio buffers from the stream."	source
+		p	_	1	readCount
+			*	"the number of buffers to read and queue"	source
+	m	removeProcessedBuffers;()I
+		*	"Removes processed audio buffers from the audio channel.\n@return the number of processed buffers removed"	source
+	m	setLooping;(Z)V
+		*	"Sets whether the audio channel should loop."	source
+		p	_	1	looping
+			*	"{@code true} if the audio channel should loop, {@code false} otherwise"	source
+	m	setPitch;(F)V
+		*	"Sets the pitch of the audio channel."	source
+		p	_	1	pitch
+			*	"the pitch of the audio channel"	source
+	m	setRelative;(Z)V
+		*	"Sets whether the audio channel should be relative to the listener\'s position."	source
+		p	_	1	relative
+			*	"{@code true} if the audio channel should be relative, {@code false} otherwise"	source
+	m	setSelfPosition;(Lnet/minecraft/world/phys/Vec3;)V
+		*	"Sets the position of the audio channel."	source
+		p	_	1	source
+			*	"the position of the audio channel"	source
+	m	setVolume;(F)V
+		*	"Sets the volume of the audio channel."	source
+		p	_	1	volume
+			*	"the volume of the audio channel"	source
+	m	stop;()V
+		*	"Stops playing the audio channel."	source
+	m	stopped;()Z
+		*	"{@return {@code true} if the audio channel is stopped, {@code false} otherwise}"	source
+	m	unpause;()V
+		*	"Resumes playing the audio channel if it was paused."	source
+	m	updateStream;()V
+		*	"Updates the audio stream by removing processed buffers and queuing new ones."	source
+c	com/mojang/blaze3d/audio/Library
+	m	acquireChannel;(Lcom/mojang/blaze3d/audio/Library$Pool;)Lcom/mojang/blaze3d/audio/Channel;
+		*	"Acquires a sound channel based on the given mode."	source
+		p	_	1	pool
+	m	cleanup;()V
+		*	"Cleans up all resources used by the library."	source
+	m	getAvailableSoundDevices;()Ljava/util/List;
+		*	"{@return A list of strings representing the names of available sound devices, or an empty list if no devices are available.}"	source
+	m	getChannelCount;()I
+		*	"{@return the number of channels available for audio playback}"	source
+	m	getCurrentDeviceName;()Ljava/lang/String;
+		*	"{@return the name of the default audio device, or {@code null} if it cannot be determined}"	source
+	m	getDefaultDeviceName;()Ljava/lang/String;
+		*	"{@return the name of the currently selected audio device, or {@code Unknown} if it cannot be determined}"	source
+	m	hasDefaultDeviceChanged;()Z
+		*	"Checks if the default audio device has changed since the last time this method was called.\n<p>\nIf the default device has changed, updates the stored default device name accordingly.\n@return {@code true} if the default device has changed since the last time this method was called, {@code false} otherwise"	source
+	m	init;(Ljava/lang/String;Z)V
+		*	"Initializes the OpenAL device and context.\n@throws IllegalStateException if an error occurs during initialization."	source
+		p	_	1	deviceSpecifier
+			*	"A string specifying the name of the audio device to use, or null to use the default device."	source
+		p	_	2	enableHrtf
+			*	"Whether to enable HRTF (head-related transfer function) for spatial audio."	source
+	m	openDeviceOrFallback;(Ljava/lang/String;)J
+		*	"Opens the specified audio device, or the default device if the specifier is null.\n@return The handle of the opened device.\n@throws IllegalStateException if the device cannot be opened."	source
+		p	_	0	deviceSpecifier
+			*	"The name of the audio device to open, or null to open the default device."	source
+	m	releaseChannel;(Lcom/mojang/blaze3d/audio/Channel;)V
+		*	"Releases a channel.\n@return whether the channel was successfully released"	source
+		p	_	1	channel
+			*	"The channel to release."	source
+	m	setHrtf;(Z)V
+		*	"Sets the HRTF (head-related transfer function) for spatial audio, if it is supported by the current device."	source
+		p	_	1	enableHrtf
+			*	"Whether to enable HRTF."	source
+	m	tryOpenDevice;(Ljava/lang/String;)Ljava/util/OptionalLong;
+		*	"Attempts to open the specified audio device.\n@return an {@linkplain OptionalLong} containing the handle of the opened device if successful, or empty if the device could not be opened"	source
+		p	_	0	deviceSpecifier
+			*	"A string specifying the name of the audio device to open, or null to use the default device."	source
+c	com/mojang/blaze3d/audio/Library$ChannelPool
+	m	release;(Lcom/mojang/blaze3d/audio/Channel;)Z
+		p	_	1	channel
+c	com/mojang/blaze3d/audio/Library$CountingChannelPool
+	m	<init>;(I)V
+		p	_	1	limit
+	m	release;(Lcom/mojang/blaze3d/audio/Channel;)Z
+		p	_	1	channel
+c	com/mojang/blaze3d/audio/Listener
+	m	getGain;()F
+		*	"{@return the current gain value of the listener}"	source
+	m	getListenerPosition;()Lnet/minecraft/world/phys/Vec3;
+		*	"{@return the current position of the listener in a 3D space}"	source
+	m	reset;()V
+		*	"Resets the listener\'s position and orientation to default values."	source
+	m	setGain;(F)V
+		*	"Sets the listener\'s gain."	source
+		p	_	1	gain
+			*	"The gain to set for the listener."	source
+	m	setListenerOrientation;(Lorg/joml/Vector3f;Lorg/joml/Vector3f;)V
+		*	"Sets the listener\'s orientation."	source
+		p	_	1	clientViewVector
+			*	"The view vector indicating the direction the listener is facing."	source
+		p	_	2	viewVectorRaised
+			*	"The up vector indicating the listener\'s \"up\" direction."	source
+	m	setListenerPosition;(Lnet/minecraft/world/phys/Vec3;)V
+		*	"Sets the listener\'s position."	source
+		p	_	1	position
+			*	"A Vec3 representing the listener\'s position in 3D space."	source
+c	com/mojang/blaze3d/audio/OggAudioStream
+	f	EXPECTED_MAX_FRAME_SIZE;I
+		*	"The expected maximum frame size in bytes."	source
+	f	audioFormat;Ljavax/sound/sampled/AudioFormat;
+		*	"The audio format of the Ogg Vorbis stream."	source
+	f	buffer;Ljava/nio/ByteBuffer;
+		*	"The buffer used to read data from the input stream."	source
+	f	handle;J
+		*	"The handle for the Ogg Vorbis stream."	source
+	f	input;Ljava/io/InputStream;
+		*	"The input stream containing the Ogg Vorbis data."	source
+	m	<init>;(Ljava/io/InputStream;)V
+		p	_	1	input
+	m	close;()V
+		*	"Closes the audio stream. This method frees any resources associated with the stream, such as the handle for the Ogg Vorbis stream and the memory used to store the input buffer.\n@throws IOException if an I/O error occurs while closing the stream"	source
+	m	convertMono;(Ljava/nio/FloatBuffer;Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)V
+		*	"Converts mono audio data from the specified channel to a byte buffer and appends it to the specified output buffer.\nThe method reads samples from the channel and adds them to the output buffer until there are no more samples remaining in the channel."	source
+		p	_	1	channel
+			*	"the channel containing the mono audio data to convert"	source
+		p	_	2	output
+			*	"the output buffer to which the converted audio data should be appended"	source
+	m	convertStereo;(Ljava/nio/FloatBuffer;Ljava/nio/FloatBuffer;Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)V
+		*	"Converts stereo audio data from the specified left and right channels to a byte buffer and appends it to the specified output buffer. The method reads samples from both channels and interleaves them in the output buffer until there are no more samples remaining in either channel."	source
+		p	_	1	leftChannel
+			*	"the channel containing the left audio data to convert"	source
+		p	_	2	rightChannel
+			*	"the channel containing the right audio data to convert"	source
+		p	_	3	output
+			*	"the output buffer to which the converted audio data should be appended"	source
+	m	forwardBuffer;()V
+		*	"Forwards the buffer to the next Ogg packet boundary."	source
+	m	getFormat;()Ljavax/sound/sampled/AudioFormat;
+		*	"{@return the {@linkplain AudioFormat} of the stream}"	source
+	m	read;(I)Ljava/nio/ByteBuffer;
+		*	"Reads audio data from the stream and returns a byte buffer containing at most the specified number of bytes.\nThe method reads audio frames from the stream and adds them to the output buffer until the buffer contains at least the specified number of bytes or the end fo the stream is reached.\n@return a byte buffer containing at most the specified number of bytes to read\n@throws IOException if an I/O error occurs while reading the audio data"	source
+		p	_	1	size
+			*	"the maximum number of bytes to read"	source
+	m	readAll;()Ljava/nio/ByteBuffer;
+		*	"Reads all of the audio data from the stream and returns a byte buffer containing the entire audio data.\nThe method reads audio frames from the stream and adds them to the output buffer until the end of the stream is reached.\n@return a byte buffer containing the entire audio data\n@throws IOException if an I/O error occurs while reading the audio data"	source
+	m	readFrame;(Lcom/mojang/blaze3d/audio/OggAudioStream$OutputConcat;)Z
+		*	"Reads the next audio frame from the Ogg Vorbis stream.\n@return {@code true} if an audio frame was successfully read, {@code false} if the end of the stream was reached\n@throws IOException if an I/O error occurs while reading the audio data"	source
+		p	_	1	output
+			*	"the output buffer to which the audio data should be written"	source
+	m	refillFromStream;()Z
+		*	"Refills the buffer with data from the input stream.\n@return {@code true} if the buffer was successfully refilled, {@code false} if the end of the input stream was reached\n@throws IOException if an I/O error occurs while reading the data from the input stream"	source
+c	com/mojang/blaze3d/audio/OggAudioStream$OutputConcat
+	m	<init>;(I)V
+		p	_	1	size
+	m	createNewBuffer;()V
+		*	"Creates a new buffer and sets it as the current buffer."	source
+	m	get;()Ljava/nio/ByteBuffer;
+		*	"{@return a single byte buffer containing all of the data from the list of buffers}"	source
+	m	put;(F)V
+		*	"Adds a sample to the current buffer. If the buffer is full, the buffer is added to the list of buffers and a new buffer is created."	source
+		p	_	1	sample
+			*	"the audio sample to add to the buffer"	source
+c	com/mojang/blaze3d/audio/OpenAlUtil
+	m	alErrorToString;(I)Ljava/lang/String;
+		*	"Converts an OpenAL error code to a human-readable error message.\n@return A String representing the error message for the given error code."	source
+		p	_	0	errorCode
+			*	"The OpenAL error code to convert"	source
+	m	alcErrorToString;(I)Ljava/lang/String;
+		*	"Converts an ALC error code to a human-readable error message.\n@return A String representing the error message for the given error code."	source
+		p	_	0	errorCode
+			*	"The ALC error code to convert"	source
+	m	audioFormatToOpenAl;(Ljavax/sound/sampled/AudioFormat;)I
+		*	"Converts an AudioFormat object to the corresponding OpenAL audio format code.\n@return An integer representing the corresponding OpenAL audio format code.\n@throws IllegalArgumentException if the given AudioFormat is not a supported format."	source
+		p	_	0	format
+			*	"The AudioFormat object to convert"	source
+	m	checkALCError;(JLjava/lang/String;)Z
+		*	"Checks for an ALC error and logs an error message if one is found.\n@return true if an ALC error was found, false otherwise."	source
+		p	_	0	deviceHandle
+			*	"The handle of the device to check for errors on"	source
+		p	_	2	operationState
+			*	"A String describing the operation being performed when the error occurred"	source
+	m	checkALError;(Ljava/lang/String;)Z
+		*	"Checks for an OpenAL error and logs an error message if one is found.\n@return true if an OpenAL error was found, false otherwise."	source
+		p	_	0	operationState
+			*	"A String describing the operation being performed when the error occurred"	source
+c	com/mojang/blaze3d/audio/SoundBuffer
+	m	<init>;(Ljava/nio/ByteBuffer;Ljavax/sound/sampled/AudioFormat;)V
+		p	_	1	data
+		p	_	2	format
+	m	discardAlBuffer;()V
+		*	"Deletes the OpenAL buffer associated with this SoundBuffer, if it exists."	source
+	m	getAlBuffer;()Ljava/util/OptionalInt;
+		*	"Returns an OptionalInt containing the OpenAL buffer handle for this SoundBuffer.\nIf the buffer has not been created yet, creates the buffer and returns the handle.\nIf the buffer cannot be created, returns an empty OptionalInt.\n@return An OptionalInt containing the OpenAL buffer handle, or an empty OptionalInt if the buffer cannot be created."	source
+	m	releaseAlBuffer;()Ljava/util/OptionalInt;
+		*	"Releases the OpenAL buffer associated with this SoundBuffer and returns it as an OptionalInt.\nIf no buffer has been created yet, returns an empty OptionalInt.\n@return an {@linkplain OptionalInt} containing the OpenAL buffer handle, or an empty one, if the buffer has not been created"	source
+c	com/mojang/blaze3d/font/GlyphInfo
+	m	bake;(Ljava/util/function/Function;)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;
+		p	_	1	glyphProvider
+	m	getAdvance;(Z)F
+		p	_	1	bold
+c	com/mojang/blaze3d/font/GlyphProvider
+	m	getGlyph;(I)Lcom/mojang/blaze3d/font/GlyphInfo;
+		p	_	1	character
+c	com/mojang/blaze3d/font/SheetGlyphInfo
+	m	upload;(II)V
+		p	_	1	xOffset
+		p	_	2	yOffset
+c	com/mojang/blaze3d/font/SpaceProvider
+	m	<init>;(Ljava/util/Map;)V
+		p	_	1	glyphs
+	m	getGlyph;(I)Lcom/mojang/blaze3d/font/GlyphInfo;
+		p	_	1	character
+c	com/mojang/blaze3d/font/TrueTypeGlyphProvider
+	m	<init>;(Ljava/nio/ByteBuffer;Lorg/lwjgl/stb/STBTTFontinfo;FFFFLjava/lang/String;)V
+		p	_	1	fontMemory
+		p	_	2	font
+		p	_	3	height
+		p	_	4	oversample
+		p	_	5	shiftX
+		p	_	6	shiftY
+		p	_	7	skip
+	m	getGlyph;(I)Lcom/mojang/blaze3d/font/GlyphInfo;
+		p	_	1	character
+	m	lambda$getSupportedGlyphs$1;(I)Z
+		p	_	1	codePoint

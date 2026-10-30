@@ -9,6 +9,7 @@ import xyz.wagyourtail.unimined.mapping.element.Element
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableClassMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableFieldMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableMethodMapping
+import xyz.wagyourtail.unimined.mapping.element.mapping.MutableLocalVariableMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableParameterMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.JavadocElement
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
@@ -24,6 +25,7 @@ import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 
 /**
  * FabricMC's tinyv2 format.
+ * First-party implementation: https://github.com/FabricMC/tiny-mappings-parser/blob/750be4e/src/main/java/net/fabricmc/mapping/tree/TinyMappingFactory.java; spec https://wiki.fabricmc.net/documentation:tiny2
  */
 object TinyV2Reader : FormatReader {
 
@@ -191,6 +193,22 @@ object TinyV2Reader : FormatReader {
                             }
                         }
                         push(MutableParameterMapping(null, lvOrd, nameMap))
+                    }
+
+                    "v" -> {
+                        // local variable: v <lvIndex> <startOpIdx> <lvtRowIndex> <names...>
+                        val lvOrd = cells.getOrNull(1)?.toIntOrNull() ?: -1
+                        val startOp = cells.getOrNull(2)?.toIntOrNull()
+                        // cells[3] (lvtRowIndex) is not represented in the tree
+                        val nameMap = newNsMap<UnqualifiedName>()
+                        for (i in 4 until cells.size) {
+                            val ns = nsIter.next()
+                            val name = cell(i)
+                            if (name.isNotEmpty()) {
+                                nameMap[ns] = UnqualifiedName.read(name)
+                            }
+                        }
+                        push(MutableLocalVariableMapping(lvOrd, startOp, nameMap))
                     }
 
                     else -> {

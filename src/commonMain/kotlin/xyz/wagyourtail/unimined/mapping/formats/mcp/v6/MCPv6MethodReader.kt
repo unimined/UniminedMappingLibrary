@@ -19,6 +19,9 @@ import xyz.wagyourtail.unimined.mapping.sink.pushed
 import xyz.wagyourtail.unimined.mapping.toNsMap
 import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
 
+/**
+ * First-party implementation: MCP 6.0+ `methods.csv` (MCPBot exports, `mcp_stable` zips).
+ */
 object MCPv6MethodReader : FormatReader {
 
     @Deprecated("set within the settings argument instead")
