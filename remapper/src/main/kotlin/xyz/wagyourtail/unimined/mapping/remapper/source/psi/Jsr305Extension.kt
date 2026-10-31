@@ -8,7 +8,7 @@ import xyz.wagyourtail.unimined.mapping.remapper.source.SourceExtension
 import xyz.wagyourtail.unimined.mapping.remapper.source.SourceFileView
 
 /**
- * Rewrites JSR-308 / JSR-305 type-use annotations to JetBrains
+ * Rewrites JSR-305-era nullness annotations (type-use + declaration) to JetBrains
  * equivalents (`org.jetbrains.annotations.Nullable`/`NotNull`) —
  * e.g. checkerframework, jspecify and spotbugs annotations carried
  * by mapping-side or userdev-provided sources. Same-text-length
@@ -16,7 +16,7 @@ import xyz.wagyourtail.unimined.mapping.remapper.source.SourceFileView
  *
  * [table] overrides/extends the default qualified-name mapping.
  */
-class Jsr308Extension(
+class Jsr305Extension(
     private val table: Map<String, String> = DEFAULT_TABLE
 ) : SourceExtension {
 

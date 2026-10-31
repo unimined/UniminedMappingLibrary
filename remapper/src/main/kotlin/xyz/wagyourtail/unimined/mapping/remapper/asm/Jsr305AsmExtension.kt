@@ -4,10 +4,10 @@ import org.objectweb.asm.tree.AnnotationNode
 import org.objectweb.asm.tree.ClassNode
 import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
 import xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext
-import xyz.wagyourtail.unimined.mapping.remapper.source.psi.Jsr308Extension
+import xyz.wagyourtail.unimined.mapping.remapper.source.psi.Jsr305Extension
 
 /**
- * Bytecode counterpart to [Jsr308Extension] — rewrites JSR-308 / JSR-305
+ * Bytecode counterpart to [Jsr305Extension] — rewrites JSR-305
  * annotation descriptors on classes, fields, methods, record components
  * and all TYPE_USE targets to `org.jetbrains.annotations` equivalents.
  * Pure per-class transform ([perClass] — safe on the streaming path).
@@ -15,8 +15,8 @@ import xyz.wagyourtail.unimined.mapping.remapper.source.psi.Jsr308Extension
  * [table] keys/values are Java FQNs — converted to `Linternal/name;`
  * descriptors internally.
  */
-class Jsr308AsmExtension(
-    table: Map<String, String> = Jsr308Extension.DEFAULT_TABLE
+class Jsr305AsmExtension(
+    table: Map<String, String> = Jsr305Extension.DEFAULT_TABLE
 ) : AsmExtension {
 
     private val descTable = table.mapKeys { "L${it.key.replace('.', '/')};" }
@@ -60,10 +60,10 @@ class Jsr308AsmExtension(
 
         /** factory — per-jar instance, transform-only */
         fun factory(
-            table: Map<String, String> = Jsr308Extension.DEFAULT_TABLE
+            table: Map<String, String> = Jsr305Extension.DEFAULT_TABLE
         ) = object : AsmExtensionFactory {
             override val perClass = true
-            override fun create(ctx: ExtensionContext) = Jsr308AsmExtension(table)
+            override fun create(ctx: ExtensionContext) = Jsr305AsmExtension(table)
         }
 
     }
