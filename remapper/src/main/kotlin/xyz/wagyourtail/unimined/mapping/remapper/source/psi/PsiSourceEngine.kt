@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.com.intellij.mock.MockProject
 import org.jetbrains.kotlin.com.intellij.openapi.extensions.ExtensionPoint
 import org.jetbrains.kotlin.com.intellij.openapi.extensions.Extensions
 import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer
+import org.jetbrains.kotlin.com.intellij.openapi.util.registry.Registry
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.local.CoreLocalFileSystem
@@ -94,6 +95,13 @@ class PsiSourceEngine(
         }
 
         setupIdeaStandaloneExecution()
+        // kotlin-compiler-embeddable's registry bundle doesn't define
+        // the javac.* keys that Java PSI type inference reads via
+        // Registry.is() — MissingResourceException on files whose
+        // generics trigger captured-wildcard inference (e.g.
+        // Collectors.toMap(Function.identity(), T::ref))
+        Registry.get("javac.fresh.variables.for.captured.wildcards.only").setValue(false)
+        Registry.get("unsound.capture.conversion.java.spec.change").setValue(false)
         val environment = KotlinCoreEnvironment.createForProduction(
             disposable, config, EnvironmentConfigFiles.JVM_CONFIG_FILES
         )

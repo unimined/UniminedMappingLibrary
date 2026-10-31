@@ -92,7 +92,9 @@ object SourceRemapper {
             val remapped = try {
                 engine.remap(u, fileErrors)
             } catch (e: Exception) {
-                throw RuntimeException("Failed to remap ${u.path}", e)
+                throw RuntimeException(
+                    "Failed to remap ${u.path}: ${e.javaClass.simpleName}: ${e.message}", e
+                )
             }
             fileErrors.forEach { (line, msg) -> errors += Triple(u.path, line, msg) }
             // transforms that shift lines invalidate vineflower linemaps —
