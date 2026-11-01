@@ -53,6 +53,26 @@ fun MappingTree.remapper(from: Namespace, to: Namespace): NamespaceRemapper {
     return NamespaceRemapperImpl(this, from, to)
 }
 
+/** Post-processes mapped class names, replacing [separator] (`__` by
+ *  default — feather-style Java-identifier markers for nested classes)
+ *  with `$` so output jars carry JVM-conventional inner names and
+ *  `InnerClasses` attributes/`InnerClasses`-aware tooling see real
+ *  inner classes. Identity passthroughs are untouched — only names the
+ *  tree actually remaps get the rewrite, so a legitimately-`__`-named
+ *  unmapped class survives intact. */
+fun NamespaceRemapper.dollarInnerClasses(separator: String = "__"): NamespaceRemapper {
+    val delegate = this
+    return object : NamespaceRemapper by delegate {
+        override fun mapClass(name: InternalName): InternalName {
+            val mapped = delegate.mapClass(name)
+            if (mapped == name || !mapped.value.contains(separator)) {
+                return mapped
+            }
+            return InternalName.read(mapped.value.replace(separator, "$"), true)
+        }
+    }
+}
+
 private class NamespaceRemapperImpl(
     private val tree: MappingTree,
     override val from: Namespace,

@@ -159,15 +159,27 @@ object JarFixups {
                     broken.getOrPut(target, ::mutableSetOf).add(accessor.name)
                 }
             }
-            // member refs: package-private member on a class that moved packages breaks
+            // member refs: package-private member on a class that moved packages breaks.
+            // the ref's owner isn't necessarily the declaring class —
+            // inherited members are referenced through subclasses (e.g.
+            // `getfield Sub.field` for a field declared on Super), so the
+            // lookup must walk the hierarchy to the declaring class or the
+            // check silently misses
             for ((owner, member, _) in accessor.memberRefs) {
                 if (owner == accessor.name) continue
-                val acc = memberAccess[owner]?.get(member) ?: continue // member not in output set
-                if (pkg(owner) == pkg(accessor.name)) continue
+                var declarer = owner
+                var acc = memberAccess[declarer]?.get(member)
+                while (acc == null) {
+                    declarer = supers[declarer] ?: break
+                    if (declarer == null) break
+                    acc = memberAccess[declarer]?.get(member)
+                }
+                if (acc == null) continue // member not in output set
+                if (pkg(declarer) == pkg(accessor.name)) continue
                 if (isPackagePrivate(acc) ||
-                    (acc and Opcodes.ACC_PROTECTED != 0 && !isSubclassOf(accessor.name, owner))
+                    (acc and Opcodes.ACC_PROTECTED != 0 && !isSubclassOf(accessor.name, declarer))
                 ) {
-                    brokenMembers.getOrPut("$owner $member", ::mutableSetOf).add(accessor.name)
+                    brokenMembers.getOrPut("$declarer $member", ::mutableSetOf).add(accessor.name)
                 }
             }
         }

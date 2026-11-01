@@ -53,7 +53,7 @@ object MetadataAdapter {
         applyAnnotations(node, meta, tree, targetNs)
         applyInterfaces(node, meta, tree, targetNs)
         applySeal(node, meta, tree, targetNs)
-        applyInnerClasses(node, meta, targetNs)
+        applyInnerClasses(node, meta, tree, targetNs)
         EnumExtender.apply(node, meta, tree, targetNs)
 
         for (field in node.fields) {
@@ -171,10 +171,20 @@ object MetadataAdapter {
         }
     }
 
-    private fun applyInnerClasses(node: ClassNode, meta: List<MetadataElement>, targetNs: Namespace) {
+    private fun applyInnerClasses(node: ClassNode, meta: List<MetadataElement>, tree: MappingTree, targetNs: Namespace) {
         for (el in meta.filterIsInstance<InnerClassElement>()) {
-            val (innerName, outer) = el.names[targetNs] ?: continue
-            val outerName = outer?.getParts()?.first?.getInternalName()?.value
+            // element names are keyed on the element's own namespace —
+            // single-source enrichers (nests) only know `official`, so
+            // a bare names[targetNs] misses; take whatever ns exists
+            // and translate the outer through the tree
+            val entry = el.names.entries.firstOrNull { it.key == targetNs }
+                ?: el.names.entries.firstOrNull { it.key in tree.namespaces }
+                ?: continue
+            val (innerName, outer) = entry.value
+            val outerName = outer?.let {
+                (if (entry.key == targetNs) it else tree.map(entry.key, targetNs, it))
+                    .getParts().first.getInternalName().value
+            }
             val icn = node.innerClasses.firstOrNull { it.name == node.name }
             val access = applyAccess(icn?.access ?: 0, ElementType.INNER_CLASS, el.metadata.toList())
             node.innerClasses.remove(icn)

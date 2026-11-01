@@ -12,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.NamespaceRemapper
+import xyz.wagyourtail.unimined.mapping.dollarInnerClasses
 import xyz.wagyourtail.unimined.mapping.inheritance.ASMInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
 import xyz.wagyourtail.unimined.mapping.inheritance.MemberGroups
@@ -39,6 +40,10 @@ data class Options(
     /** Package-private access check/fix — renaming can move classes across
      *  packages and break package-private references. */
     val packageAccess: PackageAccess = PackageAccess.WARN,
+    /** Marker replaced with `$` in *mapped* class names — feather-style
+     *  `Outer__Inner` names are Java-identifier-safe stand-ins for
+     *  nested classes; `null` disables. */
+    val innerClassSeparator: String? = "__",
     /** Drop `META-INF` signature files (`.SF`/`.RSA`/`.DSA`/`.EC`) and manifest signature sections — renaming invalidates jar signing. */
     val stripSignatures: Boolean = true,
     /** Skip parameter/local-variable-name remapping entirely. */
@@ -104,7 +109,7 @@ object AsmRemapper {
         options: Options = Options(),
     ) {
         if (allPerClass(options)) {
-            remapStreaming(input, output, MappingRemapper(tree.nsBoundRemapper(fns, targetNs)), tree, fns, targetNs, options)
+            remapStreaming(input, output, MappingRemapper(tree.nsBoundRemapper(fns, targetNs).innerNormalized(options)), tree, fns, targetNs, options)
         } else {
             writeJar(output, remap(input, tree, fns, targetNs, options), options.onProgress)
         }
@@ -202,7 +207,7 @@ object AsmRemapper {
         if (conflicts > 0) LOGGER.warn { "$conflicts member-name conflicts resolved deterministically" }
         val graphRemapper = GraphNamespaceRemapper(merged, inheritance, groups, fns, targetNs)
         if (allPerClass(options)) {
-            remapStreaming(input, output, MappingRemapper(graphRemapper), merged, fns, targetNs, options)
+            remapStreaming(input, output, MappingRemapper(graphRemapper.innerNormalized(options)), merged, fns, targetNs, options)
         } else {
             writeJar(output, remap(input, graphRemapper, merged, fns, targetNs, options), options.onProgress)
         }
@@ -269,7 +274,7 @@ object AsmRemapper {
         targetNs: Namespace,
         options: Options = Options(),
     ): Result {
-        val asmRemapper = MappingRemapper(remapper)
+        val asmRemapper = MappingRemapper(remapper.innerNormalized(options))
         val readerFlags = if (options.removeFrames) ClassReader.SKIP_FRAMES else 0
         val ctx = ExtensionContext(tree, fns, targetNs, options)
         attachMethodOrigin(ctx, remapper, tree, fns)
@@ -582,3 +587,8 @@ enum class PackageAccess {
     WARN,  /** log the broken access */
     FIX,   /** upgrade the target class to public */
 }
+
+/** Applies [Options.innerClassSeparator] normalization to a remapper —
+ *  `Outer__Inner` marker names become `Outer$Inner` in the output. */
+private fun NamespaceRemapper.innerNormalized(options: Options): NamespaceRemapper =
+    options.innerClassSeparator?.let { dollarInnerClasses(it) } ?: this
