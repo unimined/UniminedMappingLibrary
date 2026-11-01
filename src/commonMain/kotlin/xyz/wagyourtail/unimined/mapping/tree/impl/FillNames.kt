@@ -16,6 +16,10 @@ fun MutableMappingTree.fillMissingNames(vararg toFill: Pair<Namespace, Set<Names
         for ((from, targets) in toFill) {
             val src = out[from] ?: continue
             for (t in targets) {
+                // env columns (`ns:env`) mark side-presence — an
+                // empty cell means "absent on that side", not
+                // "same name", so they must never be filled
+                if (t.splitEnv().second != null) continue
                 if (t !in out) out[t] = src
             }
         }
