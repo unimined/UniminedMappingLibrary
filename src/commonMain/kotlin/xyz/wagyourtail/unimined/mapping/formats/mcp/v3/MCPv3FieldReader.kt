@@ -2,8 +2,11 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v3
 
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.EnvAwareSink
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.env
 import xyz.wagyourtail.unimined.mapping.element.MappingElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableClassMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableFieldMapping
@@ -40,7 +43,11 @@ object MCPv3FieldReader : FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
-        
+        // env-aware emit: the sink owns env semantics — joined target
+        // gets `ns:env` columns, single-env target collapses tagged
+        // rows into plain `ns` (and drops the other env's rows)
+        val sink = if (into is EnvAwareSink) into else EnvAwareSink.sinkAs(into, envType)
+
         val notchNs = Namespace(nsMapping["notch"] ?: "notch")
         val seargeNs = Namespace(nsMapping["searge"] ?: "searge")
         val mcpNs = Namespace(nsMapping["mcp"] ?: "mcp")
@@ -50,7 +57,7 @@ object MCPv3FieldReader : FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        with (into) {
+        with (sink) {
             header(listOf(notchNs, seargeNs, mcpNs))
 
             var lastClass: Pair<InternalName, MappingElement?>? = null
@@ -70,32 +77,37 @@ object MCPv3FieldReader : FormatReader {
                 val pkg = input.takeCol()
                 val side = input.takeCol()!!
 
-                if (side == "2" || side.toInt() == envType.ordinal) {
-                    if (className == classNotch) {
-                        classNotch = "$pkg/$classNotch"
-                    }
-
-                    val cls = InternalName.read(classNotch)
-                    if (lastClass?.first != cls) {
-                        lastClass?.second?.let { pop(it) }
-                        lastClass = cls to push(MutableClassMapping(mapOf(notchNs to cls)))
-                    }
-
-                    // ignoring notch field descriptor due to
-                    // "field_1003_b","mc","b","LMinecraft;","LMinecraft;","LoadingScreenRenderer","io","net/minecraft/src","0"
-                    // being annoying to fix the notch descriptor
-
-                    // ignoring searge field descriptor for basically the same reason, they have NO package remapping
-
-                    pushed(MutableFieldMapping(
-                        mapOf(
-                            notchNs to FieldNameAndDescriptor(notch, null),
-                            seargeNs to FieldNameAndDescriptor(searge, null),
-                            mcpNs to FieldNameAndDescriptor(name, null)
-                        ),
-                    )) {}
-
+                // the field row's env tag — the sink routes it (joined
+                // → `ns:env` column, single-env → plain `ns` / drop)
+                val rowEnv = when (side) {
+                    "0" -> EnvType.CLIENT
+                    "1" -> EnvType.SERVER
+                    else -> EnvType.JOINED
                 }
+
+                if (className == classNotch) {
+                    classNotch = "$pkg/$classNotch"
+                }
+
+                val cls = InternalName.read(classNotch)
+                if (lastClass?.first != cls) {
+                    lastClass?.second?.let { pop(it) }
+                    lastClass = cls to push(MutableClassMapping(mapOf(notchNs to cls)))
+                }
+
+                // ignoring notch field descriptor due to
+                // "field_1003_b","mc","b","LMinecraft;","LMinecraft;","LoadingScreenRenderer","io","net/minecraft/src","0"
+                // being annoying to fix the notch descriptor
+
+                // ignoring searge field descriptor for basically the same reason, they have NO package remapping
+
+                env(rowEnv).pushed(MutableFieldMapping(
+                    mapOf(
+                        notchNs to FieldNameAndDescriptor(notch, null),
+                        seargeNs to FieldNameAndDescriptor(searge, null),
+                        mcpNs to FieldNameAndDescriptor(name, null)
+                    ),
+                )) {}
             }
 
             lastClass?.second?.let { pop(it) }

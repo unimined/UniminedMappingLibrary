@@ -3,7 +3,9 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.EnvAwareSink
 import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.env
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.MappingElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
@@ -46,13 +48,19 @@ object MCPv6ParamReader : FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
+        // env-aware emit: the sink owns env semantics — joined target
+        // gets `ns:env` columns, single-env target collapses tagged
+        // rows into plain `ns` (and drops the other env's rows)
+        val sink = if (into is EnvAwareSink) into else EnvAwareSink.sinkAs(into, envType)
                 val header = input.takeLine()
         if (!header.startsWith("param,name,side")) {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        val data = mutableMapOf<UnqualifiedName, UnqualifiedName>()
-        val paramsByNumber = mutableMapOf<Int, MutableMap<UnqualifiedName, UnqualifiedName>>()
+        // searge → (name, rowEnv) — the row's `side` tag flows to the
+        // sink's env routing
+        val data = mutableMapOf<UnqualifiedName, Pair<UnqualifiedName, EnvType>>()
+        val paramsByNumber = mutableMapOf<Int, MutableMap<UnqualifiedName, Pair<UnqualifiedName, EnvType>>>()
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
@@ -63,13 +71,16 @@ object MCPv6ParamReader : FormatReader {
             val name = UnqualifiedName.read(input.takeCol()!!)
             val side = input.takeCol()!!
 
-            if (side == "2" || side.toInt() == envType.ordinal || envType == EnvType.JOINED) {
-                data[searge] = name
+            val rowEnv = when (side) {
+                "0" -> EnvType.CLIENT
+                "1" -> EnvType.SERVER
+                else -> EnvType.JOINED
+            }
+            data[searge] = name to rowEnv
 
-                if (searge.value.matches(Regex("p_\\d+_\\d+_"))) {
-                    val mid = searge.value.split('_')[1].toInt()
-                    paramsByNumber.getOrPut(mid) { mutableMapOf() }[searge] = name
-                }
+            if (searge.value.matches(Regex("p_\\d+_\\d+_"))) {
+                val mid = searge.value.split('_')[1].toInt()
+                paramsByNumber.getOrPut(mid) { mutableMapOf() }[searge] = name to rowEnv
             }
 
         }
@@ -77,33 +88,34 @@ object MCPv6ParamReader : FormatReader {
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
-        context?.emit(object : MappingSink by into {
+        context?.emit(object : MappingSink by sink {
             override fun header(namespaces: List<Namespace>) {
-                into.header((namespaces + setOf(srcNs, dstNs)).distinct())
+                sink.header((namespaces + setOf(srcNs, dstNs)).distinct())
             }
 
             override fun push(element: MappingElement): MappingElement? {
                 when (element) {
                     is ParameterMapping -> {
                         val searge = element.names[srcNs] ?: return null
-                        val name = data[searge] ?: return null
-                        return into.push(MutableParameterMapping(element.index, element.lvOrd, mapOf(dstNs to name)))
+                        val (name, env) = data[searge] ?: return null
+                        return sink.env(env).push(MutableParameterMapping(element.index, element.lvOrd, mapOf(dstNs to name)))
                     }
                     is MethodMapping -> {
-                        val pushed = into.push(element) ?: return null
+                        val pushed = sink.push(element) ?: return null
                         val srcName = element.emitEntries()[srcNs]?.name?.value
                         if (srcName?.matches(Regex("func_\\d+_.+")) == true) {
                             val mid = srcName.split('_')[1].toIntOrNull()
                             if (mid != null) {
-                                for ((searge, name) in paramsByNumber[mid] ?: emptyMap()) {
+                                for ((searge, p) in paramsByNumber[mid] ?: emptyMap()) {
+                                    val (name, env) = p
                                     val lvOrd = searge.value.split('_')[2].toInt()
-                                    into.pushed(MutableParameterMapping(null, lvOrd, mapOf(dstNs to name))) {}
+                                    sink.env(env).pushed(MutableParameterMapping(null, lvOrd, mapOf(dstNs to name))) {}
                                 }
                             }
                         }
                         return pushed
                     }
-                    else -> return into.push(element)
+                    else -> return sink.push(element)
                 }
             }
         })

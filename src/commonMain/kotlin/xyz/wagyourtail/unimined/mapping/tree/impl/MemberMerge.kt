@@ -47,17 +47,31 @@ private fun descPartEq(a: String, b: String): Boolean {
     return a.length - as_ == b.length - bs && a.regionMatches(as_, b, bs, a.length - as_)
 }
 
+/**
+ * env-domain comparability — same base ns and non-exclusive envs:
+ * `ns` is comparable to `ns`, `ns:client` and `ns:server` (joined
+ * covers both domains); `ns:client` is comparable to `ns:client` and
+ * `ns` but NOT `ns:server` (disjoint env domains).
+ */
+private fun Namespace.envComparable(other: Namespace): Boolean {
+    val (b1, e1) = splitEnv()
+    val (b2, e2) = other.splitEnv()
+    return b1 === b2 && (e1 == null || e2 == null || e1 == e2)
+}
+
 internal fun Map<Namespace, out NameAndDescriptor>.namesMatch(
     other: Map<Namespace, out NameAndDescriptor>
 ): NameMatch {
     var namesMatched = false
     var differentNames = false
     for ((ns, entry) in this) {
-        val otherEntry = other[ns] ?: continue
-        if (namePartEq(entry.value, otherEntry.value)) {
-            namesMatched = true
-        } else {
-            differentNames = true
+        for ((ons, oentry) in other) {
+            if (!ns.envComparable(ons)) continue
+            if (namePartEq(entry.value, oentry.value)) {
+                namesMatched = true
+            } else {
+                differentNames = true
+            }
         }
     }
     return if (!namesMatched) NameMatch.NONE else if (differentNames) NameMatch.PARTIAL else NameMatch.FULL
@@ -73,8 +87,10 @@ internal fun Map<Namespace, out NameAndDescriptor>.hasNameConflict(
     other: Map<Namespace, out NameAndDescriptor>
 ): Boolean {
     for ((ns, entry) in this) {
-        val otherEntry = other[ns] ?: continue
-        if (!namePartEq(entry.value, otherEntry.value)) return true
+        for ((ons, oentry) in other) {
+            if (!ns.envComparable(ons)) continue
+            if (!namePartEq(entry.value, oentry.value)) return true
+        }
     }
     return false
 }
@@ -85,13 +101,17 @@ internal fun Map<Namespace, out NameAndDescriptor>.anyDesc(): Boolean =
 /**
  * pick the namespace to verify descriptors in: the first of [this]'s desc-bearing
  * namespaces also bearing a desc in [other], else [other]'s first desc-bearing ns.
- * callers guarantee [other] has at least one desc.
+ * env-aware — compares env-comparable keys, returns [other]'s key so descMatches
+ * can index it directly. callers guarantee [other] has at least one desc.
  */
 internal fun Map<Namespace, out NameAndDescriptor>.pickDescNs(
     other: Map<Namespace, out NameAndDescriptor>
 ): Namespace {
     for ((ns, entry) in this) {
-        if (entry.hasDescriptor && other[ns]?.hasDescriptor == true) return ns
+        if (!entry.hasDescriptor) continue
+        for ((ons, oentry) in other) {
+            if (oentry.hasDescriptor && ns.envComparable(ons)) return ons
+        }
     }
     for ((ns, entry) in other) {
         if (entry.hasDescriptor) return ns
@@ -104,7 +124,11 @@ internal fun Map<Namespace, out NameAndDescriptor>.descIn(
     ns: Namespace,
     remapper: DescRemapper?
 ): FieldOrMethodDescriptor? {
+    // exact key, then an env-comparable key (`ns` ↔ `ns:env`), then remap
     this[ns]?.let { if (it.hasDescriptor) return it.descriptor }
+    for ((k, e) in this) {
+        if (k !== ns && k.envComparable(ns) && e.hasDescriptor) return e.descriptor
+    }
     val (from, entry) = entries.firstOrNull { it.value.hasDescriptor } ?: return null
     return remapper?.invoke(from, ns, entry.descriptor!!)
 }
@@ -127,7 +151,11 @@ internal fun Map<Namespace, out FieldOrMethodDescriptor>.descInDesc(
     remapper: DescRemapper?
 ): FieldOrMethodDescriptor? {
     if (isEmpty()) return null
-    if (ns in this) return this[ns]
+    this[ns]?.let { return it }
+    // env-comparable key (`ns` ↔ `ns:env`) before remapping
+    for ((k, d) in this) {
+        if (k.envComparable(ns)) return d
+    }
     val (from, desc) = entries.first()
     return remapper?.invoke(from, ns, desc)
 }

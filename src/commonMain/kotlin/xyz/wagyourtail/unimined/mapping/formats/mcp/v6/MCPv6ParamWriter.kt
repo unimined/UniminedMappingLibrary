@@ -40,10 +40,24 @@ object MCPv6ParamWriter : FormatWriter {
                     is ParameterMapping -> {
                         var src = element.names[ns[0]]
                         var dst = element.names[ns[1]]
+                        var side = envType.ordinal
+                        if (envType == EnvType.JOINED && (src == null || dst == null)) {
+                            // env-aware rows — sided members live under
+                            // `ns:env`; derive `side` from the env column
+                            for (env in listOf(EnvType.CLIENT, EnvType.SERVER)) {
+                                val eSrc = element.names[ns[0].forEnv(env.name.lowercase())]
+                                val eDst = element.names[ns[1].forEnv(env.name.lowercase())]
+                                if (eSrc != null || eDst != null) {
+                                    if (src == null) src = eSrc ?: eDst
+                                    if (dst == null) dst = eDst ?: eSrc
+                                    side = env.ordinal
+                                    break
+                                }
+                            }
+                        }
                         if (src == null && dst == null) return null
                         if (src == null) src = dst!!
                         if (dst == null) dst = src
-                        val side = envType.ordinal
                         append("\n${src.value.maybeEscapeCol()},${dst.value.maybeEscapeCol()},$side")
                     }
                     is MethodMapping, is WildcardMapping, is ClassMapping -> {}

@@ -2,8 +2,11 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v3
 
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
+import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.EnvAwareSink
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.env
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableClassMapping
 import xyz.wagyourtail.unimined.mapping.formats.FormatReader
 import xyz.wagyourtail.unimined.mapping.formats.FormatReaderSettings
@@ -35,7 +38,12 @@ object MCPv3ClassesReader: FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
-                val srcNs = Namespace(nsMapping["notch"] ?: "notch")
+        // env-aware emit: the sink owns env semantics — joined target
+        // gets `ns:env` columns, single-env target collapses tagged
+        // rows into plain `ns` (and drops the other env's rows)
+        val sink = if (into is EnvAwareSink) into else EnvAwareSink.sinkAs(into, envType)
+
+        val srcNs = Namespace(nsMapping["notch"] ?: "notch")
         val dstNs = Namespace(nsMapping["searge"] ?: "searge")
 
         val header = input.takeLine()
@@ -43,7 +51,7 @@ object MCPv3ClassesReader: FormatReader {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        with (into) {
+        with (sink) {
             header(listOf(srcNs, dstNs))
 
             while (!input.exhausted()) {
@@ -57,13 +65,18 @@ object MCPv3ClassesReader: FormatReader {
                 val pkg = input.takeCol()!!
                 val side = input.takeCol()!!
 
-                if (side == "2" || side.toInt() == envType.ordinal) {
-                    val dstCls =
-                        InternalName.read(if (pkg.isNotEmpty()) "$pkg/$dstName" else dstName)
-                    val srcCls =
-                        InternalName.read(if (dstName == srcName && pkg.isNotEmpty()) "${pkg}/${srcName}" else srcName)
-                    pushed(MutableClassMapping(mapOf(srcNs to srcCls, dstNs to dstCls))) {}
+                // the class row's env tag — the sink routes it (joined
+                // → `ns:env` column, single-env → plain `ns` / drop)
+                val rowEnv = when (side) {
+                    "0" -> EnvType.CLIENT
+                    "1" -> EnvType.SERVER
+                    else -> EnvType.JOINED
                 }
+                val dstCls =
+                    InternalName.read(if (pkg.isNotEmpty()) "$pkg/$dstName" else dstName)
+                val srcCls =
+                    InternalName.read(if (dstName == srcName && pkg.isNotEmpty()) "${pkg}/${srcName}" else srcName)
+                env(rowEnv).pushed(MutableClassMapping(mapOf(srcNs to srcCls, dstNs to dstCls))) {}
             }
         }
 into.end()

@@ -17,8 +17,11 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.contains
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.newSmallSet
+import xyz.wagyourtail.unimined.mapping.envView
+import xyz.wagyourtail.unimined.mapping.file
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.emit
+import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
 
 private val LOGGER = KotlinLogging.logger {}
 
@@ -231,6 +234,31 @@ private suspend fun InheritanceTree.ClassInfo.overwriteParentMethodNames(
                 interfaceClass.overwriteMethodNames(md, names, visited)
             }
         }
+
+/**
+ * env-aware propagation by composition — each env's [InheritanceTree] runs
+ * over the [envView]'d tree (its `fns` is the env-collapsed namespace),
+ * and the propagated view emits back through the file-env sink so member
+ * names in [targets] (+ each graph's `fns`) land in `ns:env` columns on
+ * [out]. A `null` env propagates the joined view into unqualified columns.
+ *
+ * graphs: env suffix → that env's scanned hierarchy (e.g. client.jar /
+ * server.jar for split-jar mappings; null → the joined/merged jar).
+ */
+suspend fun MappingTree.propagateEnvs(
+    graphs: Map<String?, InheritanceTree>,
+    targets: Set<Namespace>,
+    strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
+    out: MutableMappingTree = MutableMappingTree(namespaces),
+): MutableMappingTree {
+    emit(out)
+    for ((env, graph) in graphs) {
+        val view = envView(env)
+        val propagated = InheritanceBackedMappingTree(view, graph, strategy)
+        propagated.emit(out.file(env, targets + graph.fns))
+    }
+    return out
+}
 
 private suspend fun InheritanceTree.ClassInfo.overwriteChildMethodNames(
             md: InheritanceTree.MethodInfo,

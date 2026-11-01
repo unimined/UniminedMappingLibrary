@@ -44,12 +44,12 @@ class MCPv6ReadWriteTest {
         assertEquals(
             """
 umf	1	3
-searge	target	mcp
-c	a	net/minecraft/src/Minecraft	_
-	f	field_1_a	field1	mcField
-		*	"field docs"	mcp
-	m	func_1_a;()V	method1	_
-	m	func_2_a;(I)V	method2	_
+searge	target	mcp	searge:client	mcp:client	target:client
+c	a	net/minecraft/src/Minecraft	_	_	_	_
+	f	field_1_a	field1	_	field_1_a	mcField	field1
+		*	"field docs"	mcp:client
+	m	func_1_a;()V	method1	_	_	_	_
+	m	func_2_a;(I)V	method2	_	_	_	_
             """.trimIndent(),
             out.trimEnd()
         )
@@ -74,12 +74,12 @@ c	a	net/minecraft/src/Minecraft	_
         assertEquals(
             """
 umf	1	3
-searge	target	mcp
-c	a	net/minecraft/src/Minecraft	_
-	f	field_1_a	field1	_
-	m	func_1_a;()V	method1	mcMethod
-		*	"method docs"	mcp
-	m	func_2_a;(I)V	method2	_
+searge	target	mcp	searge:client	mcp:client	target:client
+c	a	net/minecraft/src/Minecraft	_	_	_	_
+	f	field_1_a	field1	_	_	_	_
+	m	func_1_a;()V	method1	_	func_1_a	mcMethod	method1
+		*	"method docs"	mcp:client
+	m	func_2_a;(I)V	method2	_	_	_	_
             """.trimIndent(),
             out.trimEnd()
         )
@@ -105,13 +105,13 @@ c	a	net/minecraft/src/Minecraft	_
         assertEquals(
             """
 umf	1	3
-searge	target	mcp
-c	a	net/minecraft/src/Minecraft	_
-	f	field_1_a	field1	_
-	m	func_1_a;()V	method1	_
-		p	_	0	_	_	firstParam
-	m	func_2_a;(I)V	method2	_
-		p	_	1	_	_	secondParam
+searge	target	mcp	mcp:client
+c	a	net/minecraft/src/Minecraft	_	_
+	f	field_1_a	field1	_	_
+	m	func_1_a;()V	method1	_	_
+		p	_	0	_	_	_	firstParam
+	m	func_2_a;(I)V	method2	_	_
+		p	_	1	_	_	secondParam	_
             """.trimIndent(),
             out.trimEnd()
         )

@@ -94,6 +94,13 @@ object MCPv1FieldReader : FormatReader {
                 if (serverSrg.value == "*") continue
                 data[serverSrg] = UnqualifiedName.read(fieldName) to comment
             }
+            if (envType == EnvType.JOINED) {
+                // column-env: the row carries each side's srg name —
+                // index both so env-tagged members (`searge:client` /
+                // `searge:server`) attach
+                if (clientSrg.value != "*") data[clientSrg] = UnqualifiedName.read(fieldName) to comment
+                if (serverSrg.value != "*") data[serverSrg] = UnqualifiedName.read(fieldName) to comment
+            }
 
         }
 
@@ -108,7 +115,13 @@ object MCPv1FieldReader : FormatReader {
             override fun push(element: MappingElement): MappingElement? {
                 if (element is FieldMapping) {
                     val entries = element.emitEntries()
-                    val ns = entries[srcNs] ?: return null
+                    // env-comparable src lookup — the member's src name
+                    // may live under `searge:client`/`searge:server`
+                    val ns = entries[srcNs]
+                        ?: entries.entries.firstOrNull {
+                            it.key.splitEnv().first === srcNs
+                        }?.value
+                        ?: return null
                     val fData = data[ns.name] ?: return null
                     val nameMap = entries.toNsMap()
                     nameMap[dstNs] = FieldNameAndDescriptor(fData.first, null)

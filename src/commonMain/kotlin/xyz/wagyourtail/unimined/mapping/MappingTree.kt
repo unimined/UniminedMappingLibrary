@@ -20,6 +20,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.method.ThrowsSi
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ArrayTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ClassTypeSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.ReferenceTypeSignature
+import xyz.wagyourtail.unimined.mapping.jvms.four.seven.nine.one.reference.TypeVariableSignature
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.ObjectType
@@ -267,6 +268,12 @@ interface MappingTree : MappingElement {
                     }
                     false
                 }
+                is TypeVariableSignature -> {
+                    // type-var names are never class names —
+                    // pass `T<name>;` through verbatim
+                    append(obj.toString())
+                    false
+                }
                 else -> {
                     if (leaf) {
                         append(obj.toString())
@@ -279,76 +286,72 @@ interface MappingTree : MappingElement {
 
     fun ClassMapping.getField(namespace: Namespace, name: UnqualifiedName, desc: FieldDescriptor?): FieldMapping? {
         /*
-         *  because of how resolve works, there should really be a max of 2
-         *  the one that matches best will be first.
-         *  ie, if desc is not-null, it'll put the match with a not-null desc first.
-         *  or vis-versa for null descs.
+         *  desc-less rows are a last-resort fallback — they match only when no
+         *  desc-bearing row verifies the query desc, and are ambiguous on
+         *  overloaded names.
          */
-        val fields = mutableListOf<FieldMapping>()
+        // desc-only identity belongs to wildcard mappings — a row with no
+        // name in this ns must not claim every name-keyed query that shares
+        // its desc (oc=_ side-only rows collapsing `d/i/l/o/g/h/r/s/t` onto
+        // one calamus name → duplicate (name,desc) methods in output jars)
+        val nameMatches = mutableListOf<FieldMapping>()
         for (field in this.fields) {
-            if (field.names[namespace] == name ||
-                (field.names[namespace] == null && desc != null && field.hasDescriptor() && field.getDescriptor(namespace) == desc)) {
-                if (desc == null || !field.hasDescriptor() || field.getDescriptor(namespace) == desc) {
-                    // ensure best match first
-                    if ((desc == null) xor field.hasDescriptor()) {
-                        fields.add(0, field)
-                    } else {
-                        fields.add(field)
-                    }
-                }
+            if (field.names[namespace] == name) {
+                nameMatches.add(field)
             }
         }
-        return fields.firstOrNull()
+        if (desc == null) return nameMatches.firstOrNull()
+        val descMatches = nameMatches.filter { it.hasDescriptor() && it.getDescriptor(namespace) == desc }
+        if (descMatches.isNotEmpty()) return descMatches.firstOrNull()
+        // only when no desc-bearing row exists at all (see getMethods)
+        return if (nameMatches.none { it.hasDescriptor() })
+            nameMatches.filter { !it.hasDescriptor() }.singleOrNull() else null
     }
 
     fun ClassMapping.getMethods(namespace: Namespace, name: UnqualifiedName, desc: MethodDescriptor?): List<MethodMapping> {
         /*
-         *  because of how resolve works, there should really be a max of 2
-         *  the one that matches best will be first.
-         *  ie, if desc is not-null, it'll put the match with a not-null desc first.
-         *  or vis-versa for null descs.
+         *  desc-less rows are a last-resort fallback — they match only when no
+         *  desc-bearing row verifies the query desc, since a row with no
+         *  descriptor can never distinguish overloads on a shared name.
          */
-        val methods = mutableListOf<MethodMapping>()
+        val nameMatches = mutableListOf<MethodMapping>()
         for (method in this.methods) {
-            if (method.names[namespace] == name ||
-                // rows missing a name in this ns still identify via desc (e.g. `m _ named;(I)Lv; yarn`)
-                (method.names[namespace] == null && desc != null && method.hasDescriptor() && method.getDescriptor(namespace) == desc)) {
-                if (desc == null || !method.hasDescriptor() || method.getDescriptor(namespace) == desc) {
-                    // ensure best match first
-                    if ((desc == null) xor method.hasDescriptor()) {
-                        methods.add(0, method)
-                    } else {
-                        methods.add(method)
-                    }
-                }
+            if (method.names[namespace] == name) {
+                nameMatches.add(method)
             }
         }
-        return methods
+        if (desc == null) return nameMatches
+        val descMatches = nameMatches.filter { it.hasDescriptor() && it.getDescriptor(namespace) == desc }
+        if (descMatches.isNotEmpty()) return descMatches
+        // only when no desc-bearing row exists at all — a lone desc-less
+        // row must not claim every unverifiable desc (m_8410365×47)
+        return if (nameMatches.none { it.hasDescriptor() }) nameMatches.filter { !it.hasDescriptor() }
+        else emptyList()
     }
 
     fun ClassMapping.getMethod(namespace: Namespace, name: UnqualifiedName, desc: MethodDescriptor?): MethodMapping? {
-        return getMethods(namespace, name, desc).firstOrNull()
+        val matches = getMethods(namespace, name, desc)
+        // only desc-less rows matched a desc'd query — ambiguous on overloads:
+        // picking a row would collapse every overload to the first one
+        if (desc != null && matches.size > 1 && matches.all { !it.hasDescriptor() }) return null
+        return matches.firstOrNull()
     }
 
     fun ClassMapping.getWildcards(type: WildcardType, namespace: Namespace, desc: FieldOrMethodDescriptor?): List<WildcardMapping> {
-        val wildcards = mutableListOf<WildcardMapping>()
-        for (wildcard in this.wildcards) {
-            if (wildcard.type == type) {
-                if (desc == null || wildcard.hasDescriptor() || wildcard.getDescriptor(namespace) == desc) {
-                    // ensure best match first
-                    if ((desc == null) xor wildcard.hasDescriptor()) {
-                        wildcards.add(0, wildcard)
-                    } else {
-                        wildcards.add(wildcard)
-                    }
-                }
-            }
-        }
-        return wildcards
+        // desc-less rows are a last-resort fallback — only when no desc-bearing
+        // row verifies the query desc (same overload-safety as getMethods)
+        val typed = this.wildcards.filter { it.type == type }
+        if (desc == null) return typed
+        val descMatches = typed.filter { it.hasDescriptor() && it.getDescriptor(namespace) == desc }
+        if (descMatches.isNotEmpty()) return descMatches
+        // only when no desc-bearing row exists at all (see getMethods)
+        return if (typed.none { it.hasDescriptor() }) typed.filter { !it.hasDescriptor() } else emptyList()
     }
 
     fun ClassMapping.getWildcard(type: WildcardType, namespace: Namespace, desc: FieldOrMethodDescriptor?): WildcardMapping? {
-        return getWildcards(type, namespace, desc).firstOrNull()
+        val matches = getWildcards(type, namespace, desc)
+        if (desc != null && matches.size > 1 && matches.all { !it.hasDescriptor() }) return null
+        return matches.firstOrNull()
     }
 
     fun FieldMapping.getDescriptor(namespace: Namespace): FieldDescriptor? {

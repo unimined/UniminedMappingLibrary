@@ -48,10 +48,24 @@ object MCPv6MethodWriter : FormatWriter {
                         val names = element.emitEntries()
                         var src = names[ns[0]]
                         var dst = names[ns[1]]
+                        var side = envType.ordinal
+                        if (envType == EnvType.JOINED && (src == null || dst == null)) {
+                            // env-aware rows — sided members live under
+                            // `ns:env`; derive `side` from the env column
+                            for (env in listOf(EnvType.CLIENT, EnvType.SERVER)) {
+                                val eSrc = names[ns[0].forEnv(env.name.lowercase())]
+                                val eDst = names[ns[1].forEnv(env.name.lowercase())]
+                                if (eSrc != null || eDst != null) {
+                                    if (src == null) src = eSrc ?: eDst
+                                    if (dst == null) dst = eDst ?: eSrc
+                                    side = env.ordinal
+                                    break
+                                }
+                            }
+                        }
                         if (src == null && dst == null) return null
                         if (src == null) src = dst!!
                         if (dst == null) dst = src
-                        val side = envType.ordinal
                         append("\n${src.name.value.maybeEscapeCol()},${dst.name.value.maybeEscapeCol()},$side,")
                     }
                     is ClassMapping -> {}

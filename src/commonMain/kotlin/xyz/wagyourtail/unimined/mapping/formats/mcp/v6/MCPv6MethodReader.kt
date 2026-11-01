@@ -3,7 +3,9 @@ package xyz.wagyourtail.unimined.mapping.formats.mcp.v6
 import okio.BufferedSource
 import xyz.wagyourtail.commonskt.reader.CharReader
 import xyz.wagyourtail.unimined.mapping.EnvType
+import xyz.wagyourtail.unimined.mapping.EnvAwareSink
 import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.env
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.MappingElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
@@ -48,12 +50,18 @@ object MCPv6MethodReader : FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
+        // env-aware emit: the sink owns env semantics — joined target
+        // gets `ns:env` columns, single-env target collapses tagged
+        // rows into plain `ns` (and drops the other env's rows)
+        val sink = if (into is EnvAwareSink) into else EnvAwareSink.sinkAs(into, envType)
                 val header = input.takeLine()
         if (!header.startsWith("searge,name,side")) {
             throw IllegalArgumentException("invalid header: $header")
         }
 
-        val data = mutableMapOf<UnqualifiedName, Pair<UnqualifiedName, String?>>()
+        // searge → (name, comment, rowEnv) — the row's `side` tag
+        // flows to the sink's env routing
+        val data = mutableMapOf<UnqualifiedName, Triple<UnqualifiedName, String?, EnvType>>()
 
         while (!input.exhausted()) {
             if (input.peek() == '\n') {
@@ -65,18 +73,21 @@ object MCPv6MethodReader : FormatReader {
             val side = input.takeCol()!!
             val comment = input.takeCol()
 
-            if (side == "2" || side.toInt() == envType.ordinal || envType == EnvType.JOINED) {
-                data[searge] = name to comment
+            val rowEnv = when (side) {
+                "0" -> EnvType.CLIENT
+                "1" -> EnvType.SERVER
+                else -> EnvType.JOINED
             }
+            data[searge] = Triple(name, comment, rowEnv)
 
         }
 
         val srcNs = Namespace(nsMapping["searge"] ?: "searge")
         val dstNs = Namespace(nsMapping["mcp"] ?: "mcp")
 
-        context?.emit(object : MappingSink by into {
+        context?.emit(object : MappingSink by sink {
             override fun header(namespaces: List<Namespace>) {
-                into.header((namespaces + setOf(srcNs, dstNs)).distinct())
+                sink.header((namespaces + setOf(srcNs, dstNs)).distinct())
             }
 
             override fun push(element: MappingElement): MappingElement? {
@@ -86,13 +97,16 @@ object MCPv6MethodReader : FormatReader {
                     val mData = data[ns.name] ?: return null
                     val nameMap = entries.toNsMap()
                     nameMap[dstNs] = MethodNameAndDescriptor(mData.first, null)
-                    val pushed = into.push(MutableMethodMapping(nameMap)) ?: return null
+                    // the row's env tag routes through the sink — joined
+                    // target → `ns:env` column, single-env → plain `ns`/drop
+                    val rowSink = sink.env(mData.third)
+                    val pushed = rowSink.push(MutableMethodMapping(nameMap)) ?: return null
                     if (mData.second != null) {
-                        into.pushed(JavadocElement(mData.second!!, dstNs)) {}
+                        rowSink.pushed(JavadocElement(mData.second!!, dstNs)) {}
                     }
                     return pushed
                 }
-                return into.push(element)
+                return sink.push(element)
             }
         })
 

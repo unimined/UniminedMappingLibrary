@@ -126,11 +126,14 @@ class MappingTreeData(
 
     /** attach [child] directly to [parent], returning the retained (possibly merged-into) node */
     private fun attachTo(parent: MappingElement, child: MappingElement): MappingElement? = when {
-        parent is MutableClassMapping && child is MethodMapping -> parent.method(child.entries)
-        parent is MutableClassMapping && child is FieldMapping -> parent.field(child.entries)
-        parent is MutableClassMapping && child is WildcardMapping -> parent.wildcard(child.type, child.descs)
-        parent is MutableInvokableMapping && child is ParameterMapping -> parent.parameter(child.index, child.lvOrd, child.names)
-        parent is MutableInvokableMapping && child is LocalVariableMapping -> parent.localVariable(child.lvOrd, child.startOp, child.names)
+        // member pushes register their entries/names namespaces — only
+        // top-level attachTop fns did this, so a member carrying `ns:env`
+        // columns would fail checkNamespace on a later desc remap
+        parent is MutableClassMapping && child is MethodMapping -> parent.method(child.entries).also { addNamespaces(child.entries.keys) }
+        parent is MutableClassMapping && child is FieldMapping -> parent.field(child.entries).also { addNamespaces(child.entries.keys) }
+        parent is MutableClassMapping && child is WildcardMapping -> parent.wildcard(child.type, child.descs).also { addNamespaces(child.descs.keys) }
+        parent is MutableInvokableMapping && child is ParameterMapping -> parent.parameter(child.index, child.lvOrd, child.names).also { addNamespaces(child.names.keys) }
+        parent is MutableInvokableMapping && child is LocalVariableMapping -> parent.localVariable(child.lvOrd, child.startOp, child.names).also { addNamespaces(child.names.keys) }
         else -> null
     }
 

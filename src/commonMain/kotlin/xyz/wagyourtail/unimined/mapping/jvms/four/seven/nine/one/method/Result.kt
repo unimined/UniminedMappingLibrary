@@ -28,7 +28,9 @@ value class Result private constructor(val value: String) : Type {
         override fun unchecked(value: String) = Result(value)
     }
 
-    fun isJavaTypeSignature() = value[0] == 'L'
+    // anything that isn't a void result is a JavaTypeSignature —
+    // `L` (class), `T` (type-var), `[` (array), or a base type
+    fun isJavaTypeSignature() = value[0] != 'V'
 
     fun isVoidDescriptor() = value[0] == 'V'
 
