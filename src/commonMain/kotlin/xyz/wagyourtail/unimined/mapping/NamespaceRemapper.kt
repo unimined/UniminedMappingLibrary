@@ -60,16 +60,27 @@ fun MappingTree.remapper(from: Namespace, to: Namespace): NamespaceRemapper {
  *  inner classes. Identity passthroughs are untouched — only names the
  *  tree actually remaps get the rewrite, so a legitimately-`__`-named
  *  unmapped class survives intact. */
-fun NamespaceRemapper.dollarInnerClasses(separator: String = "__"): NamespaceRemapper {
-    val delegate = this
-    return object : NamespaceRemapper by delegate {
-        override fun mapClass(name: InternalName): InternalName {
-            val mapped = delegate.mapClass(name)
-            if (mapped == name || !mapped.value.contains(separator)) {
-                return mapped
-            }
-            return InternalName.read(mapped.value.replace(separator, "$"), true)
+fun NamespaceRemapper.dollarInnerClasses(separator: String = "__"): NamespaceRemapper =
+    DollarInnerClassesRemapper(this, separator)
+
+/** [NamespaceRemapper] decorator that exposes the remapper it wraps —
+ *  call sites needing decorated-away internals (graph-backed
+ *  method-origin resolution, for instance) unwrap through this before
+ *  type-matching on the underlying remapper. */
+interface DelegatedNamespaceRemapper : NamespaceRemapper {
+    val delegate: NamespaceRemapper
+}
+
+private class DollarInnerClassesRemapper(
+    override val delegate: NamespaceRemapper,
+    private val separator: String,
+) : DelegatedNamespaceRemapper, NamespaceRemapper by delegate {
+    override fun mapClass(name: InternalName): InternalName {
+        val mapped = delegate.mapClass(name)
+        if (mapped == name || !mapped.value.contains(separator)) {
+            return mapped
         }
+        return InternalName.read(mapped.value.replace(separator, "$"), true)
     }
 }
 

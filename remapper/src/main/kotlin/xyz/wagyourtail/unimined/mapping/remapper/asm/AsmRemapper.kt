@@ -12,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.NamespaceRemapper
+import xyz.wagyourtail.unimined.mapping.DelegatedNamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.dollarInnerClasses
 import xyz.wagyourtail.unimined.mapping.inheritance.ASMInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
@@ -123,7 +124,9 @@ object AsmRemapper {
      *  graph-backed — propagated names come from an ancestor's row, which is
      *  where the param/lvar children live */
     private fun attachMethodOrigin(ctx: ExtensionContext, nsRemapper: NamespaceRemapper?, tree: MappingTree, fns: Namespace) {
-        val g = nsRemapper as? GraphNamespaceRemapper ?: return
+        var r = nsRemapper
+        while (r is DelegatedNamespaceRemapper) r = r.delegate
+        val g = r as? GraphNamespaceRemapper ?: return
         ctx.methodOrigin = { owner, name, desc ->
             g.methodOrigin(owner, name, desc)?.let { m ->
                 tree.getClass(fns, m.cls.name)?.let { c ->

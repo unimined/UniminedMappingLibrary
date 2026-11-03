@@ -188,15 +188,19 @@ class JarFixupsTest {
         val entries = java.util.zip.ZipFile(output.toFile()).use { z ->
             z.entries().asSequence().associate { it.name to z.getInputStream(it).readBytes() }
         }
-        val aw = String(entries.getValue("test.accesswidener"))
+        // AWWriter emits canonical tab-separated rows — normalize so
+        // assertions stay readable regardless of input spacing
+        val aw = String(entries.getValue("test.accesswidener")).replace('\t', ' ')
         assertTrue("accessWidener v2 named" in aw, "aw=\n" + aw)
         assertTrue("accessible class x/Lib" in aw)
         assertTrue("accessible method x/Lib doThing ()V" in aw)
         assertTrue("accessible field x/Lib m_1 I" in aw)  // no field row — name passthrough, owner remapped
 
+        // accesstransformer.cfg uses dotted java names (not internal
+        // names) — that's the AT spec
         val at = String(entries.getValue("META-INF/accesstransformer.cfg"))
-        assertTrue("public x/Lib" in at, "at=\n" + at)
-        assertTrue("protected x/Lib doThing()V" in at)
+        assertTrue("public x.Lib" in at, "at=\n" + at)
+        assertTrue("protected x.Lib doThing()V" in at)
     }
 
 }
