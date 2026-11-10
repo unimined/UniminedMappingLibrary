@@ -32,9 +32,10 @@ object MixinTables {
      *  (`Lowner;name(desc)` / `Lowner;name:desc` / `owner.name(desc)` /
      *  `name(desc)` forms), `args` a `key=value` list (`class=` remaps). */
     val POINTCUT: AnnotationTable = annotationTable {
-        // every pointcut's `target` is a member ref
+        // every pointcut's `target` is a member ref — method *or* field
+        // (FIELD pointcuts take `Lowner;name:desc` form)
         annotationPackage("${P}injection/") {
-            param("target", ParamRemap.MethodRef)
+            param("target", ParamRemap.MemberRef)
         }
         annotation("${P}injection/At;") {
             param("args", ParamRemap.InjectionArgs)
@@ -84,7 +85,7 @@ object MixinTables {
         }
         // @Desc.target is a member ref (not a nested pointcut), `owner` a class
         annotation("${P}injection/Desc;") {
-            param("target", ParamRemap.MethodRef)
+            param("target", ParamRemap.MemberRef)
             param("owner", ParamRemap.ClassRef)
         }
 

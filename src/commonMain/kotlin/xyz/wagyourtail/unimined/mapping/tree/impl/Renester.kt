@@ -13,7 +13,9 @@ private fun MutableMappingTree.fixNest(target: ClassMapping, srcNs: Namespace, t
     val srcName = target.names[srcNs] ?: return target.names[targetNs]
     if ('$' !in srcName.value) return target.names[targetNs]
     val parent = InternalName.unchecked(srcName.value.substringBeforeLast('$'))
-    val parentNode = getClass(srcNs, parent) ?: return target.names[targetNs]
+    // identity probe — must not flat-alias `az` into a `q$az` row
+    val parentNode = (this as? MappingTreeData)?.getClassExact(srcNs, parent)
+        ?: getClass(srcNs, parent) ?: return target.names[targetNs]
     val parentDstName = fixNest(parentNode, srcNs, targetNs) ?: return target.names[targetNs]
     val dstName = target.names[targetNs] ?: srcName
     val clsName = if ('$' !in dstName.value) dstName.value.substringAfterLast('/') else dstName.value.substringAfterLast('$')

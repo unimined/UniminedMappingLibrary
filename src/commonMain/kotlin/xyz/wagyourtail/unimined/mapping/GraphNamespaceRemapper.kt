@@ -202,7 +202,10 @@ class GraphNamespaceRemapper(
         for (member in declaringFieldChain(owner, name, desc)) {
             val cls = tree.getClass(from, member.cls.name) ?: continue
             val row = with(tree) { cls.getField(from, name, desc) } ?: continue
-            row.names[to]?.let { return it }
+            // identity rows (name == source name — no-ops and completed
+            // cells) don't outrank a real rename on a farther ancestor —
+            // same precedence as MemberGroups method candidates
+            row.names[to]?.takeIf { it != name }?.let { return it }
         }
         return null
     }

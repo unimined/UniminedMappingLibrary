@@ -98,7 +98,7 @@ class Gen2MergeReproTest {
         if (!f.exists()) return@runTest
         val tree = UMFReader.read(f.readText())
         println("namespaces: ${tree.namespaces.map { it.name }}")
-        val im = Namespace("calamus")
+        val im = Namespace("calamusGen2")
         val off = Namespace("official")
         for ((env, view) in listOf("client" to tree.envView("client"), "server" to tree.envView("server"))) {
             for (name in listOf("uk", "ow", "mu", "jh", "gv", "gs", "np", "na", "vm")) {

@@ -1,9 +1,7 @@
 package xyz.wagyourtail.unimined.mapping.inheritance
 
-import no.synth.kmpzip.zip.ZipFile
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
@@ -31,7 +29,7 @@ class LazyASMInheritanceTree(
 
     private val materialized = ConcurrentHashMap<InternalName, ClassInfo>()
     private val misses = ConcurrentHashMap.newKeySet<InternalName>()
-    private val zipCache = ConcurrentHashMap<Path, ZipFile>()
+    private val zipCache = ConcurrentHashMap<Path, java.util.zip.ZipFile>()
 
     init {
         input.classes.forEach { (name, raw) -> materialized[name] = toClassInfo(name, raw) }
@@ -51,13 +49,17 @@ class LazyASMInheritanceTree(
             misses += name
             return null
         }
-        val zf = zipCache.computeIfAbsent(jar) { ZipFile(Files.readAllBytes(it)) }
-        val entry = zf.entries.firstOrNull { it.name == "$name.class" }
+        // ZipFile over the path — reads the central directory, not the
+        // contents; only the resolved class's bytes land in memory.
+        // (Previously ZipFile(readAllBytes) retained every touched
+        // jar's full contents for the tree's lifetime — the remap OOM.)
+        val zf = zipCache.computeIfAbsent(jar) { java.util.zip.ZipFile(it.toFile()) }
+        val entry = zf.getEntry("$name.class")
         if (entry == null) {
             misses += name
             return null
         }
-        val bytes = zf.getInputStream(entry).use { it.readBytes() }
+        val bytes = zf.getInputStream(entry).use { s -> s.readBytes() }
         val info = toClassInfo(name, ASMInheritanceTree.scanClass("$name.class", bytes).second)
         return materialized.putIfAbsent(name, info) ?: info
     }
@@ -80,8 +82,11 @@ class LazyASMInheritanceTree(
          *  first jar on the classpath. */
         fun index(jars: Set<Path>): Map<InternalName, Path> =
             jars.parallelStream().flatMap { jar ->
-                ZipFile(Files.readAllBytes(jar)).use { zf ->
-                    zf.entries.asSequence()
+                // java.util.zip.ZipFile enumerates the central directory —
+                // no jar bytes buffered (readAllBytes retained every
+                // classpath jar's contents during index builds)
+                java.util.zip.ZipFile(jar.toFile()).use { zf ->
+                    zf.entries().asSequence()
                         .filter {
                             !it.isDirectory &&
                                 it.name.endsWith(".class") &&

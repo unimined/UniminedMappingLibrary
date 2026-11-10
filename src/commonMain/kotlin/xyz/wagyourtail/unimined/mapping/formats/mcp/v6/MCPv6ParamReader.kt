@@ -96,13 +96,18 @@ object MCPv6ParamReader : FormatReader {
             override fun push(element: MappingElement): MappingElement? {
                 when (element) {
                     is ParameterMapping -> {
-                        val searge = element.names[srcNs] ?: return null
+                        // sided rows carry their src name under `srcNs:env`
+                        val searge = element.names.entries.firstOrNull { (ns, _) ->
+                            ns.splitEnv().first == srcNs
+                        }?.value ?: return null
                         val (name, env) = data[searge] ?: return null
                         return sink.env(env).push(MutableParameterMapping(element.index, element.lvOrd, mapOf(dstNs to name)))
                     }
                     is MethodMapping -> {
                         val pushed = sink.push(element) ?: return null
-                        val srcName = element.emitEntries()[srcNs]?.name?.value
+                        val srcName = element.emitEntries().entries.firstOrNull { (ns, _) ->
+                            ns.splitEnv().first == srcNs
+                        }?.value?.name?.value
                         if (srcName?.matches(Regex("func_\\d+_.+")) == true) {
                             val mid = srcName.split('_')[1].toIntOrNull()
                             if (mid != null) {

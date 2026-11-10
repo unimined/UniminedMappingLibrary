@@ -44,12 +44,12 @@ class MCPv6ReadWriteTest {
         assertEquals(
             """
 umf	1	3
-searge	target	mcp	searge:client	mcp:client	target:client
-c	a	net/minecraft/src/Minecraft	_	_	_	_
-	f	field_1_a	field1	_	field_1_a	mcField	field1
+searge	searge:client	target	target:client	mcp	mcp:client
+c	a	_	net/minecraft/src/Minecraft	_	_	_
+	f	field_1_a	field_1_a	field1	field1	_	mcField
 		*	"field docs"	mcp:client
-	m	func_1_a;()V	method1	_	_	_	_
-	m	func_2_a;(I)V	method2	_	_	_	_
+	m	func_1_a;()V	_	method1	_	_	_
+	m	func_2_a;(I)V	_	method2	_	_	_
             """.trimIndent(),
             out.trimEnd()
         )
@@ -74,12 +74,12 @@ c	a	net/minecraft/src/Minecraft	_	_	_	_
         assertEquals(
             """
 umf	1	3
-searge	target	mcp	searge:client	mcp:client	target:client
-c	a	net/minecraft/src/Minecraft	_	_	_	_
-	f	field_1_a	field1	_	_	_	_
-	m	func_1_a;()V	method1	_	func_1_a	mcMethod	method1
+searge	searge:client	target	target:client	mcp	mcp:client
+c	a	_	net/minecraft/src/Minecraft	_	_	_
+	f	field_1_a	_	field1	_	_	_
+	m	func_1_a;()V	func_1_a	method1	method1	_	mcMethod
 		*	"method docs"	mcp:client
-	m	func_2_a;(I)V	method2	_	_	_	_
+	m	func_2_a;(I)V	_	method2	_	_	_
             """.trimIndent(),
             out.trimEnd()
         )

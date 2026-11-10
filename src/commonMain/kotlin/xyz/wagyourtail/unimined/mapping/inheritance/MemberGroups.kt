@@ -57,6 +57,12 @@ class MemberGroups(val inheritance: InheritanceTree) {
         /** losing candidates per ns — conflict bookkeeping (deterministic:
          *  resolution picks sorted-first, count returned by [propagate]). */
         val candidates = mutableMapOf<Namespace, MutableSet<UnqualifiedName>>()
+        /** candidates whose row name equals their fns name — identity /
+         *  no-op stamps (e.g. unobf-completion fills). They lose to any
+         *  real rename in the component: a completed `a` on an unmapped
+         *  implementing member must not degrade a real `m_*`/`f_*` row
+         *  declared elsewhere in the same virtual-method group. */
+        internal val identityCandidates = mutableMapOf<Namespace, MutableSet<UnqualifiedName>>()
     }
 
     // union-find over virtual method members
@@ -95,6 +101,9 @@ class MemberGroups(val inheritance: InheritanceTree) {
                 loser.origins.forEach { (ns, m) -> if (ns !in winner.origins) winner.origins[ns] = m }
                 loser.candidates.forEach { (ns, s) ->
                     winner.candidates.getOrPut(ns) { mutableSetOf() }.addAll(s)
+                }
+                loser.identityCandidates.forEach { (ns, s) ->
+                    winner.identityCandidates.getOrPut(ns) { mutableSetOf() }.addAll(s)
                 }
                 loser.candidateMembers.forEach { (ns, m) ->
                     val wm = winner.candidateMembers.getOrPut(ns) { mutableMapOf() }
@@ -232,7 +241,7 @@ class MemberGroups(val inheritance: InheritanceTree) {
         var conflicts = 0
         for (cls in tree.classes) {
             val fnsName = cls.names[inheritance.fns] ?: continue
-            val info = inheritance.classes[fnsName] ?: continue
+            val info = inheritance.classInfo(fnsName) ?: continue
             for (mm in cls.methods) {
                 val entry = mm.entries[inheritance.fns] ?: continue
                 val desc = entry.descriptor ?: continue
@@ -243,6 +252,9 @@ class MemberGroups(val inheritance: InheritanceTree) {
                 val group = groups.getOrPut(find(MethodMember(info, mi))) { MethodGroup() }
                 for ((ns, e) in mm.entries) {
                     group.candidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
+                    if (e.name == entry.name) {
+                        group.identityCandidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
+                    }
                     group.candidateMembers.getOrPut(ns) { mutableMapOf() }.let { m ->
                         if (e.name !in m) m[e.name] = MethodMember(info, mi)
                     }
@@ -255,7 +267,13 @@ class MemberGroups(val inheritance: InheritanceTree) {
             for ((_, group) in groups) {
                 for ((ns, cands) in group.candidates) {
                     if (cands.size > 1) conflicts++
-                    val winner = cands.minBy { it.value }
+                    // identity stamps (no-ops and cell completions) only
+                    // apply when no real rename exists in the component —
+                    // a completed `a` on an unmapped impl loses to a
+                    // sibling's actual `m_*`/`f_*` name
+                    val identities = group.identityCandidates[ns] ?: emptySet()
+                    val real = cands.filter { it !in identities }
+                    val winner = (real.ifEmpty { cands.toList() }).minBy { it.value }
                     group.names[ns] = winner
                     group.candidateMembers[ns]?.get(winner)?.let { group.origins[ns] = it }
                 }

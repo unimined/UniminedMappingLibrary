@@ -1,7 +1,10 @@
 package xyz.wagyourtail.unimined.mapping.remapper
 
+import xyz.wagyourtail.unimined.mapping.GraphNamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.inheritance.MemberGroups
+import xyz.wagyourtail.unimined.mapping.NamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -40,11 +43,24 @@ class ExtensionContext(
     var methodOrigin: ((owner: InternalName, name: UnqualifiedName, desc: MethodDescriptor) -> xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping?)? =
         null
 
-    /** source → target member/type remapper */
-    val remapper = tree.remapper(fns, targetNs)
+    /**
+     * source → target member/type remapper. Graph-backed when the tree is
+     * [InheritanceBackedMappingTree] — member refs on subclasses resolve to
+     * the declaring ancestor's row (`Loq;q:D` → Entity's `field_70163_u`),
+     * which flat lookups miss: write-time propagation only reaches
+     * descendants the scan already materialized.
+     */
+    val remapper: NamespaceRemapper = bind(fns, targetNs)
 
     /** target → source — for resolving names written in the target space */
-    val reverse = tree.remapper(targetNs, fns)
+    val reverse: NamespaceRemapper = bind(targetNs, fns)
+
+    private fun bind(from: Namespace, to: Namespace): NamespaceRemapper =
+        if (tree is InheritanceBackedMappingTree) {
+            GraphNamespaceRemapper(tree, tree.inheritance, MemberGroups(tree.inheritance), from, to)
+        } else {
+            tree.remapper(from, to)
+        }
 
     /** map a class internal name source → target (`base/Service` → `b`) */
     fun mapClass(internalName: String): String = remapper.map(InternalName.unchecked(internalName)).value
@@ -63,6 +79,12 @@ class ExtensionContext(
     fun mapDesc(desc: String, isField: Boolean): String =
         if (isField) remapper.map(FieldDescriptor.unchecked(desc)).toString()
         else remapper.map(MethodDescriptor.unchecked(desc)).toString()
+
+    /** source-space desc for a desc read off an already-remapped (targetNs)
+     *  node — member lookups against the tree key on source-side descs */
+    fun reverseDesc(desc: String, isField: Boolean): String =
+        if (isField) reverse.map(FieldDescriptor.unchecked(desc)).toString()
+        else reverse.map(MethodDescriptor.unchecked(desc)).toString()
 
     /** number of member rows matching a desc-less lookup — `>1` means a
      *  name-only ref is ambiguous */

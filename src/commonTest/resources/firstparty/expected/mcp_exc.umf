@@ -1,5 +1,5 @@
 umf	1	3
-source	target	searge	mcp	notch	searge:client	mcp:client	notch:client
+source	target	searge	searge:client	mcp	mcp:client	notch	notch:client
 k	""	net/minecraft/src/	_	_	_	_	_	_
 c	a	net/minecraft/src/Minecraft	_	_	_	_	_	_
 	f	a	field_1724	_	_	_	_	_	_
@@ -7,9 +7,9 @@ c	a	net/minecraft/src/Minecraft	_	_	_	_	_	_
 c	b	net/minecraft/src/World	_	_	_	_	_	_
 	f	a	field_1725	_	_	_	_	_	_
 	m	a;(I)V	func_2_b	_	_	_	_	_	_
-c	_	_	net/minecraft/src/net/minecraft/src/Minecraft	_	a	_	_	_
-	f	_	_	_	_	_	field_1724	mcField	a
-	m	_	_	_	_	_	func_1_a;()V	mcMethod	a
+c	_	_	net/minecraft/src/net/minecraft/src/Minecraft	_	_	_	a	_
+	f	_	_	_	field_1724	_	mcField	_	a
+	m	_	_	_	func_1_a;()V	_	mcMethod	_	a
 c	_	_	a	_	_	_	_	_
 	m	_	_	a;()V	_	_	_	_	_
 		x	+	java/lang/Exception	searge

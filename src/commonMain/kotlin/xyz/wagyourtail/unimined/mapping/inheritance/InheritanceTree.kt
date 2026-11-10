@@ -33,6 +33,22 @@ abstract class InheritanceTree {
 
 
     /**
+     * fns-name → [ClassInfo] resolution honoring the flat-inner
+     * convention: pre-flattening mapping columns store inner classes as
+     * `outer$inner` while the jar stores the flat inner name (b1.7.3
+     * argo: biny `lt$pu` ↔ jar `pu.class`) — the inverse of
+     * `MappingTreeData.getClass`'s flat-name fallback. Exact hit wins;
+     * the inner-segment fallback only fires on a miss, so a jar that
+     * genuinely contains `lt$pu` never defers to `pu`.
+     */
+    fun classInfo(fnsName: InternalName): ClassInfo? {
+        classes[fnsName]?.let { return it }
+        val inner = fnsName.value.substringAfterLast('$')
+        if (inner == fnsName.value) return null
+        return classes[InternalName.unchecked(inner)]
+    }
+
+    /**
      * Fold declared [xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement]s
      * (member rows + desc-grouped wildcards) into the scanned member flags — a
      * widen (private→protected) then behaves like ordinary inheritance for
@@ -46,7 +62,7 @@ abstract class InheritanceTree {
         // trees this is the same materialized-set lookup as before
         for (cls in tree.classes) {
             val fnsName = cls.names[fns] ?: continue
-            val info = classes[fnsName] ?: continue
+            val info = classInfo(fnsName) ?: continue
             for (mi in info.methods) {
                 val els = with(tree) {
                     cls.getMethods(fns, mi.name, mi.descriptor).flatMap { it.access } +

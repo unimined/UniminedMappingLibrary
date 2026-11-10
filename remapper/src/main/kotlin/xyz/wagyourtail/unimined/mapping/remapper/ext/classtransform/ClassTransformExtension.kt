@@ -72,6 +72,14 @@ class ClassTransformExtension(
         existingRefmap = json["mappings"]?.jsonObject
     }
 
+    /** member renames resolve during [analyze] (pre-remap) — the input
+     *  name keys `existingEntry` lookups while the delegate runs */
+    override fun analyze(node: ClassNode) {
+        recorder.currentInput = node.name
+        delegate.analyze(node)
+        recorder.currentInput = null
+    }
+
     override fun postApply(input: ClassNode, output: ClassNode, cls: ClassMapping?) {
         recorder.currentInput = input.name
         delegate.postApply(input, output, cls)

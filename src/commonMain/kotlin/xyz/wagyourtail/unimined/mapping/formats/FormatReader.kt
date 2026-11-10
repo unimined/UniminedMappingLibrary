@@ -115,7 +115,13 @@ interface FormatReader : FormatReaderSettings {
         val temp = MutableMappingTree()
         readImpl(input, context, temp, emptyMap(), settings)
         prepare(temp)
-        temp.emit(into, nsRenamer = { nsMapping[it.name]?.let { n -> Namespace(n) } ?: it })
+        // env-aware rename: `mcp:client` must become `forgeMCP:client`, not
+        // fall through verbatim — sided cols the emit-sink tagged would
+        // otherwise keep the *file* ns name and get dropped by nsFilters
+        temp.emit(into, nsRenamer = {
+            val (base, env) = it.splitEnv()
+            (nsMapping[base.name]?.let { n -> Namespace(n) } ?: base).forEnv(env)
+        })
     }
 
     /**

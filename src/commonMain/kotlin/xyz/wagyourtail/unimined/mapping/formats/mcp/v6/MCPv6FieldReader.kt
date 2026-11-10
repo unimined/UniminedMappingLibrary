@@ -93,12 +93,19 @@ object MCPv6FieldReader : FormatReader {
             override fun push(element: MappingElement): MappingElement? {
                 if (element is FieldMapping) {
                     val entries = element.emitEntries()
-                    val ns = entries[srcNs] ?: return null
-                    val fdata = data[ns.name] ?: return null
+                    // sided rows may carry their src name under `srcNs:env` —
+                    // prefer the unqualified col, fall back to env variants
+                    val srcEntry = entries.entries.firstOrNull { (ns, _) -> ns == srcNs }
+                        ?: entries.entries.firstOrNull { (ns, _) ->
+                            ns.splitEnv().first == srcNs
+                        } ?: return null
+                    val fdata = data[srcEntry.value.name] ?: return null
                     val nameMap = entries.toNsMap()
                     nameMap[dstNs] = FieldNameAndDescriptor(fdata.first, null)
-                    // the row's env tag routes through the sink — joined
-                    // target → `ns:env` column, single-env → plain `ns`/drop
+                    // env() relabels every col of the row (src included) —
+                    // that's what materializes `searge:client`; the dst col
+                    // lands as `mcp:env` here and the emit-stage nsRenamer
+                    // rewrites it to the mapped ns (`forgeMCP:client`)
                     val rowSink = sink.env(fdata.third)
                     val pushed = rowSink.push(MutableFieldMapping(nameMap)) ?: return null
                     if (fdata.second != null) {

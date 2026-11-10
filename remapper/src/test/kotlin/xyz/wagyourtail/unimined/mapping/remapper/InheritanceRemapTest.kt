@@ -144,4 +144,51 @@ class InheritanceRemapTest {
             "the unmapped override's param name comes from the originating row")
     }
 
+    @Test
+    fun interfaceOverridesOnUnmappedImplPropagate() = runTest {
+        val dir = createTempDirectory()
+        val mc = dir.resolve("mc.jar"); val out = dir.resolve("out.jar")
+
+        // argo shape (b1.7.3 biny): obf interface `ii` carries both rows —
+        // `a(Lnn;)V`→addNode and `a(Lff;)V`→addField — while obf impl `cc`
+        // (the anonymous JsonListenerToJdomAdapter$2 analog) declares both
+        // `a` overloads but has only a class row. Both overrides must
+        // inherit the interface's mapped names; an unmapped impl left as
+        // `a` produces AbstractMethodError at the callsite.
+        val t = treeOf()
+        val iface = t.cls("ii", "pkg/I")
+        iface.method("a;(Lnn;)V", "addNode;(Lpkg/NodeBuilder;)V")
+        iface.method("a;(Lff;)V", "addField;(Lpkg/FieldBuilder;)V")
+        t.cls("nn", "pkg/NodeBuilder")
+        t.cls("ff", "pkg/FieldBuilder")
+        t.cls("cc", "pkg/C")
+
+        writeJar(mc, mapOf(
+            "ii.class" to classBytes("ii", Opcodes.ACC_PUBLIC or Opcodes.ACC_INTERFACE or Opcodes.ACC_ABSTRACT) {
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC or Opcodes.ACC_ABSTRACT, "a", "(Lnn;)V", null, null))
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC or Opcodes.ACC_ABSTRACT, "a", "(Lff;)V", null, null))
+            },
+            "nn.class" to classBytes("nn"),
+            "ff.class" to classBytes("ff"),
+            "cc.class" to classBytes("cc") {
+                interfaces.add("ii")
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC, "a", "(Lnn;)V", null, null).apply {
+                    visitCode(); visitInsn(Opcodes.RETURN); visitMaxs(0, 2); visitEnd()
+                })
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC, "a", "(Lff;)V", null, null).apply {
+                    visitCode(); visitInsn(Opcodes.RETURN); visitMaxs(0, 2); visitEnd()
+                })
+            },
+        ))
+
+        AsmRemapper.remap(mc, out, listOf(t), obf, named)
+
+        val c = readClasses(out).getValue("pkg/C")
+        assertEquals(
+            listOf("addField" to "(Lpkg/FieldBuilder;)V", "addNode" to "(Lpkg/NodeBuilder;)V"),
+            c.methods.map { it.name to it.desc }.sortedBy { it.second },
+            "interface overrides on an unmapped impl must inherit the interface's mapped names",
+        )
+    }
+
 }

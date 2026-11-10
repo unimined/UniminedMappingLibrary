@@ -88,6 +88,9 @@ class ClassTransformExtensionTest {
                 }
         })
         val ext = ClassTransformExtension(ctx)
+        // member renames resolve in analyze — the driver always calls it
+        // before postApply
+        ext.analyze(input)
         ext.postApply(input, output, null)
         val inject = output.methods.single { it.name == "injectFoo" }.visibleAnnotations.single()
         val vals = inject.values

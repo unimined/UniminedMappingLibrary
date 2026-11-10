@@ -5,9 +5,13 @@ package xyz.wagyourtail.unimined.mapping.formats.at
  * (`pkg/Class.member` / `pkg/Class.member(desc)`); modern files use
  * whitespace-separated class and member (`dot.Class member(desc)`).
  *
- * Detection scans the file for *unambiguous* signals — `(` or `/`
- * inside the second token is legacy-only; a whitespace member after
- * a dotted class token is modern-only — since both forms can emit
+ * Detection scans the file for *unambiguous* signals — a whitespace
+ * member after the class token is modern-only (legacy members are
+ * always dot-joined onto the class token, so a bare third token can
+ * never be legacy); `(` or a `.`-joined member inside the second
+ * token is legacy-only. A bare internal-name class token (`a/b/C`)
+ * is *ambiguous* — class-only entries are spelled identically in
+ * both formats — so it decides nothing; both forms can also emit
  * the ambiguous `a.b` shape (legacy member on a package-less class
  * vs modern class `a.b` in package `a`). The first unambiguous line
  * decides; a fully ambiguous file defaults to modern.
@@ -24,14 +28,16 @@ object ATFormat {
             val toks = t.split(Regex("\\s+"))
             if (toks.size < 2) continue
             val c = toks[1]
-            // member desc joined onto the class token — legacy-only
-            if ('(' in c || '/' in c) return Kind.LEGACY
-            // whitespace member after the class token — modern-only;
-            // class-only entries (2 tokens) stay ambiguous and keep
-            // scanning
+            // whitespace member after the class token — modern-only
             if (toks.size > 2 && !toks[2].startsWith("#")) {
                 return Kind.MODERN
             }
+            // desc joined onto the class token (`a/b/C.m()V`), or an
+            // internal name carrying a `.`-joined member (`a/b/C.f`)
+            // — legacy-only. A bare internal-name class token is
+            // ambiguous (class-only entries exist in both formats)
+            // and keeps scanning.
+            if ('(' in c || ('/' in c && '.' in c)) return Kind.LEGACY
         }
         return Kind.MODERN
     }

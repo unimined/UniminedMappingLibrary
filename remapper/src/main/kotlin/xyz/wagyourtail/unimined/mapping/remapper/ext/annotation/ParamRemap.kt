@@ -72,8 +72,10 @@ sealed interface ParamRemap {
         }
     }
 
-    /** ambiguous member refs — `@At(target=…)` takes methods *and* fields;
-     *  tries method resolution, falls back to field resolution */
+    /** ambiguous member refs — `@At(target=…)` takes methods *and* fields
+     *  (`Lowner;name(desc)` / `Lowner;name:desc` / bare names), plus
+     *  class-only `Lowner;` refs for NEW pointcuts; tries method, then
+     *  field, then class resolution */
     object MemberRef : ParamRemap {
         override fun apply(value: Any?, ctx: ExtensionContext, ownerHints: List<String>, record: RefmapRecorder?): Any? {
             if (value is List<*>) return value.map { apply(it, ctx, ownerHints, record) }
@@ -90,6 +92,14 @@ sealed interface ParamRemap {
                     ?: ref.resolveViaExisting(value, ctx, record, isField = true))?.let {
                     record?.recordMemberRef(value, it)
                     return ref.render(it)
+                }
+            }
+            // class-only ref (`Lowner;`) — NEW-pointcut ctor targets
+            Regex("^L([^;]+);$").matchEntire(value)?.let {
+                val mapped = ctx.mapClass(it.groupValues[1])
+                if (mapped != it.groupValues[1]) {
+                    record?.recordClassRef(value, mapped)
+                    return "L$mapped;"
                 }
             }
             return value
@@ -191,9 +201,12 @@ class MemberRefParts(
     fun resolve(ctx: ExtensionContext, ownerHints: List<String>, isField: Boolean): ResolvedRef? {
         if (name in listOf("<init>", "<clinit>", "*")) {
             // ctor/wildcard refs: name passes through, owner + desc still remap;
-            // multi-target refs without an explicit owner render ownerless
+            // multi-target refs without an explicit owner render ownerless.
+            // ownerHints are source-space — map them too, else the rendered
+            // ref keeps the fns-space owner (refmap consumers see unmapped C_*)
             val mappedDesc = desc?.let { ctx.mapDesc(it, isField) }
-            val mappedOwner = owner?.let(ctx::mapClass) ?: ownerHints.singleOrNull() ?: ""
+            val mappedOwner = owner?.let(ctx::mapClass)
+                ?: ownerHints.singleOrNull()?.let(ctx::mapClass) ?: ""
             return ResolvedRef(mappedOwner, name, mappedDesc, isField,
                 includeOwner = mappedOwner.isNotEmpty() && (owner != null || ownerHints.size <= 1))
         }

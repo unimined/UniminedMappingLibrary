@@ -30,8 +30,12 @@ object ProguardReader : FormatReader {
 
     override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         if (!fileName.endsWith(".txt")) return false
-        // check that there's a -> in the file
-        return input.peek().readUtf8(1024).contains("->")
+        // check that there's a -> in the first 1KiB (or the whole file
+        // when smaller — readUtf8(n) throws on short inputs)
+        val peek = input.peek()
+        val sample = if (peek.request(1024)) peek.readUtf8(1024)
+        else peek.readUtf8()
+        return sample.contains("->")
     }
 
     override fun getSide(fileName: String, input: BufferedSource): Set<EnvType> {

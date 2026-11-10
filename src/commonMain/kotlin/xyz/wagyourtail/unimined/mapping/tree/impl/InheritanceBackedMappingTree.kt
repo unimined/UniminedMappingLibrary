@@ -114,7 +114,7 @@ class InheritanceBackedMappingTree private constructor(
      *  the class's existing member rows so the folded flags take effect in
      *  propagation. */
     private fun foldWildcardAccess(cls: MutableClassMapping) {
-        val info = inheritance.classes[cls.names[inheritance.fns] ?: return] ?: return
+        val info = inheritance.classInfo(cls.names[inheritance.fns] ?: return) ?: return
         var changed = false
         for (mi in info.methods) {
             val els = cls.getWildcards(WildcardType.METHOD, inheritance.fns, mi.descriptor).flatMap { it.access }
@@ -146,7 +146,7 @@ class InheritanceBackedMappingTree private constructor(
      *  aren't handled here — bulk/whole-tree folds need [applyAccessChanges]
      *  or the reader's `prepare` hook. */
     private fun foldMemberAccess(cls: MutableClassMapping, element: xyz.wagyourtail.unimined.mapping.element.MappingElement) {
-        val info = inheritance.classes[cls.names[inheritance.fns] ?: return] ?: return
+        val info = inheritance.classInfo(cls.names[inheritance.fns] ?: return) ?: return
         val els = (element as? MetadataParent)?.metadata?.filterIsInstance<xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement>() ?: return
         if (els.isEmpty()) return
         when (element) {
@@ -177,7 +177,7 @@ class InheritanceBackedMappingTree private constructor(
     override fun clazz(names: Map<Namespace, InternalName>): MutableClassMapping {
         val base = delegate.clazz(names)
         val fnsName = names[inheritance.fns] ?: return base
-        val info = inheritance.classes[fnsName] ?: return base
+        val info = inheritance.classInfo(fnsName) ?: return base
         return PropagatingClass(base, info)
     }
 

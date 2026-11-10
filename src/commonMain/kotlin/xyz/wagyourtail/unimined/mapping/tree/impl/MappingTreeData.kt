@@ -40,10 +40,21 @@ class MappingTreeData(
     @Transient
     private val byNamespace = defaultedMapOf<Namespace, MutableMap<InternalName, ClassMappingData>> { mutableMapOf() }
 
+    /**
+     * Flat-name fallback index: split-era jars (pre-1.3 obf) flatten
+     * inner classes to top-level entries (`y.class`), while the tree
+     * stores the structural `outer$inner` form (`oe$y`). Maps the
+     * trailing `$`-segment back to the class per namespace — `null`
+     * tombstone when two classes in the column share the flat name
+     * (unresolvable, mirrors the exact-match miss path).
+     */
+    @Transient
+    private val flatByNamespace = mutableMapOf<Namespace, Map<InternalName, ClassMappingData?>>()
+
     @Transient
     private val stack = ArrayDeque<Any>()
 
-    override fun getClass(namespace: Namespace, name: InternalName): ClassMappingData? {
+    private fun ensureIndex() {
         // the index is transient — after deserialization it re-derives lazily from
         // the serialized class rows (every class always has >= 1 namespace name, so
         // a populated class list with an empty index only occurs post-decode)
@@ -53,13 +64,53 @@ class MappingTreeData(
                 for ((ns, n) in cls.names) byNamespace[ns][n] = cls
             }
         }
+    }
+
+    /**
+     * Index-only lookup — skips the flat-name fallback. Identity
+     * resolution during tree construction (`clazz` upserts, renest
+     * parent probes) must use this: a flat `b` probe aliasing a unique
+     * `az$b` row rekeys that row and loses the original class (the
+     * `SummonedEntityTrigger$Instance` → `CrashReport` corruption).
+     */
+    fun getClassExact(namespace: Namespace, name: InternalName): ClassMappingData? {
+        ensureIndex()
         return byNamespace[namespace][name]
+    }
+
+    override fun getClass(namespace: Namespace, name: InternalName): ClassMappingData? {
+        ensureIndex()
+        byNamespace[namespace][name]?.let { return it }
+        // flat-name fallback — see flatByNamespace: a jar entry `y`
+        // resolves the class stored as `oe$y` when the column holds
+        // exactly one `*$y`; null tombstone = ambiguous, stays missed
+        val flat = flatByNamespace.getOrPut(namespace) {
+            val m = mutableMapOf<InternalName, ClassMappingData?>()
+            for ((n, cls) in byNamespace[namespace]) {
+                val inner = n.value.substringAfterLast('$')
+                if (inner == n.value) continue
+                val key = InternalName.unchecked(inner)
+                val prev = m.getOrElse(key) { cls }
+                m[key] = if (prev === cls) cls else null
+            }
+            m.toMap()
+        }
+        return flat[name]
     }
 
     override fun addNamespaces(namespaces: Iterable<Namespace>) {
         for (ns in namespaces) {
-            if (ns !in this.namespaces) {
+            if (ns in this.namespaces) continue
+            // insert env cols right after the last col sharing their base —
+            // pushed rows iterate in NsMap ordinal order, which depends on
+            // process-wide intern history; anchoring `ns:env` to its base's
+            // position keeps the emitted column order deterministic
+            val (base, env) = ns.splitEnv()
+            if (env == null || base !in this.namespaces) {
                 this.namespaces.add(ns)
+            } else {
+                val idx = this.namespaces.indexOfLast { it.splitEnv().first === base }
+                this.namespaces.add(idx + 1, ns)
             }
         }
     }
@@ -85,7 +136,7 @@ class MappingTreeData(
     override fun clazz(names: Map<Namespace, InternalName>): MutableClassMapping {
         addNamespaces(names.keys)
         for (ns in this.namespaces.filter { it in names }) {
-            val existing = getClass(ns, names[ns]!!)
+            val existing = getClassExact(ns, names[ns]!!)
             if (existing != null) {
                 for ((ens, name) in existing.names.filter { it.key in names && it.value != names[it.key] }) {
                     byNamespace[ens].remove(name)
@@ -93,6 +144,7 @@ class MappingTreeData(
                 existing.setNames(names)
                 for ((ens, name) in names) {
                     byNamespace[ens][name] = existing
+                    flatByNamespace.remove(ens)
                 }
                 return existing
             }
@@ -101,6 +153,9 @@ class MappingTreeData(
         node.descRemapper = { from, to, desc -> map(from, to, desc) }
         for ((ns, name) in names) {
             byNamespace[ns][name] = node
+            // the flat index is a lazily-built snapshot — class adds
+            // during emit would otherwise freeze it mid-stream
+            flatByNamespace.remove(ns)
         }
         classes.add(node)
         return node

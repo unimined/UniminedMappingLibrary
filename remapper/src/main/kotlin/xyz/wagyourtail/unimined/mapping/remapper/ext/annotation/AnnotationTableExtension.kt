@@ -1,6 +1,13 @@
 package xyz.wagyourtail.unimined.mapping.remapper.ext.annotation
+import org.objectweb.asm.Handle
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.AnnotationNode
 import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.FieldInsnNode
+import org.objectweb.asm.tree.InvokeDynamicInsnNode
+import org.objectweb.asm.tree.LdcInsnNode
+import org.objectweb.asm.tree.MethodInsnNode
 import xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext
 import xyz.wagyourtail.unimined.mapping.remapper.asm.AsmExtension
 
@@ -20,13 +27,38 @@ enum class AnnotationApplyMode {
 
 /** drives an [AnnotationTable] over remapped nodes — generic, mixin-agnostic.
  *  [recorder] (optional) receives canonical refs for refmap emission and,
- *  in [AnnotationApplyMode.REFMAP] mode, supplies the substitution table. */
+ *  in [AnnotationApplyMode.REFMAP] mode, supplies the substitution table.
+ *
+ *  Member renames (`@Shadow`/`@Accessor`/`@Invoker` decls) are resolved in
+ *  [analyze] — on the raw source-space node — and stored in [memberRenames].
+ *  [postApply] then writes the new name onto the declaring class *and*
+ *  rewrites every reference to the renamed member in every class it sees:
+ *  the core remapper's insn pass already ran (mapping lookups miss on
+ *  mixin-class members), so without this the decl and its refs diverge —
+ *  e.g. a shadow field renamed `f_08006312` → `TICKS_RANDOMLY` while the
+ *  handler's `getstatic` still says `f_08006312`. Owner keys are
+ *  output-side names so non-mixin callers (accessor consumers) resolve too. */
 class AnnotationTableExtension(
     private val ctx: ExtensionContext,
     private val table: AnnotationTable,
     private val recorder: RefmapRecorder? = null,
     private val mode: AnnotationApplyMode = AnnotationApplyMode.RESOLVE,
 ) : AsmExtension {
+
+    /** a resolved member rename — [oldName] is the source-space name on the
+     *  owning class, [targetDesc] the descriptor as it appears on the
+     *  *output* node (types remapped) — that is what output insns carry.
+     *  [newName] is null for refmap-only entries (explicit-value accessors
+     *  keep their member name — only the refmap records the mapping) */
+    private data class MemberRename(
+        val oldName: String,
+        val targetDesc: String,
+        val newName: String?,
+        val isField: Boolean,
+    )
+
+    /** output-side owner internal name → renames for members it declares */
+    private val memberRenames = mutableMapOf<String, MutableList<MemberRename>>()
 
     /** resolve a member through the recorder's existing-refmap entry —
      *  [name] is the source-space candidate; the entry holds an fns-space
@@ -68,12 +100,180 @@ class AnnotationTableExtension(
         }
     }
 
-    override fun postApply(input: ClassNode, output: ClassNode, cls: xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping?) {
-        recorder?.currentMixin = output.name
-        if (!table.mixinRemapEnabled(output)) {
-            recorder?.currentMixin = null
-            return
+    /** resolve member renames on the raw (pre-transform) node — runs for
+     *  every input class before any class is remapped, so the table is
+     *  complete before insns of *any* output class are rewritten:
+     *  same-class refs, nestmates and cross-class accessor callers all see
+     *  the full set.
+     *
+     *  The input isn't guaranteed fully source-space: a step running an
+     *  identity outer remap over an already-remapped jar (unimined's
+     *  modArtifacts — the upstream fns→tns step already rewrote descs and
+     *  insn owners, but not mixin member names) hands us target-space
+     *  descs and `@Mixin` values over fns-space member names. Everything
+     *  is normalized back to fns before tree lookups: class targets via
+     *  [ExtensionContext.reverse], member descs via
+     *  [ExtensionContext.reverseDesc] (both no-ops on fully source-space
+     *  input). */
+    override fun analyze(node: ClassNode) {
+        if (mode == AnnotationApplyMode.REFMAP) return
+        if (!table.mixinRemapEnabled(node)) return
+        val targets = table.mixinTargets(node, ctx).map {
+            ctx.reverse.map(xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName.unchecked(it)).value
         }
+        if (targets.isEmpty()) return
+        val list = mutableListOf<MemberRename>()
+        recorder?.currentMixin = ctx.mapClass(node.name)
+        for (m in node.methods) {
+            for (ann in table.annotations(m)) {
+                if (!table.isRemapEnabled(ann)) continue
+                if (table.isAccessor(ann) || table.isInvoker(ann)) {
+                    val isField = table.isAccessor(ann)
+                    val explicit = table.explicitValue(ann)
+                    val derived = explicit?.let { null to it }
+                        ?: table.deriveTarget(m.name, isField, table.declaredPrefixes(ann))
+                        ?: continue
+                    var done = false
+                    for (t in targets) {
+                        val mapped = if (isField) ctx.mapField(t, derived.second, null)
+                                     else ctx.mapMethod(t, derived.second, ctx.reverseDesc(m.desc, false))
+                        if (mapped != derived.second) {
+                            recorder?.recordMemberRename(
+                                derived.second, isField,
+                                ResolvedRef(ctx.mapClass(t), mapped, ctx.resolveMemberDesc(t, derived.second, isField), isField, targets.size <= 1)
+                            )
+                            list += MemberRename(
+                                m.name, ctx.mapDesc(m.desc, false),
+                                if (explicit == null) derived.first + mapped.replaceFirstChar { it.uppercaseChar() } else null,
+                                false
+                            )
+                            done = true
+                            break
+                        }
+                    }
+                    if (!done) existingMember(derived.second, isField)?.let {
+                        recorder?.recordMemberRename(derived.second, isField, it)
+                        list += MemberRename(
+                            m.name, ctx.mapDesc(m.desc, false),
+                            if (explicit == null) derived.first + it.name.replaceFirstChar { c -> c.uppercaseChar() } else null,
+                            false
+                        )
+                    }
+                } else if (table.isShadow(ann)) {
+                    rename@ for ((prefix, cand) in table.shadowCandidates(m.name, ann)) {
+                        for (t in targets) {
+                            val mapped = ctx.mapMethod(t, cand, ctx.reverseDesc(m.desc, false))
+                            if (mapped != cand) {
+                                recorder?.recordMemberRename(
+                                    m.name, false,
+                                    ResolvedRef(ctx.mapClass(t), mapped, ctx.mapDesc(m.desc, false), false, targets.size <= 1)
+                                )
+                                list += MemberRename(
+                                    m.name, ctx.mapDesc(m.desc, false), prefix + mapped, false
+                                )
+                                break@rename
+                            }
+                        }
+                        // resolution fallback: a stale input refmap may know this member
+                        existingMember(cand, isField = false)?.let {
+                            recorder?.recordMemberRename(m.name, false, it)
+                            list += MemberRename(
+                                m.name, ctx.mapDesc(m.desc, false), prefix + it.name, false
+                            )
+                            break@rename
+                        }
+                    }
+                }
+            }
+        }
+        for (f in node.fields) {
+            for (ann in table.annotations(f)) {
+                if (table.isShadow(ann) && table.isRemapEnabled(ann)) {
+                    rename@ for ((prefix, cand) in table.shadowCandidates(f.name, ann)) {
+                        for (t in targets) {
+                            val mapped = ctx.mapField(t, cand, ctx.reverseDesc(f.desc, true))
+                            if (mapped != cand) {
+                                recorder?.recordMemberRename(
+                                    f.name, true,
+                                    ResolvedRef(ctx.mapClass(t), mapped, ctx.mapDesc(f.desc, true), true, targets.size <= 1)
+                                )
+                                list += MemberRename(
+                                    f.name, ctx.mapDesc(f.desc, true), prefix + mapped, true
+                                )
+                                break@rename
+                            }
+                        }
+                        existingMember(cand, isField = true)?.let {
+                            recorder?.recordMemberRename(f.name, true, it)
+                            list += MemberRename(
+                                f.name, ctx.mapDesc(f.desc, true), prefix + it.name, true
+                            )
+                            break@rename
+                        }
+                    }
+                }
+            }
+        }
+        recorder?.currentMixin = null
+        if (list.isNotEmpty()) {
+            memberRenames.getOrPut(ctx.mapClass(node.name)) { mutableListOf() } += list
+        }
+    }
+
+    /** apply the analyze-time renames onto [output]'s member decls — member
+     *  names of mixin classes aren't tree-mapped, so output names still
+     *  equal their source names here */
+    private fun applyDeclRenames(output: ClassNode) {
+        val rs = memberRenames[output.name] ?: return
+        for (r in rs) {
+            val newName = r.newName ?: continue
+            if (r.isField) {
+                output.fields.firstOrNull { it.name == r.oldName && it.desc == r.targetDesc }
+                    ?.name = newName
+            } else {
+                output.methods.firstOrNull { it.name == r.oldName && it.desc == r.targetDesc }
+                    ?.name = newName
+            }
+        }
+    }
+
+    private fun fieldHandleTag(tag: Int) = tag in Opcodes.H_GETFIELD..Opcodes.H_PUTSTATIC
+
+    /** rewrite references to renamed members — every class may carry them:
+     *  the declaring mixin (handler bodies), nestmates, and non-mixin
+     *  callers of renamed accessor methods */
+    private fun rewriteRefs(output: ClassNode) {
+        if (memberRenames.isEmpty()) return
+        fun Handle.remapped(): Handle =
+            memberRenames[owner]?.firstOrNull {
+                it.newName != null && it.oldName == name && it.targetDesc == desc &&
+                        (if (fieldHandleTag(tag)) it.isField else !it.isField)
+            }?.let { Handle(tag, owner, it.newName!!, desc, isInterface) } ?: this
+        for (m in output.methods) {
+            for (insn in m.instructions) {
+                when (insn) {
+                    is FieldInsnNode -> memberRenames[insn.owner]
+                        ?.firstOrNull { it.isField && it.newName != null && it.oldName == insn.name && it.targetDesc == insn.desc }
+                        ?.let { insn.name = it.newName!! }
+                    is MethodInsnNode -> memberRenames[insn.owner]
+                        ?.firstOrNull { !it.isField && it.newName != null && it.oldName == insn.name && it.targetDesc == insn.desc }
+                        ?.let { insn.name = it.newName!! }
+                    is InvokeDynamicInsnNode -> {
+                        insn.bsmArgs = insn.bsmArgs.map { if (it is Handle) it.remapped() else it }
+                            .toTypedArray()
+                    }
+                    is LdcInsnNode -> (insn.cst as? Handle)?.let { insn.cst = it.remapped() }
+                }
+            }
+        }
+    }
+
+    override fun postApply(input: ClassNode, output: ClassNode, cls: xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping?) {
+        // ref rewrite is class-agnostic — runs even when this class isn't a
+        // mixin (accessor consumers) or has remap=false on its marker
+        rewriteRefs(output)
+        if (!table.mixinRemapEnabled(output)) return
+        recorder?.currentMixin = output.name
         if (mode == AnnotationApplyMode.REFMAP) {
             for (ann in table.annotations(output)) rewriteVerbatim(ann)
             for (m in output.methods) for (ann in table.annotations(m)) rewriteVerbatim(ann)
@@ -89,87 +289,7 @@ class AnnotationTableExtension(
                 ctx.reverse.map(xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName.unchecked(it)).value
             }
         }
-
-        // member renames first — reads explicit `value` params while they're
-        // still source-side (the rewrite below mutates them in place)
-        for (m in output.methods) {
-            for (ann in table.annotations(m)) {
-                if (!table.isRemapEnabled(ann)) continue
-                if (table.isAccessor(ann) || table.isInvoker(ann)) {
-                    val isField = table.isAccessor(ann)
-                    val explicit = table.explicitValue(ann)
-                    val derived = explicit?.let { null to it }
-                        ?: table.deriveTarget(m.name, isField, table.declaredPrefixes(ann))
-                        ?: continue
-                    var done = false
-                    for (t in targets) {
-                        val mapped = if (isField) ctx.mapField(t, derived.second, null)
-                                     else ctx.mapMethod(t, derived.second, if (explicit != null) null else m.desc)
-                        if (mapped != derived.second) {
-                            recorder?.recordMemberRename(
-                                derived.second, isField,
-                                ResolvedRef(ctx.mapClass(t), mapped, ctx.resolveMemberDesc(t, derived.second, isField), isField, targets.size <= 1)
-                            )
-                            if (explicit == null) {
-                                m.name = derived.first + mapped.replaceFirstChar { it.uppercaseChar() }
-                            }
-                            done = true
-                            break
-                        }
-                    }
-                    if (!done) existingMember(derived.second, isField)?.let {
-                        recorder?.recordMemberRename(derived.second, isField, it)
-                        if (explicit == null) {
-                            m.name = derived.first + it.name.replaceFirstChar { c -> c.uppercaseChar() }
-                        }
-                    }
-                } else if (table.isShadow(ann)) {
-                    rename@ for ((prefix, cand) in table.shadowCandidates(m.name, ann)) {
-                        for (t in targets) {
-                            val mapped = ctx.mapMethod(t, cand, m.desc)
-                            if (mapped != cand) {
-                                recorder?.recordMemberRename(
-                                    m.name, false,
-                                    ResolvedRef(ctx.mapClass(t), mapped, ctx.mapDesc(m.desc, false), false, targets.size <= 1)
-                                )
-                                m.name = prefix + mapped
-                                break@rename
-                            }
-                        }
-                        // resolution fallback: a stale input refmap may know this member
-                        existingMember(cand, isField = false)?.let {
-                            recorder?.recordMemberRename(m.name, false, it)
-                            m.name = prefix + it.name
-                            break@rename
-                        }
-                    }
-                }
-            }
-        }
-        for (f in output.fields) {
-            for (ann in table.annotations(f)) {
-                if (table.isShadow(ann) && table.isRemapEnabled(ann)) {
-                    rename@ for ((prefix, cand) in table.shadowCandidates(f.name, ann)) {
-                        for (t in targets) {
-                            val mapped = ctx.mapField(t, cand, f.desc)
-                            if (mapped != cand) {
-                                recorder?.recordMemberRename(
-                                    f.name, true,
-                                    ResolvedRef(ctx.mapClass(t), mapped, ctx.mapDesc(f.desc, true), true, targets.size <= 1)
-                                )
-                                f.name = prefix + mapped
-                                break@rename
-                            }
-                        }
-                        existingMember(cand, isField = true)?.let {
-                            recorder?.recordMemberRename(f.name, true, it)
-                            f.name = prefix + it.name
-                            break@rename
-                        }
-                    }
-                }
-            }
-        }
+        applyDeclRenames(output)
 
         // annotation param rewrites — class-level first (targets feed recording)
         for (ann in table.annotations(output)) table.rewrite(ann, ctx, listOf(output.name), recorder)
