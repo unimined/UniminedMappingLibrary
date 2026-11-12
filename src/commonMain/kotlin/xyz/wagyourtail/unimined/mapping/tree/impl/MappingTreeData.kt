@@ -19,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
 import xyz.wagyourtail.unimined.mapping.element.metadata.MutableMetadataParent
+import xyz.wagyourtail.unimined.mapping.forEachNsEntry
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.PackageName
 import xyz.wagyourtail.unimined.mapping.serialization.InternalNameSerializer
@@ -30,6 +31,23 @@ import xyz.wagyourtail.unimined.mapping.toNsMap
 class MappingTreeData(
     override val namespaces: MutableList<Namespace> = mutableListOf()
 ) : MutableMappingTree {
+
+    /**
+     * Set when pushed rows are already canonical — pairwise non-mergeable
+     * because they were emitted from a deduped tree (serialized payloads,
+     * derived format materializations). Skips the post-`pop` sibling
+     * merge trials: those exist for flat-format inputs where a row only
+     * becomes mergeable after its children attach, which cannot happen
+     * for input that is itself tree output. Never enable for
+     * user-authored sources, where duplicate/mergeable rows are
+     * legitimate input.
+     */
+    @Transient
+    private var assumeCanonical = false
+
+    constructor(namespaces: MutableList<Namespace>, assumeCanonical: Boolean) : this(namespaces) {
+        this.assumeCanonical = assumeCanonical
+    }
 
     override val packages: MutableList<PackageMappingData> = mutableListOf()
 
@@ -105,11 +123,11 @@ class MappingTreeData(
             // pushed rows iterate in NsMap ordinal order, which depends on
             // process-wide intern history; anchoring `ns:env` to its base's
             // position keeps the emitted column order deterministic
-            val (base, env) = ns.splitEnv()
-            if (env == null || base !in this.namespaces) {
+            val base = ns.baseNs
+            if (ns.envPart == null || base !in this.namespaces) {
                 this.namespaces.add(ns)
             } else {
-                val idx = this.namespaces.indexOfLast { it.splitEnv().first === base }
+                val idx = this.namespaces.indexOfLast { it.baseNs === base }
                 this.namespaces.add(idx + 1, ns)
             }
         }
@@ -119,30 +137,42 @@ class MappingTreeData(
         addNamespaces(namespaces)
     }
 
+    @Transient
+    private val packageByName = defaultedMapOf<Namespace, MutableMap<PackageName, PackageMappingData>> { mutableMapOf() }
+
+    private fun ensurePackageIndex() {
+        if (packageByName.isEmpty() && packages.isNotEmpty()) {
+            for (pkg in packages) for ((ns, n) in pkg.names) packageByName[ns][n] = pkg
+        }
+    }
+
     override fun package_(names: Map<Namespace, PackageName>): MutablePackageMapping {
         addNamespaces(names.keys)
-        for (ns in this.namespaces.filter { it in names }) {
-            val existing = packages.firstOrNull { it.names[ns] == names[ns] }
-            if (existing != null) {
-                existing.setNames(names)
-                return existing
-            }
+        ensurePackageIndex()
+        for (ns in this.namespaces) {
+            if (ns !in names) continue
+            val existing = packageByName[ns][names[ns]] ?: continue
+            existing.setNames(names)
+            names.forEachNsEntry { ens, name -> packageByName[ens][name] = existing }
+            return existing
         }
         val node = PackageMappingData(names.toNsMap())
+        names.forEachNsEntry { ns, name -> packageByName[ns][name] = node }
         packages.add(node)
         return node
     }
 
     override fun clazz(names: Map<Namespace, InternalName>): MutableClassMapping {
         addNamespaces(names.keys)
-        for (ns in this.namespaces.filter { it in names }) {
+        for (ns in this.namespaces) {
+            if (ns !in names) continue
             val existing = getClassExact(ns, names[ns]!!)
             if (existing != null) {
-                for ((ens, name) in existing.names.filter { it.key in names && it.value != names[it.key] }) {
-                    byNamespace[ens].remove(name)
+                existing.names.forEachNsEntry { ens, name ->
+                    if (ens in names && name != names[ens]) byNamespace[ens].remove(name)
                 }
                 existing.setNames(names)
-                for ((ens, name) in names) {
+                names.forEachNsEntry { ens, name ->
                     byNamespace[ens][name] = existing
                     flatByNamespace.remove(ens)
                 }
@@ -151,7 +181,7 @@ class MappingTreeData(
         }
         val node = ClassMappingData(names.toNsMap())
         node.descRemapper = { from, to, desc -> map(from, to, desc) }
-        for ((ns, name) in names) {
+        names.forEachNsEntry { ns, name ->
             byNamespace[ns][name] = node
             // the flat index is a lazily-built snapshot — class adds
             // during emit would otherwise freeze it mid-stream
@@ -172,7 +202,9 @@ class MappingTreeData(
      * readers may leave child visitors open without ending them, so the top isn't necessarily
      * the intended parent) */
     private fun attachChild(child: MappingElement): MappingElement? {
-        for (parent in stack.asReversed().filterIsInstance<MappingElement>()) {
+        // manual backward walk — a filtered view would allocate per push
+        for (i in stack.indices.reversed()) {
+            val parent = stack[i] as? MappingElement ?: continue
             val retained = attachTo(parent, child)
             if (retained != null) return retained
         }
@@ -223,8 +255,18 @@ class MappingTreeData(
         return retained
     }
 
+    /** nearest open element of type [T] — manual backward walk (an
+     * `asReversed()` view would allocate per call) */
+    private inline fun <reified T> lastOfType(): T? {
+        for (i in stack.indices.reversed()) {
+            val e = stack[i]
+            if (e is T) return e
+        }
+        return null
+    }
+
     override fun push(meta: MetadataElement): MetadataElement? {
-        val parent = stack.asReversed().firstOrNull { it is MutableMetadataParent } as? MutableMetadataParent ?: return null
+        val parent = lastOfType<MutableMetadataParent>() ?: return null
         parent.addMetadata(meta)
         stack.addLast(meta)
         return meta
@@ -239,21 +281,24 @@ class MappingTreeData(
         // before children exist, so desc-mismatch/naming merges that also move children
         // (params, metadata) only become possible once the element is fully populated.
         // a row that now merges fully gets dropped from its parent's list.
+        // canonical input has no mergeable rows — skip the trials entirely.
+        if (assumeCanonical) return
         when (element) {
             is MethodMappingData -> {
-                val parent = stack.asReversed().firstOrNull { it is MutableClassMapping } as? MutableClassMapping
+                val parent = lastOfType<MutableClassMapping>()
                 // the sibling re-scan matters only when merge candidacy
                 // changed during the subtree (entries bumped) or a push-time
                 // desc-mismatch splice deferred child merging — entries are
                 // immutable during a row's own emission, so unchanged
                 // entries + no revisit targets = same no-merge as at push
                 if (element.mergeVersion != element.pushedMergeVersion) {
-                    val siblings = (parent as? ClassMappingData)?.methods?.filterIsInstance<MethodMappingData>()
+                    val siblings = (parent as? ClassMappingData)?.methods
                     if (siblings != null) {
                         var merged = false
                         // name-keyed merges first — see ClassMappingData.method
                         for (existing in siblings) {
                             if (existing !== element && element.mergeInto(existing) { false }) {
+                                element.detached = true
                                 (parent as ClassMappingData).methods.removeIdentity(element)
                                 merged = true
                                 break
@@ -263,6 +308,7 @@ class MappingTreeData(
                             val unique = siblings.count { it !== element && element.descMergeable(it) } == 1
                             for (existing in siblings) {
                                 if (existing !== element && element.mergeInto(existing) { unique }) {
+                                    element.detached = true
                                     (parent as ClassMappingData).methods.removeIdentity(element)
                                     break
                                 }
@@ -272,13 +318,14 @@ class MappingTreeData(
                 }
             }
             is FieldMappingData -> {
-                val parent = stack.asReversed().firstOrNull { it is MutableClassMapping } as? MutableClassMapping
+                val parent = lastOfType<MutableClassMapping>()
                 if (element.mergeVersion != element.pushedMergeVersion) {
-                    val siblings = (parent as? ClassMappingData)?.fields?.filterIsInstance<FieldMappingData>()
+                    val siblings = (parent as? ClassMappingData)?.fields
                     if (siblings != null) {
                         var merged = false
                         for (existing in siblings) {
                             if (existing !== element && element.mergeInto(existing) { false }) {
+                                element.detached = true
                                 (parent as ClassMappingData).fields.removeIdentity(element)
                                 merged = true
                                 break
@@ -288,6 +335,7 @@ class MappingTreeData(
                             val unique = siblings.count { it !== element && element.descMergeable(it) } == 1
                             for (existing in siblings) {
                                 if (existing !== element && element.mergeInto(existing) { unique }) {
+                                    element.detached = true
                                     (parent as ClassMappingData).fields.removeIdentity(element)
                                     break
                                 }
@@ -297,8 +345,8 @@ class MappingTreeData(
                 }
             }
             is WildcardMappingData -> {
-                val parent = stack.asReversed().firstOrNull { it is MutableClassMapping } as? MutableClassMapping
-                val siblings = (parent as? ClassMappingData)?.wildcards?.filterIsInstance<WildcardMappingData>()
+                val parent = lastOfType<MutableClassMapping>()
+                val siblings = (parent as? ClassMappingData)?.wildcards
                 if (siblings != null) {
                     for (existing in siblings) {
                         if (existing !== element && element.mergeInto(existing)) {
@@ -309,9 +357,9 @@ class MappingTreeData(
                 }
             }
             is ParameterMappingData -> {
-                val parent = stack.asReversed().firstOrNull { it is MutableInvokableMapping } as? MutableInvokableMapping
-                val siblings = (parent as? MethodMappingData)?.parameters?.filterIsInstance<ParameterMappingData>()
-                    ?: (parent as? WildcardMappingData)?.parameters?.filterIsInstance<ParameterMappingData>()
+                val parent = lastOfType<MutableInvokableMapping>()
+                val siblings = (parent as? MethodMappingData)?.parameters
+                    ?: (parent as? WildcardMappingData)?.parameters
                 if (siblings != null) {
                     for (existing in siblings) {
                         if (existing !== element && element.mergeInto(existing)) {
@@ -323,9 +371,9 @@ class MappingTreeData(
                 }
             }
             is LocalVariableMappingData -> {
-                val parent = stack.asReversed().firstOrNull { it is MutableInvokableMapping } as? MutableInvokableMapping
-                val siblings = (parent as? MethodMappingData)?.localVariables?.filterIsInstance<LocalVariableMappingData>()
-                    ?: (parent as? WildcardMappingData)?.localVariables?.filterIsInstance<LocalVariableMappingData>()
+                val parent = lastOfType<MutableInvokableMapping>()
+                val siblings = (parent as? MethodMappingData)?.localVariables
+                    ?: (parent as? WildcardMappingData)?.localVariables
                 if (siblings != null) {
                     for (existing in siblings) {
                         if (existing !== element && existing.lvOrd == element.lvOrd && existing.startOp == element.startOp) {

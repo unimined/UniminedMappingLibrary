@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.inheritance
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.atomicfu.locks.ReentrantLock
 import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.WildcardType
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
@@ -61,31 +62,49 @@ abstract class InheritanceTree {
         // overlay widens are pulled in before flag folding; on eager
         // trees this is the same materialized-set lookup as before
         for (cls in tree.classes) {
-            val fnsName = cls.names[fns] ?: continue
-            val info = classInfo(fnsName) ?: continue
-            for (mi in info.methods) {
-                val els = with(tree) {
-                    cls.getMethods(fns, mi.name, mi.descriptor).flatMap { it.access } +
-                            cls.getWildcards(WildcardType.METHOD, fns, mi.descriptor).flatMap { it.access }
-                }
-                if (els.isEmpty()) continue
-                val orig = AccessFlag.of(ElementType.METHOD, mi.access)
-                val acc = orig.toMutableSet()
-                els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
-                mi.access = AccessFlag.toInt(acc)
+            applyAccessChanges(tree, cls)
+        }
+    }
+
+    /**
+     * Scoped counterpart of [applyAccessChanges] — folds declared
+     * access changes only for the classes named in [fnsNames]
+     * (fns-namespace internal names). The late-union path for input
+     * scans merged into a lazy graph after the batch-wide pass: the
+     * input's own classes were absent then, so their access changes
+     * were never folded before stamping/resolution.
+     */
+    fun applyAccessChanges(tree: MappingTree, fnsNames: Set<InternalName>) {
+        for (fnsName in fnsNames) {
+            applyAccessChanges(tree, tree.getClass(fns, fnsName) ?: continue)
+        }
+    }
+
+    private fun applyAccessChanges(tree: MappingTree, cls: ClassMapping) {
+        val fnsName = cls.names[fns] ?: return
+        val info = classInfo(fnsName) ?: return
+        for (mi in info.methods) {
+            val els = with(tree) {
+                cls.getMethods(fns, mi.name, mi.descriptor).flatMap { it.access } +
+                        cls.getWildcards(WildcardType.METHOD, fns, mi.descriptor).flatMap { it.access }
             }
-            for (fi in info.fields) {
-                val els = cls.fields.filter {
-                    it.entries[fns]?.let { e -> e.name == fi.name && e.descriptor == fi.descriptor } == true
-                }
-                    .flatMap { it.metadata.filterIsInstance<xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement>() } +
-                        with(tree) { cls.getWildcards(WildcardType.FIELD, fns, fi.descriptor) }.flatMap { it.access }
-                if (els.isEmpty()) continue
-                val orig = AccessFlag.of(ElementType.FIELD, fi.access)
-                val acc = orig.toMutableSet()
-                els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
-                fi.access = AccessFlag.toInt(acc)
+            if (els.isEmpty()) continue
+            val orig = AccessFlag.of(ElementType.METHOD, mi.access)
+            val acc = orig.toMutableSet()
+            els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
+            mi.access = AccessFlag.toInt(acc)
+        }
+        for (fi in info.fields) {
+            val els = cls.fields.filter {
+                it.entries[fns]?.let { e -> e.name == fi.name && e.descriptor == fi.descriptor } == true
             }
+                .flatMap { it.metadata.filterIsInstance<xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement>() } +
+                    with(tree) { cls.getWildcards(WildcardType.FIELD, fns, fi.descriptor) }.flatMap { it.access }
+            if (els.isEmpty()) continue
+            val orig = AccessFlag.of(ElementType.FIELD, fi.access)
+            val acc = orig.toMutableSet()
+            els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
+            fi.access = AccessFlag.toInt(acc)
         }
     }
 

@@ -1,5 +1,8 @@
 package xyz.wagyourtail.unimined.mapping
 
+import xyz.wagyourtail.unimined.mapping.jvms.JvmsIntern
+import xyz.wagyourtail.unimined.mapping.jvms.Type
+
 /**
  * `MutableMap<Namespace, V>` over a dense array indexed by
  * [Namespace.ordinal] — O(1) get/put without hashing, and one array slot
@@ -13,8 +16,18 @@ package xyz.wagyourtail.unimined.mapping
  */
 internal class NamespaceArrayMap<V> : AbstractMutableMap<Namespace, V> {
 
-    private var slots = arrayOfNulls<Any?>(4)
+    // @PublishedApi: forEachSlot inlines into callers module-wide
+    @PublishedApi
+    internal var slots = arrayOfNulls<Any?>(4)
     private var count = 0
+
+    /**
+     * dedupe immutable JVMS cell values ([Type]) on the storage boundary —
+     * canonical instances collapse the duplicated boxes identical names/
+     * descs otherwise carry across rows and trees; non-JVMS values
+     * pass through untouched. see [xyz.wagyourtail.unimined.mapping.jvms.JvmsIntern]
+     */
+    private fun interned(v: Any?): Any? = if (v is Type) JvmsIntern.intern(v) else v
 
     constructor()
 
@@ -23,7 +36,8 @@ internal class NamespaceArrayMap<V> : AbstractMutableMap<Namespace, V> {
     }
 
     /** distinguishes a stored null from an empty slot */
-    private object NullValue
+    @PublishedApi
+    internal object NullValue
 
     private fun occupied(i: Int): Boolean = i < slots.size && slots[i] != null
 
@@ -42,7 +56,7 @@ internal class NamespaceArrayMap<V> : AbstractMutableMap<Namespace, V> {
         if (i >= slots.size) slots = slots.copyOf(maxOf(i + 1, slots.size * 2))
         val old = at(i)
         if (!occupied(i)) count++
-        slots[i] = value ?: NullValue
+        slots[i] = if (value == null) NullValue else interned(value)
         return old
     }
 
@@ -56,12 +70,40 @@ internal class NamespaceArrayMap<V> : AbstractMutableMap<Namespace, V> {
 
     override val size: Int get() = count
 
+    override fun putAll(from: Map<out Namespace, V>) {
+        if (from is NamespaceArrayMap<*>) {
+            // slot-level copy — the generic path iterates `entries`,
+            // paying an Entry object + ordinal lookup per element
+            @Suppress("UNCHECKED_CAST")
+            (from as NamespaceArrayMap<V>).forEachSlot { k, v -> put(k, v) }
+        } else {
+            super.putAll(from)
+        }
+    }
+
     override fun clear() {
         slots = arrayOfNulls(4)
         count = 0
     }
 
-    override val entries: MutableSet<MutableMap.MutableEntry<Namespace, V>> = EntrySet()
+    /**
+     * Entry-free iteration over occupied slots — yields (namespace, value)
+     * resolving the key via the lock-free ordinal lookup. Merge/emit loops
+     * use this instead of `entries`, which materializes an `Entry` object
+     * per element.
+     */
+    @Suppress("UNCHECKED_CAST")
+    internal inline fun forEachSlot(action: (Namespace, V) -> Unit) {
+        for (i in slots.indices) {
+            val s = slots[i] ?: continue
+            action(Namespace.forOrdinal(i)!!, (if (s === NullValue) null else s) as V)
+        }
+    }
+
+    // computed on access — an eager per-map view costs ~16 B × ~700 k
+    // live maps; internal hot paths iterate slots via forEachSlot instead
+    override val entries: MutableSet<MutableMap.MutableEntry<Namespace, V>>
+        get() = EntrySet()
 
     private inner class EntrySet : AbstractMutableSet<MutableMap.MutableEntry<Namespace, V>>() {
 
@@ -111,7 +153,7 @@ internal class NamespaceArrayMap<V> : AbstractMutableMap<Namespace, V> {
 
         override fun setValue(newValue: V): V {
             val old = at(i) as V
-            slots[i] = newValue ?: NullValue
+            slots[i] = if (newValue == null) NullValue else interned(newValue)
             return old
         }
 
@@ -124,4 +166,19 @@ internal class NamespaceArrayMap<V> : AbstractMutableMap<Namespace, V> {
 
     }
 
+}
+
+/**
+ * Entry-free ns-map iteration for hot paths — `NamespaceArrayMap` walks
+ * its slots directly (no `Entry` object per element); any other `Map`
+ * degrades to ordinary entry iteration. Inline so callers keep
+ * early-return semantics in merge loops.
+ */
+internal inline fun <V> Map<Namespace, V>.forEachNsEntry(action: (Namespace, V) -> Unit) {
+    if (this is NamespaceArrayMap<*>) {
+        @Suppress("UNCHECKED_CAST")
+        (this as NamespaceArrayMap<V>).forEachSlot(action)
+    } else {
+        for ((k, v) in this) action(k, v)
+    }
 }

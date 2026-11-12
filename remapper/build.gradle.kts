@@ -22,6 +22,8 @@ dependencies {
 
     implementation(libs.asm.analysis)
     implementation(libs.kotlin.metadata.jvm)
+    // parallel deflate of output jars — ParallelScatterZipCreator
+    implementation(libs.commons.compress)
 
     // source remapper PSI engine — implementation (not api) so
     // consumers can swap in a lighter engine (javac-only…) or

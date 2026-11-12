@@ -16,20 +16,24 @@ import xyz.wagyourtail.unimined.mapping.DelegatedNamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.dollarInnerClasses
 import xyz.wagyourtail.unimined.mapping.inheritance.ASMInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
+import xyz.wagyourtail.unimined.mapping.inheritance.LazyASMInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.MemberGroups
 import xyz.wagyourtail.unimined.mapping.inheritance.PropagationStrategy
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext
 import xyz.wagyourtail.unimined.mapping.sink.emit
 import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.impl.ResolvingMappingTree
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.jar.Manifest
 import java.util.stream.Collectors
-import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import java.util.zip.ZipOutputStream
+import org.apache.commons.compress.archivers.zip.ParallelScatterZipCreator
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream
 import xyz.wagyourtail.unimined.mapping.remapper as nsBoundRemapper
 
 /** Options for [AsmRemapper.remap]. */
@@ -45,6 +49,12 @@ data class Options(
      *  `Outer__Inner` names are Java-identifier-safe stand-ins for
      *  nested classes; `null` disables. */
     val innerClassSeparator: String? = "__",
+    /** Rebuild `InnerClasses` attribute entries for named inner classes
+     *  missing them — the obf-era (pre-1.8.2) repair. Opt-in: it's a
+     *  whole-set fixup (forces the fused path over streaming) and can
+     *  stamp fake member entries on kotlin-style `$` synthetics, so
+     *  modern inputs should leave it off. */
+    val fixInnerClasses: Boolean = false,
     /** Drop `META-INF` signature files (`.SF`/`.RSA`/`.DSA`/`.EC`) and manifest signature sections — renaming invalidates jar signing. */
     val stripSignatures: Boolean = true,
     /** Skip parameter/local-variable-name remapping entirely. */
@@ -116,9 +126,11 @@ object AsmRemapper {
         }
     }
 
-    /** every extension is a pure per-class transform — streaming eligible */
-    private fun allPerClass(options: Options): Boolean =
-        options.extensions.all { it.perClass }
+    /** streaming eligible: every extension is per-class AND no
+     *  whole-set fixup was requested ([Options.fixInnerClasses] needs
+     *  the fused path — `fixInnerClasses` scans sibling classes). */
+    internal fun allPerClass(options: Options): Boolean =
+        !options.fixInnerClasses && options.extensions.all { it.perClass }
 
     /** install the origin-row resolver on [ctx] when [nsRemapper] is
      *  graph-backed — propagated names come from an ancestor's row, which is
@@ -214,6 +226,56 @@ object AsmRemapper {
         } else {
             writeJar(output, remap(input, graphRemapper, merged, fns, targetNs, options), options.onProgress)
         }
+    }
+
+    /**
+     * Build shared per-batch remap state — one `mergeTrees` +
+     * `MemberGroups.propagate` over the union classpath index, after
+     * which [RemapBatch.remap] pays only per-input work (jar IO, parse,
+     * class rewrite, write). For a batch of N mod jars sharing the same
+     * mappings and classpath this removes N−1 merge+propagate passes —
+     * the dominant cost of the per-invocation `remap` entry points.
+     *
+     * [index] is a prebuilt class→jar listing (callers caching
+     * [LazyASMInheritanceTree.index] across batches); [libraries] is
+     * indexed when [index] is absent. Inputs covered by that index
+     * materialize on demand — inputs not covered must be folded in via
+     * [RemapBatch.remap]'s `inputScan`.
+     *
+     * Semantics vs per-input graphs: mapping rows stamp against the
+     * union graph once — a row for a class that exists only in some
+     * OTHER batch member resolves where a per-input graph would skip it
+     * (deterministic; unreachable when `trees` carries only environment
+     * mappings). The returned batch must not be mutated between remaps.
+     */
+    suspend fun prepareBatch(
+        trees: List<MappingTree>,
+        fns: Namespace,
+        targetNs: Namespace,
+        libraries: Set<Path> = emptySet(),
+        index: Map<InternalName, Path>? = null,
+        strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
+        extraScans: List<ASMInheritanceTree.ScanData> = emptyList(),
+    ): RemapBatch {
+        val graph = LazyASMInheritanceTree(
+            fns, ASMInheritanceTree.ScanData(emptyMap()),
+            index ?: LazyASMInheritanceTree.index(libraries),
+            scanIndex = extraScans.fold(ASMInheritanceTree.ScanData(emptyMap()),
+                ASMInheritanceTree.ScanData::plus)
+        )
+        val merged = mergeTrees(trees)
+        val groups = MemberGroups(graph)
+        val conflicts = groups.propagate(merged)
+        if (strategy == PropagationStrategy.STRICT && conflicts > 0) {
+            graph.close()
+            throw InheritanceConflictException("$conflicts member-name conflicts during propagation")
+        }
+        if (conflicts > 0) LOGGER.warn { "$conflicts member-name conflicts resolved deterministically" }
+        return RemapBatch(
+            merged, graph, groups,
+            GraphNamespaceRemapper(merged, graph, groups, fns, targetNs),
+            fns, targetNs
+        )
     }
 
     /**
@@ -350,7 +412,9 @@ object AsmRemapper {
                 serialExts.forEach { it.postApply(input.first, outNode, input.second) }
                 JarFixups.fixParamAnnotations(outNode)
             }
-            JarFixups.fixInnerClasses(out.map { it.first to it.second })
+            if (options.fixInnerClasses) {
+                JarFixups.fixInnerClasses(out.map { it.first to it.second })
+            }
         }.map { it.first to it.second }
 
         // pass 3: package-access check/fix across the whole output set
@@ -400,7 +464,10 @@ object AsmRemapper {
         targetNs: Namespace,
         options: Options = Options(),
     ) {
-        require(allPerClass(options)) { "streaming path requires all extensions to be perClass" }
+        require(allPerClass(options)) {
+            "streaming path requires all extensions to be perClass and " +
+                    "no whole-set fixups (fixInnerClasses)"
+        }
         val readerFlags = if (options.removeFrames) ClassReader.SKIP_FRAMES else 0
         val ctx = ExtensionContext(tree, fns, targetNs, options)
         attachMethodOrigin(ctx, (remapper as? MappingRemapper)?.remapper, tree, fns)
@@ -448,6 +515,7 @@ object AsmRemapper {
             node.accept(MappingClassRemapper(outNode, remapper))
             val cls = tree.getClass(fns, InternalName.unchecked(node.name))
             threadExts.get().forEach { it.postApply(node, outNode, cls) }
+            JarFixups.fixParamAnnotations(outNode)
             val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
             outNode.accept(writer)
             val summary = if (options.packageAccess != PackageAccess.NONE) {
@@ -495,38 +563,68 @@ object AsmRemapper {
                 ?.let { fixed.first to it } ?: fixed
         }
 
-        ZipOutputStream(Files.newOutputStream(output).buffered()).use { zout ->
-            // synthesize missing `dir/` parents — classloaders need them
-            // for package resource enumeration (log4j `packages=` scan,
-            // FML discovery, ...)
+        val total = processed.size + outResources.size
+        var writeCount = 0
+        writeEntries(output, sequence {
+            for ((name, bytes) in processed.map { it.first to it.second }) yield(name to bytes)
+            for (p in outResources + extInstances.flatMap { it.resources() }) yield(p)
+        }) { options.onProgress?.invoke("write", ++writeCount, total) }
+    }
+
+    /**
+     * Serializes entries to [output] through a [ParallelScatterZipCreator] —
+     * each entry deflates on a worker thread while the gather pass writes
+     * them in submission order, so parallel compression still produces
+     * byte-reproducible output (deterministic order, fixed DOS-epoch
+     * stamps, deterministic per-entry deflate). Missing `dir/` parents
+     * are synthesized before the entry that needs them — classloaders
+     * enumerate package resources via dir entries (log4j `packages=`,
+     * FML discovery, ...).
+     */
+    private fun writeEntries(
+        output: Path,
+        entries: Sequence<Pair<String, ByteArray>>,
+        onWritten: () -> Unit = {}
+    ) {
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors()
+        )
+        try {
+            val creator = ParallelScatterZipCreator(pool)
             val emittedDirs = HashSet<String>()
-            fun putEntry(name: String, write: (java.io.OutputStream) -> Unit) {
+            fun addEntry(name: String, bytes: ByteArray) {
                 var i = name.indexOf('/')
                 while (i != -1) {
                     val dir = name.substring(0, i + 1)
                     if (emittedDirs.add(dir)) {
-                        zout.putNextEntry(ZipEntry(dir).apply { time = 0L })
-                        zout.closeEntry()
+                        creator.addArchiveEntry(
+                            ZipArchiveEntry(dir).apply {
+                                method = ZipArchiveEntry.DEFLATED
+                                time = 0
+                            }
+                        ) { ByteArrayInputStream(ByteArray(0)) }
                     }
                     i = name.indexOf('/', i + 1)
                 }
                 // explicit `dir/` input entry — the parent loop already
                 // emitted it; writing it again would be a duplicate
                 if (name.endsWith('/')) return
-                zout.putNextEntry(ZipEntry(name))
-                write(zout)
-                zout.closeEntry()
+                creator.addArchiveEntry(
+                    ZipArchiveEntry(name).apply {
+                        method = ZipArchiveEntry.DEFLATED
+                        time = 0
+                    }
+                ) { ByteArrayInputStream(bytes) }
             }
-            val total = processed.size + outResources.size
-            var writeCount = 0
-            for ((name, bytes) in processed) {
-                putEntry(name) { it.write(bytes) }
-                options.onProgress?.invoke("write", ++writeCount, total)
+            for ((name, bytes) in entries) {
+                addEntry(name, bytes)
+                onWritten()
             }
-            for ((name, bytes) in outResources + extInstances.flatMap { it.resources() }) {
-                putEntry(name) { it.write(bytes) }
-                options.onProgress?.invoke("write", ++writeCount, total)
+            ZipArchiveOutputStream(Files.newOutputStream(output).buffered()).use { zout ->
+                creator.writeTo(zout)
             }
+        } finally {
+            pool.shutdown()
         }
     }
 
@@ -546,36 +644,16 @@ object AsmRemapper {
             onProgress?.invoke("write", writeCount.incrementAndGet(), total)
             e.first to writer.toByteArray()
         }.collect(Collectors.toList())
-        ZipOutputStream(Files.newOutputStream(output).buffered()).use { zout ->
-            // synthesize `dir/` parents — needed for package resource
-            // enumeration under classloaders
-            val emittedDirs = HashSet<String>()
-            fun put(name: String, write: (java.io.OutputStream) -> Unit) {
-                var i = name.indexOf('/')
-                while (i != -1) {
-                    val dir = name.substring(0, i + 1)
-                    if (emittedDirs.add(dir)) {
-                        zout.putNextEntry(ZipEntry(dir).apply { time = 0L })
-                        zout.closeEntry()
-                    }
-                    i = name.indexOf('/', i + 1)
-                }
-                if (name.endsWith('/')) return
-                zout.putNextEntry(ZipEntry(name).apply { time = 0L })
-                write(zout)
-                zout.closeEntry()
-            }
-            for ((name, bytes) in result.resources) {
+        writeEntries(output, sequence {
+            for (p in result.resources) {
                 // manifest first so streaming readers see it early
-                if (name.equals("META-INF/MANIFEST.MF", ignoreCase = true)) put(name) { it.write(bytes) }
+                if (p.first.equals("META-INF/MANIFEST.MF", ignoreCase = true)) yield(p)
             }
-            for ((name, bytes) in classBytes) {
-                put(name) { it.write(bytes) }
+            for (p in classBytes) yield(p)
+            for (p in result.resources) {
+                if (!p.first.equals("META-INF/MANIFEST.MF", ignoreCase = true)) yield(p)
             }
-            for ((name, bytes) in result.resources) {
-                if (!name.equals("META-INF/MANIFEST.MF", ignoreCase = true)) put(name) { it.write(bytes) }
-            }
-        }
+        })
     }
 
     private fun Manifest.toBytes(): ByteArray =
@@ -591,7 +669,89 @@ enum class PackageAccess {
     FIX,   /** upgrade the target class to public */
 }
 
+/**
+ * Prepared per-batch remap state returned by [AsmRemapper.prepareBatch]
+ * — merged tree + shared lazy inheritance graph + propagated member
+ * groups + graph remapper. Thread-safe for concurrent [remap] calls:
+ * the graph materializes under concurrent maps, group resolution runs
+ * under locks, and all per-call state (extension context, thread-local
+ * extension instances, output stream) is local.
+ *
+ * Held resources: the graph caches one `ZipFile` handle per indexed
+ * jar — [close] releases them. Treat as immutable after preparation.
+ */
+class RemapBatch internal constructor(
+    internal val merged: MutableMappingTree,
+    internal val graph: LazyASMInheritanceTree,
+    internal val groups: MemberGroups,
+    internal val remapper: GraphNamespaceRemapper,
+    val fns: Namespace,
+    val targetNs: Namespace,
+) : AutoCloseable {
+
+    /**
+     * Remap one input jar through the batch state — the tail of
+     * `remapGraph`: streaming when every extension is `perClass`,
+     * buffered `writeJar` otherwise. [inputScan] folds the input's own
+     * classes into the shared graph (late union — they inherit the
+     * already-stamped component names); pass it for inputs not covered
+     * by the batch index. Covered inputs may pass it anyway — already-
+     * materialized classes are kept, so it is a no-op.
+     */
+    suspend fun remap(
+        input: Path,
+        output: Path,
+        inputScan: ASMInheritanceTree.ScanData? = null,
+        options: Options = Options(),
+    ) {
+        if (inputScan != null) {
+            graph.mergeScan(inputScan)
+            // the input's own classes joined the graph after the
+            // batch-wide propagate — stamp their rows so overrides
+            // declared on unmapped subclasses (e.g. loader classes
+            // shaded into an env artifact) rename through their
+            // components instead of keeping source names
+            groups.propagate(merged, inputScan.classes.keys)
+        }
+        if (AsmRemapper.allPerClass(options)) {
+            AsmRemapper.remapStreaming(input, output, MappingRemapper(remapper.innerNormalized(options)), merged, fns, targetNs, options)
+        } else {
+            AsmRemapper.writeJar(output, AsmRemapper.remap(input, remapper, merged, fns, targetNs, options), options.onProgress)
+        }
+    }
+
+    /**
+     * A [MappingTree] view over the shared batch state for consumers that
+     * need propagated member lookups *without* remapping — e.g. a
+     * post-remap metadata pass that resolves embedded refs through the
+     * same names this batch wrote. Member rows resolve lazily through
+     * [groups] + [GraphNamespaceRemapper] ([ResolvingMappingTree]) instead
+     * of re-emitting every row through
+     * [InheritanceBackedMappingTree]'s propagating factories — the
+     * difference between ~zero per-call work and a full O(rows)
+     * materialization per consumer.
+     *
+     * [inputScan] folds the consumer's own classes into the shared graph
+     * (same late-union path as [remap]) so members declared on the input
+     * itself can resolve; already-covered inputs are a no-op.
+     */
+    fun mappingView(inputScan: ASMInheritanceTree.ScanData? = null): MappingTree {
+        if (inputScan != null) {
+            graph.mergeScan(inputScan)
+            groups.propagate(merged, inputScan.classes.keys)
+        }
+        return ResolvingMappingTree(
+            merged, graph, groups, fns,
+            extraClasses = inputScan?.classes?.keys ?: emptySet()
+        )
+    }
+
+    /** Close the graph's cached jar handles. */
+    override fun close() = graph.close()
+
+}
+
 /** Applies [Options.innerClassSeparator] normalization to a remapper —
  *  `Outer__Inner` marker names become `Outer$Inner` in the output. */
-private fun NamespaceRemapper.innerNormalized(options: Options): NamespaceRemapper =
+internal fun NamespaceRemapper.innerNormalized(options: Options): NamespaceRemapper =
     options.innerClassSeparator?.let { dollarInnerClasses(it) } ?: this

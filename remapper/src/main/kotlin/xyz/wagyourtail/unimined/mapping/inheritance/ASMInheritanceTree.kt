@@ -5,6 +5,7 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.Opcodes
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.NamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
@@ -37,6 +38,44 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
      */
     class ScanData(val classes: Map<InternalName, RawClassInfo>) {
         operator fun plus(other: ScanData) = ScanData(classes + other.classes)
+
+        /**
+         * Rename every name in this scan through [remapper] — class
+         * keys, super/interface refs, member names and descriptor class
+         * refs — so a jar scanned in a foreign namespace can join a
+         * batch graph keyed in [NamespaceRemapper.to]. Member names
+         * resolve by the flat-remap contract (exact `(name, desc)` row
+         * match, source name kept when unmapped), which is what a real
+         * jar remap of the same input would leave in the constant pool.
+         *
+         * This is the cheap alternative to producing a namespace-
+         * translated *jar*: when only inheritance metadata is consumed
+         * (e.g. Minecraft on a mod-remap analysis classpath), a
+         * scan+rename pays one ClassReader pass where a jar remap pays
+         * a full bytecode rewrite plus jar IO.
+         */
+        fun renamed(remapper: NamespaceRemapper): ScanData = ScanData(
+            classes.entries.parallelStream().map { (name, info) ->
+                remapper.mapClass(name) to RawClassInfo(
+                    info.superType?.let(remapper::mapClass),
+                    info.interfaces.map(remapper::mapClass),
+                    info.methods.map {
+                        RawMethodInfo(
+                            remapper.mapMethod(name, it.name, it.descriptor),
+                            remapper.map(it.descriptor),
+                            it.access
+                        )
+                    },
+                    info.fields.map {
+                        RawFieldInfo(
+                            remapper.mapField(name, it.name, it.descriptor),
+                            remapper.map(it.descriptor),
+                            it.access
+                        )
+                    }
+                )
+            }.collect(Collectors.toMap({ it.first }, { it.second }, { _, b -> b }))
+        )
     }
 
     class RawClassInfo(

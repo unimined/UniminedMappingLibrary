@@ -44,7 +44,19 @@ object TsrgV2Reader : FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
-        
+
+        // machine-generated tsrg (forge mcpconfig) rides unchecked factories —
+        // every member row revalidates JVMS syntax otherwise
+        val unchk = unchecked || settings.unchecked
+        val internalName: (String) -> InternalName =
+            if (unchk) InternalName::unchecked else InternalName::read
+        val unqualifiedName: (String) -> UnqualifiedName =
+            if (unchk) UnqualifiedName::unchecked else UnqualifiedName::read
+        val methodDesc: (String) -> MethodDescriptor =
+            if (unchk) MethodDescriptor::unchecked else MethodDescriptor::read
+        val fieldDesc: (String) -> FieldDescriptor =
+            if (unchk) FieldDescriptor::unchecked else FieldDescriptor::read
+
         val tsrg2 = input.takeNextLiteral(' ')
         if (tsrg2 != "tsrg2") throw IllegalArgumentException("invalid tsrg2 file")
         val ns = mutableListOf<Namespace>()
@@ -70,7 +82,7 @@ object TsrgV2Reader : FormatReader {
                     val names = mutableListOf<InternalName>()
                     while (true) {
                         val name = input.takeNextLiteral(' ') ?: break
-                        names.add(InternalName.read(name))
+                        names.add(internalName(name))
                     }
                     md?.let { pop(it) }
                     md = null
@@ -78,14 +90,14 @@ object TsrgV2Reader : FormatReader {
                     cls = push(MutableClassMapping(names.withIndex().associate { ns[it.index] to it.value }))
                 } else if (whitespace.length == 1) {
                     // method
-                    val srcName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
+                    val srcName = unqualifiedName(input.takeNextLiteral(' ')!!)
                     input.takeWhitespace()
                     if (input.peek() == '(') {
                         // method
-                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
+                        val srcDesc = methodDesc(input.takeNextLiteral(' ')!!)
                         val names = mutableListOf<MethodNameAndDescriptor>()
                         while (true) {
-                            val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
+                            val name = unqualifiedName(input.takeNextLiteral(' ') ?: break)
                             names.add(name.withMethodDesc(null))
                         }
                         md?.let { pop(it) }
@@ -100,8 +112,8 @@ object TsrgV2Reader : FormatReader {
                         while (true) {
                             tokens.add(input.takeNextLiteral(' ') ?: break)
                         }
-                        val srcDesc = if (tokens.size == ns.size) FieldDescriptor.read(tokens.removeAt(0)) else null
-                        val names = tokens.map { UnqualifiedName.read(it).withFieldDesc(null) }
+                        val srcDesc = if (tokens.size == ns.size) fieldDesc(tokens.removeAt(0)) else null
+                        val names = tokens.map { unqualifiedName(it).withFieldDesc(null) }
                         pushed(MutableFieldMapping(
                             names.withIndex()
                                 .associate { ns[it.index + 1] to it.value } + mapOf(ns[0] to srcName.withFieldDesc(srcDesc)))) {}
@@ -113,7 +125,7 @@ object TsrgV2Reader : FormatReader {
                     if (index.toIntOrNull() != null) {
                         val names = mutableListOf<UnqualifiedName>()
                         while (true) {
-                            val name = UnqualifiedName.read(input.takeNextLiteral(' ') ?: break)
+                            val name = unqualifiedName(input.takeNextLiteral(' ') ?: break)
                             names.add(name)
                         }
                         pushed(MutableParameterMapping(

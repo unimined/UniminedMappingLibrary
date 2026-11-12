@@ -25,11 +25,24 @@ class LazyASMInheritanceTree(
     override val fns: Namespace,
     input: ASMInheritanceTree.ScanData,
     private val index: Map<InternalName, Path>,
+    scanIndex: ASMInheritanceTree.ScanData? = null,
 ) : InheritanceTree() {
 
     private val materialized = ConcurrentHashMap<InternalName, ClassInfo>()
     private val misses = ConcurrentHashMap.newKeySet<InternalName>()
     private val zipCache = ConcurrentHashMap<Path, java.util.zip.ZipFile>()
+
+    /**
+     * Pre-parsed class data materialized on demand — checked before
+     * [index] like inputs (explicit scan data beats a lazy jar parse).
+     * Unlike [input]'s eager seeding, these pay no upfront [ClassInfo]
+     * construction: a 21k-class namespace-translated classpath scan
+     * (e.g. MC under a mod-source namespace) only builds the ClassInfos
+     * resolution actually reaches. The raws stay referenced for the
+     * graph's lifetime — cheaper than both eager materialization and
+     * the jar-byte reads the index path would pay per class.
+     */
+    private val scanIndex = scanIndex?.classes ?: emptyMap()
 
     init {
         input.classes.forEach { (name, raw) -> materialized[name] = toClassInfo(name, raw) }
@@ -41,9 +54,34 @@ class LazyASMInheritanceTree(
             for (f in raw.fields) fields.add(FieldInfo(f.name, f.descriptor, f.access))
         }
 
+    /**
+     * Fold an additional input scan into the materialized set — batch
+     * remaps over a shared graph seed each input's own classes this way
+     * so member-group resolution can climb their supertypes. Already-
+     * materialized names are kept (a class unioned into a group must
+     * not be swapped out from under the group's member keys); scan
+     * classes therefore do NOT shadow an indexed classpath class.
+     */
+    fun mergeScan(input: ASMInheritanceTree.ScanData) {
+        input.classes.forEach { (name, raw) ->
+            materialized.putIfAbsent(name, toClassInfo(name, raw))
+        }
+    }
+
+    /** Close cached jar handles. */
+    fun close() {
+        zipCache.values.forEach { it.close() }
+        zipCache.clear()
+    }
+
     private fun materialize(name: InternalName): ClassInfo? {
         materialized[name]?.let { return it }
         if (name in misses) return null
+        val scanRaw = scanIndex[name]
+        if (scanRaw != null) {
+            return materialized.putIfAbsent(name, toClassInfo(name, scanRaw))
+                ?: materialized.getValue(name)
+        }
         val jar = index[name]
         if (jar == null) {
             misses += name

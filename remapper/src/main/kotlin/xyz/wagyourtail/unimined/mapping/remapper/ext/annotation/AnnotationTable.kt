@@ -42,6 +42,9 @@ class AnnotationTable(
     /** annotations marking "this class is a mixin" — `targets`/`value` params
      *  provide the owner hints for owner-less member refs */
     val mixinMarkers: Set<String> = setOf("Lorg/spongepowered/asm/mixin/Mixin;"),
+    /** suppress-marker annotations (JarModAgent's `@DontRemap`) — see
+     *  [dontRemapSuppressed] */
+    val dontRemapMarkers: Set<String> = emptySet(),
 ) {
 
     /** `remap = false` disables processing for that annotation
@@ -174,8 +177,10 @@ class AnnotationTable(
     /** mixin targets declared on the class — marker `targets`/`value`/`name`
      *  params (mixin uses the first two, classtransform `@CTransformer` the
      *  last two), strings and `Type`s, normalized to internal names */
-    fun mixinTargets(node: ClassNode, ctx: ExtensionContext): List<String> =
-        annotations(node).filter { it.desc in mixinMarkers }.flatMap { ann ->
+    fun mixinTargets(node: ClassNode, ctx: ExtensionContext): List<String> {
+        val anns = annotations(node)
+        val suppressed = dontRemapSuppressed(anns)
+        return anns.filter { it.desc in mixinMarkers && it !in suppressed }.flatMap { ann ->
             val vals = ann.values ?: emptyList<Any>()
             val out = mutableListOf<String>()
             var i = 0
@@ -197,6 +202,48 @@ class AnnotationTable(
             }
             out
         }
+    }
+
+    /** ordered per-element walk implementing JarModAgent's `@DontRemap`
+     *  semantics: a marker suppresses remapping of the NEXT annotation —
+     *  `value` narrows suppression to listed annotation descriptors (empty =
+     *  all), `skip = true` keeps suppression armed for every subsequent
+     *  annotation until another marker re-arms (the re-arming marker also
+     *  applies to its own successor). Returns the annotations whose
+     *  remapping is suppressed. */
+    fun dontRemapSuppressed(annotations: List<AnnotationNode>): Set<AnnotationNode> {
+        if (dontRemapMarkers.isEmpty()) return emptySet()
+        val suppressed = mutableSetOf<AnnotationNode>()
+        var armed = false
+        var skip = false
+        var filter: Set<String> = emptySet()
+        for (ann in annotations) {
+            if (ann.desc in dontRemapMarkers) {
+                armed = true
+                skip = false
+                filter = buildSet {
+                    val values = ann.values
+                    if (values != null) {
+                        var i = 0
+                        while (i + 1 < values.size) {
+                            when (values[i]) {
+                                "skip" -> skip = values[i + 1] as? Boolean ?: false
+                                "value" -> when (val v = values[i + 1]) {
+                                    is Type -> add(v.descriptor)
+                                    is List<*> -> v.filterIsInstance<Type>().forEach { add(it.descriptor) }
+                                }
+                            }
+                            i += 2
+                        }
+                    }
+                }
+            } else if (armed) {
+                if (skip || filter.isEmpty() || ann.desc in filter) suppressed += ann
+                if (!skip) armed = false
+            }
+        }
+        return suppressed
+    }
 
     /** `remap = false` on any mixin marker disables remapping for the whole class */
     fun mixinRemapEnabled(node: ClassNode): Boolean =
@@ -215,6 +262,7 @@ class AnnotationTable(
         private val accessors = mutableSetOf<String>()
         private val invokers = mutableSetOf<String>()
         private val markers = mutableSetOf<String>()
+        private val dontRemapMarkers = mutableSetOf<String>()
 
         /** declare an annotation descriptor's param rules —
          *  `annotation("L..;") { param("method", ParamRemap.MethodRef) }` */
@@ -240,6 +288,7 @@ class AnnotationTable(
             accessors += table.accessorDescriptors
             invokers += table.invokerDescriptors
             markers += table.mixinMarkers
+            dontRemapMarkers += table.dontRemapMarkers
             return this
         }
 
@@ -247,10 +296,14 @@ class AnnotationTable(
         fun accessor(descriptor: String): Builder { accessors += descriptor; return this }
         fun invoker(descriptor: String): Builder { invokers += descriptor; return this }
         fun mixinMarker(descriptor: String): Builder { markers += descriptor; return this }
+        /** declare a suppress-marker annotation (JarModAgent's `@DontRemap`) —
+         *  see [AnnotationTable.dontRemapSuppressed] */
+        fun dontRemapMarker(descriptor: String): Builder { dontRemapMarkers += descriptor; return this }
 
         fun build(): AnnotationTable = AnnotationTable(
             rules, pkgRules, shadows, accessors, invokers,
             markers.ifEmpty { setOf("Lorg/spongepowered/asm/mixin/Mixin;") },
+            dontRemapMarkers,
         )
     }
 

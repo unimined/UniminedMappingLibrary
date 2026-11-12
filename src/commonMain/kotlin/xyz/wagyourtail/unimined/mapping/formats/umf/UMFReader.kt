@@ -69,6 +69,28 @@ object UMFReader : FormatReader {
         }
     }
 
+    /**
+     * Read the rest of the line as namespace-positioned names — `_`
+     * placeholders keep their slot but are skipped. Direct equivalent of
+     * `takeRemainingFixedOnLine().withIndex().filterNotNullValues()
+     * .associate { (idx, name) -> getNamespace(idx) to make(name) }`
+     * without the intermediate list/wrapper/filter allocations — this is
+     * the per-row hot path.
+     */
+    private inline fun <V : Any> CharReader<*>.takeNames(
+        noinline getNamespace: (Int) -> Namespace,
+        make: (String) -> V
+    ): MutableMap<Namespace, V> {
+        val out = LinkedHashMap<Namespace, V>(4)
+        var idx = 0
+        while (peek() != null && peek() != '\n') {
+            val tok = takeNextUMF()
+            if (tok != null) out[getNamespace(idx)] = make(tok)
+            idx++
+        }
+        return out
+    }
+
     fun CharReader<*>.takeNextUMF(): String? {
         val isString = peek() == '"'
         if (isString) {
@@ -137,9 +159,10 @@ object UMFReader : FormatReader {
         with (into) {
             header(namespaces.map { Namespace(it) })
 
-            fun getNamespace(i: Int): Namespace {
-                return Namespace(namespaces[i])
-            }
+            // pre-build — a fresh Namespace alloc per name per row was a
+            // measurable share of parse cost on large files
+            val nsArr = Array(namespaces.size) { Namespace(namespaces[it]) }
+            fun getNamespace(i: Int): Namespace = nsArr[i]
 
             val visitStack = mutableListOf<Element?>(null)
             val indentStack = mutableListOf(-1)
@@ -194,21 +217,20 @@ object UMFReader : FormatReader {
                     continue
                 }
                 EntryType.PACKAGE -> {
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to if (unchecked) PackageName.unchecked(name) else PackageName.read(name)
+                    val names = input.takeNames(getNamespace) {
+                        if (unchecked) PackageName.unchecked(it) else PackageName.read(it)
                     }
                     into.push(MutablePackageMapping(names))
                 }
                 EntryType.CLASS -> {
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to if (unchecked) InternalName.unchecked(name) else InternalName.read(name)
+                    val names = input.takeNames(getNamespace) {
+                        if (unchecked) InternalName.unchecked(it) else InternalName.read(it)
                     }
                     into.push(MutableClassMapping(names))
                 }
                 EntryType.METHOD -> {
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        val nd = (if (unchecked) MethodNameAndDescriptor.unchecked(name) else MethodNameAndDescriptor.read(name))
-                        getNamespace(idx) to nd
+                    val names = input.takeNames(getNamespace) {
+                        if (unchecked) MethodNameAndDescriptor.unchecked(it) else MethodNameAndDescriptor.read(it)
                     }
                     into.push(MutableMethodMapping(names))
                 }
@@ -218,17 +240,13 @@ object UMFReader : FormatReader {
                     if (index == null && lvOrd == null) {
                         throw IllegalArgumentException("Invalid parameter entry, no index or lvOrd on line $line")
                     }
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to UnqualifiedName.read(name)
-                    }
+                    val names = input.takeNames(getNamespace) { UnqualifiedName.read(it) }
                     into.push(MutableParameterMapping(index, lvOrd, names))
                 }
                 EntryType.LOCAL_VARIABLE -> {
                     val lvOrd = input.takeNextUMF()!!.toInt()
                     val startOp = input.takeNextUMF()?.toIntOrNull()
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to UnqualifiedName.read(name)
-                    }
+                    val names = input.takeNames(getNamespace) { UnqualifiedName.read(it) }
                     into.push(MutableLocalVariableMapping(lvOrd, startOp, names))
                 }
                 EntryType.EXCEPTION -> {
@@ -244,9 +262,8 @@ object UMFReader : FormatReader {
                     into.push(ExceptionElement(type, exception, names.next()))
                 }
                 EntryType.FIELD -> {
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        val nd = (if (unchecked) FieldNameAndDescriptor.unchecked(name) else FieldNameAndDescriptor.read(name))
-                        getNamespace(idx) to nd
+                    val names = input.takeNames(getNamespace) {
+                        if (unchecked) FieldNameAndDescriptor.unchecked(it) else FieldNameAndDescriptor.read(it)
                     }
                     into.push(MutableFieldMapping(names))
                 }
@@ -258,8 +275,8 @@ object UMFReader : FormatReader {
                             else -> throw IllegalArgumentException("Invalid wildcard type $it")
                         }
                     }
-                    val descs = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to if (unchecked) FieldOrMethodDescriptor.unchecked(name) else FieldOrMethodDescriptor.read(name)
+                    val descs = input.takeNames(getNamespace) {
+                        if (unchecked) FieldOrMethodDescriptor.unchecked(it) else FieldOrMethodDescriptor.read(it)
                     }
                     into.push(MutableWildcardMapping(type, descs))
                 }
@@ -272,14 +289,14 @@ object UMFReader : FormatReader {
                             else -> throw IllegalArgumentException("Invalid inner class type $it")
                         }
                     }
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
+                    val names = input.takeNames(getNamespace) { name ->
                         val innerName = name.substringBefore(';')
                         val fqn = if (';' in name) {
                             if (unchecked) FullyQualifiedName.unchecked(name.substringAfter(';')) else FullyQualifiedName.read(name.substringAfter(';'))
                         } else {
                             null
                         }
-                        getNamespace(idx) to (innerName to fqn)
+                        innerName to fqn
                     }
                     into.push(InnerClassElement(type, names))
                 }
@@ -385,8 +402,8 @@ object UMFReader : FormatReader {
                     into.push(ExpressionElement(constant, expression))
                 }
                 EntryType.SYNTHETIC_BRIDGE -> {
-                    val names = input.takeRemainingFixedOnLine().withIndex().filterNotNullValues().associate { (idx, name) ->
-                        getNamespace(idx) to if (unchecked) UnqualifiedName.unchecked(name) else UnqualifiedName.read(name)
+                    val names = input.takeNames(getNamespace) {
+                        if (unchecked) UnqualifiedName.unchecked(it) else UnqualifiedName.read(it)
                     }
                     into.push(SyntheticBridgeElement(names))
                 }

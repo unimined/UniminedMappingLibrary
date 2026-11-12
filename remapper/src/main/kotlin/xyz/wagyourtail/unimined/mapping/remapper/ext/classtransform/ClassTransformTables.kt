@@ -75,6 +75,10 @@ object ClassTransformTables {
 
         // a member declaration string — `@CStub(value = "Lowner;name desc")`
         annotation("${A}CStub;") { param("value", ParamRemap.MemberRef) }
+
+        // JarModAgent's suppress marker — `@DontRemap` skips remapping the
+        // next annotation (or hard target) on the same element
+        dontRemapMarker("Lxyz/wagyourtail/unimined/jarmodagent/transformer/annotation/DontRemap;")
     }
 
     /** the full classtransform table — the default */

@@ -20,6 +20,7 @@ import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableFieldMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.MetadataElementData
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.mergeMetadata
+import xyz.wagyourtail.unimined.mapping.forEachNsEntry
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
@@ -41,15 +42,19 @@ data class FieldMappingData(
     @Transient
     internal var pushedMergeVersion = -1
 
+    /** see [MethodMappingData.detached] */
+    @Transient
+    internal var detached = false
+
     override fun setNames(names: Map<Namespace, UnqualifiedName>) {
-        for ((ns, name) in names) {
+        names.forEachNsEntry { ns, name ->
             entries[ns] = name.withFieldDesc(entries[ns]?.descriptor)
         }
         mergeVersion++
     }
 
     override fun setDescriptors(descs: Map<Namespace, FieldDescriptor>) {
-        for ((ns, desc) in descs) {
+        descs.forEachNsEntry { ns, desc ->
             entries[ns]?.let { entries[ns] = it.name.withFieldDesc(desc) }
         }
         mergeVersion++
@@ -117,18 +122,25 @@ data class FieldMappingData(
     }
 
     private fun copyNamesFrom(incoming: Map<Namespace, FieldNameAndDescriptor>) {
-        for ((ns, e) in incoming) {
-            entries[ns] = e.name.withFieldDesc(entries[ns]?.descriptor)
+        // see MethodMappingData — skip no-op puts to avoid entry allocs
+        // and spurious mergeVersion bumps
+        incoming.forEachNsEntry { ns, e ->
+            val cur = entries[ns]
+            val next = e.name.withFieldDesc(cur?.descriptor)
+            if (next == cur) return@forEachNsEntry
+            entries[ns] = next
+            mergeVersion++
         }
-        mergeVersion++
     }
 
     private fun copyDescriptorsFrom(incoming: Map<Namespace, FieldNameAndDescriptor>) {
-        for ((ns, e) in incoming) {
-            val desc = e.descriptor ?: continue
-            entries[ns]?.let { entries[ns] = it.name.withFieldDesc(desc) }
+        incoming.forEachNsEntry { ns, e ->
+            val desc = e.descriptor ?: return@forEachNsEntry
+            val cur = entries[ns] ?: return@forEachNsEntry
+            if (cur.descriptor == desc) return@forEachNsEntry
+            entries[ns] = cur.name.withFieldDesc(desc)
+            mergeVersion++
         }
-        mergeVersion++
     }
 
     internal fun mergeChildrenInto(target: FieldMappingData) {

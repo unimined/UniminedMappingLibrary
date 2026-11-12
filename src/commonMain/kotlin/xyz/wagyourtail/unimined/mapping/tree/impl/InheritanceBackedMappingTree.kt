@@ -7,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
 import xyz.wagyourtail.unimined.mapping.element.metadata.MutableMetadataParent
 import xyz.wagyourtail.unimined.mapping.element.metadata.SyntheticBridgeElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.SyntheticBridgeElementData
+import xyz.wagyourtail.unimined.mapping.inheritance.HasInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceConflictException
 import xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.PropagationStrategy
@@ -36,12 +37,12 @@ data class MemberKey(val name: UnqualifiedName, val desc: FieldOrMethodDescripto
  */
 class InheritanceBackedMappingTree private constructor(
     private val delegate: MutableMappingTree,
-    val inheritance: InheritanceTree,
+    override val inheritance: InheritanceTree,
     /**
      * how propagated-vs-existing name disagreements resolve — see [PropagationStrategy].
      */
     val strategy: PropagationStrategy = PropagationStrategy.KEEP_EXPLICIT,
-) : MutableMappingTree by delegate {
+) : MutableMappingTree by delegate, HasInheritanceTree {
 
     /** explicit-assignment provenance: class fns-name -> member -> namespaces with explicit names.
      *  lookup-heavy at member scale — stays LinkedHashMap regardless of [MappingCollections.useSmallCollections] */
@@ -413,7 +414,7 @@ class InheritanceBackedMappingTree private constructor(
                 memberNames = { ns -> base.entries[ns]?.name },
                 setName = { ns, n -> base.setNames(mapOf(ns to n)) },
                 bridgeTarget = base)
-            for ((ns, e) in entries) {
+            entries.forEachNsEntry { ns, e ->
                 removeStaleBridge(base, ns, e.name)
                 propagateDown(info, key, ns, e.name, isMethod = true)
             }
@@ -429,7 +430,7 @@ class InheritanceBackedMappingTree private constructor(
                 memberNames = { ns -> base.entries[ns]?.name },
                 setName = { ns, n -> base.setNames(mapOf(ns to n)) },
                 bridgeTarget = base)
-            for ((ns, e) in entries) {
+            entries.forEachNsEntry { ns, e ->
                 removeStaleBridge(base, ns, e.name)
                 propagateDown(info, key, ns, e.name, isMethod = false)
             }
@@ -443,7 +444,7 @@ class InheritanceBackedMappingTree private constructor(
             override fun setNames(names: Map<Namespace, UnqualifiedName>) {
                 delegate.setNames(names)
                 markExplicit(info.name, key, names.keys)
-                for ((ns, name) in names) {
+                names.forEachNsEntry { ns, name ->
                     removeStaleBridge(delegate, ns, name)
                     propagateDown(info, key, ns, name, isMethod = true)
                 }
@@ -451,7 +452,7 @@ class InheritanceBackedMappingTree private constructor(
             override fun setEntries(entries: Map<Namespace, MethodNameAndDescriptor>) {
                 delegate.setEntries(entries)
                 markExplicit(info.name, key, entries.keys)
-                for ((ns, e) in entries) {
+                entries.forEachNsEntry { ns, e ->
                     removeStaleBridge(delegate, ns, e.name)
                     propagateDown(info, key, ns, e.name, isMethod = true)
                 }
@@ -465,7 +466,7 @@ class InheritanceBackedMappingTree private constructor(
             override fun setNames(names: Map<Namespace, UnqualifiedName>) {
                 delegate.setNames(names)
                 markExplicit(info.name, key, names.keys)
-                for ((ns, name) in names) {
+                names.forEachNsEntry { ns, name ->
                     removeStaleBridge(delegate, ns, name)
                     propagateDown(info, key, ns, name, isMethod = false)
                 }
@@ -473,7 +474,7 @@ class InheritanceBackedMappingTree private constructor(
             override fun setEntries(entries: Map<Namespace, FieldNameAndDescriptor>) {
                 delegate.setEntries(entries)
                 markExplicit(info.name, key, entries.keys)
-                for ((ns, e) in entries) {
+                entries.forEachNsEntry { ns, e ->
                     removeStaleBridge(delegate, ns, e.name)
                     propagateDown(info, key, ns, e.name, isMethod = false)
                 }

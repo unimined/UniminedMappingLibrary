@@ -75,6 +75,23 @@ class GraphNamespaceRemapper(
     }
 
     /**
+     * The pre-fallback member answer — the component name or the declaring
+     * member's explicit row, `null` when neither resolves. This is exactly
+     * the predicate write-time propagation
+     * ([xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree])
+     * materializes a member cell on, so lazy tree views can test "would a
+     * propagated row exist here" without producing one. Identity remaps and
+     * JVM-special names (`<init>`/`<clinit>`) never resolve — `null`.
+     */
+    fun resolveMethodName(owner: InternalName, name: UnqualifiedName, desc: MethodDescriptor): UnqualifiedName? =
+        if (identity || name.value.startsWith("<")) null else resolveMethod(owner, name, desc)
+
+    /** field counterpart of [resolveMethodName] — nearest declaring-chain
+     *  row name or `null` when no row in the chain names [to]. */
+    fun resolveFieldName(owner: InternalName, name: UnqualifiedName, desc: FieldDescriptor): UnqualifiedName? =
+        if (identity) null else resolveField(owner, name, desc)
+
+    /**
      * The member whose row supplied this component's [to]-namespace name —
      * the origin declaration. Param/lvar and other member children live on
      * the originating member's row, not on propagated names, so metadata

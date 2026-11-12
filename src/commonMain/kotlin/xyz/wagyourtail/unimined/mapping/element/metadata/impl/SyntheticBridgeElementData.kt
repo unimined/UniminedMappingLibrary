@@ -20,8 +20,9 @@ import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.metadata.SyntheticBridgeElement
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
+import xyz.wagyourtail.unimined.mapping.newNsMap
 
 @Serializable
 data class SyntheticBridgeElementData(
-    override val names: MutableMap<Namespace, UnqualifiedName> = mutableMapOf()
+    override val names: MutableMap<Namespace, UnqualifiedName> = newNsMap()
 ) : MetadataElementData(), SyntheticBridgeElement

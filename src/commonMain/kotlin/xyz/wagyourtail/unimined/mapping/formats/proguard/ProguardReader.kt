@@ -86,7 +86,19 @@ object ProguardReader : FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
-        
+        // machine-generated input (Mojang client/server mappings) rides
+        // unchecked factories when flagged — per-row JVMS revalidation
+        // otherwise dominates the parse
+        val unchk = unchecked || settings.unchecked
+        val internalName: (String) -> InternalName =
+            if (unchk) InternalName::unchecked else InternalName::read
+        val unqualifiedName: (String) -> UnqualifiedName =
+            if (unchk) UnqualifiedName::unchecked else UnqualifiedName::read
+        val methodDesc: (String) -> MethodDescriptor =
+            if (unchk) MethodDescriptor::unchecked else MethodDescriptor::read
+        val fieldDesc: (String) -> FieldDescriptor =
+            if (unchk) FieldDescriptor::unchecked else FieldDescriptor::read
+
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
@@ -105,26 +117,26 @@ object ProguardReader : FormatReader {
                 if (line.startsWith("#")) continue
                 if (indent.isEmpty()) {
                     val parts = line.split("->")
-                    val srcCls = InternalName.read(parts[0].trim().replace(".", "/"))
-                    val dstCls = InternalName.read(parts[1].trim().removeSuffix(":").replace(".", "/"))
+                    val srcCls = internalName(parts[0].trim().replace(".", "/"))
+                    val dstCls = internalName(parts[1].trim().removeSuffix(":").replace(".", "/"))
                     cls?.let { pop(it) }
                     cls = push(MutableClassMapping(mapOf(srcNs to srcCls, dstNs to dstCls)))
                 } else {
                     val parts = line.split("->")
                     val src = parts[0].trim().split(" ")
-                    val dst = UnqualifiedName.read(parts[1].trim())
+                    val dst = unqualifiedName(parts[1].trim())
                     val srcDesc = src[0].split(":")
                     if (src[1].endsWith(")")) {
                         // method
                         val srcRetVal = remapProguardParamDesc(srcDesc.last())
-                        val srcName = UnqualifiedName.read(src[1].substringBeforeLast("("))
+                        val srcName = unqualifiedName(src[1].substringBeforeLast("("))
                         val mDesc =
-                            MethodDescriptor.read(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
+                            methodDesc(remapProguardMethodDesc("(" + src[1].substringAfterLast("(")) + srcRetVal)
                         pushed(MutableMethodMapping(mapOf(srcNs to srcName.withMethodDesc(mDesc), dstNs to dst.withMethodDesc(null)))) {}
                     } else {
                         // field
-                        val fDesc = FieldDescriptor.read(remapProguardParamDesc(srcDesc.last()))
-                        val srcName = UnqualifiedName.read(src[1])
+                        val fDesc = fieldDesc(remapProguardParamDesc(srcDesc.last()))
+                        val srcName = unqualifiedName(src[1])
                         pushed(MutableFieldMapping(mapOf(srcNs to srcName.withFieldDesc(fDesc), dstNs to dst.withFieldDesc(null)))) {}
                     }
                 }

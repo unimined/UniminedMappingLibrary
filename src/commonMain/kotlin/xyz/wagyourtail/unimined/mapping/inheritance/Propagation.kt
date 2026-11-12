@@ -22,6 +22,7 @@ import xyz.wagyourtail.unimined.mapping.file
 import xyz.wagyourtail.unimined.mapping.sink.MappingSink
 import xyz.wagyourtail.unimined.mapping.sink.emit
 import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
+import xyz.wagyourtail.unimined.mapping.newNsMap
 
 private val LOGGER = KotlinLogging.logger {}
 
@@ -145,7 +146,7 @@ suspend fun InheritanceTree.ClassInfo.propagate(tree: MappingTree, targets: Set<
                     val found = with(tree) { getClass(outer.fns, name)?.getMethods(outer.fns, md.name, md.descriptor) }
                     // a method may be split across multiple rows when a ns name is missing
                     // (eg `m _ named;(I)Lv; yarn` + `m official;()V _`): merge names from all
-                    val merged = mutableMapOf<Namespace, UnqualifiedName>()
+                    val merged = newNsMap<UnqualifiedName>()
                     found?.forEach { m ->
                         for ((ns, n) in m.names) {
                             if (ns in targets && ns !in merged) merged[ns] = n
@@ -202,7 +203,7 @@ suspend fun InheritanceTree.ClassInfo.propagate(tree: MappingTree, targets: Set<
                 }.associate { it }.toMutableMap()
 
                 for ((method, names) in methods) {
-                    methodData.getOrPut(method) { mutableMapOf() }.putAll(names)
+                    methodData.getOrPut(method) { newNsMap() }.putAll(names)
                 }
                 visitedNs += targets
             }

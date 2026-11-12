@@ -2,14 +2,15 @@ package xyz.wagyourtail.unimined.mapping.sink
 
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.forEachNsEntry
+import xyz.wagyourtail.unimined.mapping.newNsMap
 import xyz.wagyourtail.unimined.mapping.element.MappingElement
 import xyz.wagyourtail.unimined.mapping.element.MetadataElement
 import xyz.wagyourtail.unimined.mapping.element.mapping.*
 import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.MetadataParent
 import xyz.wagyourtail.unimined.mapping.element.metadata.NsBoundMetadata
-import xyz.wagyourtail.unimined.mapping.tree.impl.emitEntries
-import xyz.wagyourtail.unimined.mapping.tree.impl.remapNs
+import xyz.wagyourtail.unimined.mapping.tree.impl.*
 
 /**
  * drive a [MappingSink] from a [MappingTree] — the inverse of pushing.
@@ -36,18 +37,34 @@ fun MappingTree.emit(
         for (e in list) body(e)
     }
     packages.forEachSorted { pkg ->
-        emitElement(pkg, sink, nsFilter, sort, transform, nsRenamer)
+        emitTopLevel(pkg, sink, nsFilter, sort, transform, nsRenamer)
     }
     classes.forEachSorted { cls ->
-        emitElement(cls, sink, nsFilter, sort, transform, nsRenamer)
+        emitTopLevel(cls, sink, nsFilter, sort, transform, nsRenamer)
     }
     constantGroups.forEachSorted { group ->
-        val head = transform(MutableConstantGroupMapping(group.type, group.name, nsRenamer(group.baseNs))) ?: return@forEachSorted
-        sink.pushed(head) {
-            emitAll(group, sink, nsFilter, sort, transform, nsRenamer)
-        }
+        emitTopLevel(group, sink, nsFilter, sort, transform, nsRenamer)
     }
     sink.end()
+}
+
+/** emit one top-level subtree — shared by [emit] so the
+ *  per-element dispatch (esp. constant-group heads) can't drift */
+private fun emitTopLevel(
+    element: MappingElement, sink: MappingSink, nsFilter: Collection<Namespace>,
+    sort: Boolean, transform: (MappingElement) -> MappingElement?,
+    nsRenamer: (Namespace) -> Namespace
+) {
+    if (element is ConstantGroupMapping) {
+        val head = transform(
+            MutableConstantGroupMapping(element.type, element.name, nsRenamer(element.baseNs))
+        ) ?: return
+        sink.pushed(head) {
+            emitAll(element, sink, nsFilter, sort, transform, nsRenamer)
+        }
+    } else {
+        emitElement(element, sink, nsFilter, sort, transform, nsRenamer)
+    }
 }
 
 /** sibling-order rank — keeps old acceptInner's category order (wildcards, fields, methods;
@@ -79,7 +96,8 @@ private fun MappingElement.emitSortKey(nsOrder: List<Namespace>): String = when 
 
 internal fun emitAll(parent: MappingElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean, transform: (MappingElement) -> MappingElement?, nsRenamer: (Namespace) -> Namespace) {
     if (parent is MetadataParent) {
-        val meta = if (sort) parent.metadata.sortedBy { it.toString() } else parent.metadata.toList()
+        val meta: Iterable<MetadataElement> =
+            if (sort) parent.metadata.sortedBy { it.toString() } else parent.metadata
         for (m in meta) {
             emitMeta(m, sink, nsFilter, sort, nsRenamer)
         }
@@ -105,24 +123,44 @@ internal fun emitMeta(meta: MetadataElement, sink: MappingSink, nsFilter: Collec
     }
     sink.pushed(head) {
         if (meta is MetadataParent) {
-            val children = if (sort) meta.metadata.sortedBy { it.toString() } else meta.metadata.toList()
+            val children: Iterable<MetadataElement> =
+                if (sort) meta.metadata.sortedBy { it.toString() } else meta.metadata
             for (child in children) emitMeta(child, sink, nsFilter, sort, nsRenamer)
         }
     }
 }
 
+/** fused `filterKeys`+`mapKeys` — one pass, one output map, no entry objects.
+ *  returns the freshly-owned map — heads below adopt it directly (the
+ *  `*MappingData` ctors take MutableMap without copying) */
+private fun <V> Map<Namespace, V>.filteredRenamed(
+    nsFilter: Collection<Namespace>,
+    nsRenamer: (Namespace) -> Namespace
+): MutableMap<Namespace, V> {
+    val out = newNsMap<V>()
+    forEachNsEntry { ns, e -> if (ns in nsFilter) out[nsRenamer(ns)] = e }
+    return out
+}
+
+/** every key filtered out — slot-level `keys.none` (no entry objects) */
+private fun Map<Namespace, *>.allFilteredOut(nsFilter: Collection<Namespace>): Boolean {
+    var any = false
+    forEachNsEntry { ns, _ -> if (ns in nsFilter) any = true }
+    return !any
+}
+
 internal fun emitElement(element: MappingElement, sink: MappingSink, nsFilter: Collection<Namespace>, sort: Boolean, transform: (MappingElement) -> MappingElement?, nsRenamer: (Namespace) -> Namespace) {
+    // heads are built directly on the freshly-owned filtered maps — the
+    // element factories would defensively toNsMap-copy a map nothing else
+    // references, so the data ctors are used instead (identical objects)
     val head: MappingElement = transform(when (element) {
-        is PackageMapping -> MutablePackageMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is ClassMapping -> MutableClassMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is MethodMapping -> MutableMethodMapping(element.emitEntries().filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is FieldMapping -> MutableFieldMapping(element.emitEntries().filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is WildcardMapping -> MutableWildcardMapping(element.type, element.descs.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is ParameterMapping -> MutableParameterMapping(element.index, element.lvOrd, element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is LocalVariableMapping -> MutableLocalVariableMapping(element.lvOrd, element.startOp, element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        // name-only copy — class/package/group heads carry no ns-scoped children worth filtering
-        is ClassMapping -> MutableClassMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
-        is PackageMapping -> MutablePackageMapping(element.names.filterKeys { it in nsFilter }.mapKeys { (k, _) -> nsRenamer(k) })
+        is PackageMapping -> PackageMappingData(element.names.filteredRenamed(nsFilter, nsRenamer))
+        is ClassMapping -> ClassMappingData(element.names.filteredRenamed(nsFilter, nsRenamer))
+        is MethodMapping -> MethodMappingData(element.emitEntries(nsFilter, nsRenamer))
+        is FieldMapping -> FieldMappingData(element.emitEntries(nsFilter, nsRenamer))
+        is WildcardMapping -> WildcardMappingData(element.type, element.descs.filteredRenamed(nsFilter, nsRenamer))
+        is ParameterMapping -> ParameterMappingData(element.index, element.lvOrd, element.names.filteredRenamed(nsFilter, nsRenamer))
+        is LocalVariableMapping -> LocalVariableMappingData(element.lvOrd, element.startOp, element.names.filteredRenamed(nsFilter, nsRenamer))
         is ConstantGroupMapping -> MutableConstantGroupMapping(element.type, element.name, nsRenamer(element.baseNs))
         is MappingTree -> element
         else -> element
@@ -131,13 +169,13 @@ internal fun emitElement(element: MappingElement, sink: MappingSink, nsFilter: C
     // elements that never had names (e.g. `w f _` wildcards, empty params) still emit,
     // since writers may emit content for them (access, wildcards without desc, etc.)
     val dropped = when (element) {
-        is MethodMapping -> element.entries.isNotEmpty() && element.entries.keys.none { it in nsFilter }
-        is FieldMapping -> element.entries.isNotEmpty() && element.entries.keys.none { it in nsFilter }
-        is WildcardMapping -> element.descs.isNotEmpty() && element.descs.keys.none { it in nsFilter }
-        is ParameterMapping -> element.names.isNotEmpty() && element.names.keys.none { it in nsFilter }
-        is LocalVariableMapping -> element.names.isNotEmpty() && element.names.keys.none { it in nsFilter }
-        is ClassMapping -> element.names.isNotEmpty() && element.names.keys.none { it in nsFilter }
-        is PackageMapping -> element.names.isNotEmpty() && element.names.keys.none { it in nsFilter }
+        is MethodMapping -> element.entries.isNotEmpty() && element.entries.allFilteredOut(nsFilter)
+        is FieldMapping -> element.entries.isNotEmpty() && element.entries.allFilteredOut(nsFilter)
+        is WildcardMapping -> element.descs.isNotEmpty() && element.descs.allFilteredOut(nsFilter)
+        is ParameterMapping -> element.names.isNotEmpty() && element.names.allFilteredOut(nsFilter)
+        is LocalVariableMapping -> element.names.isNotEmpty() && element.names.allFilteredOut(nsFilter)
+        is ClassMapping -> element.names.isNotEmpty() && element.names.allFilteredOut(nsFilter)
+        is PackageMapping -> element.names.isNotEmpty() && element.names.allFilteredOut(nsFilter)
         is ConstantGroupMapping -> element.baseNs !in nsFilter
         is MappingTree -> false
         else -> false

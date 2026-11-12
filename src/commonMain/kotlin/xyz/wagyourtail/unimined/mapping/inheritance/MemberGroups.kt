@@ -4,10 +4,13 @@ import kotlin.concurrent.Volatile
 import kotlinx.atomicfu.locks.ReentrantLock
 import kotlinx.atomicfu.locks.withLock
 import xyz.wagyourtail.unimined.mapping.MappingTree
+import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
+import xyz.wagyourtail.unimined.mapping.newNsMap
 
 /**
  * Precomputed member-name equivalence over an [InheritanceTree] — the
@@ -47,22 +50,22 @@ class MemberGroups(val inheritance: InheritanceTree) {
      *  in this group contribute columns; candidates are resolved by
      *  [propagate]. */
     class MethodGroup {
-        val names = mutableMapOf<Namespace, UnqualifiedName>()
+        val names = newNsMap<UnqualifiedName>()
         /** the member whose row supplied each [names] entry — the
          *  *originating declaration*: param/lvar and other member children
          *  live on that row, not on the propagated name. */
-        val origins = mutableMapOf<Namespace, MethodMember>()
+        val origins = newNsMap<MethodMember>()
         /** name → candidate member, per ns — resolved alongside [names]. */
-        internal val candidateMembers = mutableMapOf<Namespace, MutableMap<UnqualifiedName, MethodMember>>()
+        internal val candidateMembers = newNsMap<MutableMap<UnqualifiedName, MethodMember>>()
         /** losing candidates per ns — conflict bookkeeping (deterministic:
          *  resolution picks sorted-first, count returned by [propagate]). */
-        val candidates = mutableMapOf<Namespace, MutableSet<UnqualifiedName>>()
+        val candidates = newNsMap<MutableSet<UnqualifiedName>>()
         /** candidates whose row name equals their fns name — identity /
          *  no-op stamps (e.g. unobf-completion fills). They lose to any
          *  real rename in the component: a completed `a` on an unmapped
          *  implementing member must not degrade a real `m_*`/`f_*` row
          *  declared elsewhere in the same virtual-method group. */
-        internal val identityCandidates = mutableMapOf<Namespace, MutableSet<UnqualifiedName>>()
+        internal val identityCandidates = newNsMap<MutableSet<UnqualifiedName>>()
     }
 
     // union-find over virtual method members
@@ -196,11 +199,15 @@ class MemberGroups(val inheritance: InheritanceTree) {
     /** The [MethodGroup] [mi] belongs to — triggers [build] on first use.
      *  Resolves on demand: a lazy tree may materialize [mi]'s class only
      *  when queried (post-build), so its member isn't guaranteed to be in
-     *  [groups] yet. */
+     *  [groups] yet. Locked: [resolve]/[find]/`groups` mutate the
+     *  union-find, and late-merged scans (`LazyASMInheritanceTree.mergeScan`)
+     *  can surface unresolved members on concurrent readers. */
     fun methodGroup(info: InheritanceTree.ClassInfo, mi: InheritanceTree.MethodInfo): MethodGroup {
         build()
-        resolve(info, mi)
-        return groups.getOrPut(find(MethodMember(info, mi))) { MethodGroup() }
+        return lock.withLock {
+            resolve(info, mi)
+            groups.getOrPut(find(MethodMember(info, mi))) { MethodGroup() }
+        }
     }
 
     /**
@@ -238,48 +245,95 @@ class MemberGroups(val inheritance: InheritanceTree) {
     fun propagate(tree: MappingTree): Int {
         inheritance.applyAccessChanges(tree)
         build()
-        var conflicts = 0
         for (cls in tree.classes) {
-            val fnsName = cls.names[inheritance.fns] ?: continue
-            val info = inheritance.classInfo(fnsName) ?: continue
-            for (mm in cls.methods) {
-                val entry = mm.entries[inheritance.fns] ?: continue
-                val desc = entry.descriptor ?: continue
-                val mi = info.methods.firstOrNull {
-                    it.name == entry.name && it.descriptor == desc
-                } ?: continue
-                resolve(info, mi)
-                val group = groups.getOrPut(find(MethodMember(info, mi))) { MethodGroup() }
-                for ((ns, e) in mm.entries) {
-                    group.candidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
-                    if (e.name == entry.name) {
-                        group.identityCandidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
-                    }
-                    group.candidateMembers.getOrPut(ns) { mutableMapOf() }.let { m ->
-                        if (e.name !in m) m[e.name] = MethodMember(info, mi)
-                    }
-                }
-            }
-            // fields need no stamping — [fieldChain] + row lookups at query
-            // time give down-propagation pull semantics with zero writes
+            stampClass(cls, null)
         }
+        var conflicts = 0
         lock.withLock {
             for ((_, group) in groups) {
-                for ((ns, cands) in group.candidates) {
-                    if (cands.size > 1) conflicts++
-                    // identity stamps (no-ops and cell completions) only
-                    // apply when no real rename exists in the component —
-                    // a completed `a` on an unmapped impl loses to a
-                    // sibling's actual `m_*`/`f_*` name
-                    val identities = group.identityCandidates[ns] ?: emptySet()
-                    val real = cands.filter { it !in identities }
-                    val winner = (real.ifEmpty { cands.toList() }).minBy { it.value }
-                    group.names[ns] = winner
-                    group.candidateMembers[ns]?.get(winner)?.let { group.origins[ns] = it }
-                }
-                group.candidateMembers.clear()
+                conflicts += resolveWinners(group)
             }
         }
+        return conflicts
+    }
+
+    /**
+     * [propagate] restricted to the classes named in [scope]
+     * (fns-namespace internal names) — the late-union path for input
+     * scans merged via `LazyASMInheritanceTree.mergeScan` *after* the
+     * batch-wide pass: the input's own classes were absent from the
+     * graph then, so their member rows never stamped a component and
+     * overrides in unmapped subclasses kept their source names.
+     * Stamps + winner re-resolution run under [lock] so a late pass
+     * is safe against concurrent [methodGroup]/[fieldChain] queries.
+     * Idempotent — re-stamping the same rows yields the same winners.
+     */
+    fun propagate(tree: MappingTree, scope: Set<InternalName>): Int {
+        inheritance.applyAccessChanges(tree, scope)
+        build()
+        var conflicts = 0
+        lock.withLock {
+            val touched = mutableSetOf<MethodGroup>()
+            for (fnsName in scope) {
+                stampClass(tree.getClass(inheritance.fns, fnsName) ?: continue, touched)
+            }
+            for (group in touched) {
+                conflicts += resolveWinners(group, clearCandidates = false)
+            }
+        }
+        return conflicts
+    }
+
+    /** Stamp [cls]'s member rows — adds each row's namespace columns to
+     *  its member's component and records the group in [touched] when
+     *  non-null (the scoped pass re-resolves winners on touched groups
+     *  only). Callers outside [lock] rely on single-threaded setup. */
+    private fun stampClass(cls: ClassMapping, touched: MutableSet<MethodGroup>?) {
+        val fnsName = cls.names[inheritance.fns] ?: return
+        val info = inheritance.classInfo(fnsName) ?: return
+        for (mm in cls.methods) {
+            val entry = mm.entries[inheritance.fns] ?: continue
+            val desc = entry.descriptor ?: continue
+            val mi = info.methods.firstOrNull {
+                it.name == entry.name && it.descriptor == desc
+            } ?: continue
+            resolve(info, mi)
+            val group = groups.getOrPut(find(MethodMember(info, mi))) { MethodGroup() }
+            touched?.add(group)
+            for ((ns, e) in mm.entries) {
+                group.candidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
+                if (e.name == entry.name) {
+                    group.identityCandidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
+                }
+                group.candidateMembers.getOrPut(ns) { mutableMapOf() }.let { m ->
+                    if (e.name !in m) m[e.name] = MethodMember(info, mi)
+                }
+            }
+        }
+        // fields need no stamping — [fieldChain] + row lookups at query
+        // time give down-propagation pull semantics with zero writes
+    }
+
+    /** Resolve one group's per-namespace winners from its stamped
+     *  candidates — count of disagreements (multi-candidate ns).
+     *  [clearCandidates] releases the per-candidate member provenance
+     *  — only safe on the final pass (the batch-wide call); scoped
+     *  passes may re-resolve after later stamps and keep it. */
+    private fun resolveWinners(group: MethodGroup, clearCandidates: Boolean = true): Int {
+        var conflicts = 0
+        for ((ns, cands) in group.candidates) {
+            if (cands.size > 1) conflicts++
+            // identity stamps (no-ops and cell completions) only
+            // apply when no real rename exists in the component —
+            // a completed `a` on an unmapped impl loses to a
+            // sibling's actual `m_*`/`f_*` name
+            val identities = group.identityCandidates[ns] ?: emptySet()
+            val real = cands.filter { it !in identities }
+            val winner = (real.ifEmpty { cands.toList() }).minBy { it.value }
+            group.names[ns] = winner
+            group.candidateMembers[ns]?.get(winner)?.let { group.origins[ns] = it }
+        }
+        if (clearCandidates) group.candidateMembers.clear()
         return conflicts
     }
 

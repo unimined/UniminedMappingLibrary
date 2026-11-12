@@ -51,6 +51,16 @@ object SrgReader : FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
+        // machine-generated input rides unchecked factories when flagged
+        val unchk = unchecked || settings.unchecked
+        val internalName: (String) -> InternalName =
+            if (unchk) InternalName::unchecked else InternalName::read
+        val unqualifiedName: (String) -> UnqualifiedName =
+            if (unchk) UnqualifiedName::unchecked else UnqualifiedName::read
+        val packageName: (String) -> PackageName =
+            if (unchk) PackageName::unchecked else PackageName::read
+        val methodDesc: (String) -> MethodDescriptor =
+            if (unchk) MethodDescriptor::unchecked else MethodDescriptor::read
         val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
@@ -68,15 +78,15 @@ object SrgReader : FormatReader {
                     "PK:" -> {
                         val src = input.takeNextLiteral(' ')!!
                         val dst = input.takeNextLiteral(' ')!!
-                        val srcFix = PackageName.read(if (src == ".") "" else "${src}/")
-                        val dstFix = PackageName.read(if (dst == ".") "" else "${dst}/")
+                        val srcFix = packageName(if (src == ".") "" else "${src}/")
+                        val dstFix = packageName(if (dst == ".") "" else "${dst}/")
                         pushed(MutablePackageMapping(mapOf(srcNs to srcFix, dstNs to dstFix))) {}
                     }
 
                     "CL:" -> {
                         val src = input.takeNextLiteral(' ')!!
                         val dst = input.takeNextLiteral(' ')!!
-                        pushed(MutableClassMapping(mapOf(srcNs to InternalName.read(src), dstNs to InternalName.read(dst)))) {}
+                        pushed(MutableClassMapping(mapOf(srcNs to internalName(src), dstNs to internalName(dst)))) {}
                     }
 
                     "FD:" -> {
@@ -84,13 +94,13 @@ object SrgReader : FormatReader {
                         val dst = input.takeNextLiteral(' ')!!
                         val srcClass = src.substringBeforeLast('/')
                         val dstClass = dst.substringBeforeLast('/')
-                        val srcField = UnqualifiedName.read(src.substringAfterLast('/'))
-                        val dstField = UnqualifiedName.read(dst.substringAfterLast('/'))
+                        val srcField = unqualifiedName(src.substringAfterLast('/'))
+                        val dstField = unqualifiedName(dst.substringAfterLast('/'))
                         pushed(
                             MutableClassMapping(
                                 mapOf(
-                                    srcNs to InternalName.read(srcClass),
-                                    dstNs to InternalName.read(dstClass)
+                                    srcNs to internalName(srcClass),
+                                    dstNs to internalName(dstClass)
                                 )
                             )
                         ) {
@@ -102,18 +112,18 @@ object SrgReader : FormatReader {
 
                     "MD:" -> {
                         val src = input.takeNextLiteral(' ')!!
-                        val srcDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
+                        val srcDesc = methodDesc(input.takeNextLiteral(' ')!!)
                         val dst = input.takeNextLiteral(' ')!!
-                        val dstDesc = MethodDescriptor.read(input.takeNextLiteral(' ')!!)
+                        val dstDesc = methodDesc(input.takeNextLiteral(' ')!!)
                         val srcClass = src.substringBeforeLast('/')
                         val dstClass = dst.substringBeforeLast('/')
-                        val srcMethod = UnqualifiedName.read(src.substringAfterLast('/'))
-                        val dstMethod = UnqualifiedName.read(dst.substringAfterLast('/'))
+                        val srcMethod = unqualifiedName(src.substringAfterLast('/'))
+                        val dstMethod = unqualifiedName(dst.substringAfterLast('/'))
                         pushed(
                             MutableClassMapping(
                                 mapOf(
-                                    srcNs to InternalName.read(srcClass),
-                                    dstNs to InternalName.read(dstClass)
+                                    srcNs to internalName(srcClass),
+                                    dstNs to internalName(dstClass)
                                 )
                             )
                         ) {

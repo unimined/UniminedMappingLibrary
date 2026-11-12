@@ -23,6 +23,16 @@ interface MutableMappingTree : MappingTree, MappingSink {
     companion object {
         operator fun invoke(namespaces: Iterable<Namespace> = emptyList()): MutableMappingTree =
             MappingTreeData(namespaces.toMutableList())
+
+        /**
+         * Tree for re-reading rows already emitted from a deduped tree —
+         * serialized `uml-tree` payloads and derived UMF materializations.
+         * Rows are pairwise non-mergeable by construction, so the sink's
+         * post-push sibling merge trials are skipped. Not for
+         * user-authored mapping sources.
+         */
+        fun canonical(namespaces: Iterable<Namespace> = emptyList()): MutableMappingTree =
+            MappingTreeData(namespaces.toMutableList(), assumeCanonical = true)
     }
 
 }

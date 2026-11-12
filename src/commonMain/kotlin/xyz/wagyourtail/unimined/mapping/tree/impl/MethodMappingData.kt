@@ -22,6 +22,7 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.MutableMethodMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MutableParameterMapping
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.MetadataElementData
 import xyz.wagyourtail.unimined.mapping.element.metadata.impl.mergeMetadata
+import xyz.wagyourtail.unimined.mapping.forEachNsEntry
 import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
@@ -51,31 +52,49 @@ data class MethodMappingData(
     @Transient
     internal var pushedMergeVersion = -1
 
+    /**
+     * set when the row is spliced out of its parent's member list —
+     * [ClassMappingData]'s name index holds superseded keys
+     * deliberately (names only accumulate), so a lookup can surface a
+     * detached row as a merge candidate; the flag keeps merges pointed
+     * at live siblings only
+     */
+    @Transient
+    internal var detached = false
+
     // entry values are `name;desc` (or bare `name`) — checking the stored
     // string directly avoids materializing the `names` map (substring +
     // map per access) in merge loops that inspect every sibling
-    val isClinit get() = entries.values.any {
-        it.value == "<clinit>" || it.value.startsWith("<clinit>;")
+    val isClinit get(): Boolean {
+        entries.forEachNsEntry { _, e ->
+            if (e.value == "<clinit>" || e.value.startsWith("<clinit>;")) return true
+        }
+        return false
     }
-    val isInit get() = entries.values.any {
-        it.value == "<init>" || it.value.startsWith("<init>;")
+    val isInit get(): Boolean {
+        entries.forEachNsEntry { _, e ->
+            if (e.value == "<init>" || e.value.startsWith("<init>;")) return true
+        }
+        return false
     }
 
     override fun setNames(names: Map<Namespace, UnqualifiedName>) {
-        if (isClinit && names.values.any { it.value != "<clinit>" }) {
-            throw IllegalStateException("clinit method name must be <clinit>")
+        names.forEachNsEntry { _, n ->
+            if (isClinit && n.value != "<clinit>") {
+                throw IllegalStateException("clinit method name must be <clinit>")
+            }
+            if (isInit && n.value != "<init>") {
+                throw IllegalStateException("init method name must be <init>")
+            }
         }
-        if (isInit && names.values.any { it.value != "<init>" }) {
-            throw IllegalStateException("init method name must be <init>")
-        }
-        for ((ns, name) in names) {
+        names.forEachNsEntry { ns, name ->
             entries[ns] = name.withMethodDesc(entries[ns]?.descriptor)
         }
         mergeVersion++
     }
 
     override fun setDescriptors(descs: Map<Namespace, MethodDescriptor>) {
-        for ((ns, desc) in descs) {
+        descs.forEachNsEntry { ns, desc ->
             entries[ns]?.let { entries[ns] = it.name.withMethodDesc(desc) }
         }
         mergeVersion++
@@ -171,18 +190,25 @@ data class MethodMappingData(
     }
 
     private fun copyNamesFrom(incoming: Map<Namespace, MethodNameAndDescriptor>) {
-        for ((ns, e) in incoming) {
-            entries[ns] = e.name.withMethodDesc(entries[ns]?.descriptor)
+        // skip no-op puts — a packed entry alloc + mergeVersion bump per ns
+        // would fire the post-pop rescan for merges that changed nothing
+        incoming.forEachNsEntry { ns, e ->
+            val cur = entries[ns]
+            val next = e.name.withMethodDesc(cur?.descriptor)
+            if (next == cur) return@forEachNsEntry
+            entries[ns] = next
+            mergeVersion++
         }
-        mergeVersion++
     }
 
     private fun copyDescriptorsFrom(incoming: Map<Namespace, MethodNameAndDescriptor>) {
-        for ((ns, e) in incoming) {
-            val desc = e.descriptor ?: continue
-            entries[ns]?.let { entries[ns] = it.name.withMethodDesc(desc) }
+        incoming.forEachNsEntry { ns, e ->
+            val desc = e.descriptor ?: return@forEachNsEntry
+            val cur = entries[ns] ?: return@forEachNsEntry
+            if (cur.descriptor == desc) return@forEachNsEntry
+            entries[ns] = cur.name.withMethodDesc(desc)
+            mergeVersion++
         }
-        mergeVersion++
     }
 
     internal fun mergeChildrenInto(target: MethodMappingData) {

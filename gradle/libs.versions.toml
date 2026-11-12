@@ -22,6 +22,7 @@ resources = "0.16.0"
 [libraries]
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asm_commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
+commons_compress = { module = "org.apache.commons:commons-compress", version = "1.28.0" }
 asm_util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 asm_analysis = { module = "org.ow2.asm:asm-analysis", version.ref = "asm" }
 asm_tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }

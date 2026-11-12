@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.element.mapping.FieldMapping
 import xyz.wagyourtail.unimined.mapping.element.mapping.MethodMapping
+import xyz.wagyourtail.unimined.mapping.forEachNsEntry
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.ext.NameAndDescriptor
 import xyz.wagyourtail.unimined.mapping.newNsMap
@@ -51,12 +52,13 @@ private fun descPartEq(a: String, b: String): Boolean {
  * env-domain comparability — same base ns and non-exclusive envs:
  * `ns` is comparable to `ns`, `ns:client` and `ns:server` (joined
  * covers both domains); `ns:client` is comparable to `ns:client` and
- * `ns` but NOT `ns:server` (disjoint env domains).
+ * `ns` but NOT `ns:server` (disjoint env domains). Identity short-circuits
+ * the common same-column compare; the split itself is memoized on
+ * [Namespace] so this is allocation-free.
  */
 private fun Namespace.envComparable(other: Namespace): Boolean {
-    val (b1, e1) = splitEnv()
-    val (b2, e2) = other.splitEnv()
-    return b1 === b2 && (e1 == null || e2 == null || e1 == e2)
+    if (this === other) return true
+    return baseNs === other.baseNs && (envPart == null || other.envPart == null || envPart == other.envPart)
 }
 
 internal fun Map<Namespace, out NameAndDescriptor>.namesMatch(
@@ -64,9 +66,9 @@ internal fun Map<Namespace, out NameAndDescriptor>.namesMatch(
 ): NameMatch {
     var namesMatched = false
     var differentNames = false
-    for ((ns, entry) in this) {
-        for ((ons, oentry) in other) {
-            if (!ns.envComparable(ons)) continue
+    forEachNsEntry { ns, entry ->
+        other.forEachNsEntry inner@{ ons, oentry ->
+            if (!ns.envComparable(ons)) return@inner
             if (namePartEq(entry.value, oentry.value)) {
                 namesMatched = true
             } else {
@@ -86,17 +88,19 @@ internal fun Map<Namespace, out NameAndDescriptor>.namesMatch(
 internal fun Map<Namespace, out NameAndDescriptor>.hasNameConflict(
     other: Map<Namespace, out NameAndDescriptor>
 ): Boolean {
-    for ((ns, entry) in this) {
-        for ((ons, oentry) in other) {
-            if (!ns.envComparable(ons)) continue
+    forEachNsEntry { ns, entry ->
+        other.forEachNsEntry inner@{ ons, oentry ->
+            if (!ns.envComparable(ons)) return@inner
             if (!namePartEq(entry.value, oentry.value)) return true
         }
     }
     return false
 }
 
-internal fun Map<Namespace, out NameAndDescriptor>.anyDesc(): Boolean =
-    values.any { it.hasDescriptor }
+internal fun Map<Namespace, out NameAndDescriptor>.anyDesc(): Boolean {
+    forEachNsEntry { _, e -> if (e.hasDescriptor) return true }
+    return false
+}
 
 /**
  * pick the namespace to verify descriptors in: the first of [this]'s desc-bearing
@@ -107,13 +111,13 @@ internal fun Map<Namespace, out NameAndDescriptor>.anyDesc(): Boolean =
 internal fun Map<Namespace, out NameAndDescriptor>.pickDescNs(
     other: Map<Namespace, out NameAndDescriptor>
 ): Namespace {
-    for ((ns, entry) in this) {
-        if (!entry.hasDescriptor) continue
-        for ((ons, oentry) in other) {
+    forEachNsEntry outer@{ ns, entry ->
+        if (!entry.hasDescriptor) return@outer
+        other.forEachNsEntry { ons, oentry ->
             if (oentry.hasDescriptor && ns.envComparable(ons)) return ons
         }
     }
-    for ((ns, entry) in other) {
+    other.forEachNsEntry { ns, entry ->
         if (entry.hasDescriptor) return ns
     }
     throw IllegalArgumentException("no descriptor namespace available")
@@ -126,11 +130,13 @@ internal fun Map<Namespace, out NameAndDescriptor>.descIn(
 ): FieldOrMethodDescriptor? {
     // exact key, then an env-comparable key (`ns` ↔ `ns:env`), then remap
     this[ns]?.let { if (it.hasDescriptor) return it.descriptor }
-    for ((k, e) in this) {
+    forEachNsEntry { k, e ->
         if (k !== ns && k.envComparable(ns) && e.hasDescriptor) return e.descriptor
     }
-    val (from, entry) = entries.firstOrNull { it.value.hasDescriptor } ?: return null
-    return remapper?.invoke(from, ns, entry.descriptor!!)
+    forEachNsEntry { k, e ->
+        if (e.hasDescriptor) return remapper?.invoke(k, ns, e.descriptor!!)
+    }
+    return null
 }
 
 /** descriptor-region equality between this row's [ns] entry and [other]'s remapped desc */
@@ -153,36 +159,49 @@ internal fun Map<Namespace, out FieldOrMethodDescriptor>.descInDesc(
     if (isEmpty()) return null
     this[ns]?.let { return it }
     // env-comparable key (`ns` ↔ `ns:env`) before remapping
-    for ((k, d) in this) {
+    forEachNsEntry { k, d ->
         if (k.envComparable(ns)) return d
     }
-    val (from, desc) = entries.first()
-    return remapper?.invoke(from, ns, desc)
+    // remap the first stored pair — non-empty is guaranteed above
+    forEachNsEntry { k, d -> return remapper?.invoke(k, ns, d) }
+    throw IllegalStateException("unreachable — non-empty map")
 }
 
 /**
  * entries view for emit/write: stored name+desc pairs with the desc remapped into
  * every namespace (old impl kept names/descs separate and interpolated via
  * `root.map` at accept time).
+ *
+ * [nsFilter]/[nsRenamer] fuse the emit-side `filterKeys`/`mapKeys` passes
+ * into this one materialization — the desc is still resolved under the
+ * stored ns and only the output key is renamed.
  */
-internal fun MethodMapping.emitEntries(): Map<Namespace, xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor> {
+internal fun MethodMapping.emitEntries(
+    nsFilter: Collection<Namespace>? = null,
+    nsRenamer: (Namespace) -> Namespace = { it }
+): MutableMap<Namespace, xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor> {
     val remapper = (this as? MethodMappingData)?.descRemapper
     val out = newNsMap<xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor>()
-    for ((ns, e) in entries) {
+    entries.forEachNsEntry { ns, e ->
+        if (nsFilter != null && ns !in nsFilter) return@forEachNsEntry
         val desc = e.descriptor as? xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
             ?: entries.descIn(ns, remapper) as? xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
-        out[ns] = e.name.withMethodDesc(desc)
+        out[nsRenamer(ns)] = e.name.withMethodDesc(desc)
     }
     return out
 }
 
-internal fun FieldMapping.emitEntries(): Map<Namespace, xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor> {
+internal fun FieldMapping.emitEntries(
+    nsFilter: Collection<Namespace>? = null,
+    nsRenamer: (Namespace) -> Namespace = { it }
+): MutableMap<Namespace, xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor> {
     val remapper = (this as? FieldMappingData)?.descRemapper
     val out = newNsMap<xyz.wagyourtail.unimined.mapping.jvms.ext.FieldNameAndDescriptor>()
-    for ((ns, e) in entries) {
+    entries.forEachNsEntry { ns, e ->
+        if (nsFilter != null && ns !in nsFilter) return@forEachNsEntry
         val desc = e.descriptor as? xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
             ?: entries.descIn(ns, remapper) as? xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
-        out[ns] = e.name.withFieldDesc(desc)
+        out[nsRenamer(ns)] = e.name.withFieldDesc(desc)
     }
     return out
 }

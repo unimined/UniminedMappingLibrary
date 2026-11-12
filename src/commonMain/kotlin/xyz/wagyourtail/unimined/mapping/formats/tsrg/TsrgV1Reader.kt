@@ -39,7 +39,15 @@ object TsrgV1Reader : FormatReader {
         settings: FormatReaderSettings
     ) {
         val envType = settings.envType
-                val srcNs = Namespace(nsMapping["source"] ?: "source")
+        // machine-generated input rides unchecked factories when flagged
+        val unchk = unchecked || settings.unchecked
+        val internalName: (String) -> InternalName =
+            if (unchk) InternalName::unchecked else InternalName::read
+        val unqualifiedName: (String) -> UnqualifiedName =
+            if (unchk) UnqualifiedName::unchecked else UnqualifiedName::read
+        val methodDesc: (String) -> MethodDescriptor =
+            if (unchk) MethodDescriptor::unchecked else MethodDescriptor::read
+        val srcNs = Namespace(nsMapping["source"] ?: "source")
         val dstNs = Namespace(nsMapping["target"] ?: "target")
 
         with (into) {
@@ -62,20 +70,20 @@ object TsrgV1Reader : FormatReader {
                         throw IllegalArgumentException("invalid line: $srcName $dstName")
                     }
                     cls?.let { pop(it) }
-                    cls = push(MutableClassMapping(mapOf(srcNs to InternalName.read(srcName), dstNs to InternalName.read(dstName))))
+                    cls = push(MutableClassMapping(mapOf(srcNs to internalName(srcName), dstNs to internalName(dstName))))
                 } else {
-                    val srcName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
+                    val srcName = unqualifiedName(input.takeNextLiteral(' ')!!)
                     val dst = input.takeNextLiteral(' ')!!
                     if (dst.startsWith('(')) {
-                        val dstName = UnqualifiedName.read(input.takeNextLiteral(' ')!!)
+                        val dstName = unqualifiedName(input.takeNextLiteral(' ')!!)
                         pushed(MutableMethodMapping(
                             mapOf(
-                                srcNs to srcName.withMethodDesc(MethodDescriptor.read(dst)),
+                                srcNs to srcName.withMethodDesc(methodDesc(dst)),
                                 dstNs to dstName.withMethodDesc(null)
                             )
                         )) {}
                     } else {
-                        pushed(MutableFieldMapping(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to UnqualifiedName.read(dst).withFieldDesc(null)))) {}
+                        pushed(MutableFieldMapping(mapOf(srcNs to srcName.withFieldDesc(null), dstNs to unqualifiedName(dst).withFieldDesc(null)))) {}
                     }
                 }
             }

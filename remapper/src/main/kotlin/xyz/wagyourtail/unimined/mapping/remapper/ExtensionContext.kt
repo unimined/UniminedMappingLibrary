@@ -3,6 +3,7 @@ package xyz.wagyourtail.unimined.mapping.remapper
 import xyz.wagyourtail.unimined.mapping.GraphNamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.inheritance.HasInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.MemberGroups
 import xyz.wagyourtail.unimined.mapping.NamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
@@ -11,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.remapper
 import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
+import xyz.wagyourtail.unimined.mapping.tree.impl.ResolvingMappingTree
 
 /**
  * Per-remap view handed to [AsmExtension] instances — the mapping tree plus
@@ -56,10 +58,14 @@ class ExtensionContext(
     val reverse: NamespaceRemapper = bind(targetNs, fns)
 
     private fun bind(from: Namespace, to: Namespace): NamespaceRemapper =
-        if (tree is InheritanceBackedMappingTree) {
-            GraphNamespaceRemapper(tree, tree.inheritance, MemberGroups(tree.inheritance), from, to)
-        } else {
-            tree.remapper(from, to)
+        when (tree) {
+            // ResolvingMappingTree carries its own graph-backed resolvers —
+            // member names resolve through the shared MemberGroups the
+            // producing remap used, so lookups match what was written
+            is ResolvingMappingTree -> tree.remapper(from, to)
+            is InheritanceBackedMappingTree ->
+                GraphNamespaceRemapper(tree, tree.inheritance, MemberGroups(tree.inheritance), from, to)
+            else -> tree.remapper(from, to)
         }
 
     /** map a class internal name source → target (`base/Service` → `b`) */
@@ -101,7 +107,7 @@ class ExtensionContext(
      *  bytecode-scan disambiguator for desc-less refs when >1 tree row
      *  matches (desc-less `firstOrNull` picks wrong on overloads) */
     private fun scannedDesc(owner: String, name: String, isField: Boolean): String? {
-        val info = (tree as? InheritanceBackedMappingTree)?.inheritance
+        val info = (tree as? HasInheritanceTree)?.inheritance
             ?.classes?.get(InternalName.unchecked(owner)) ?: return null
         return if (isField) {
             info.fields.firstOrNull { it.name.value == name }?.descriptor?.toString()

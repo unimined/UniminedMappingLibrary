@@ -33,6 +33,8 @@ import kotlin.test.assertTrue
  */
 class ClassTransformExtensionTest {
 
+    private val DONT_REMAP = "Lxyz/wagyourtail/unimined/jarmodagent/transformer/annotation/DontRemap;"
+
     private fun tree() = treeOf().apply {
         cls("a/b", "pkg/Target").apply {
             method("a;()V", "foo;()V")
@@ -41,10 +43,20 @@ class ClassTransformExtensionTest {
     }
 
     /** `mod/Transformer` — `@CTransformer(pkg/Target)` + `@CInject`/`@CTarget`/`@CShadow` */
-    private fun transformerBytes() = classBytes("mod/Transformer") {
+    private fun transformerBytes(
+        methodDontRemap: List<Any?>? = null,
+        secondInject: Boolean = false,
+        classDontRemap: List<Any?>? = null,
+    ) = classBytes("mod/Transformer") {
+        if (classDontRemap != null) {
+            (visitAnnotation(DONT_REMAP, true) as AnnotationNode).values = classDontRemap
+        }
         val cta = visitAnnotation("Lnet/lenni0451/classtransform/annotations/CTransformer;", true) as AnnotationNode
         cta.values = listOf("value", listOf(Type.getObjectType("pkg/Target")))
         methods.add(voidMethod("injectFoo").apply {
+            if (methodDontRemap != null) {
+                (visitAnnotation(DONT_REMAP, true) as AnnotationNode).values = methodDontRemap
+            }
             val inject = visitAnnotation("Lnet/lenni0451/classtransform/annotations/injection/CInject;", true) as AnnotationNode
             inject.values = listOf(
                 "method", "foo()V",
@@ -52,6 +64,10 @@ class ClassTransformExtensionTest {
                     values = listOf("value", "INVOKE", "target", "Lpkg/Target;foo()V")
                 },
             )
+            if (secondInject) {
+                (visitAnnotation("Lnet/lenni0451/classtransform/annotations/injection/CInject;", true) as AnnotationNode)
+                    .values = listOf("method", "foo()V")
+            }
         })
         fields.add(org.objectweb.asm.tree.FieldNode(
             org.objectweb.asm.Opcodes.ACC_PUBLIC, "baz", "I", null, null,
@@ -60,10 +76,12 @@ class ClassTransformExtensionTest {
         })
     }
 
-    private fun remap(): java.nio.file.Path {
+    private fun remap(): java.nio.file.Path = remap(transformerBytes())
+
+    private fun remap(bytes: ByteArray): java.nio.file.Path {
         val dir = createTempDirectory()
         val input = dir.resolve("in.jar"); val out = dir.resolve("out.jar")
-        writeJar(input, mapOf("mod/Transformer.class" to transformerBytes()))
+        writeJar(input, mapOf("mod/Transformer.class" to bytes))
         AsmRemapper.remap(input, out, tree(), named, obf, Options(
             extensions = BuiltinAsmExtensions.defaults() +
                 AsmExtensionFactory { ctx -> ClassTransformExtension(ctx) },
@@ -143,6 +161,79 @@ class ClassTransformExtensionTest {
         // "foo()V" matched a refmap key → replaced by its remapped canonical value
         assertEquals("La/b;a()V", vals[vals.indexOf("method") + 1])
         // member names are NOT touched in verbatim mode
+        assertEquals("baz", transformer.fields.single().name)
+    }
+
+    /** JMA `@DontRemap` — suppresses the next annotation on the same element;
+     *  other elements and non-suppressed annotations remap normally */
+    @Test
+    fun dontRemapSuppressesNextAnnotation() {
+        val out = remap(transformerBytes(methodDontRemap = emptyList(), secondInject = true))
+        val transformer = readClasses(out).getValue("mod/Transformer")
+        val injects = transformer.methods.single { it.name == "injectFoo" }.visibleAnnotations
+            .filter { it.desc == "Lnet/lenni0451/classtransform/annotations/injection/CInject;" }
+        assertEquals(2, injects.size)
+        // suppressed — value stays source-named
+        assertEquals("foo()V", injects[0].values[injects[0].values.indexOf("method") + 1])
+        // suppression clears after one annotation — the second inject remaps
+        assertEquals("a()V", injects[1].values[injects[1].values.indexOf("method") + 1])
+        // other elements unaffected: shadow field + class targets remap
+        assertEquals("a", transformer.fields.single().name)
+        val classAnn = transformer.visibleAnnotations.single { it.desc.endsWith("CTransformer;") }
+        val targets = classAnn.values[classAnn.values.indexOf("value") + 1] as List<*>
+        assertEquals("a/b", (targets.single() as Type).internalName)
+    }
+
+    /** `value` narrows suppression to listed annotation types */
+    @Test
+    fun dontRemapValueFilter() {
+        // filter names CInject → suppressed
+        remap(transformerBytes(methodDontRemap = listOf(
+            "value", listOf(Type.getObjectType("net/lenni0451/classtransform/annotations/injection/CInject")),
+        ))).let { out ->
+            val inject = readClasses(out).getValue("mod/Transformer")
+                .methods.single().visibleAnnotations
+                .single { it.desc.endsWith("injection/CInject;") }
+            assertEquals("foo()V", inject.values[inject.values.indexOf("method") + 1])
+        }
+        // filter names another type → CInject still remaps
+        remap(transformerBytes(methodDontRemap = listOf(
+            "value", listOf(Type.getObjectType("net/lenni0451/classtransform/annotations/CSlice")),
+        ))).let { out ->
+            val inject = readClasses(out).getValue("mod/Transformer")
+                .methods.single().visibleAnnotations
+                .single { it.desc.endsWith("injection/CInject;") }
+            assertEquals("a()V", inject.values[inject.values.indexOf("method") + 1])
+        }
+    }
+
+    /** `skip = true` keeps suppression armed for every later annotation */
+    @Test
+    fun dontRemapSkipPersists() {
+        val out = remap(transformerBytes(
+            methodDontRemap = listOf("skip", true),
+            secondInject = true,
+        ))
+        val injects = readClasses(out).getValue("mod/Transformer")
+            .methods.single { it.name == "injectFoo" }.visibleAnnotations
+            .filter { it.desc.endsWith("injection/CInject;") }
+        assertEquals(2, injects.size)
+        injects.forEach {
+            assertEquals("foo()V", it.values[it.values.indexOf("method") + 1])
+        }
+    }
+
+    /** class-level `@DontRemap` suppresses the `@CTransformer` marker —
+     *  member renames don't run. The generic `Type` desc remap still applies
+     *  (as in legacy — DontRemap only gates the JMA-specific target/remap
+     *  visitors, never core desc remapping) */
+    @Test
+    fun dontRemapClassLevel() {
+        val out = remap(transformerBytes(classDontRemap = emptyList()))
+        val transformer = readClasses(out).getValue("mod/Transformer")
+        val classAnn = transformer.visibleAnnotations.single { it.desc.endsWith("CTransformer;") }
+        val targets = classAnn.values[classAnn.values.indexOf("value") + 1] as List<*>
+        assertEquals("a/b", (targets.single() as Type).internalName)
         assertEquals("baz", transformer.fields.single().name)
     }
 

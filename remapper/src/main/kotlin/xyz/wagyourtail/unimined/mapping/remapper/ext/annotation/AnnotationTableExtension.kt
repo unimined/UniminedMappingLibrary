@@ -125,8 +125,10 @@ class AnnotationTableExtension(
         val list = mutableListOf<MemberRename>()
         recorder?.currentMixin = ctx.mapClass(node.name)
         for (m in node.methods) {
-            for (ann in table.annotations(m)) {
-                if (!table.isRemapEnabled(ann)) continue
+            val anns = table.annotations(m)
+            val suppressed = table.dontRemapSuppressed(anns)
+            for (ann in anns) {
+                if (ann in suppressed || !table.isRemapEnabled(ann)) continue
                 if (table.isAccessor(ann) || table.isInvoker(ann)) {
                     val isField = table.isAccessor(ann)
                     val explicit = table.explicitValue(ann)
@@ -187,8 +189,10 @@ class AnnotationTableExtension(
             }
         }
         for (f in node.fields) {
-            for (ann in table.annotations(f)) {
-                if (table.isShadow(ann) && table.isRemapEnabled(ann)) {
+            val anns = table.annotations(f)
+            val suppressed = table.dontRemapSuppressed(anns)
+            for (ann in anns) {
+                if (ann !in suppressed && table.isShadow(ann) && table.isRemapEnabled(ann)) {
                     rename@ for ((prefix, cand) in table.shadowCandidates(f.name, ann)) {
                         for (t in targets) {
                             val mapped = ctx.mapField(t, cand, ctx.reverseDesc(f.desc, true))
@@ -275,9 +279,19 @@ class AnnotationTableExtension(
         if (!table.mixinRemapEnabled(output)) return
         recorder?.currentMixin = output.name
         if (mode == AnnotationApplyMode.REFMAP) {
-            for (ann in table.annotations(output)) rewriteVerbatim(ann)
-            for (m in output.methods) for (ann in table.annotations(m)) rewriteVerbatim(ann)
-            for (f in output.fields) for (ann in table.annotations(f)) rewriteVerbatim(ann)
+            val clsAnns = table.annotations(output)
+            val clsSup = table.dontRemapSuppressed(clsAnns)
+            for (ann in clsAnns) if (ann !in clsSup) rewriteVerbatim(ann)
+            for (m in output.methods) {
+                val anns = table.annotations(m)
+                val sup = table.dontRemapSuppressed(anns)
+                for (ann in anns) if (ann !in sup) rewriteVerbatim(ann)
+            }
+            for (f in output.fields) {
+                val anns = table.annotations(f)
+                val sup = table.dontRemapSuppressed(anns)
+                for (ann in anns) if (ann !in sup) rewriteVerbatim(ann)
+            }
             recorder?.currentMixin = null
             return
         }
@@ -292,12 +306,18 @@ class AnnotationTableExtension(
         applyDeclRenames(output)
 
         // annotation param rewrites — class-level first (targets feed recording)
-        for (ann in table.annotations(output)) table.rewrite(ann, ctx, listOf(output.name), recorder)
+        val clsAnns = table.annotations(output)
+        val clsSup = table.dontRemapSuppressed(clsAnns)
+        for (ann in clsAnns) if (ann !in clsSup) table.rewrite(ann, ctx, listOf(output.name), recorder)
         for (m in output.methods) {
-            for (ann in table.annotations(m)) table.rewrite(ann, ctx, targets, recorder)
+            val anns = table.annotations(m)
+            val sup = table.dontRemapSuppressed(anns)
+            for (ann in anns) if (ann !in sup) table.rewrite(ann, ctx, targets, recorder)
         }
         for (f in output.fields) {
-            for (ann in table.annotations(f)) table.rewrite(ann, ctx, targets, recorder)
+            val anns = table.annotations(f)
+            val sup = table.dontRemapSuppressed(anns)
+            for (ann in anns) if (ann !in sup) table.rewrite(ann, ctx, targets, recorder)
         }
         recorder?.currentMixin = null
     }

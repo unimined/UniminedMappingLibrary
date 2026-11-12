@@ -23,11 +23,12 @@ import xyz.wagyourtail.unimined.mapping.element.metadata.InnerClassElement
 import xyz.wagyourtail.unimined.mapping.element.metadata.MutableMetadataParent
 import xyz.wagyourtail.unimined.mapping.jvms.ext.FullyQualifiedName
 import xyz.wagyourtail.unimined.mapping.serialization.*
+import xyz.wagyourtail.unimined.mapping.newNsMap
 
 @Serializable
 data class InnerClassElementData(
     override val type: InnerType,
-    override val names: MutableMap<Namespace, Pair<String, FullyQualifiedName?>> = mutableMapOf(),
+    override val names: MutableMap<Namespace, Pair<String, FullyQualifiedName?>> = newNsMap(),
     override val metadata: MutableList<MetadataElementData> = mutableListOf()
 ) : MetadataElementData(), InnerClassElement, MutableMetadataParent {
 
