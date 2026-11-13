@@ -65,18 +65,28 @@ data class Javadoc(val segments: List<DocSegment>) : Type {
 
         private fun readTag(reader: CharReader<*>, tag: DocTag): DocSegment? {
             reader.expect(tag.open)
-            val body = when (tag) {
-                DocTag.KDOC -> reader.takeUntil { it == ']' }.also { if (!reader.exhausted()) reader.expect(']') }
-                DocTag.LINK, DocTag.LINKPLAIN, DocTag.VALUE ->
-                    reader.takeUntil { it == '}' }.also { if (!reader.exhausted()) reader.expect('}') }
-                else -> reader.takeUntil { it == '\n' || it == '\r' }
-            }
+            // probe the body on a copy first — committing consumption
+            // before validating the ref is lossy: an invalid candidate
+            // (`[/x]`, `{@code byte[)}`, ...) would return null with its
+            // body already eaten, collapsing `[...]` to `[` and, when
+            // the closer isn't nearby, truncating the rest of the doc.
+            val probe = reader.copy()
+            val body = probe.takeBody(tag)
             val (refText, label) = splitLabel(body)
             val trimmed = refText.trim()
             // quoted/`html` @see forms aren't refs — stay text
             if (trimmed.isEmpty() || (!trimmed[0].isLetterOrDigit() && trimmed[0] != '#')) return null
             val ref = runCatching { DocRef.unchecked(trimmed) }.getOrNull() ?: return null
+            // valid — commit the identical span on the real reader
+            reader.takeBody(tag)
             return DocSegment.TagSegment(tag, ref, label?.takeIf { it.isNotEmpty() })
+        }
+
+        private fun CharReader<*>.takeBody(tag: DocTag): String = when (tag) {
+            DocTag.KDOC -> takeUntil { it == ']' }.also { if (!exhausted()) expect(']') }
+            DocTag.LINK, DocTag.LINKPLAIN, DocTag.VALUE ->
+                takeUntil { it == '}' }.also { if (!exhausted()) expect('}') }
+            else -> takeUntil { it == '\n' || it == '\r' }
         }
 
         private fun splitLabel(body: String): Pair<String, String?> {
