@@ -361,8 +361,11 @@ class TargetMixin {
         }
         assertTrue("doIt()V" in text, "kt @Inject method: $text")
         assertTrue("mappedField" in text, "kt @Shadow rename: $text")
-        assertTrue("fun doIt()" in text, "invoker decl renamed: $text")
-        assertTrue("inv_1" !in text.replace("inv_1() = Unit","").replace("fun inv_1",""), "call ref renamed: $text")
+        // explicit-value invoker: member name is a contract — kept on
+        // both decl and call ref (bytecode parity); the annotation's own
+        // value carries the target
+        assertTrue("fun inv_1()" in text, "invoker decl kept: $text")
+        assertTrue("= inv_1()" in text, "call ref kept: $text")
     }
 
     /** a class moving packages relocates its source file and rewrites the

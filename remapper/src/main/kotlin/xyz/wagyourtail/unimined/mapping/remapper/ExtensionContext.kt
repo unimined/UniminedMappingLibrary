@@ -109,10 +109,14 @@ class ExtensionContext(
     private fun scannedDesc(owner: String, name: String, isField: Boolean): String? {
         val info = (tree as? HasInheritanceTree)?.inheritance
             ?.classes?.get(InternalName.unchecked(owner)) ?: return null
+        // declared members rank ahead of synthetic/bridge — the AP's element
+        // model never sees synthetics, so a name-only ref canonically resolves
+        // to the declaration; all-synthetic matches (lambdas) still resolve
         return if (isField) {
-            info.fields.firstOrNull { it.name.value == name }?.descriptor?.toString()
+            // no bridge bit on fields — 0x40 is VOLATILE there
+            info.fields.filter { it.name.value == name }.minByOrNull { it.isSynthetic }?.descriptor?.toString()
         } else {
-            info.methods.firstOrNull { it.name.value == name }?.descriptor?.toString()
+            info.methods.filter { it.name.value == name }.minByOrNull { it.isSynthetic || it.isBridge }?.descriptor?.toString()
         }
     }
 

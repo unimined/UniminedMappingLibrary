@@ -237,20 +237,19 @@ class MixinExtension(
                 putJsonObject(m) { e.forEach { (k, v) -> put(k, v) } }
             }
         }
-        // `data` alternate-environment sections — mixin keys re-key the same
-        // way (`ctx.mapClass`); env-specific values get the same source→target
-        // remap attempt as `mappings` (tables in other namespaces — e.g. a
-        // `searge` block under an official→mcp remap — can't resolve and stay
-        // verbatim)
+        // `data` alternate-environment sections pass through verbatim with
+        // mixin keys re-keyed: each env table already holds refs in that
+        // env's namespace (`searge`, `named:intermediary`), so remapping
+        // values would store target-space refs under a foreign env label.
+        // The remapped jar still serves those envs — e.g. liteloader's
+        // `data.searge` backs prod launches of the same artifact.
         val data = (old?.get("data") as? JsonObject)?.let { oldData ->
             buildJsonObject {
                 oldData.forEach { (env, envMap) ->
                     putJsonObject(env) {
                         (envMap as? JsonObject)?.forEach { (mixin, clsEntries) ->
                             putJsonObject(ctx.mapClass(mixin)) {
-                                (clsEntries as? JsonObject)?.forEach { (k, v) ->
-                                    put(k, JsonPrimitive(remapRefmapValue(v, mixinTargets[mixin] ?: emptyList())))
-                                }
+                                (clsEntries as? JsonObject)?.forEach { (k, v) -> put(k, v) }
                             }
                         }
                     }

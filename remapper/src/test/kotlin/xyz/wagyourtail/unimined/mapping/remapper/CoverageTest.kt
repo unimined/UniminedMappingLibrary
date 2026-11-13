@@ -480,6 +480,14 @@ class CoverageTest {
 
         writeJar(input, mapOf(
             "mod.mixins.json" to mixinsJson,
+            // shipped refmap — env-keyed `data` dies on remap (a remapped
+            // jar is single-namespace; foreign top-level keys survive)
+            "mod-refmap.json" to """{
+                "mappings": {"b/Mix": {"oldKey": "La/Target;m_1()V"}},
+                "data": {"named:intermediary": {"b/Mix": {"oldKey": "La/Target;m_1()V"}},
+                         "searge": {"b/Mix": {"oldKey": "La/Target;m_1()V"}}},
+                "other": {"keep": true}
+            }""".encodeToByteArray(),
             "a/Target.class" to classBytes("a/Target") {
                 methods.add(voidMethod("m_1"))
                 fields.add(FieldNode(Opcodes.ACC_PRIVATE, "f_1", "I", null, null))
@@ -530,6 +538,89 @@ class CoverageTest {
         assertEquals("Lx/Target;doIt()V", mixEntries["m_1()V"]?.jsonPrimitive?.content)
         assertEquals("x/Target", mixEntries["a/Target"]?.jsonPrimitive?.content)
         assertTrue(mixEntries.containsKey("m_1"), "shadow entry: $mixEntries")
+        assertEquals("Lx/Target;mappedField:I", mixEntries["f_1"]?.jsonPrimitive?.content)
+        // shipped `mappings` merged + remapped; `data` env tables survive
+        // verbatim (their values are already env-space refs — remapping
+        // them would mislabel target-space refs under a foreign env);
+        // foreign top-level keys preserved
+        assertEquals("Lx/Target;doIt()V", mixEntries["oldKey"]?.jsonPrimitive?.content)
+        val data = refmap.getValue("data").jsonObject
+        assertEquals(
+            "La/Target;m_1()V",
+            data.getValue("searge").jsonObject.getValue("b/Mix").jsonObject["oldKey"]?.jsonPrimitive?.content
+        )
+        assertTrue("named:intermediary" in data.keys, "env tables preserved: ${data.keys}")
+        assertEquals(true, (refmap["other"]?.jsonObject?.get("keep")?.jsonPrimitive as?
+            kotlinx.serialization.json.JsonPrimitive)?.content.toBoolean())
+    }
+
+    /** accessor/invoker member names are interface contracts — when the
+     *  mixin implements an iface, the impl-side name must stay equal to
+     *  the iface decl (the iface may live outside the remapped set), so
+     *  bound members keep their source name while the refmap still
+     *  records the target mapping. Repro: iface `getF_1` + impl renamed
+     *  `getMappedField` → AbstractMethodError at runtime. */
+    @Test
+    fun accessorNameOnInterfaceBoundMixinIsKept() {
+        val dir = createTempDirectory()
+        val input = dir.resolve("in.jar"); val output = dir.resolve("out.jar")
+
+        val tree = treeOf()
+        val target = tree.cls("a/Target", "x/Target")
+        target.field("f_1;I", "mappedField;I")
+
+        writeJar(input, mapOf(
+            "mod.mixins.json" to """{"package":"b","mixins":["Mix"],"refmap":"mod-refmap.json"}""".encodeToByteArray(),
+            "a/Target.class" to classBytes("a/Target") {
+                fields.add(FieldNode(Opcodes.ACC_PRIVATE, "f_1", "I", null, null))
+            },
+            "b/IAcc.class" to classBytes("b/IAcc",
+                Opcodes.ACC_PUBLIC or Opcodes.ACC_INTERFACE or Opcodes.ACC_ABSTRACT) {
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC or Opcodes.ACC_ABSTRACT, "getF_1", "()I", null, null))
+            },
+            "b/Mix.class" to classBytes("b/Mix") {
+                interfaces = listOf("b/IAcc")
+                visibleAnnotations = listOf(AnnotationNode("Lorg/spongepowered/asm/mixin/Mixin;").apply {
+                    values = listOf("targets", listOf("a/Target"))
+                })
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC, "getF_1", "()I", null, null).apply {
+                    visibleAnnotations = listOf(AnnotationNode("Lorg/spongepowered/asm/mixin/gen/Accessor;"))
+                    visitCode(); visitInsn(Opcodes.ICONST_0); visitInsn(Opcodes.IRETURN); visitMaxs(1, 1); visitEnd()
+                })
+            },
+            "c/Caller.class" to classBytes("c/Caller") {
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC, "use", "(Lb/IAcc;)I", null, null).apply {
+                    visitCode()
+                    visitVarInsn(Opcodes.ALOAD, 0)
+                    visitMethodInsn(Opcodes.INVOKEINTERFACE, "b/IAcc", "getF_1", "()I", true)
+                    visitInsn(Opcodes.IRETURN)
+                    visitMaxs(1, 1)
+                    visitEnd()
+                })
+            },
+        ))
+        AsmRemapper.remap(input, output, tree, obf, named, Options(extensions = listOf(
+            xyz.wagyourtail.unimined.mapping.remapper.asm.AsmExtensionFactory { ctx ->
+                xyz.wagyourtail.unimined.mapping.remapper.ext.mixin.MixinExtension(ctx)
+            }
+        )))
+
+        val classes = readClasses(output)
+        // impl + iface decl + callsite all keep the contract name
+        assertTrue(classes.getValue("b/Mix").methods.any { it.name == "getF_1" },
+            "impl decl: ${classes.getValue("b/Mix").methods.map { it.name }}")
+        assertTrue(classes.getValue("b/IAcc").methods.any { it.name == "getF_1" },
+            "iface decl: ${classes.getValue("b/IAcc").methods.map { it.name }}")
+        val calls = classes.getValue("c/Caller").methods.first { it.name == "use" }
+            .instructions.toArray().filterIsInstance<MethodInsnNode>()
+        assertTrue(calls.all { it.name == "getF_1" }, "callsite: ${calls.map { it.owner + "." + it.name }}")
+
+        // target mapping still lands in the refmap for runtime resolution
+        val refmapBytes = java.util.zip.ZipFile(output.toFile()).use {
+            it.getInputStream(it.getEntry("mod-refmap.json")).readBytes().decodeToString()
+        }
+        val mixEntries = kotlinx.serialization.json.Json.parseToJsonElement(refmapBytes).jsonObject
+            .getValue("mappings").jsonObject.getValue("b/Mix").jsonObject
         assertEquals("Lx/Target;mappedField:I", mixEntries["f_1"]?.jsonPrimitive?.content)
     }
 

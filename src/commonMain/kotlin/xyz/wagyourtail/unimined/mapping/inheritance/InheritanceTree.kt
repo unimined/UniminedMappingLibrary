@@ -183,6 +183,9 @@ abstract class InheritanceTree {
         var access: Int
     ) {
 
+        val isSynthetic get() = access and AccessFlag.SYNTHETIC.access != 0
+        val isBridge get() = access and AccessFlag.BRIDGE.access != 0
+
         val value get() = name.withMethodDesc(descriptor)
 
         override fun toString(): String {
@@ -204,6 +207,9 @@ abstract class InheritanceTree {
         val descriptor: FieldDescriptor,
         var access: Int
     ) {
+
+        /** 0x40 on fields is VOLATILE — a real modifier — so no isBridge here */
+        val isSynthetic get() = access and AccessFlag.SYNTHETIC.access != 0
 
         val value get() = name.withFieldDesc(descriptor)
 

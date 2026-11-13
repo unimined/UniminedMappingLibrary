@@ -98,17 +98,33 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
         )
 
         private fun scanJar(jar: Path): Sequence<Pair<InternalName, RawClassInfo>> {
-            // read the whole jar — fileSeekableSource round-trips through
-            // a String path; a plain byte read avoids any
-            // path-resolution surprises
-            val raw = ZipFile(java.nio.file.Files.readAllBytes(jar)).use { zf ->
-                zf.entries.asSequence().mapNotNull {
-                    if (!it.isDirectory && !it.name.startsWith("META-INF/versions") && it.name.endsWith(".class")) {
-                        it.name to zf.getInputStream(it).use { stream -> stream.readBytes() }
-                    } else {
-                        null
-                    }
-                }.toList()
+            val raw: List<Pair<String, ByteArray>> = if (java.nio.file.Files.isDirectory(jar)) {
+                // exploded classpath entry (Gradle sourceSet outputs) —
+                // class names relativize to the same slash form zips use
+                java.nio.file.Files.walk(jar).use { stream ->
+                    stream.filter { file ->
+                        java.nio.file.Files.isRegularFile(file) &&
+                            file.toString().endsWith(".class") &&
+                            !jar.relativize(file).joinToString("/")
+                                .startsWith("META-INF/versions")
+                    }.map { file ->
+                        jar.relativize(file).joinToString("/") to
+                                java.nio.file.Files.readAllBytes(file)
+                    }.collect(Collectors.toList())
+                }
+            } else {
+                // read the whole jar — fileSeekableSource round-trips through
+                // a String path; a plain byte read avoids any
+                // path-resolution surprises
+                ZipFile(java.nio.file.Files.readAllBytes(jar)).use { zf ->
+                    zf.entries.asSequence().mapNotNull {
+                        if (!it.isDirectory && !it.name.startsWith("META-INF/versions") && it.name.endsWith(".class")) {
+                            it.name to zf.getInputStream(it).use { stream -> stream.readBytes() }
+                        } else {
+                            null
+                        }
+                    }.toList()
+                }
             }
             // ClassReader parses are independent — parallelize per class,
             // not just per jar (a single merged jar dominates real inputs)

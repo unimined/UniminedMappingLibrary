@@ -7,6 +7,7 @@ import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
@@ -60,12 +61,16 @@ class MemberGroups(val inheritance: InheritanceTree) {
         /** losing candidates per ns — conflict bookkeeping (deterministic:
          *  resolution picks sorted-first, count returned by [propagate]). */
         val candidates = newNsMap<MutableSet<UnqualifiedName>>()
-        /** candidates whose row name equals their fns name — identity /
-         *  no-op stamps (e.g. unobf-completion fills). They lose to any
-         *  real rename in the component: a completed `a` on an unmapped
-         *  implementing member must not degrade a real `m_*`/`f_*` row
-         *  declared elsewhere in the same virtual-method group. */
-        internal val identityCandidates = newNsMap<MutableSet<UnqualifiedName>>()
+        /** candidates stamped by a row as a genuine rename for that ns —
+         *  i.e. the name differs from every other ns column on its own
+         *  row. Names that merely echo a sibling column (identity /
+         *  no-op stamps, e.g. unobf-completion fills and hop-fills like
+         *  an official `a` copied into `intermediary`) are never added
+         *  here: they lose to any real rename in the component, because
+         *  a completed `a` on an unmapped implementing member must not
+         *  degrade a real `m_*`/`f_*` row declared elsewhere in the same
+         *  virtual-method group. */
+        internal val genuineNames = newNsMap<MutableSet<UnqualifiedName>>()
     }
 
     // union-find over virtual method members
@@ -105,8 +110,8 @@ class MemberGroups(val inheritance: InheritanceTree) {
                 loser.candidates.forEach { (ns, s) ->
                     winner.candidates.getOrPut(ns) { mutableSetOf() }.addAll(s)
                 }
-                loser.identityCandidates.forEach { (ns, s) ->
-                    winner.identityCandidates.getOrPut(ns) { mutableSetOf() }.addAll(s)
+                loser.genuineNames.forEach { (ns, s) ->
+                    winner.genuineNames.getOrPut(ns) { mutableSetOf() }.addAll(s)
                 }
                 loser.candidateMembers.forEach { (ns, m) ->
                     val wm = winner.candidateMembers.getOrPut(ns) { mutableMapOf() }
@@ -237,6 +242,84 @@ class MemberGroups(val inheritance: InheritanceTree) {
         }
 
     /**
+     * The unique method named [name] (and [desc], when non-null)
+     * declaring anywhere in [info]'s hierarchy — the resolver-side
+     * analogue of Tiny Remapper's `resolveUnique`. Collects self plus
+     * the nearest-per-branch declaring ancestors (a declaration ends
+     * its branch's climb, like [fieldChain]), then collapses matches
+     * by union component: diamond re-declarations of one override set
+     * count once, while genuinely distinct components make the name
+     * ambiguous. Returns the nearest match, or `null` when nothing
+     * declares it / the name is ambiguous.
+     */
+    fun resolveUniqueMethod(
+        info: InheritanceTree.ClassInfo,
+        name: UnqualifiedName,
+        desc: MethodDescriptor? = null
+    ): MethodMember? {
+        fun declared(c: InheritanceTree.ClassInfo) =
+            c.methods.filter { it.name == name && (desc == null || it.descriptor == desc) }
+        build()
+        return lock.withLock {
+            val found = mutableListOf<MethodMember>()
+            declared(info).mapTo(found) { MethodMember(info, it) }
+            val visited = mutableSetOf(info)
+            val queue = ArrayDeque(parentsOf(info))
+            while (queue.isNotEmpty()) {
+                val c = queue.removeFirst()
+                if (!visited.add(c)) continue
+                val ms = declared(c)
+                if (ms.isNotEmpty()) {
+                    ms.mapTo(found) { MethodMember(c, it) }
+                } else {
+                    queue.addAll(parentsOf(c))
+                }
+            }
+            // collapse by component — re-declared overrides of one
+            // logical method (diamonds) count once; distinct
+            // components are genuinely ambiguous
+            val canonicals = found.mapTo(mutableSetOf()) {
+                resolve(it.cls, it.info)
+                find(it)
+            }
+            if (canonicals.size == 1) found.first() else null
+        }
+    }
+
+    /**
+     * The unique field named [name] (and [desc], when non-null)
+     * declaring anywhere in [info]'s hierarchy — the [fieldChain]
+     * boundary restricted to one member: `null` when nothing matches
+     * or multiple visible declarations make the name ambiguous
+     * (fields never merge — a shadowed ancestor stays a distinct
+     * member, unlike methods collapsing by component).
+     */
+    fun resolveUniqueField(
+        info: InheritanceTree.ClassInfo,
+        name: UnqualifiedName,
+        desc: FieldDescriptor? = null
+    ): FieldMember? {
+        val found = mutableListOf<FieldMember>()
+        lock.withLock {
+            info.fields.firstOrNull { it.name == name && (desc == null || it.descriptor == desc) }
+                ?.let { found += FieldMember(info, it) }
+            val visited = mutableSetOf(info)
+            val queue = ArrayDeque(parentsOf(info))
+            while (queue.isNotEmpty()) {
+                val c = queue.removeFirst()
+                if (!visited.add(c)) continue
+                val m = c.fields.firstOrNull { it.name == name && (desc == null || it.descriptor == desc) }
+                if (m != null) {
+                    found += FieldMember(c, m)
+                } else {
+                    queue.addAll(parentsOf(c))
+                }
+            }
+        }
+        return found.singleOrNull()
+    }
+
+    /**
      * Stamp every member row of [tree] into the groups — each row's
      * namespace columns land on its member's component. Conflicting
      * candidates resolve deterministically (sorted-first wins); the count
@@ -302,8 +385,11 @@ class MemberGroups(val inheritance: InheritanceTree) {
             touched?.add(group)
             for ((ns, e) in mm.entries) {
                 group.candidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
-                if (e.name == entry.name) {
-                    group.identityCandidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
+                // genuine rename: the name is distinct for this ns — it
+                // doesn't echo a sibling column (fns identity stamps and
+                // hop-fills like official `a` copied into `intermediary`)
+                if (mm.entries.none { (k, o) -> k != ns && o.name == e.name }) {
+                    group.genuineNames.getOrPut(ns) { mutableSetOf() }.add(e.name)
                 }
                 group.candidateMembers.getOrPut(ns) { mutableMapOf() }.let { m ->
                     if (e.name !in m) m[e.name] = MethodMember(info, mi)
@@ -323,13 +409,12 @@ class MemberGroups(val inheritance: InheritanceTree) {
         var conflicts = 0
         for ((ns, cands) in group.candidates) {
             if (cands.size > 1) conflicts++
-            // identity stamps (no-ops and cell completions) only
+            // echo stamps (no-ops, cell completions, hop-fills) only
             // apply when no real rename exists in the component —
             // a completed `a` on an unmapped impl loses to a
             // sibling's actual `m_*`/`f_*` name
-            val identities = group.identityCandidates[ns] ?: emptySet()
-            val real = cands.filter { it !in identities }
-            val winner = (real.ifEmpty { cands.toList() }).minBy { it.value }
+            val real = group.genuineNames[ns] ?: emptySet()
+            val winner = (real.ifEmpty { cands }).minBy { it.value }
             group.names[ns] = winner
             group.candidateMembers[ns]?.get(winner)?.let { group.origins[ns] = it }
         }

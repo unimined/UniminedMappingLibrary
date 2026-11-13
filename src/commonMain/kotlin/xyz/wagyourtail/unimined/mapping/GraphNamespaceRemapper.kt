@@ -167,10 +167,48 @@ class GraphNamespaceRemapper(
         name: UnqualifiedName,
         desc: MethodDescriptor?
     ): UnqualifiedName? {
-        if (desc == null) return null
-        val member = declaringMethod(owner, name, desc) ?: return null
+        val member = if (desc != null) {
+            declaringMethod(owner, name, desc) ?: return null
+        } else {
+            uniqueNameMatch(owner, name) ?: return null
+        }
         val group = groups.methodGroup(member.cls, member.info)
-        return group.names[to] ?: explicitMethodName(member.cls.name, name, desc)
+        return group.names[to] ?: explicitMethodName(member.cls.name, name, member.info.descriptor)
+    }
+
+    /**
+     * The nearest declaring class holding members named [name] (any desc) —
+     * used for desc-less refs like mixin `method=` strings, where the flat
+     * fallback would prefer an impl-class row (filled with a name echoed
+     * from another column) over the declaring row's real mapping. Resolves
+     * only when the boundary class declares the name once among its
+     * non-synthetic candidates (synthetics resolve only when nothing
+     * declared shares the name) — desc-less refs on real overloads stay
+     * ambiguous and fall back.
+     */
+    private fun uniqueNameMatch(
+        owner: InternalName,
+        name: UnqualifiedName
+    ): MemberGroups.MethodMember? {
+        val start = inheritance.classes[owner] ?: return null
+        val visited = mutableSetOf<InternalName>()
+        val queue = ArrayDeque<InheritanceTree.ClassInfo>()
+        queue.add(start)
+        while (queue.isNotEmpty()) {
+            val c = queue.removeFirst()
+            if (!visited.add(c.name)) continue
+            val matches = c.methods.filter { it.name == name }
+            // declared members rank ahead of synthetic/bridge — the AP's
+            // element model never sees synthetics, so a name-only ref
+            // canonically resolves to the declaration; all-synthetic
+            // matches (e.g. lambda$…) still resolve when nothing else exists
+            val preferred = matches.filter { !it.isSynthetic && !it.isBridge }
+            if (matches.isNotEmpty()) return (preferred.ifEmpty { matches }).singleOrNull()
+                ?.let { MemberGroups.MethodMember(c, it) }
+            c.superClass?.let { queue.add(it) }
+            queue.addAll(c.interfaceClasses)
+        }
+        return null
     }
 
     private fun explicitMethodName(
@@ -190,7 +228,7 @@ class GraphNamespaceRemapper(
     private fun declaringFieldChain(
         owner: InternalName,
         name: UnqualifiedName,
-        desc: FieldDescriptor
+        desc: FieldDescriptor?
     ): List<MemberGroups.FieldMember> {
         val start = inheritance.classes[owner] ?: return emptyList()
         val chain = mutableListOf<MemberGroups.FieldMember>()
@@ -200,8 +238,13 @@ class GraphNamespaceRemapper(
         while (queue.isNotEmpty()) {
             val c = queue.removeFirst()
             if (!visited.add(c.name)) continue
-            val m = c.fields.firstOrNull { it.name == name && it.descriptor == desc }
-            if (m != null) chain += MemberGroups.FieldMember(c, m)
+            // desc-less refs match on name alone — the boundary class's
+            // declaration then supplies the real descriptor for the row read.
+            // Declared members rank ahead of synthetic (no bridge bit on
+            // fields — 0x40 is VOLATILE there); synthetic stays in the chain
+            // as a lower-priority candidate
+            val ms = c.fields.filter { it.name == name && (desc == null || it.descriptor == desc) }
+            if (ms.isNotEmpty()) ms.sortedBy { it.isSynthetic }.mapTo(chain) { MemberGroups.FieldMember(c, it) }
             else {
                 c.superClass?.let { queue.add(it) }
                 queue.addAll(c.interfaceClasses)
@@ -215,14 +258,19 @@ class GraphNamespaceRemapper(
         name: UnqualifiedName,
         desc: FieldDescriptor?
     ): UnqualifiedName? {
-        if (desc == null) return null
         for (member in declaringFieldChain(owner, name, desc)) {
             val cls = tree.getClass(from, member.cls.name) ?: continue
-            val row = with(tree) { cls.getField(from, name, desc) } ?: continue
+            val row = with(tree) {
+                cls.getField(from, name, member.info.descriptor)
+            } ?: continue
             // identity rows (name == source name — no-ops and completed
             // cells) don't outrank a real rename on a farther ancestor —
-            // same precedence as MemberGroups method candidates
-            row.names[to]?.takeIf { it != name }?.let { return it }
+            // same precedence as MemberGroups method candidates. The test
+            // is an echo of ANY sibling column, not just the source name:
+            // impl rows filled with e.g. the official `a` must lose to the
+            // declaring member's real `field_*` name.
+            row.names[to]?.takeIf { t -> row.names.none { (k, v) -> k != to && v == t } }
+                ?.let { return it }
         }
         return null
     }

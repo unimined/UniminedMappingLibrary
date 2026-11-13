@@ -123,6 +123,17 @@ class AnnotationTableExtension(
         }
         if (targets.isEmpty()) return
         val list = mutableListOf<MemberRename>()
+        // accessor/invoker member names are interface contracts: an
+        // iface-bound impl must keep the declared name — the iface can
+        // live outside the remapped set, and neither its decl nor every
+        // callsite can be rewritten. Unbound members still rename to
+        // `verb`+target so they self-resolve where no refmap is emitted
+        // (jarmod-era runtimes). A non-Object superclass may carry the
+        // iface, so treat it as bound too; an interface node's own decls
+        // are bound by its implementors.
+        val ifaceBound = node.access and Opcodes.ACC_INTERFACE != 0 ||
+                node.interfaces.isNotEmpty() ||
+                (node.superName != null && node.superName != "java/lang/Object")
         recorder?.currentMixin = ctx.mapClass(node.name)
         for (m in node.methods) {
             val anns = table.annotations(m)
@@ -146,7 +157,9 @@ class AnnotationTableExtension(
                             )
                             list += MemberRename(
                                 m.name, ctx.mapDesc(m.desc, false),
-                                if (explicit == null) derived.first + mapped.replaceFirstChar { it.uppercaseChar() } else null,
+                                if (explicit == null && !ifaceBound)
+                                    derived.first + mapped.replaceFirstChar { it.uppercaseChar() }
+                                else null,
                                 false
                             )
                             done = true
@@ -157,7 +170,9 @@ class AnnotationTableExtension(
                         recorder?.recordMemberRename(derived.second, isField, it)
                         list += MemberRename(
                             m.name, ctx.mapDesc(m.desc, false),
-                            if (explicit == null) derived.first + it.name.replaceFirstChar { c -> c.uppercaseChar() } else null,
+                            if (explicit == null && !ifaceBound)
+                                derived.first + it.name.replaceFirstChar { c -> c.uppercaseChar() }
+                            else null,
                             false
                         )
                     }

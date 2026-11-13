@@ -79,7 +79,11 @@ object AWReader: FormatReader {
 
     data class AWMappings(
         val namespace: Namespace,
-        val targets: List<AWItem>
+        val targets: List<AWItem>,
+        /** header format version the file declared — preserved verbatim on
+         *  rewrite; v2-only directives (transitive-*) upgrade it at write
+         *  time instead of silently downgrading them */
+        val version: String = "v2"
     )
 
     override suspend fun readImpl(
@@ -216,7 +220,7 @@ object AWReader: FormatReader {
                 input.take()
             }
         }
-        return AWMappings(Namespace(namespace), targets)
+        return AWMappings(Namespace(namespace), targets, version!!)
     }
 }
 

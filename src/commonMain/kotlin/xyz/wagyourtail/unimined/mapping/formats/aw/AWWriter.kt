@@ -198,11 +198,18 @@ object AWWriter : FormatWriter {
             } else {
                 it
             }
-        })
+        }, mappings.version)
     }
 
     fun writeData(mappings: AWReader.AWMappings, append: (String) -> Unit) {
-        append("accessWidener\tv2\t${mappings.namespace.name}\n")
+        // keep the input's declared format version — a v1 file with no
+        // v2-only directives stays v1 (loaders older than 0.14 don't
+        // know v2); anything carrying transitive-* needs v2 to be valid
+        val needsV2 = mappings.targets.any {
+            it is AWReader.AWData && it.access.startsWith("transitive")
+        }
+        val version = if (needsV2) "v2" else mappings.version
+        append("accessWidener\t$version\t${mappings.namespace.name}\n")
         for ((i, target) in mappings.targets.withIndex()) {
             when (target) {
                 is AWReader.AWData -> {

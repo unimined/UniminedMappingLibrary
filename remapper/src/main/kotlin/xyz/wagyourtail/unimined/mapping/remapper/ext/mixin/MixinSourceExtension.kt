@@ -404,12 +404,19 @@ open class MixinSourceExtension(
                     ?.entries?.filterIsInstance<org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry>()
                     ?.joinToString("") { it.text }
                 if (explicitName != null && explicitName.isNotEmpty()) {
-                    for (t in hints) {
-                        val mapped = if (isField) ctx.mapField(t, explicitName, null) else ctx.mapMethod(t, explicitName, null)
-                        if (mapped != explicitName) return mapped
-                    }
+                    // explicit target — the member name is a contract, never
+                    // renamed (matches the bytecode side); the annotation's
+                    // own value param is remapped by the param rules
+                    continue
                 } else {
                     val derived = table.deriveTarget(name, isField = isField || d in table.accessorDescriptors) ?: continue
+                    // accessor/invoker names are interface contracts — a decl
+                    // on a type with supertypes may satisfy an iface decl and
+                    // must keep the name; unbound members still rename so
+                    // they self-resolve without a refmap
+                    val bound = (decl.parent?.parent as? org.jetbrains.kotlin.psi.KtClassOrObject)
+                        ?.superTypeListEntries?.isNotEmpty() == true
+                    if (bound) continue
                     for (t in hints) {
                         val mapped = if (isField || d in table.accessorDescriptors)
                             ctx.mapField(t, derived.second, null) else ctx.mapMethod(t, derived.second, null)

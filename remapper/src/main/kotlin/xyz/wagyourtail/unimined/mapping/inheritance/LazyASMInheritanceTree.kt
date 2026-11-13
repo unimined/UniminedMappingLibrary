@@ -87,6 +87,22 @@ class LazyASMInheritanceTree(
             misses += name
             return null
         }
+        if (java.nio.file.Files.isDirectory(jar)) {
+            // exploded classpath entry — plain file read
+            val file = jar.resolve("$name.class")
+            if (!java.nio.file.Files.isRegularFile(file)) {
+                misses += name
+                return null
+            }
+            val info = toClassInfo(
+                name,
+                ASMInheritanceTree.scanClass(
+                    "$name.class",
+                    java.nio.file.Files.readAllBytes(file)
+                ).second
+            )
+            return materialized.putIfAbsent(name, info) ?: info
+        }
         // ZipFile over the path — reads the central directory, not the
         // contents; only the resolved class's bytes land in memory.
         // (Previously ZipFile(readAllBytes) retained every touched
@@ -117,21 +133,40 @@ class LazyASMInheritanceTree(
 
         /** Build a class-name → jar index for [jars] — zip listings
          *  only, no class parsing. Duplicate names resolve to the
-         *  first jar on the classpath. */
+         *  first jar on the classpath. Directory entries (exploded
+         *  sourceSet outputs on Gradle classpaths) index by relative
+         *  class-file path — [materialize] reads them straight off
+         *  the filesystem. */
         fun index(jars: Set<Path>): Map<InternalName, Path> =
             jars.parallelStream().flatMap { jar ->
-                // java.util.zip.ZipFile enumerates the central directory —
-                // no jar bytes buffered (readAllBytes retained every
-                // classpath jar's contents during index builds)
-                java.util.zip.ZipFile(jar.toFile()).use { zf ->
-                    zf.entries().asSequence()
-                        .filter {
-                            !it.isDirectory &&
-                                it.name.endsWith(".class") &&
-                                !it.name.startsWith("META-INF/versions")
-                        }
-                        .map { InternalName.read(it.name.removeSuffix(".class")) to jar }
-                        .toList().stream()
+                if (java.nio.file.Files.isDirectory(jar)) {
+                    java.nio.file.Files.walk(jar).use { stream ->
+                        stream.filter { file ->
+                            java.nio.file.Files.isRegularFile(file) &&
+                                file.toString().endsWith(".class") &&
+                                !jar.relativize(file).joinToString("/")
+                                    .startsWith("META-INF/versions")
+                        }.map { file ->
+                            InternalName.read(
+                                jar.relativize(file).joinToString("/")
+                                    .removeSuffix(".class")
+                            ) to jar
+                        }.collect(Collectors.toList()).stream()
+                    }
+                } else {
+                    // java.util.zip.ZipFile enumerates the central directory —
+                    // no jar bytes buffered (readAllBytes retained every
+                    // classpath jar's contents during index builds)
+                    java.util.zip.ZipFile(jar.toFile()).use { zf ->
+                        zf.entries().asSequence()
+                            .filter {
+                                !it.isDirectory &&
+                                    it.name.endsWith(".class") &&
+                                    !it.name.startsWith("META-INF/versions")
+                            }
+                            .map { InternalName.read(it.name.removeSuffix(".class")) to jar }
+                            .toList().stream()
+                    }
                 }
             }.collect(Collectors.toMap({ it.first }, { it.second }, { a, _ -> a }))
     }
