@@ -34,6 +34,15 @@ data class MemberKey(val name: UnqualifiedName, val desc: FieldOrMethodDescripto
  * or CachedInheritanceTree), then writes through [clazz]/[MutableClassMapping.method]/etc.
  * flow down to descendants automatically. names written through this wrapper are treated as
  * explicitly-set and are not overwritten by later inherited values.
+ *
+ * Access changes (`AccessElement` metadata — AT/AW widening) fold into
+ * the scanned flags on two paths only: the constructor's one-shot
+ * [InheritanceTree.applyAccessChanges] over the source tree, and the
+ * `push`/`pop` stream (member rows at pop, class-scoped wildcard folds
+ * at wildcard pop — late member rows still see the mutated flags).
+ * `AccessElement`s attached via the typed API *after* construction —
+ * `cls.wildcard(...)`, `member.addMetadata(...)` — are never folded;
+ * call [refoldAccessChanges] once after such edits.
  */
 class InheritanceBackedMappingTree private constructor(
     private val delegate: MutableMappingTree,
@@ -141,11 +150,36 @@ class InheritanceBackedMappingTree private constructor(
         }
     }
 
+    /**
+     * Re-fold every declared `AccessElement` in the tree — member rows
+     * and wildcards alike — into the scanned member flags, then re-drive
+     * each member row through the propagating factories so widened
+     * members propagate under the updated flags.
+     *
+     * The streamed `push`/`pop` path folds per-row as elements pop
+     * ([foldMemberAccess]/[foldWildcardAccess]), and the source-tree
+     * constructor folds once up front ([InheritanceTree.applyAccessChanges]).
+     * What those paths miss: `AccessElement`s attached through the
+     * *typed API* after construction — `cls.wildcard(...)`,
+     * `method.addMetadata(AccessElement)` — because the elements aren't
+     * attached yet when the factory call runs. Call this once after
+     * such edits (equivalent to remapper's `applyAccessChanges`
+     * pre-pass, run lazily here so incremental writers aren't taxed).
+     */
+    fun refoldAccessChanges() {
+        inheritance.applyAccessChanges(delegate)
+        for (cls in delegate.classes.toList()) {
+            val pc = clazz(cls.names)
+            for (m in cls.methods.toList()) pc.method(m.entries)
+            for (f in cls.fields.toList()) pc.field(f.entries)
+        }
+    }
+
     /** fold a just-pushed row's declared `AccessElement`s into the scanned
      *  member flags — the lazy per-row version of
      *  [InheritanceTree.applyAccessChanges] for streamed pushes. Wildcard ATs
-     *  aren't handled here — bulk/whole-tree folds need [applyAccessChanges]
-     *  or the reader's `prepare` hook. */
+     *  aren't handled here — [foldWildcardAccess] covers them on pop; see
+     *  [refoldAccessChanges] for direct-API edits. */
     private fun foldMemberAccess(cls: MutableClassMapping, element: xyz.wagyourtail.unimined.mapping.element.MappingElement) {
         val info = inheritance.classInfo(cls.names[inheritance.fns] ?: return) ?: return
         val els = (element as? MetadataParent)?.metadata?.filterIsInstance<xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement>() ?: return

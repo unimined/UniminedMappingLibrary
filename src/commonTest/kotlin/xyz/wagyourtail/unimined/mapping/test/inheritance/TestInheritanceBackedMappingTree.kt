@@ -19,6 +19,7 @@ import xyz.wagyourtail.unimined.mapping.tree.impl.InheritanceBackedMappingTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 
 class TestInheritanceBackedMappingTree {
 
@@ -351,6 +352,94 @@ class TestInheritanceBackedMappingTree {
 
         assertEquals("aP", methodEntries(tree, "clsB", "methodP")[named],
             "widened private parent should propagate its name to the child override")
+    }
+
+
+    /** streamed wildcard fold: a class-scoped wildcard AT pushed through
+     *  emit must fold into the scanned flags at pop, then re-drive the
+     *  class's member rows — here a private parent member widened by the
+     *  wildcard propagates its name to the child override. */
+    @Test
+    fun emitFoldsWildcardAccess() = runTest {
+        val it2 = CachedInheritanceTree(MutableMappingTree(), StringCharReader("""
+            umf_it 1 0
+            intermediary
+            clsA
+             private methodP ()V
+            clsB clsA
+             private methodP ()V
+        """.trimIndent()))
+        val tree = InheritanceBackedMappingTree(MutableMappingTree(setOf(intermediary, named)), it2)
+
+        val src = MutableMappingTree(setOf(intermediary, named))
+        val clsA = src.clazz(mapOf(intermediary to InternalName.unchecked("clsA")))
+        // member row first — exercises the re-drive on wildcard pop
+        clsA.method(mapOf(
+            intermediary to MethodNameAndDescriptor.unchecked("methodP;()V"),
+            named to MethodNameAndDescriptor.unchecked("aP;()V")
+        ))
+        val w = clsA.wildcard(
+            xyz.wagyourtail.unimined.mapping.element.WildcardType.METHOD,
+            mapOf(intermediary to xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor.unchecked("()V"))
+        )
+        w.addMetadata(xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement(
+            xyz.wagyourtail.unimined.mapping.element.AddRemove.REMOVE,
+            xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag.PRIVATE,
+            xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions.ALL))
+        w.addMetadata(xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement(
+            xyz.wagyourtail.unimined.mapping.element.AddRemove.ADD,
+            xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag.PROTECTED,
+            xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions.ALL))
+
+        src.emit(tree)
+
+        assertEquals("aP", methodEntries(tree, "clsB", "methodP")[named],
+            "wildcard-widened member should propagate after the pop-time fold")
+    }
+
+
+    /** direct-API escape hatch: AccessElements attached through the typed
+     *  API after construction (a `cls.wildcard(...)` call, not a stream
+     *  push) never reach the scan until [refoldAccessChanges] runs. */
+    @Test
+    fun refoldAccessChangesFoldsApiAttachedWildcards() = runTest {
+        val it2 = CachedInheritanceTree(MutableMappingTree(), StringCharReader("""
+            umf_it 1 0
+            intermediary
+            clsA
+             private methodP ()V
+            clsB clsA
+             private methodP ()V
+        """.trimIndent()))
+        val tree = InheritanceBackedMappingTree(MutableMappingTree(setOf(intermediary, named)), it2)
+
+        val clsA = cls(tree, "clsA")
+        clsA.method(mapOf(
+            intermediary to MethodNameAndDescriptor.unchecked("methodP;()V"),
+            named to MethodNameAndDescriptor.unchecked("aP;()V")
+        ))
+        val w = clsA.wildcard(
+            xyz.wagyourtail.unimined.mapping.element.WildcardType.METHOD,
+            mapOf(intermediary to xyz.wagyourtail.unimined.mapping.jvms.ext.FieldOrMethodDescriptor.unchecked("()V"))
+        )
+        w.addMetadata(xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement(
+            xyz.wagyourtail.unimined.mapping.element.AddRemove.REMOVE,
+            xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag.PRIVATE,
+            xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions.ALL))
+        w.addMetadata(xyz.wagyourtail.unimined.mapping.element.metadata.AccessElement(
+            xyz.wagyourtail.unimined.mapping.element.AddRemove.ADD,
+            xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag.PROTECTED,
+            xyz.wagyourtail.unimined.mapping.jvms.ext.condition.AccessConditions.ALL))
+
+        // API-attached metadata is not folded — nothing propagated yet
+        assertNull(tree.getClass(intermediary, InternalName.unchecked("clsB"))
+            ?.methods?.firstOrNull { it.entries[intermediary]?.name?.value == "methodP" }
+            ?.entries?.get(named)?.name?.value)
+
+        tree.refoldAccessChanges()
+
+        assertEquals("aP", methodEntries(tree, "clsB", "methodP")[named],
+            "refold should stamp the widened flags and re-drive propagation")
     }
 
 

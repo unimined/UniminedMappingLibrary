@@ -11,6 +11,7 @@ import xyz.wagyourtail.unimined.mapping.formats.umf.UMFWriter
 import xyz.wagyourtail.unimined.mapping.inheritance.CachedInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.filtered
 import xyz.wagyourtail.unimined.mapping.inheritance.propagate
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.sink.emit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -260,5 +261,54 @@ c	va	net/minecraft/class_2520	net/minecraft/nbt/NbtElement
         }
 
         assertEquals(POSTPROP_CHILD.trimEnd(), outputText.trimEnd())
+    }
+
+    /**
+     * Field/method access fidelity through a write→read round trip.
+     * Regression: fields were decoded with [ElementType.METHOD] on
+     * write — 0x40 serialized as `BRIDGE` instead of `VOLATILE`, 0x80
+     * as `VARARGS` instead of `TRANSIENT`, and the field-only `ENUM`
+     * (0x4000) dropped entirely.
+     */
+    @Test
+    fun testAccessFlagsRoundTrip() = runTest {
+        val text = """
+            umf_it 1 0
+            intermediary
+            clsA java/lang/Object
+             public|volatile|transient|enum fieldA I
+             private|final fieldB La/B;
+             public|synchronized|bridge|varargs|native methodA (I[Ljava/lang/String;)V
+            """.trimIndent()
+
+        val tree = CachedInheritanceTree(MutableMappingTree(), StringCharReader(text))
+        val sb = StringBuilder()
+        CachedInheritanceTree.write(tree) { sb.append(it) }
+        val out = sb.toString()
+
+        fun flagNames(line: String) =
+            line.trim().split(Regex("\\s+")).first().split("|").toSet()
+
+        val fieldLine = out.lines().first { it.contains("fieldA") }
+        assertEquals(
+            setOf("PUBLIC", "VOLATILE", "TRANSIENT", "ENUM"),
+            flagNames(fieldLine),
+            "field flags must serialize with FIELD semantics"
+        )
+        val methodLine = out.lines().first { it.contains("methodA") }
+        assertEquals(
+            setOf("PUBLIC", "SYNCHRONIZED", "BRIDGE", "VARARGS", "NATIVE"),
+            flagNames(methodLine),
+            "method flags must serialize with METHOD semantics"
+        )
+
+        // and the raw access ints survive the reparse — ENUM (0x4000)
+        // was previously lost on the field
+        val reparsed = CachedInheritanceTree(MutableMappingTree(), StringCharReader(out))
+        val cls = reparsed.classes[InternalName.unchecked("clsA")]!!
+        assertEquals(0x1 or 0x40 or 0x80 or 0x4000,
+            cls.fields.single { it.name.value == "fieldA" }.access)
+        assertEquals(0x1 or 0x20 or 0x40 or 0x80 or 0x100,
+            cls.methods.single { it.name.value == "methodA" }.access)
     }
 }

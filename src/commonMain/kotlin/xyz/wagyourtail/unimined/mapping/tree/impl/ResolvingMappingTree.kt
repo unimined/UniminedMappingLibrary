@@ -36,6 +36,14 @@ import xyz.wagyourtail.unimined.mapping.remapper
  * with no row materialization at all.
  *
  * Semantics vs IBT (the model this reproduces):
+ * - Explicit member cells win only when *genuine*: a target-column cell
+ *   whose name echoes a sibling column — verbatim fns→target fills (the
+ *   composer `fillMissingNames` shape: `named=m` on a row sourced `m`) or
+ *   hop-fills copying another column — is not evidence of a real rename.
+ *   The resolved component name stamps over it, matching the
+ *   "genuine rename" predicate [MemberGroups] candidate stamping and
+ *   [GraphNamespaceRemapper.resolveField] already apply. A cell whose
+ *   name is distinct on the row always wins.
  * - Propagated member rows exist only on classes that *declare* the member
  *   (`propagateDown` BFSes children and upserts only where
  *   `child.members.any { name+desc }`); a class that merely inherits shows
@@ -89,6 +97,9 @@ class ResolvingMappingTree(
 
     private val resolversLock = ReentrantLock()
     private val resolvers = HashMap<Namespace, GraphNamespaceRemapper>()
+    /** declared column order — echo detection may only look *back*
+     *  along it (fills copy earlier→later) */
+    private val nsOrder = delegate.namespaces.toList()
 
     /**
      * source→[to] member resolver over the shared graph — the
@@ -237,10 +248,17 @@ class ResolvingMappingTree(
 
     }
 
-    /** an explicit row with propagated names filling its empty cells —
+    /** an explicit row with propagated names filling its unclaimed cells —
      *  the read-side equivalent of IBT's `applyPropagated` under
-     *  KEEP_EXPLICIT (explicit entries win; propagated names only fill
-     *  cells the row lacks). Everything except [entries] delegates. */
+     *  KEEP_EXPLICIT, except "explicit" means *genuine*: a cell whose name
+     *  echoes a sibling column (verbatim fns→target fills like the
+     *  composer's `fillMissingNames` pass, or hop-fills copying another
+     *  column) isn't evidence of a real rename — the resolved component
+     *  name stamps over it. This is the same "not genuine" predicate
+     *  [MemberGroups]' candidate stamping and
+     *  [GraphNamespaceRemapper.resolveField] apply, so a row keeps exactly
+     *  the cells the group counted as renames. Everything except [entries]
+     *  delegates. */
     private inner class ResolvingMethod(
         base: MethodMapping,
         private val owner: InternalName?,
@@ -254,7 +272,14 @@ class ResolvingMappingTree(
                 putAll(baseEntries)
                 if (id != null && owner != null) {
                     for (ns in namespaces) {
-                        if (ns == fns || ns in baseEntries) continue
+                        if (ns == fns) continue
+                        val cell = baseEntries[ns]
+                        // an existing cell wins only when genuine — see
+                        // the class doc; an echo cell left in place when
+                        // nothing resolves passes through unchanged
+                        if (cell != null &&
+                            isGenuineCellName(nsOrder, baseEntries, ns) { it.name }
+                        ) continue
                         remapperFor(ns).resolveMethodName(owner, id.name, id.descriptor!!)
                             ?.let { put(ns, MethodNameAndDescriptor.unchecked(it.value)) }
                     }
@@ -285,7 +310,13 @@ class ResolvingMappingTree(
                 putAll(baseEntries)
                 if (id != null && owner != null) {
                     for (ns in namespaces) {
-                        if (ns == fns || ns in baseEntries) continue
+                        if (ns == fns) continue
+                        // same genuine-cell gate as ResolvingMethod —
+                        // echo cells yield to the declaring-chain name
+                        val cell = baseEntries[ns]
+                        if (cell != null &&
+                            isGenuineCellName(nsOrder, baseEntries, ns) { it.name }
+                        ) continue
                         remapperFor(ns).resolveFieldName(owner, id.name, id.descriptor!!)
                             ?.let { put(ns, FieldNameAndDescriptor.unchecked(it.value)) }
                     }

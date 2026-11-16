@@ -10,6 +10,7 @@ import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
+import xyz.wagyourtail.unimined.mapping.tree.impl.isGenuineCellName
 
 /**
  * [NamespaceRemapper] backed by an [InheritanceTree] + [MemberGroups] —
@@ -35,6 +36,9 @@ class GraphNamespaceRemapper(
 
     private val identity = from == to
     private val fallback = tree.remapper(from, to)
+    /** declared column order — the direction name-fills copy (earlier →
+     *  later); echo detection may only look *back* along it */
+    private val nsOrder = tree.namespaces.toList()
 
     // callsite resolution memoization — the ancestor boundary walk runs
     // once per unique (owner, name, desc). Lock-guarded: map calls arrive
@@ -217,7 +221,14 @@ class GraphNamespaceRemapper(
         desc: MethodDescriptor
     ): UnqualifiedName? {
         val cls = tree.getClass(from, clsName) ?: return null
-        return with(tree) { cls.getMethod(from, name, desc) }?.names?.get(to)
+        val row = with(tree) { cls.getMethod(from, name, desc) } ?: return null
+        // the declaring row's stated [to] name — echo cells (fills that
+        // copied an earlier column) still encode the member's name in
+        // this namespace, and precedence vs other candidates is already
+        // settled by `group.names[to] ?:` at every callsite; returning
+        // null here would fall to the flat *callsite-owner* lookup which
+        // loses inherited renames entirely
+        return row.names[to]
     }
 
     /**
@@ -258,21 +269,31 @@ class GraphNamespaceRemapper(
         name: UnqualifiedName,
         desc: FieldDescriptor?
     ): UnqualifiedName? {
+        var echoCandidate: UnqualifiedName? = null
         for (member in declaringFieldChain(owner, name, desc)) {
             val cls = tree.getClass(from, member.cls.name) ?: continue
             val row = with(tree) {
                 cls.getField(from, name, member.info.descriptor)
             } ?: continue
-            // identity rows (name == source name — no-ops and completed
-            // cells) don't outrank a real rename on a farther ancestor —
-            // same precedence as MemberGroups method candidates. The test
-            // is an echo of ANY sibling column, not just the source name:
-            // impl rows filled with e.g. the official `a` must lose to the
-            // declaring member's real `field_*` name.
-            row.names[to]?.takeIf { t -> row.names.none { (k, v) -> k != to && v == t } }
-                ?.let { return it }
+            val cell = row.names[to] ?: continue
+            // a genuine rename (the [to] name distinct from every earlier
+            // column — fills copy strictly earlier→later) outranks any
+            // echo cell, including a nearer ancestor's. A *later* column
+            // carrying the same name copies *from* this cell — it doesn't
+            // make this cell an echo: `{official: c, searge: field_x,
+            // mcp: field_x}` keeps `field_x` genuine for `searge`.
+            if (isGenuineCellName(nsOrder, row.names, to) { n -> n }) {
+                return cell
+            }
+            // echo cells still encode the member's stated [to] name —
+            // `{official: c, searge: field_x, mcp: field_x}` targeting
+            // `mcp` resolves `field_x`, never `c`. They only lose the
+            // ordering race against a genuine rename (same precedence as
+            // MemberGroups' real.ifEmpty { cands } winner resolution), so
+            // the nearest one survives as the fallback.
+            if (echoCandidate == null) echoCandidate = cell
         }
-        return null
+        return echoCandidate
     }
 
 }

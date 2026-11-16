@@ -19,7 +19,8 @@ import java.util.stream.Collectors
  * they iterate the mapping tree (input classes) and walk supertypes —
  * but NOT for consumers that iterate [classes] or query
  * [ClassInfo.children] expecting full classpath coverage (e.g.
- * `InheritanceBackedMappingTree`); those need the eager tree.
+ * `InheritanceBackedMappingTree`'s downward propagation). Those
+ * consumers must call [materializeAll] first (or use the eager tree).
  */
 class LazyASMInheritanceTree(
     override val fns: Namespace,
@@ -72,6 +73,24 @@ class LazyASMInheritanceTree(
     fun close() {
         zipCache.values.forEach { it.close() }
         zipCache.clear()
+    }
+
+    /**
+     * Escape hatch for full-coverage consumers: force materialization
+     * of every indexed class — all of the [LazyASMInheritanceTree.index]
+     * classpath plus the pre-parsed `scanIndex` — so [classes] then
+     * enumerates the whole graph. Needed by downward-propagation
+     * consumers that iterate [classes]/[ClassInfo.children] (e.g.
+     * `InheritanceBackedMappingTree`); `MemberGroups`-style upward
+     * resolution never needs it.
+     *
+     * Cost: parses every classpath jar's class bytes once (the work the
+     * lazy design exists to avoid) and retains one [ClassInfo] per
+     * class for the graph's lifetime — an eager-tree footprint.
+     */
+    fun materializeAll() {
+        for (name in scanIndex.keys) materialize(name)
+        for (name in index.keys) materialize(name)
     }
 
     private fun materialize(name: InternalName): ClassInfo? {

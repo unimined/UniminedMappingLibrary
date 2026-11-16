@@ -8,10 +8,12 @@ import xyz.wagyourtail.unimined.mapping.element.mapping.ClassMapping
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.jvms.four.AccessFlag
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.three.two.FieldType
 import xyz.wagyourtail.unimined.mapping.jvms.four.three.three.MethodDescriptor
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.jvms.four.two.two.UnqualifiedName
 import xyz.wagyourtail.unimined.mapping.newNsMap
+import xyz.wagyourtail.unimined.mapping.tree.impl.isGenuineCellName
 
 /**
  * Precomputed member-name equivalence over an [InheritanceTree] — the
@@ -78,6 +80,7 @@ class MemberGroups(val inheritance: InheritanceTree) {
     private val resolved = HashSet<MethodMember>()
     private val groups = HashMap<MethodMember, MethodGroup>()
     private val fieldChains = HashMap<FieldMember, List<FieldMember>>()
+    private val unifiedBridges = HashSet<MethodMember>()
     private val lock = ReentrantLock()
 
     @Volatile
@@ -320,6 +323,175 @@ class MemberGroups(val inheritance: InheritanceTree) {
     }
 
     /**
+     * Union javac bridge methods with the specialized methods they
+     * forward to, so a bridge and its target share one component —
+     * "bridge/specialized unification in named namespaces" (the
+     * ploceus `MappingFiller` behavior): bridges and their targets are
+     * distinct members in obfuscated namespaces but must carry one
+     * name in named namespaces.
+     *
+     * A bridge candidate `b` in class `C` unifies with a specialized
+     * sibling `s` when all of the following hold:
+     *
+     * - `b` carries the bytecode `ACC_BRIDGE` flag ([MethodInfo.isBridge])
+     *   — unlike ploceus, which also inspected method bodies to recover
+     *   obfuscator-stripped bridge flags, scan data has no instructions,
+     *   so flag-stripped bridges are not detected;
+     * - `s` is the *unique* non-bridge, inheritable member of `C` whose
+     *   descriptor strictly narrows `b`'s (every parameter/return type
+     *   of `s` is `b`'s type or a subtype — arrays narrow only
+     *   `java/lang/Object`, per ploceus). The sibling does *not* have to
+     *   share `b`'s name: on obfuscated jars the specialized target is
+     *   renamed (`a(La/Cmp;)I`) while the bridge keeps the erased
+     *   signature name (`compareTo(Ljava/lang/Object;)I`). More than one
+     *   narrowing member is ambiguous without the invoked-target the
+     *   bytecode body would reveal, so the pair is skipped;
+     * - `b`'s own signature declares an inheritable method in `C`'s
+     *   supertypes — the bridge overrides something.
+     *
+     * Idempotent and safe before or after [propagate] — [union]
+     * relocates stamps landed under either canonical. Returns the
+     * number of bridge/specialized pairs unioned.
+     */
+    fun unifyBridges(): Int {
+        build()
+        var count = 0
+        // fixpoint like build(): subtype walks materialize lazy classes,
+        // surfacing new bridge candidates
+        var seen = -1
+        while (seen != inheritance.classes.size) {
+            seen = inheritance.classes.size
+            for (c in inheritance.classes.values.toList()) {
+                count += unifyClassBridges(c)
+            }
+        }
+        return count
+    }
+
+    private fun unifyClassBridges(info: InheritanceTree.ClassInfo): Int {
+        var count = 0
+        for (mi in info.methods) {
+            if (!mi.isBridge) continue
+            val self = MethodMember(info, mi)
+            if (!unifiedBridges.add(self)) continue
+            val narrowing = info.methods.filter { s ->
+                s !== mi && !s.isBridge &&
+                        // strictly narrowing — never an identical signature
+                        // (a same-desc sibling is an overload, not a
+                        // forward target)
+                        s.descriptor != mi.descriptor &&
+                        inheritableVirtual(s) &&
+                        descriptorsBridgeCompatible(mi.descriptor, s.descriptor)
+            }
+            // a same-name narrowing member is the javac-source-identical
+            // target — prefer it over differently-named narrowers (on
+            // obfuscated jars the renamed target never shares the
+            // bridge's erased-signature name, so this falls through to
+            // the unique relaxed match)
+            val candidates = narrowing.filter { it.name == mi.name }
+                .ifEmpty { narrowing }
+            if (candidates.size != 1) continue
+            if (!declaredInSupertypes(info, mi.name, mi.descriptor)) continue
+            val spec = candidates.single()
+            lock.withLock {
+                resolve(info, mi)
+                resolve(info, spec)
+                union(self, MethodMember(info, spec))
+            }
+            count++
+        }
+        return count
+    }
+
+    /** ploceus `methodExistsInSuperClasses`: some supertype declares an
+     *  inheritable `name`+`desc` — the bridge's own signature must be an
+     *  override, not a free-standing overload. */
+    private fun declaredInSupertypes(
+        info: InheritanceTree.ClassInfo,
+        name: UnqualifiedName,
+        desc: MethodDescriptor
+    ): Boolean {
+        val visited = mutableSetOf(info)
+        val queue = ArrayDeque(parentsOf(info))
+        while (queue.isNotEmpty()) {
+            val c = queue.removeFirst()
+            if (!visited.add(c)) continue
+            if (c.methods.any {
+                it.name == name && it.descriptor == desc && inheritableVirtual(it)
+            }) return true
+            queue.addAll(parentsOf(c))
+        }
+        return false
+    }
+
+    /** ploceus `isBridgeMethod`: arity matches and every [spec] type
+     *  narrows the corresponding [bridge] type (covariant returns
+     *  included — a bridge forwards the erased signature). */
+    private fun descriptorsBridgeCompatible(
+        bridge: MethodDescriptor,
+        spec: MethodDescriptor
+    ): Boolean {
+        val (bRet, bParams) = bridge.getParts()
+        val (sRet, sParams) = spec.getParts()
+        if (bParams.size != sParams.size) return false
+        for (i in bParams.indices) {
+            if (!typesBridgeCompatible(bParams[i].value, sParams[i].value)) {
+                return false
+            }
+        }
+        if (bRet.isVoidType() || sRet.isVoidType()) {
+            return bRet.isVoidType() == sRet.isVoidType()
+        }
+        return typesBridgeCompatible(bRet.getFieldType(), sRet.getFieldType())
+    }
+
+    /** ploceus `areTypesBridgeCompatible` — [spec] is [bridge] or a
+     *  subtype of it; object←array narrows `java/lang/Object` only. */
+    private fun typesBridgeCompatible(bridge: FieldType, spec: FieldType): Boolean {
+        if (bridge == spec) return true
+        return when {
+            bridge.isObjectType() -> {
+                if (spec.isObjectType()) {
+                    isSubtypeOf(
+                        spec.getObjectType().getInternalName(),
+                        bridge.getObjectType().getInternalName()
+                    )
+                } else {
+                    spec.isArrayType() &&
+                            bridge.getObjectType().getInternalName().value == "java/lang/Object"
+                }
+            }
+            bridge.isArrayType() && spec.isArrayType() -> {
+                val (bDims, bComp) = bridge.getArrayType().getParts()
+                val (sDims, sComp) = spec.getArrayType().getParts()
+                bDims == sDims && typesBridgeCompatible(bComp.value, sComp.value)
+            }
+            else -> false
+        }
+    }
+
+    /** ploceus `areClassesBridgeCompatible`: [sup] is [sub] itself or
+     *  one of its transitively-scanned supertypes. Walks supertype
+     *  *names*, so a hierarchy endpoint like `java/lang/Object` matches
+     *  without needing its own ClassInfo materialized — ancestors
+     *  absent from the graph dead-end the walk (full coverage needs
+     *  them in the product scan or classpath index). */
+    private fun isSubtypeOf(sub: InternalName, sup: InternalName): Boolean {
+        val visited = HashSet<InternalName>()
+        val queue = ArrayDeque<InternalName>()
+        queue += sub
+        while (queue.isNotEmpty()) {
+            val c = queue.removeFirst()
+            if (!visited.add(c)) continue
+            if (c == sup) return true
+            val info = inheritance.classes[c] ?: continue
+            info.superType?.let { queue += it }
+            queue.addAll(info.interfaces)
+        }
+        return false
+    }
+
+    /**
      * Stamp every member row of [tree] into the groups — each row's
      * namespace columns land on its member's component. Conflicting
      * candidates resolve deterministically (sorted-first wins); the count
@@ -328,8 +500,9 @@ class MemberGroups(val inheritance: InheritanceTree) {
     fun propagate(tree: MappingTree): Int {
         inheritance.applyAccessChanges(tree)
         build()
+        val nsOrder = tree.namespaces.toList()
         for (cls in tree.classes) {
-            stampClass(cls, null)
+            stampClass(cls, null, nsOrder)
         }
         var conflicts = 0
         lock.withLock {
@@ -354,11 +527,12 @@ class MemberGroups(val inheritance: InheritanceTree) {
     fun propagate(tree: MappingTree, scope: Set<InternalName>): Int {
         inheritance.applyAccessChanges(tree, scope)
         build()
+        val nsOrder = tree.namespaces.toList()
         var conflicts = 0
         lock.withLock {
             val touched = mutableSetOf<MethodGroup>()
             for (fnsName in scope) {
-                stampClass(tree.getClass(inheritance.fns, fnsName) ?: continue, touched)
+                stampClass(tree.getClass(inheritance.fns, fnsName) ?: continue, touched, nsOrder)
             }
             for (group in touched) {
                 conflicts += resolveWinners(group, clearCandidates = false)
@@ -370,8 +544,14 @@ class MemberGroups(val inheritance: InheritanceTree) {
     /** Stamp [cls]'s member rows — adds each row's namespace columns to
      *  its member's component and records the group in [touched] when
      *  non-null (the scoped pass re-resolves winners on touched groups
-     *  only). Callers outside [lock] rely on single-threaded setup. */
-    private fun stampClass(cls: ClassMapping, touched: MutableSet<MethodGroup>?) {
+     *  only). [nsOrder] is the declared column chain — echo witnesses
+     *  must precede the stamped column along it. Callers outside [lock]
+     *  rely on single-threaded setup. */
+    private fun stampClass(
+        cls: ClassMapping,
+        touched: MutableSet<MethodGroup>?,
+        nsOrder: List<Namespace>,
+    ) {
         val fnsName = cls.names[inheritance.fns] ?: return
         val info = inheritance.classInfo(fnsName) ?: return
         for (mm in cls.methods) {
@@ -386,9 +566,11 @@ class MemberGroups(val inheritance: InheritanceTree) {
             for ((ns, e) in mm.entries) {
                 group.candidates.getOrPut(ns) { mutableSetOf() }.add(e.name)
                 // genuine rename: the name is distinct for this ns — it
-                // doesn't echo a sibling column (fns identity stamps and
-                // hop-fills like official `a` copied into `intermediary`)
-                if (mm.entries.none { (k, o) -> k != ns && o.name == e.name }) {
+                // doesn't echo a column *earlier* in the declared chain
+                // (fns identity stamps and hop-fills like official `a`
+                // copied into `intermediary`; a later column echoing this
+                // cell doesn't make the cell an echo)
+                if (isGenuineCellName(nsOrder, mm.entries, ns) { it.name }) {
                     group.genuineNames.getOrPut(ns) { mutableSetOf() }.add(e.name)
                 }
                 group.candidateMembers.getOrPut(ns) { mutableMapOf() }.let { m ->

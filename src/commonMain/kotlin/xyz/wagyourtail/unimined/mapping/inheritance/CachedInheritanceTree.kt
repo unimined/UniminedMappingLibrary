@@ -30,7 +30,7 @@ class CachedInheritanceTree(tree: MappingTree, data: CharReader<*>): Inheritance
 
                 for (field in cls.fields) {
                     append("\t")
-                    val access = AccessFlag.of(ElementType.METHOD, field.access).joinToString("|") { it.toString() }
+                    val access = AccessFlag.of(ElementType.FIELD, field.access).joinToString("|") { it.toString() }
                     append(access.maybeEscape())
                     append("\t")
                     append(field.name.value.maybeEscape())
