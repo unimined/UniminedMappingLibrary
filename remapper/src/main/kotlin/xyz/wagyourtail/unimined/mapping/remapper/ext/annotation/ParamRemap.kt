@@ -64,8 +64,8 @@ sealed interface ParamRemap {
             if (value is List<*>) return value.map { apply(it, ctx, ownerHints, record) }
             if (value !is String) return value
             val ref = MemberRefParts.parse(value, isField = false) ?: return value
-            val resolved = ref.resolve(ctx, ownerHints, isField = false)
-                ?: ref.resolveViaExisting(value, ctx, record, isField = false)
+            val resolved = ref.resolveViaExisting(value, ctx, record, isField = false)
+                ?: ref.resolve(ctx, ownerHints, isField = false)
                 ?: return value
             record?.recordMemberRef(value, resolved)
             return ref.render(resolved)
@@ -81,15 +81,15 @@ sealed interface ParamRemap {
             if (value is List<*>) return value.map { apply(it, ctx, ownerHints, record) }
             if (value !is String) return value
             MemberRefParts.parse(value, isField = false)?.let { ref ->
-                (ref.resolve(ctx, ownerHints, isField = false)
-                    ?: ref.resolveViaExisting(value, ctx, record, isField = false))?.let {
+                (ref.resolveViaExisting(value, ctx, record, isField = false)
+                    ?: ref.resolve(ctx, ownerHints, isField = false))?.let {
                     record?.recordMemberRef(value, it)
                     return ref.render(it)
                 }
             }
             MemberRefParts.parse(value, isField = true)?.let { ref ->
-                (ref.resolve(ctx, ownerHints, isField = true)
-                    ?: ref.resolveViaExisting(value, ctx, record, isField = true))?.let {
+                (ref.resolveViaExisting(value, ctx, record, isField = true)
+                    ?: ref.resolve(ctx, ownerHints, isField = true))?.let {
                     record?.recordMemberRef(value, it)
                     return ref.render(it)
                 }
@@ -112,8 +112,8 @@ sealed interface ParamRemap {
             if (value is List<*>) return value.map { apply(it, ctx, ownerHints, record) }
             if (value !is String) return value
             val ref = MemberRefParts.parse(value, isField = true) ?: return value
-            val resolved = ref.resolve(ctx, ownerHints, isField = true)
-                ?: ref.resolveViaExisting(value, ctx, record, isField = true)
+            val resolved = ref.resolveViaExisting(value, ctx, record, isField = true)
+                ?: ref.resolve(ctx, ownerHints, isField = true)
                 ?: return value
             record?.recordMemberRef(value, resolved)
             return ref.render(resolved)
