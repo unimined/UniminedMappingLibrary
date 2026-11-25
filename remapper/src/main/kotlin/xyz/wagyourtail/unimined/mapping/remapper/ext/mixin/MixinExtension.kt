@@ -76,7 +76,12 @@ class MixinExtension(
     }
 
     private val recorder = Recorder()
-    private val delegate = AnnotationTableExtension(ctx, table, if (emitRefmap) recorder else null, mode)
+    // the recorder rides even when emission is off: its `existingEntry`
+    // lookup is the compile-namespace bridge for bare legacy selectors
+    // (`initializeGame` → the shipped refmap's intermediary value → resolved
+    // through the tree to the target namespace). Recording is dead weight
+    // then, but output emission is neutralized either way
+    private val delegate = AnnotationTableExtension(ctx, table, recorder, mode)
 
     /** config path → declared refmap path */
     private val configRefmaps = mutableMapOf<String, String>()
@@ -97,7 +102,9 @@ class MixinExtension(
 
     override fun analyzeResource(path: String, bytes: ByteArray) {
         inputResources += path
-        if (!emitRefmap) return
+        // config/refmap tracking is needed even when emission is off —
+        // `emitRefmap=false` neutralizes shipped refmaps (they undo the
+        // in-place rewrite at runtime), which needs the same path info
         // refmap files are checked before configs — `mixins.*.json` config
         // names also match `mixins.<name>.refmap.json` (liteloader-style), so
         // the config test alone would misfile shipped refmaps as configs
@@ -187,7 +194,28 @@ class MixinExtension(
         else ctx.reverse.map(InternalName.unchecked(internalName)).value
 
     override fun transformResource(path: String, bytes: ByteArray): ByteArray? {
-        if (!emitRefmap || path in noRefmap) return null
+        if (!emitRefmap) {
+            // neutralize shipped refmaps — the in-place annotation rewrite
+            // produces final target-namespace selectors, but sponge consults
+            // a shipped refmap first and substitutes its compile-namespace
+            // values back in (bare `tick` re-expands to an intermediary-owned
+            // ref that no longer matches the rewritten `@Mixin` target).
+            // strip the `refmap` key from configs and empty the refmap files
+            // themselves so nothing can reintroduce foreign-namespace refs
+            if (isMixinConfigPath(path)) {
+                val json = runCatching { LENIENT.parseToJsonElement(bytes.decodeToString()).jsonObject }.getOrNull() ?: return null
+                if (!json.containsKey("refmap")) return null
+                return buildJsonObject {
+                    json.forEach { (k, v) -> if (k != "refmap") put(k, v) }
+                }.toString().encodeToByteArray()
+            }
+            if (path.endsWith("-refmap.json") || path.endsWith("refmap.json") ||
+                path in configRefmaps.values) {
+                return "{\"mappings\":{}}".encodeToByteArray()
+            }
+            return null
+        }
+        if (path in noRefmap) return null
         // patch configs that declare no refmap so the emitted file actually loads
         if (path in configRefmaps) {
             val json = runCatching { LENIENT.parseToJsonElement(bytes.decodeToString()).jsonObject }.getOrNull() ?: return null
