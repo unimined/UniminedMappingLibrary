@@ -212,16 +212,19 @@ class MixinExtension(
             // ref that no longer matches the rewritten `@Mixin` target).
             // strip the `refmap` key from configs and empty the refmap files
             // themselves so nothing can reintroduce foreign-namespace refs
+            // refmap files are checked before configs — `mixins.<name>.refmap.json`
+            // (liteloader/rift-style) also matches the config name pattern, so
+            // the config test alone would skip emptying them (mirrors analyzeResource)
+            if (path.endsWith("-refmap.json") || path.endsWith("refmap.json") ||
+                path in configRefmaps.values) {
+                return "{\"mappings\":{}}".encodeToByteArray()
+            }
             if (isMixinConfigPath(path)) {
                 val json = runCatching { LENIENT.parseToJsonElement(bytes.decodeToString()).jsonObject }.getOrNull() ?: return null
                 if (!json.containsKey("refmap")) return null
                 return buildJsonObject {
                     json.forEach { (k, v) -> if (k != "refmap") put(k, v) }
                 }.toString().encodeToByteArray()
-            }
-            if (path.endsWith("-refmap.json") || path.endsWith("refmap.json") ||
-                path in configRefmaps.values) {
-                return "{\"mappings\":{}}".encodeToByteArray()
             }
             return null
         }

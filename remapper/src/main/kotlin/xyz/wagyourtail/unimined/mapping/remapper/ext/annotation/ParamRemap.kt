@@ -287,9 +287,13 @@ class MemberRefParts(
             if (!wildcard && ctx.memberCandidateCount(owner, baseName, isField) == 0) {
                 return null
             }
+            // the written desc is fns-space (that's the fallback's premise),
+            // but `resolveMemberDesc` renders target-space — compare
+            // like-with-like or every desc-bearing legacy bridge is rejected
+            // (rift's `Lux;a(Luy;)V` never matched `(Lnet/…/RepositorySource;)V`)
             val writtenDesc = parsed.desc?.takeIf { it != "*" }
             if (!wildcard && writtenDesc != null &&
-                ctx.resolveMemberDesc(owner, baseName, isField) != writtenDesc) {
+                ctx.resolveMemberDesc(owner, baseName, isField) != ctx.mapDesc(writtenDesc, isField)) {
                 return null
             }
         }
