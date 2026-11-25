@@ -89,6 +89,12 @@ class MixinExtension(
     private val configMixins = mutableMapOf<String, Set<String>>()
     /** input-resource path → parsed existing refmap `mappings` object */
     private val existingRefmaps = mutableMapOf<String, JsonObject>()
+    /** input-resource path → the existing refmap's `data` section for this
+     *  transform's source namespace, when present. Hybrid artifacts such as
+     *  LiteLoader use that table as the compile-space bridge (`mcp` keys →
+     *  searge member refs), while top-level `mappings` targets production
+     *  obfuscation and is only a last-resort fallback. */
+    private val existingSourceRefmaps = mutableMapOf<String, JsonObject>()
     /** mixin source name → refmap path (resolved at finishAnalysis) */
     private val mixinRefmapPath = mutableMapOf<String, String>()
     /** mixin source name → `@Mixin` target internal names (fns space) —
@@ -111,6 +117,10 @@ class MixinExtension(
         if (path.endsWith("-refmap.json") || path.endsWith("refmap.json")) {
             val json = runCatching { LENIENT.parseToJsonElement(bytes.decodeToString()).jsonObject }.getOrNull() ?: return
             json["mappings"]?.jsonObject?.let { existingRefmaps[path] = it }
+            (json["data"] as? JsonObject)
+                ?.get(ctx.fns.name)
+                ?.let { it as? JsonObject }
+                ?.let { existingSourceRefmaps[path] = it }
         } else if (isMixinConfigPath(path)) {
             val json = runCatching { LENIENT.parseToJsonElement(bytes.decodeToString()).jsonObject }.getOrNull() ?: return
             val pkg = json["package"]?.jsonPrimitive?.contentOrNull?.replace('.', '/') ?: ""
@@ -291,9 +301,14 @@ class MixinExtension(
         }.toString().encodeToByteArray()
     }
 
-    /** existing refmap lookup — keys are mixin names in *input* space */
+    /** existing refmap lookup — keys are mixin names in *input* space.
+     *  Prefer the source-namespace `data` bridge: for hybrid artifacts the
+     *  top-level table often targets production obfuscation rather than the
+     *  dependency binary's compile namespace. */
     private fun existingEntry(inputMixin: String, key: String): String? =
-        existingRefmaps.values.firstNotNullOfOrNull {
+        existingSourceRefmaps.values.firstNotNullOfOrNull {
+            (it[inputMixin] as? JsonObject)?.get(key)?.jsonPrimitive?.contentOrNull
+        } ?: existingRefmaps.values.firstNotNullOfOrNull {
             (it[inputMixin] as? JsonObject)?.get(key)?.jsonPrimitive?.contentOrNull
         }
 
