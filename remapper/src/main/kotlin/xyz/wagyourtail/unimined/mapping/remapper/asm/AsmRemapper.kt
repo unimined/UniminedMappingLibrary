@@ -353,9 +353,15 @@ object AsmRemapper {
         // fixup pass needs them all before write anyway) + extension analysis
         val resources = mutableListOf<Pair<String, ByteArray>>()
         val rawClasses = mutableListOf<Pair<String, ByteArray>>()
+        // first-wins dedupe — real-world artifacts ship duplicate entries
+        // (mojang's realms jars: assets/realms/* doubled); ZipFile.readers
+        // resolve the first central-directory match, so the same one wins
+        // here and the output never carries a name twice
+        val seenEntries = mutableSetOf<String>()
         ZipFile(input.toFile()).use { zin ->
             for (entry in zin.entries().asSequence().sortedBy { it.name }) {
                 if (entry.isDirectory) continue
+                if (!seenEntries.add(entry.name)) continue
                 when {
                     entry.name.endsWith(".class") ->
                         rawClasses += entry.name to zin.getInputStream(entry).readBytes()
@@ -481,9 +487,11 @@ object AsmRemapper {
 
         val resources = mutableListOf<Pair<String, ByteArray>>()
         val rawClasses = mutableListOf<Pair<String, ByteArray>>()
+        val seenEntries2 = mutableSetOf<String>()
         ZipFile(input.toFile()).use { zin ->
             for (entry in zin.entries().asSequence().sortedBy { it.name }) {
                 if (entry.isDirectory) continue
+                if (!seenEntries2.add(entry.name)) continue
                 when {
                     entry.name.endsWith(".class") ->
                         rawClasses += entry.name to zin.getInputStream(entry).readBytes()
