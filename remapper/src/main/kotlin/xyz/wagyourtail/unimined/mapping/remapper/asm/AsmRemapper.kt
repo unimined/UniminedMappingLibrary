@@ -417,6 +417,8 @@ object AsmRemapper {
             for ((_, outNode, input) in out) {
                 serialExts.forEach { it.postApply(input.first, outNode, input.second) }
                 JarFixups.fixParamAnnotations(outNode)
+                val isp = JarFixups.normalizeInvokeSpecial(outNode)
+                if (isp > 0) LOGGER.debug { "normalizeInvokeSpecial: rewrote $isp invokespecial ref(s) in ${outNode.name}" }
             }
             if (options.fixInnerClasses) {
                 JarFixups.fixInnerClasses(out.map { it.first to it.second })
@@ -524,6 +526,8 @@ object AsmRemapper {
             val cls = tree.getClass(fns, InternalName.unchecked(node.name))
             threadExts.get().forEach { it.postApply(node, outNode, cls) }
             JarFixups.fixParamAnnotations(outNode)
+            val isp = JarFixups.normalizeInvokeSpecial(outNode)
+            if (isp > 0) LOGGER.debug { "normalizeInvokeSpecial: rewrote $isp invokespecial ref(s) in ${outNode.name}" }
             val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
             outNode.accept(writer)
             val summary = if (options.packageAccess != PackageAccess.NONE) {

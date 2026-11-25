@@ -487,4 +487,126 @@ object JarFixups {
             children.forEach(::merge)
         }
     }
+
+    // ---- invokespecial normalization (transform-plan: javac-consistency fixup) ----
+
+    /**
+     * Rewrite same-class `invokespecial` calls whose resolved target is
+     * **non-private in the output** to `invokevirtual` (or `invokeinterface`
+     * inside interfaces) — plus the `H_INVOKESPECIAL` method-handle
+     * equivalent in `invokedynamic` bootstrap state and `ldc` constants.
+     *
+     * Rationale: pre-nestmate javac compiles private-method self-calls as
+     * `invokespecial`; that is the *only* same-class non-constructor
+     * `invokespecial` javac ever emits. When access widening (AW/AT/CT
+     * metadata) — or any transform — makes such a method non-private, the
+     * javac-consistent form of the call is virtual dispatch, and the stale
+     * `invokespecial` is both an inconsistent direct-dispatch vs the
+     * virtual callers and a verification hazard. An `invokespecial` to a
+     * non-private same-class method only ever exists when a transform
+     * created the inconsistency, so javac-legal input never fires this
+     * pass. Port of fabric class-tweaker `AccessWidenerClassVisitor`'s
+     * rewrite (insn + indy-handle), generalized: fabric keys on its
+     * widener table, here the predicate is the final output access —
+     * which is exactly what the output [ClassNode] carries once metadata
+     * application has run, so the pass is widening-source-agnostic.
+     *
+     * Predicate (all must hold):
+     *  - instruction is `INVOKESPECIAL` / handle tag is `H_INVOKESPECIAL`
+     *  - `owner == cn.name` — **not a super-call**: owner-is-superclass
+     *    `invokespecial` is deliberate non-virtual dispatch and is never
+     *    rewritten
+     *  - `name != <init>` — constructors never virtualize
+     *  - the method is **declared in this class** with the exact
+     *    `(name, desc)` — when resolution would walk up to a superclass
+     *    (or superinterface default) the dispatch is non-virtual to an
+     *    inherited method, which virtual rewriting would corrupt, so
+     *    those stay untouched. Being owner-local makes the pass fully
+     *    class-local: no hierarchy resolution is needed because the only
+     *    rewrite-eligible target is in the same file
+     *  - the declared method is non-private **and non-static** in the
+     *    output (static targets are illegal input either way — leave them)
+     *
+     * Interface hosts rewrite to `INVOKEINTERFACE`/`H_INVOKEINTERFACE`
+     * (the javac-consistent interface call form), not `INVOKEVIRTUAL`.
+     *
+     * Ordering: must run after all access-transforming pipeline stages
+     * (metadata application, extension `postApply`s) — the firing
+     * decision reads the *final* output access flags. Runs per class
+     * before serialization in both remap paths; the whole-set
+     * package-access `FIX` pass cannot create a trigger (it never
+     * widens private members, and same-class references are excluded
+     * from its violation scan by construction).
+     *
+     * @return number of rewritten instructions + handles — zero on
+     *  javac-legal, untransformed input
+     */
+    fun normalizeInvokeSpecial(cn: ClassNode): Int {
+        val isIface = cn.access and Opcodes.ACC_INTERFACE != 0
+        // declared members keyed "name desc" — first declaration wins on
+        // duplicates (invalid input, but resolution must stay deterministic)
+        val declared = HashMap<String, MethodNode>(cn.methods.size)
+        for (m in cn.methods) declared.putIfAbsent("${m.name} ${m.desc}", m)
+
+        val insnOpcode = if (isIface) Opcodes.INVOKEINTERFACE else Opcodes.INVOKEVIRTUAL
+        val handleTag = if (isIface) Opcodes.H_INVOKEINTERFACE else Opcodes.H_INVOKEVIRTUAL
+        var rewritten = 0
+
+        /** rewrite-eligible same-class non-virtual target? — see pass doc */
+        fun retarget(owner: String, name: String, desc: String): Boolean {
+            if (owner != cn.name) return false
+            if (name == "<init>") return false
+            val m = declared["$name $desc"] ?: return false
+            if (m.access and Opcodes.ACC_PRIVATE != 0) return false
+            if (m.access and Opcodes.ACC_STATIC != 0) return false
+            return true
+        }
+
+        fun rewriteHandle(h: Handle): Handle {
+            if (h.tag != Opcodes.H_INVOKESPECIAL) return h
+            if (!retarget(h.owner, h.name, h.desc)) return h
+            rewritten++
+            return Handle(handleTag, h.owner, h.name, h.desc, isIface)
+        }
+
+        fun rewriteConstant(cst: Any?): Any? = when (cst) {
+            is Handle -> rewriteHandle(cst)
+            is org.objectweb.asm.ConstantDynamic -> {
+                // condy state nests like indy state — handles inside its
+                // bootstrap args are the same method refs
+                val args = Array(cst.bootstrapMethodArgumentCount) {
+                    rewriteConstant(cst.getBootstrapMethodArgument(it))
+                }
+                org.objectweb.asm.ConstantDynamic(
+                    cst.name, cst.descriptor, rewriteHandle(cst.bootstrapMethod), *args
+                )
+            }
+            else -> cst
+        }
+
+        for (method in cn.methods) {
+            for (insn in method.instructions) {
+                when (insn) {
+                    is MethodInsnNode -> {
+                        if (insn.opcode == Opcodes.INVOKESPECIAL && retarget(insn.owner, insn.name, insn.desc)) {
+                            insn.opcode = insnOpcode
+                            insn.itf = isIface
+                            rewritten++
+                        }
+                    }
+                    is InvokeDynamicInsnNode -> {
+                        insn.bsm = rewriteHandle(insn.bsm)
+                        insn.bsmArgs = Array(insn.bsmArgs.size) { rewriteConstant(insn.bsmArgs[it]) }
+                    }
+                    is LdcInsnNode -> {
+                        val cst = insn.cst
+                        if (cst is Handle || cst is org.objectweb.asm.ConstantDynamic) {
+                            insn.cst = rewriteConstant(cst)
+                        }
+                    }
+                }
+            }
+        }
+        return rewritten
+    }
 }
