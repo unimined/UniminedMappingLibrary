@@ -103,42 +103,93 @@ class ExtensionContext(
         }
     }
 
-    /** the scanned classfile's actual desc for [name] on [owner] — the
-     *  bytecode-scan disambiguator for desc-less refs when >1 tree row
-     *  matches (desc-less `firstOrNull` picks wrong on overloads) */
-    private fun scannedDesc(owner: String, name: String, isField: Boolean): String? {
-        val info = (tree as? HasInheritanceTree)?.inheritance
-            ?.classes?.get(InternalName.unchecked(owner)) ?: return null
-        // declared members rank ahead of synthetic/bridge — the AP's element
-        // model never sees synthetics, so a name-only ref canonically resolves
-        // to the declaration; all-synthetic matches (lambdas) still resolve
-        return if (isField) {
-            // no bridge bit on fields — 0x40 is VOLATILE there
-            info.fields.filter { it.name.value == name }.minByOrNull { it.isSynthetic }?.descriptor?.toString()
-        } else {
-            info.methods.filter { it.name.value == name }.minByOrNull { it.isSynthetic || it.isBridge }?.descriptor?.toString()
+    /** outcome of a desc-less member lookup — [sourceDesc] is the unique
+     *  candidate's descriptor in *source* space when one could be determined */
+    internal data class DesclessMemberLookup(
+        val found: Boolean,
+        val ambiguous: Boolean,
+        val sourceDesc: String?,
+    )
+
+    /** desc-less member lookup with the same boundary rule as the graph
+     *  remapper: the nearest declaring class in the hierarchy supplies the
+     *  candidates; declared members outrank synthetic/bridge companions.
+     *  Real overloads are [DesclessMemberLookup.ambiguous] rather than an
+     *  order-dependent first match. The bytecode scan is authoritative when
+     *  it sees a candidate; mapping rows are the fallback for unscanned
+     *  classes (and carry stale-row noise, hence the same ambiguity rule). */
+    internal fun lookupDesclessMember(owner: String, name: String, isField: Boolean): DesclessMemberLookup {
+        scannedDesclessMember(owner, name, isField)?.let { return it }
+        val cls = tree.getClass(fns, InternalName.unchecked(owner)) ?: return DesclessMemberLookup(false, false, null)
+        val n = UnqualifiedName.unchecked(name)
+        if (isField) {
+            val matches = cls.fields.filter { it.names[fns] == n }
+            if (matches.isEmpty()) return DesclessMemberLookup(false, false, null)
+            if (matches.size > 1) return DesclessMemberLookup(true, true, null)
+            return DesclessMemberLookup(true, false,
+                with(tree) { matches.single().getDescriptor(fns) }?.toString())
         }
+        val matches = with(tree) { cls.getMethods(fns, n, null) }
+        if (matches.isEmpty()) return DesclessMemberLookup(false, false, null)
+        if (matches.size > 1) return DesclessMemberLookup(true, true, null)
+        return DesclessMemberLookup(true, false,
+            with(tree) { matches.single().getDescriptor(fns) }?.toString())
+    }
+
+    /** scan-backed half of [lookupDesclessMember] — null means the scan
+     *  either does not cover [owner] or has no candidate at the declaring
+     *  boundary, so the mapping-tree fallback remains eligible */
+    private fun scannedDesclessMember(owner: String, name: String, isField: Boolean): DesclessMemberLookup? {
+        val inheritance = (tree as? HasInheritanceTree)?.inheritance ?: return null
+        val start = inheritance.classInfo(InternalName.unchecked(owner)) ?: return null
+        val visited = mutableSetOf<InternalName>()
+        val queue = ArrayDeque<xyz.wagyourtail.unimined.mapping.inheritance.InheritanceTree.ClassInfo>()
+        queue.add(start)
+        while (queue.isNotEmpty()) {
+            val c = queue.removeFirst()
+            if (!visited.add(c.name)) continue
+            if (isField) {
+                val matches = c.fields.filter { it.name.value == name }
+                // no bridge bit on fields — 0x40 is VOLATILE there
+                val preferred = matches.filter { !it.isSynthetic }
+                val candidates = preferred.ifEmpty { matches }
+                if (candidates.isNotEmpty()) {
+                    return if (candidates.size == 1) {
+                        DesclessMemberLookup(true, false, candidates.single().descriptor.toString())
+                    } else {
+                        DesclessMemberLookup(true, true, null)
+                    }
+                }
+            } else {
+                val matches = c.methods.filter { it.name.value == name }
+                // declared members rank ahead of synthetic/bridge — the AP's
+                // element model never sees synthetics, so a name-only ref
+                // canonically resolves to the declaration; all-synthetic
+                // matches (lambdas) still resolve when nothing else exists
+                val preferred = matches.filter { !it.isSynthetic && !it.isBridge }
+                val candidates = preferred.ifEmpty { matches }
+                if (candidates.isNotEmpty()) {
+                    return if (candidates.size == 1) {
+                        DesclessMemberLookup(true, false, candidates.single().descriptor.toString())
+                    } else {
+                        DesclessMemberLookup(true, true, null)
+                    }
+                }
+            }
+            c.superClass?.let { queue.add(it) }
+            queue.addAll(c.interfaceClasses)
+        }
+        return null
     }
 
     /** the resolved member's *source* desc remapped to target space — used to
-     *  render canonical refs when the written ref was desc-less */
+     *  render canonical refs when the written ref was desc-less. Desc-less
+     *  overloads deliberately have no answer: picking the first row would
+     *  encode an arbitrary member into the output ref. */
     fun resolveMemberDesc(owner: String, name: String, isField: Boolean): String? {
-        val cls = tree.getClass(fns, InternalName.unchecked(owner)) ?: return null
-        val n = UnqualifiedName.unchecked(name)
-        return with(tree) {
-            // ambiguous name-only lookup — consult the bytecode scan for the
-            // member's real desc before falling back to firstOrNull
-            val resolved = if (memberCandidateCount(owner, name, isField) > 1) {
-                scannedDesc(owner, name, isField)
-            } else null
-            if (isField) {
-                cls.getField(fns, n, resolved?.let { FieldDescriptor.unchecked(it) })
-                    ?.getDescriptor(fns)?.let { remapper.map(it).toString() }
-            } else {
-                cls.getMethod(fns, n, resolved?.let { MethodDescriptor.unchecked(it) })
-                    ?.getDescriptor(fns)?.let { remapper.map(it).toString() }
-            }
-        }
+        val lookup = lookupDesclessMember(owner, name, isField)
+        if (!lookup.found || lookup.ambiguous) return null
+        return lookup.sourceDesc?.let { mapDesc(it, isField) }
     }
 
 }

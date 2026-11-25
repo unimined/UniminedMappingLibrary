@@ -206,21 +206,22 @@ class MemberRefParts(
     val owner: String?,
     val name: String,
     val desc: String?,
-    private val shape: String,
 ) {
 
     /** resolve against the tree — returns null when no hint produces a member */
     fun resolve(ctx: ExtensionContext, ownerHints: List<String>, isField: Boolean): ResolvedRef? {
         if (name in listOf("<init>", "<clinit>", "*")) {
-            // ctor/wildcard refs: name passes through, owner + desc still remap;
-            // multi-target refs without an explicit owner render ownerless.
-            // ownerHints are source-space — map them too, else the rendered
-            // ref keeps the fns-space owner (refmap consumers see unmapped C_*)
+            // ctor/wildcard refs: name passes through, owner + desc still remap.
+            // Don't synthesize an owner for these — bare `<init>`/`<clinit>`
+            // can't collapse through obfuscation, and `*` is intentionally
+            // target-wide. Explicit owners still remap. ownerHints are
+            // source-space — map them too, else an explicit owner keeps the
+            // fns-space name (refmap consumers see unmapped C_*).
             val mappedDesc = desc?.let { ctx.mapDesc(it, isField) }
             val mappedOwner = owner?.let(ctx::mapClass)
                 ?: ownerHints.singleOrNull()?.let(ctx::mapClass) ?: ""
             return ResolvedRef(mappedOwner, name, mappedDesc, isField,
-                includeOwner = mappedOwner.isNotEmpty() && (owner != null || ownerHints.size <= 1))
+                includeOwner = mappedOwner.isNotEmpty() && owner != null)
         }
         val wildcard = name.endsWith("*")
         val baseName = if (wildcard) name.dropLast(1) else name
@@ -228,11 +229,20 @@ class MemberRefParts(
         val hints = if (owner != null) listOf(owner.replace('.', '/')) else ownerHints
         var warned = false
         for (hint in hints) {
-            // a name-only ref may match several members — flag it rather than
-            // silently picking the first row
-            if (!warned && lookupDesc == null && !wildcard && ctx.memberCandidateCount(hint, baseName, isField) > 1) {
-                LOGGER.warn { "ambiguous member ref '$name' on $hint (no descriptor, multiple candidates) — using first match" }
-                warned = true
+            // a desc-less ref must resolve to one real member before its desc
+            // can be canonically filled in. Real overloads are not a first-
+            // match race: picking a row would silently narrow a multi-match
+            // selector (and often pick the wrong one). Ambiguity on one owner
+            // hint doesn't poison the others — multi-target mixins try each.
+            val descless = if (lookupDesc == null && !wildcard) {
+                ctx.lookupDesclessMember(hint, baseName, isField)
+            } else null
+            if (descless?.ambiguous == true) {
+                if (!warned) {
+                    LOGGER.warn { "ambiguous member ref '$name' on $hint (no descriptor, multiple candidates) — leaving it unqualified" }
+                    warned = true
+                }
+                continue
             }
             val mapped = if (isField) ctx.mapField(hint, baseName, lookupDesc) else ctx.mapMethod(hint, baseName, lookupDesc)
             // `mapped == baseName` conflates "member maps to itself" (e.g.
@@ -240,14 +250,15 @@ class MemberRefParts(
             // member". An explicit owner commits the ref either way — remap
             // owner+desc even when the name is unchanged or unresolved,
             // matching tiny-remapper (a source-ns owner left verbatim can
-            // never resolve). Ownerless refs use a tree row's existence under
-            // the written name as the found-signal.
-            if (mapped != baseName || owner != null ||
+            // never resolve). Ownerless refs use a member row/scan candidate's
+            // existence under the written name as the found-signal.
+            if (mapped != baseName || owner != null || descless?.found == true ||
                 ctx.memberCandidateCount(hint, baseName, isField) > 0) {
                 val mappedOwner = ctx.mapClass(hint)
                 // canonical desc: use the resolved member's real desc when the
                 // ref was desc-less, else the remapped written desc
                 val canonicalDesc = lookupDesc?.let { ctx.mapDesc(it, isField) }
+                    ?: descless?.sourceDesc?.let { ctx.mapDesc(it, isField) }
                     ?: ctx.resolveMemberDesc(hint, baseName, isField)
                 return ResolvedRef(
                     mappedOwner, mapped + (if (wildcard) "*" else ""), canonicalDesc, isField,
@@ -300,16 +311,14 @@ class MemberRefParts(
         return parsed.resolve(ctx, emptyList(), isField)
     }
 
-    /** rewrite the ref in its original shape */
-    fun render(resolved: ResolvedRef): String = when (shape) {
-        "L;" -> "L${resolved.owner};${resolved.name}${resolved.desc ?: ""}"
-        "L:f" -> "L${resolved.owner};${resolved.name}:${resolved.desc ?: ""}"
-        "o.n(d)" -> "${resolved.owner}.${resolved.name}${resolved.desc ?: ""}"
-        "o.n:f" -> "${resolved.owner}.${resolved.name}:${resolved.desc ?: ""}"
-        "n(d)", "n d" -> "${resolved.name}${resolved.desc?.let { if (shape == "n d") " $it" else it } ?: ""}"
-        "n:f" -> "${resolved.name}:${resolved.desc ?: ""}"
-        else -> resolved.name
-    }
+    /** rewrite the ref in canonical mixin form. Resolution has already
+     *  established the member the ref names, so preserving a lossy bare shape
+     *  is strictly worse: obfuscated production namespaces collapse distinct
+     *  source names onto the same single-letter members, where a bare name
+     *  can over-match or fail `require`. [ResolvedRef.includeOwner] still
+     *  suppresses the owner for multi-target mixins, where choosing one
+     *  owner would narrow the selector incorrectly. */
+    fun render(resolved: ResolvedRef): String = resolved.toString()
 
     companion object {
         fun parse(value: String, isField: Boolean): MemberRefParts? {
@@ -318,34 +327,34 @@ class MemberRefParts(
             if (isField) {
                 // Lowner;name:desc / owner.name:desc / name:desc
                 Regex("^L([^;]+);(\\S+):(\\S+)$").matchEntire(v)?.let {
-                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3], "L:f")
+                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3])
                 }
                 Regex("^([\\w/$]+)\\.([\\w$<>*]+):(\\S+)$").matchEntire(v)?.let {
-                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3], "o.n:f")
+                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3])
                 }
                 Regex("^([\\w$<>*]+):(\\S+)$").matchEntire(v)?.let {
-                    return MemberRefParts(null, it.groupValues[1], it.groupValues[2], "n:f")
+                    return MemberRefParts(null, it.groupValues[1], it.groupValues[2])
                 }
             } else {
                 // Lowner;name(desc) / Lowner;name desc
                 Regex("^L([^;]+);([\\w$<>*]+)(\\(.*)$").matchEntire(v)?.let {
-                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3], "L;")
+                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3])
                 }
                 // owner.name(desc)
                 Regex("^([\\w/$]+)\\.([\\w$<>*]+)(\\(.*)$").matchEntire(v)?.let {
-                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3], "o.n(d)")
+                    return MemberRefParts(it.groupValues[1], it.groupValues[2], it.groupValues[3])
                 }
                 // name(desc) — owner from hint
                 Regex("^([\\w$<>*]+)(\\(.*)$").matchEntire(v)?.let {
-                    return MemberRefParts(null, it.groupValues[1], it.groupValues[2], "n(d)")
+                    return MemberRefParts(null, it.groupValues[1], it.groupValues[2])
                 }
                 // name desc — owner from hint
                 Regex("^([\\w$<>*]+) (\\S+)$").matchEntire(v)?.let {
-                    return MemberRefParts(null, it.groupValues[1], it.groupValues[2], "n d")
+                    return MemberRefParts(null, it.groupValues[1], it.groupValues[2])
                 }
             }
             // bare name — owner + desc from hint / desc-less lookup
-            return MemberRefParts(null, v, null, "n")
+            return MemberRefParts(null, v, null)
         }
     }
 }

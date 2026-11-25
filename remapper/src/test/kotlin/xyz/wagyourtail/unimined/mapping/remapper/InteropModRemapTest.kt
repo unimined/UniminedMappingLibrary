@@ -112,7 +112,7 @@ class InteropModRemapTest {
             .visibleAnnotations.single()
         val vals = inject.values
         // `method=` is a member name on the mixin target — remapped
-        assertEquals("getItem()V", vals[vals.indexOf("method") + 1])
+        assertEquals("Lnet/minecraft/item/Item;getItem()V", vals[vals.indexOf("method") + 1])
         // nested @At target — `Lowner;name(desc)` fully remapped
         val at = vals[vals.indexOf("at") + 1] as AnnotationNode
         assertEquals(

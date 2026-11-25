@@ -112,7 +112,7 @@ class ClassTransformExtensionTest {
         ext.postApply(input, output, null)
         val inject = output.methods.single { it.name == "injectFoo" }.visibleAnnotations.single()
         val vals = inject.values
-        assertEquals("a()V", vals[vals.indexOf("method") + 1])
+        assertEquals("La/b;a()V", vals[vals.indexOf("method") + 1])
         assertEquals("a", output.fields.single().name)
     }
 
@@ -125,7 +125,7 @@ class ClassTransformExtensionTest {
         assertEquals("a/b", (targets.single() as Type).internalName)
         val inject = transformer.methods.single { it.name == "injectFoo" }.visibleAnnotations.single()
         val vals = inject.values
-        assertEquals("a()V", vals[vals.indexOf("method") + 1])
+        assertEquals("La/b;a()V", vals[vals.indexOf("method") + 1])
         val ctarget = vals[vals.indexOf("target") + 1] as AnnotationNode
         assertEquals("La/b;a()V", ctarget.values[ctarget.values.indexOf("target") + 1])
     }
@@ -176,7 +176,7 @@ class ClassTransformExtensionTest {
         // suppressed — value stays source-named
         assertEquals("foo()V", injects[0].values[injects[0].values.indexOf("method") + 1])
         // suppression clears after one annotation — the second inject remaps
-        assertEquals("a()V", injects[1].values[injects[1].values.indexOf("method") + 1])
+        assertEquals("La/b;a()V", injects[1].values[injects[1].values.indexOf("method") + 1])
         // other elements unaffected: shadow field + class targets remap
         assertEquals("a", transformer.fields.single().name)
         val classAnn = transformer.visibleAnnotations.single { it.desc.endsWith("CTransformer;") }
@@ -203,7 +203,7 @@ class ClassTransformExtensionTest {
             val inject = readClasses(out).getValue("mod/Transformer")
                 .methods.single().visibleAnnotations
                 .single { it.desc.endsWith("injection/CInject;") }
-            assertEquals("a()V", inject.values[inject.values.indexOf("method") + 1])
+            assertEquals("La/b;a()V", inject.values[inject.values.indexOf("method") + 1])
         }
     }
 

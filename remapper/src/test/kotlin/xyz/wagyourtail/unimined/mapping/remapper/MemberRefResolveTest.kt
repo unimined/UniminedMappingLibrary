@@ -60,7 +60,7 @@ class MemberRefResolveTest {
         val ctx = ExtensionContext(t, obf, named)
 
         val ref = MemberRefParts.parse("close()V", isField = false)!!
-        assertEquals("close()V", ref.resolve(ctx, listOf("a"), isField = false)
+        assertEquals("Lpkg/Target;close()V", ref.resolve(ctx, listOf("a"), isField = false)
             ?.let(ref::render), "ownerless same-name member resolves via row existence")
         assertNull(ref.resolve(ctx, listOf("b"), isField = false),
             "no row under the written name on this hint — must not resolve")
