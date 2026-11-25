@@ -2,6 +2,7 @@ package xyz.wagyourtail.unimined.mapping.remapper.ext.annotation
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.AnnotationNode
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.remapper.ExtensionContext
 
 private val LOGGER = KotlinLogging.logger {}
@@ -74,12 +75,23 @@ sealed interface ParamRemap {
 
     /** ambiguous member refs — `@At(target=…)` takes methods *and* fields
      *  (`Lowner;name(desc)` / `Lowner;name:desc` / bare names), plus
-     *  class-only `Lowner;` refs for NEW pointcuts; tries method, then
-     *  field, then class resolution */
+     *  class-only `Lowner;` refs and bare ctor descriptors
+     *  (`(Largs;)Lret;`) for NEW pointcuts; tries method, then field,
+     *  then class resolution */
     object MemberRef : ParamRemap {
         override fun apply(value: Any?, ctx: ExtensionContext, ownerHints: List<String>, record: RefmapRecorder?): Any? {
             if (value is List<*>) return value.map { apply(it, ctx, ownerHints, record) }
             if (value !is String) return value
+            // ctor-descriptor refs — `(Largs;)Lret;` carries no owner/name;
+            // every class literal inside the desc remaps
+            if (value.startsWith("(")) {
+                val mapped = ctx.mapDesc(value, isField = false)
+                if (mapped != value) {
+                    record?.recordClassRef(value, mapped)
+                    return mapped
+                }
+                return value
+            }
             MemberRefParts.parse(value, isField = false)?.let { ref ->
                 (ref.resolveViaExisting(value, ctx, record, isField = false)
                     ?: ref.resolve(ctx, ownerHints, isField = false))?.let {
@@ -223,7 +235,15 @@ class MemberRefParts(
                 warned = true
             }
             val mapped = if (isField) ctx.mapField(hint, baseName, lookupDesc) else ctx.mapMethod(hint, baseName, lookupDesc)
-            if (mapped != baseName) {
+            // `mapped == baseName` conflates "member maps to itself" (e.g.
+            // Closeable.close() — identical in every namespace) with "no such
+            // member". An explicit owner commits the ref either way — remap
+            // owner+desc even when the name is unchanged or unresolved,
+            // matching tiny-remapper (a source-ns owner left verbatim can
+            // never resolve). Ownerless refs use a tree row's existence under
+            // the written name as the found-signal.
+            if (mapped != baseName || owner != null ||
+                ctx.memberCandidateCount(hint, baseName, isField) > 0) {
                 val mappedOwner = ctx.mapClass(hint)
                 // canonical desc: use the resolved member's real desc when the
                 // ref was desc-less, else the remapped written desc
@@ -239,10 +259,41 @@ class MemberRefParts(
     }
 
     /** resolution fallback: the recorder's existing refmap entry holds an
-     *  fns-space canonical ref — parse it and remap *that* to target space */
+     *  fns-space canonical ref — parse it and remap *that* to target space.
+     *  Some artifacts (notably LiteLoader) ship production-obfuscation refs
+     *  in the top-level table while the mod binary itself is in a different
+     *  source namespace (searge). Those entries are not compile-namespace
+     *  bridges for this transform: accepting one would rewrite an already
+     *  correct dev-space annotation to the unresolved obfuscated member
+     *  (`init` → `aq`). An explicit owner must therefore exist in fns before
+     *  the fallback is eligible. Ownerless entries keep the existing
+     *  resolution behavior. */
     fun resolveViaExisting(original: String, ctx: ExtensionContext, record: RefmapRecorder?, isField: Boolean): ResolvedRef? {
         val ex = record?.existingEntry(original) ?: return null
-        return parse(ex, isField)?.resolve(ctx, emptyList(), isField)
+        val parsed = parse(ex, isField) ?: return null
+        val owner = parsed.owner?.replace('.', '/')
+        if (owner != null) {
+            if (ctx.tree.getClass(ctx.fns, InternalName.unchecked(owner)) == null) {
+                return null
+            }
+            // A fallback ref is only a compile-namespace bridge if the member
+            // itself exists in fns. LiteLoader ships at least one stale
+            // `data.searge` value whose owner is valid but whose descriptor
+            // carries an extra parameter; explicit-owner resolution would
+            // otherwise commit that unresolved member and overwrite a correct
+            // already-target annotation with the malformed descriptor.
+            val wildcard = parsed.name.endsWith("*")
+            val baseName = if (wildcard) parsed.name.dropLast(1) else parsed.name
+            if (!wildcard && ctx.memberCandidateCount(owner, baseName, isField) == 0) {
+                return null
+            }
+            val writtenDesc = parsed.desc?.takeIf { it != "*" }
+            if (!wildcard && writtenDesc != null &&
+                ctx.resolveMemberDesc(owner, baseName, isField) != writtenDesc) {
+                return null
+            }
+        }
+        return parsed.resolve(ctx, emptyList(), isField)
     }
 
     /** rewrite the ref in its original shape */
