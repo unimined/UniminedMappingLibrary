@@ -6,6 +6,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.objectweb.asm.tree.AnnotationNode
 import org.objectweb.asm.Opcodes
 import xyz.wagyourtail.unimined.mapping.MutableMappingTree
+import xyz.wagyourtail.unimined.mapping.Namespace
+import xyz.wagyourtail.unimined.mapping.jvms.ext.MethodNameAndDescriptor
+import xyz.wagyourtail.unimined.mapping.jvms.four.two.one.InternalName
 import xyz.wagyourtail.unimined.mapping.inheritance.ASMInheritanceTree
 import xyz.wagyourtail.unimined.mapping.inheritance.LazyASMInheritanceTree
 import xyz.wagyourtail.unimined.mapping.sink.emit
@@ -21,6 +24,7 @@ import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.field
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.method
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.named
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.obf
+import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.readClasses
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.readEntries
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.treeOf
 import xyz.wagyourtail.unimined.mapping.test.remapper.Fixtures.voidMethod
@@ -287,6 +291,120 @@ class LiteLoaderStyleRemapTest {
                 nps.getValue("Lnet/minecraft/entity/player/EntityPlayerMP;posY:D").jsonPrimitive.content
             )
         }
+    }
+
+    /** Dependency-transform second pass: class literals are already
+     *  target-named while `@Shadow` declaration names remain source-named.
+     *  The analyze pass must reverse-normalize the target hint, resolve the
+     *  source member, and rename the declaration without a runtime refmap. */
+    @Test
+    fun `shadow members rename when the input jar is already target-named`() {
+        val input = dir.resolve("liteloader-shadow-named.jar")
+        val out = dir.resolve("liteloader-shadow-named-out.jar")
+        writeJar(input, mapOf(
+            "net/minecraft/client/Minecraft.class" to
+                classBytes("net/minecraft/client/Minecraft"),
+            "com/mumfrey/liteloader/client/mixin/MixinMinecraft.class" to
+                classBytes("com/mumfrey/liteloader/client/mixin/MixinMinecraft") {
+                    val mixin = visitAnnotation("Lorg/spongepowered/asm/mixin/Mixin;", false) as AnnotationNode
+                    mixin.values = listOf("value", listOf(
+                        org.objectweb.asm.Type.getObjectType("net/minecraft/client/Minecraft")))
+                    methods.add(voidMethod("aq").apply {
+                        visibleAnnotations = listOf(AnnotationNode("Lorg/spongepowered/asm/mixin/Shadow;"))
+                    })
+                },
+            "mixins.liteloader.client.json" to """{
+                "package": "com.mumfrey.liteloader.client.mixin",
+                "mixins": ["MixinMinecraft"]
+            }""".toByteArray(),
+        ))
+        val merged = MutableMappingTree(setOf(obf, named))
+        tree().emit(merged)
+        val overlaid = AsmRemapper.overlay(
+            merged,
+            LazyASMInheritanceTree(obf, ASMInheritanceTree.scan(setOf(input)),
+                LazyASMInheritanceTree.index(emptySet())),
+        )
+        AsmRemapper.writeJar(out, AsmRemapper.remap(
+            input,
+            overlaid.remapper(named, named),
+            overlaid, obf, named,
+            Options(extensions = listOf(
+                AsmExtensionFactory { ctx -> MixinExtension(ctx, emitRefmap = false) })),
+        ))
+        val methods = readClasses(out)
+            .getValue("com/mumfrey/liteloader/client/mixin/MixinMinecraft")
+            .methods.map { it.name }
+        assertTrue("init" in methods, "shadow must rename to target member: $methods")
+        assertTrue("aq" !in methods, "source shadow name survived: $methods")
+    }
+
+    /** Regression for the real LiteLoader 1.12.2 artifact shape: binary
+     *  members are searge, annotation literals are already mcp, but the
+     *  top-level shipped refmap bridges those literals to notch/official.
+     *  During searge→mcp dep remap the fallback must reject that foreign
+     *  owner (`bib`) instead of corrupting `init()V` into `aq()V`. */
+    @Test
+    fun `foreign production refmap owners do not corrupt target-named literals`() {
+        val input = dir.resolve("liteloader-foreign-refmap.jar")
+        val out = dir.resolve("liteloader-foreign-refmap-out.jar")
+        val official = Namespace("official")
+        val searge = Namespace("searge")
+        val mcp = Namespace("mcp")
+        val tree = MutableMappingTree(setOf(official, searge, mcp))
+        val mc = tree.clazz(mapOf(
+            official to InternalName.unchecked("bib"),
+            searge to InternalName.unchecked("net/minecraft/client/Minecraft"),
+            mcp to InternalName.unchecked("net/minecraft/client/Minecraft"),
+        ))
+        mc.method(mapOf(
+            official to MethodNameAndDescriptor.unchecked("aq;()V"),
+            searge to MethodNameAndDescriptor.unchecked("func_71384_a;()V"),
+            mcp to MethodNameAndDescriptor.unchecked("startGame;()V"),
+        ))
+        writeJar(input, mapOf(
+            "net/minecraft/client/Minecraft.class" to
+                classBytes("net/minecraft/client/Minecraft"),
+            "com/mumfrey/liteloader/client/mixin/MixinMinecraft.class" to
+                classBytes("com/mumfrey/liteloader/client/mixin/MixinMinecraft") {
+                    val mixin = visitAnnotation("Lorg/spongepowered/asm/mixin/Mixin;", false) as AnnotationNode
+                    mixin.values = listOf("value", listOf(
+                        org.objectweb.asm.Type.getObjectType("net/minecraft/client/Minecraft")))
+                    methods.add(voidMethod("handler").apply {
+                        visibleAnnotations = listOf(AnnotationNode("Lorg/spongepowered/asm/mixin/injection/Inject;").apply {
+                            values = listOf("method", listOf("init()V"))
+                        })
+                    })
+                },
+            "mixins.liteloader.client.json" to """{
+                "package": "com.mumfrey.liteloader.client.mixin",
+                "mixins": ["MixinMinecraft"]
+            }""".toByteArray(),
+            "mixins.liteloader.client.refmap.json" to """{
+                "mappings": {"com/mumfrey/liteloader/client/mixin/MixinMinecraft": {"init()V": "Lbib;aq()V"}},
+                "data": {"searge": {"com/mumfrey/liteloader/client/mixin/MixinMinecraft": {"init()V": "Lnet/minecraft/client/Minecraft;func_71384_a()V"}}}
+            }""".toByteArray(),
+        ))
+        val overlaid = AsmRemapper.overlay(
+            tree,
+            LazyASMInheritanceTree(searge, ASMInheritanceTree.scan(setOf(input)),
+                LazyASMInheritanceTree.index(emptySet())),
+        )
+        AsmRemapper.writeJar(out, AsmRemapper.remap(
+            input,
+            overlaid.remapper(mcp, mcp),
+            overlaid, searge, mcp,
+            Options(extensions = listOf(
+                AsmExtensionFactory { ctx -> MixinExtension(ctx, emitRefmap = false) })),
+        ))
+        val annotations = readClasses(out)
+            .getValue("com/mumfrey/liteloader/client/mixin/MixinMinecraft")
+            .methods.flatMap { it.visibleAnnotations ?: emptyList() }
+            .map { it.values.toString() }
+        assertTrue(annotations.any { "startGame()V" in it },
+            "data.searge bridge must resolve to the target literal: $annotations")
+        assertTrue(annotations.none { "aq()V" in it },
+            "foreign official refmap owner corrupted the literal: $annotations")
     }
 
     @Test
