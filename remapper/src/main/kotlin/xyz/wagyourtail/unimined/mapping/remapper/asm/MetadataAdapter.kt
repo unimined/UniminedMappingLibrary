@@ -48,12 +48,12 @@ object MetadataAdapter {
         if (cls == null) return
         val meta = cls.metadata.toList()
 
-        applyAccess(node, ElementType.CLASS, meta)
+        applyAccess(node, ElementType.CLASS, meta, options.wideningOnly)
         applySignature(node, meta, tree, targetNs)
         applyAnnotations(node, meta, tree, targetNs)
         applyInterfaces(node, meta, tree, targetNs)
         applySeal(node, meta, tree, targetNs)
-        applyInnerClasses(node, meta, tree, targetNs)
+        applyInnerClasses(node, meta, tree, targetNs, options.wideningOnly)
         EnumExtender.apply(node, meta, tree, targetNs)
 
         for (field in node.fields) {
@@ -63,7 +63,7 @@ object MetadataAdapter {
                     it.entries[targetNs]?.let { e -> e.name == UnqualifiedName.unchecked(field.name) && e.descriptor == FieldDescriptor.unchecked(field.desc) } == true
                 }
             }
-            for (fm in fms) applyMember(field, fm, tree, targetNs)
+            for (fm in fms) applyMember(field, fm, tree, targetNs, options.wideningOnly)
         }
 
         for ((i, method) in node.methods.toTypedArray().withIndex()) { // snapshot — BridgeEmitter appends
@@ -71,7 +71,7 @@ object MetadataAdapter {
             // methods can be split across rows — apply metadata from all of them
             val mms = with(tree) { cls.getMethods(targetNs, UnqualifiedName.unchecked(method.name), desc) }
             for (mm in mms) {
-                applyMember(method, mm, tree, targetNs)
+                applyMember(method, mm, tree, targetNs, options.wideningOnly)
                 applyExceptions(method, mm, tree, targetNs)
                 BridgeEmitter.emit(node, method, mm, targetNs)
             }
@@ -89,11 +89,11 @@ object MetadataAdapter {
         }
     }
 
-    private fun applyAccess(node: ClassNode, type: ElementType, meta: List<MetadataElement>) {
-        node.access = applyAccess(node.access, type, meta)
+    private fun applyAccess(node: ClassNode, type: ElementType, meta: List<MetadataElement>, widening: Boolean = true) {
+        node.access = applyAccess(node.access, type, meta, widening)
     }
 
-    private fun applyMember(member: Any, mapping: Any?, tree: MappingTree, targetNs: Namespace) {
+    private fun applyMember(member: Any, mapping: Any?, tree: MappingTree, targetNs: Namespace, widening: Boolean = true) {
         if (mapping == null) return
         val meta = when (mapping) {
             is FieldMapping -> mapping.metadata.toList()
@@ -103,14 +103,14 @@ object MetadataAdapter {
         val type = if (member is FieldNode) ElementType.FIELD else ElementType.METHOD
         when (member) {
             is FieldNode -> {
-                member.access = applyAccess(member.access, type, meta)
+                member.access = applyAccess(member.access, type, meta, widening)
                 meta.filterIsInstance<SignatureElement>().lastOrNull()?.let {
                     member.signature = mapSignature(it, tree, targetNs)
                 }
                 applyAnnotations(member, meta, tree, targetNs)
             }
             is MethodNode -> {
-                member.access = applyAccess(member.access, type, meta)
+                member.access = applyAccess(member.access, type, meta, widening)
                 meta.filterIsInstance<SignatureElement>().lastOrNull()?.let {
                     member.signature = mapSignature(it, tree, targetNs)
                 }
@@ -119,12 +119,12 @@ object MetadataAdapter {
         }
     }
 
-    private fun applyAccess(access: Int, type: ElementType, meta: List<MetadataElement>): Int {
+    private fun applyAccess(access: Int, type: ElementType, meta: List<MetadataElement>, widening: Boolean = true): Int {
         val elements = meta.filterIsInstance<AccessElement>()
         if (elements.isEmpty()) return access
         val original = AccessFlag.of(type, access)
         val flags = original.toMutableSet()
-        for (el in elements) el.apply(flags)
+        for (el in elements) el.apply(flags, widening)
         return AccessFlag.toInt(flags)
     }
 
@@ -171,7 +171,7 @@ object MetadataAdapter {
         }
     }
 
-    private fun applyInnerClasses(node: ClassNode, meta: List<MetadataElement>, tree: MappingTree, targetNs: Namespace) {
+    private fun applyInnerClasses(node: ClassNode, meta: List<MetadataElement>, tree: MappingTree, targetNs: Namespace, widening: Boolean = true) {
         for (el in meta.filterIsInstance<InnerClassElement>()) {
             // element names are keyed on the element's own namespace —
             // single-source enrichers (nests) only know `official`, so
@@ -186,7 +186,7 @@ object MetadataAdapter {
                     .getParts().first.getInternalName().value
             }
             val icn = node.innerClasses.firstOrNull { it.name == node.name }
-            val access = applyAccess(icn?.access ?: 0, ElementType.INNER_CLASS, el.metadata.toList())
+            val access = applyAccess(icn?.access ?: 0, ElementType.INNER_CLASS, el.metadata.toList(), widening)
             node.innerClasses.remove(icn)
             node.innerClasses.add(
                 InnerClassNode(node.name, outerName, if (el.type == InnerType.ANONYMOUS) null else innerName, access)

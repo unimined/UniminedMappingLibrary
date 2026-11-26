@@ -74,6 +74,18 @@ enum class AccessFlag(val access: Int, vararg e: ElementType) {
             return acc.firstOrNull()
         }
 
+        /** Permissiveness ordering for the floor semantics of widening-only
+         *  application — private < default < protected < public (matches the
+         *  access-check ladder in JVMS §5.4.4: protected adds out-of-package
+         *  subclass reach over package-private). */
+        fun visibilityRank(flag: AccessFlag): Int = when (flag) {
+            PRIVATE -> 0
+            DEFAULT -> 1
+            PROTECTED -> 2
+            PUBLIC -> 3
+            else -> throw IllegalArgumentException("$flag is not a visibility flag")
+        }
+
         fun toInt(set: Set<AccessFlag>): Int {
             var acc = 0
             for (access in set) {

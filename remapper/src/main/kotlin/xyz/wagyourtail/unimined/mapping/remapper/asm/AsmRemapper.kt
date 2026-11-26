@@ -57,6 +57,10 @@ data class Options(
     val fixInnerClasses: Boolean = false,
     /** Drop `META-INF` signature files (`.SF`/`.RSA`/`.DSA`/`.EC`) and manifest signature sections — renaming invalidates jar signing. */
     val stripSignatures: Boolean = true,
+    /** Restrict visibility access changes to widening (FML/Forge
+     *  `getFixedAccess` semantics — AT rules never demote). When false,
+     *  access metadata applies with raw document semantics. */
+    val wideningOnly: Boolean = true,
     /** Skip parameter/local-variable-name remapping entirely. */
     val skipLocalVariableMapping: Boolean = false,
     /** Rename locals whose names aren't valid Java identifiers (obfuscated jars). */

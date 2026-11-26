@@ -56,13 +56,13 @@ abstract class InheritanceTree {
      * propagation, matching AW/AT pipelines where the flag change precedes
      * name propagation. Runs against `fns`-namespace rows in [tree].
      */
-    fun applyAccessChanges(tree: MappingTree) {
+    fun applyAccessChanges(tree: MappingTree, widening: Boolean = true) {
         // iterate the mapping rows and resolve through [classes] —
         // get() materializes on lazy trees, so classpath entries the
         // overlay widens are pulled in before flag folding; on eager
         // trees this is the same materialized-set lookup as before
         for (cls in tree.classes) {
-            applyAccessChanges(tree, cls)
+            applyAccessChanges(tree, cls, widening)
         }
     }
 
@@ -74,13 +74,13 @@ abstract class InheritanceTree {
      * input's own classes were absent then, so their access changes
      * were never folded before stamping/resolution.
      */
-    fun applyAccessChanges(tree: MappingTree, fnsNames: Set<InternalName>) {
+    fun applyAccessChanges(tree: MappingTree, fnsNames: Set<InternalName>, widening: Boolean = true) {
         for (fnsName in fnsNames) {
-            applyAccessChanges(tree, tree.getClass(fns, fnsName) ?: continue)
+            applyAccessChanges(tree, tree.getClass(fns, fnsName) ?: continue, widening)
         }
     }
 
-    private fun applyAccessChanges(tree: MappingTree, cls: ClassMapping) {
+    private fun applyAccessChanges(tree: MappingTree, cls: ClassMapping, widening: Boolean = true) {
         val fnsName = cls.names[fns] ?: return
         val info = classInfo(fnsName) ?: return
         for (mi in info.methods) {
@@ -91,7 +91,7 @@ abstract class InheritanceTree {
             if (els.isEmpty()) continue
             val orig = AccessFlag.of(ElementType.METHOD, mi.access)
             val acc = orig.toMutableSet()
-            els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
+            els.filter { it.condition.check(orig) }.forEach { it.apply(acc, widening) }
             mi.access = AccessFlag.toInt(acc)
         }
         for (fi in info.fields) {
@@ -103,7 +103,7 @@ abstract class InheritanceTree {
             if (els.isEmpty()) continue
             val orig = AccessFlag.of(ElementType.FIELD, fi.access)
             val acc = orig.toMutableSet()
-            els.filter { it.condition.check(orig) }.forEach { it.apply(acc) }
+            els.filter { it.condition.check(orig) }.forEach { it.apply(acc, widening) }
             fi.access = AccessFlag.toInt(acc)
         }
     }
