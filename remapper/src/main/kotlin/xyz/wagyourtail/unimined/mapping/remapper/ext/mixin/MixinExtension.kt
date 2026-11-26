@@ -264,8 +264,17 @@ class MixinExtension(
             val target = ctx.mapClass(mixin)
             val hints = mixinTargets[mixin] ?: emptyList()
             (clsEntries as? JsonObject)?.forEach { (k, v) ->
+                // Top-level `mappings` is the AP's production table (often
+                // notch), while hybrid artifacts carry the actual compile→
+                // source bridge in `data.<fns>` (`data.searge` on LiteLoader).
+                // The emitted dev-space table must rewrite that source row;
+                // otherwise a production value like `D` survives under the
+                // compile key and runtime substitution re-corrupts the final
+                // target-space annotation.
+                val sourceValue = (existingSourceRefmaps[path]
+                    ?.get(mixin) as? JsonObject)?.get(k) ?: v
                 merged.getOrPut(target) { mutableMapOf() }[k] =
-                    JsonPrimitive(remapRefmapValue(v, hints))
+                    JsonPrimitive(remapRefmapValue(sourceValue, hints))
             }
         }
         entries[path]?.forEach { (mixin, clsEntries) ->
