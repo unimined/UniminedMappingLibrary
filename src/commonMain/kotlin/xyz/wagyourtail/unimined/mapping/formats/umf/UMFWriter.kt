@@ -239,7 +239,9 @@ object UMFWriter : FormatWriter {
                             map[ns] = name
                         }
                     }
-                    if (!hasDesc) throw IllegalArgumentException("No fqn found")
+                    // no throw when every cell is fqn-less: method-local
+                    // anonymous classes legitimately have no outer, and bare
+                    // names round-trip that losslessly
                     map
                 } else {
                     meta.names.mapValues { v -> v.value.second?.let { "${v.value.first};${it.value}" } ?: v.value.first }
