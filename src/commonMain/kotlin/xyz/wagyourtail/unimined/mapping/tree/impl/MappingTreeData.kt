@@ -83,11 +83,6 @@ class MappingTreeData(
     @Transient
     private val indexLock = ReentrantLock()
 
-    /** debug: last top-level writer's stack — dumped when `emit` CMEs */
-    @Transient
-    @kotlin.concurrent.Volatile
-    var lastWriterStack: Throwable? = null
-
     @Transient
     private val stack = ArrayDeque<Any>()
 
@@ -188,7 +183,6 @@ class MappingTreeData(
             }
             val node = PackageMappingData(names.toNsMap())
             names.forEachNsEntry { ns, name -> packageByName[ns][name] = node }
-            lastWriterStack = Throwable("package_ add")
             packages.add(node)
             node
         }
@@ -222,7 +216,6 @@ class MappingTreeData(
                 // during emit would otherwise freeze it mid-stream
                 flatByNamespace.remove(ns)
             }
-            lastWriterStack = Throwable("clazz add")
             classes.add(node)
         }
         return node
@@ -231,7 +224,6 @@ class MappingTreeData(
     override fun constantGroup(type: InlineType, name: String?, baseNs: Namespace): MutableConstantGroupMapping {
         addNamespaces(setOf(baseNs))
         val node = ConstantGroupMappingData(type, name, baseNs)
-        lastWriterStack = Throwable("constantGroup add")
         constantGroups.add(node)
         return node
     }
