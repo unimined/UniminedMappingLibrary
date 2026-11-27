@@ -8,7 +8,7 @@ c	pkg/AccessibleClass
 		a	-	final	*
 	m	method;()V
 		a	+	public	*
-		a	+	final	+PRIVATE
+		a	+	final	+PRIVATE-STATIC
 c	pkg/ExtendableClass
 	a	+	public	*
 	a	-	final	*
@@ -23,6 +23,6 @@ c	pkg/AccessibleExtendableClass
 	a	-	final	*
 	m	method;()V
 		a	+	public	*
-		a	+	final	+PRIVATE
+		a	+	final	+PRIVATE-STATIC
 		a	+	protected	-PUBLIC
 		a	-	final	*

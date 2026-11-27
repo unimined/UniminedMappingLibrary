@@ -8,7 +8,7 @@ c	transitive/AccessibleClass
 		a	+	public	*
 	m	method;()V
 		a	+	public	*
-		a	+	final	+PRIVATE
+		a	+	final	+PRIVATE-STATIC
 c	transitive/ExtendableClass
 	a	+	public	*
 	a	-	final	*
@@ -23,7 +23,7 @@ c	transitive/AccessibleExtendableClass
 	a	-	final	*
 	m	method;()V
 		a	+	public	*
-		a	+	final	+PRIVATE
+		a	+	final	+PRIVATE-STATIC
 		a	+	protected	-PUBLIC
 		a	-	final	*
 c	local/AccessibleClass
@@ -34,7 +34,7 @@ c	local/AccessibleClass
 		a	+	public	*
 	m	method;()V
 		a	+	public	*
-		a	+	final	+PRIVATE
+		a	+	final	+PRIVATE-STATIC
 c	local/ExtendableClass
 	a	+	public	*
 	a	-	final	*
@@ -49,6 +49,6 @@ c	local/AccessibleExtendableClass
 	a	-	final	*
 	m	method;()V
 		a	+	public	*
-		a	+	final	+PRIVATE
+		a	+	final	+PRIVATE-STATIC
 		a	+	protected	-PUBLIC
 		a	-	final	*

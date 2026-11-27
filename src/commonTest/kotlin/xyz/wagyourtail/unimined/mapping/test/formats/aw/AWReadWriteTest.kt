@@ -57,10 +57,47 @@ c	net/minecraft/class_3721
 	f	field_19158;I
 		a	-	final	*
 	m	method_31659;(Lnet/minecraft/class_1937;Lnet/minecraft/class_2338;Lnet/minecraft/class_2680;Lnet/minecraft/class_3721;)V
-		a	+	final	+PRIVATE
+		a	+	final	+PRIVATE-STATIC
 		a	+	protected	-PUBLIC
 		a	+	public	*
 		a	-	final	*
+""".trimStart(), umfOut)
+    }
+
+    /**
+     * `accessible` on `<init>` must not emit the private-final marker —
+     * constructors can never be final (JVMS §4.6), and upstream's
+     * `makeFinalIfPrivate` exempts them explicitly. The transitive
+     * access-wideners module widens registry-type ctors
+     * (`SensorType`, `MenuType`, `FishingHook`) — a final ctor there is
+     * a `ClassFormatError` at class load (the 1.21.x fabric launch
+     * regression).
+     */
+    @Test
+    fun testCtorNeverFinalMarked() = runTest {
+        val aw = Buffer().use {
+            it.writeUtf8("""
+                accessWidener v2 intermediary
+                accessible method net/minecraft/class_1536 <init> (Lnet/minecraft/class_1299;Lnet/minecraft/class_1937;II)V
+                transitive-accessible method net/minecraft/class_1537 <init> ()V
+            """.trimIndent())
+            AWReader.read(it)
+        }
+
+        val umfOut = Buffer().use {
+            aw.emit(UMFWriter.write(it), sort = true)
+            it.readUtf8()
+        }
+
+        assertEquals("""
+umf	1	3
+intermediary
+c	net/minecraft/class_1536
+	m	<init>;(Lnet/minecraft/class_1299;Lnet/minecraft/class_1937;II)V
+		a	+	public	*
+c	net/minecraft/class_1537
+	m	<init>;()V
+		a	+	public	*
 """.trimStart(), umfOut)
     }
 

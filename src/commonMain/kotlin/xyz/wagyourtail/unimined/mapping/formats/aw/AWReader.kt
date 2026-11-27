@@ -240,7 +240,20 @@ internal fun MappingSink.applyAccessWidener(
         "accessible", "transitive-accessible" -> {
             addAccess += AccessFlag.PUBLIC to AccessConditions.ALL
             if (member is MethodNameAndDescriptor) {
-                addAccess += AccessFlag.FINAL to AccessConditions.unchecked("+${AccessFlag.PRIVATE}")
+                // upstream (AccessUtils.makeFinalIfPrivate): final-marking
+                // preserves the non-virtual dispatch of formerly-private
+                // methods, but constructors, statics, and interface-declared
+                // methods are exempt — `<init>` is known here at read time,
+                // static is flag-expressible. The interface-owner exemption
+                // is not: access conditions test member flags only, and the
+                // inheritance scan carries no class-level access — a private
+                // interface method widened this way would still gain final
+                // (illegal on interface methods).
+                val name = member.getParts().first.value
+                if (name != "<init>") {
+                    addAccess += AccessFlag.FINAL to
+                        AccessConditions.unchecked("+${AccessFlag.PRIVATE}-${AccessFlag.STATIC}")
+                }
             }
         }
         "mutable", "transitive-mutable" -> {
