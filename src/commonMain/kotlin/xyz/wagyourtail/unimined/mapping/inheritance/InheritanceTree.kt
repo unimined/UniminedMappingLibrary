@@ -120,6 +120,10 @@ abstract class InheritanceTree {
         val interfaces: List<InternalName>,
     ) {
 
+        /** class-level access flags — populated by scans that read them
+         *  (ASMInheritanceTree); 0 where the scan source doesn't carry them */
+        var access: Int = 0
+
         /** this ClassInfo's owning graph — lets extensions reach [fns]/[classes] */
         internal val outer get() = this@InheritanceTree
         val methods = mutableListOf<MethodInfo>()

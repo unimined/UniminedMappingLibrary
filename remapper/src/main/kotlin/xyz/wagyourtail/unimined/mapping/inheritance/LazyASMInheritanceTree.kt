@@ -51,6 +51,7 @@ class LazyASMInheritanceTree(
 
     private fun toClassInfo(name: InternalName, raw: ASMInheritanceTree.RawClassInfo) =
         ClassInfo(name, raw.superType, raw.interfaces).apply {
+            access = raw.access
             for (m in raw.methods) methods.add(MethodInfo(m.name, m.descriptor, m.access))
             for (f in raw.fields) fields.add(FieldInfo(f.name, f.descriptor, f.access))
         }
@@ -113,13 +114,11 @@ class LazyASMInheritanceTree(
                 misses += name
                 return null
             }
-            val info = toClassInfo(
-                name,
-                ASMInheritanceTree.scanClass(
-                    "$name.class",
-                    java.nio.file.Files.readAllBytes(file)
-                ).second
+            val scanned = ASMInheritanceTree.scanClass(
+                "$name.class",
+                java.nio.file.Files.readAllBytes(file)
             )
+            val info = toClassInfo(scanned.first, scanned.second)
             return materialized.putIfAbsent(name, info) ?: info
         }
         // ZipFile over the path — reads the central directory, not the
@@ -133,7 +132,8 @@ class LazyASMInheritanceTree(
             return null
         }
         val bytes = zf.getInputStream(entry).use { s -> s.readBytes() }
-        val info = toClassInfo(name, ASMInheritanceTree.scanClass("$name.class", bytes).second)
+        val scanned = ASMInheritanceTree.scanClass("$name.class", bytes)
+        val info = toClassInfo(scanned.first, scanned.second)
         return materialized.putIfAbsent(name, info) ?: info
     }
 

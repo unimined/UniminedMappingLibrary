@@ -22,6 +22,7 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
     override val classes: Map<InternalName, ClassInfo> by lazy {
         data.classes.mapValues { (name, raw) ->
             ClassInfo(name, raw.superType, raw.interfaces).apply {
+                access = raw.access
                 for (m in raw.methods) methods.add(MethodInfo(m.name, m.descriptor, m.access))
                 for (f in raw.fields) fields.add(FieldInfo(f.name, f.descriptor, f.access))
             }
@@ -72,7 +73,8 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
                             remapper.map(it.descriptor),
                             it.access
                         )
-                    }
+                    },
+                    info.access,
                 )
             }.collect(Collectors.toMap({ it.first }, { it.second }, { _, b -> b }))
         )
@@ -83,6 +85,9 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
         val interfaces: List<InternalName>,
         val methods: List<RawMethodInfo>,
         val fields: List<RawFieldInfo>,
+        /** class-level access flags — trailing + defaulted so existing
+         *  positional constructions are unaffected */
+        val access: Int = 0,
     )
 
     class RawMethodInfo(val name: UnqualifiedName, val descriptor: MethodDescriptor, val access: Int)
@@ -136,8 +141,10 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
         // minimal visitor — super/interface names plus member signatures;
         // nothing propagation reads lives on a ClassNode
         internal class ScanVisitor : ClassVisitor(Opcodes.ASM9) {
+            var className: InternalName? = null
             var superName: InternalName? = null
             var interfaces: List<InternalName> = emptyList()
+            var access: Int = 0
             val methods = mutableListOf<RawMethodInfo>()
             val fields = mutableListOf<RawFieldInfo>()
 
@@ -145,6 +152,12 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
                 version: Int, access: Int, name: String,
                 signature: String?, superName: String?, interfaces: Array<out String>?
             ) {
+                this.access = access
+                // the class's identity is its internal name — binpatched
+                // jars can carry entries whose path disagrees (srg entry
+                // over obf bytes); keying the scan by entry path would
+                // orphan every member lookup that arrives by cp ref
+                this.className = InternalName.read(name)
                 this.superName = superName?.let(InternalName::read)
                 this.interfaces = interfaces?.map(InternalName::read) ?: emptyList()
             }
@@ -167,10 +180,10 @@ class ASMInheritanceTree(override val fns: Namespace, data: ScanData): Inheritan
         }
 
         internal fun scanClass(path: String, bytes: ByteArray): Pair<InternalName, RawClassInfo> {
-            val className = InternalName.read(path.removeSuffix(".class"))
             val visitor = ScanVisitor()
             ClassReader(bytes).accept(visitor, ClassReader.SKIP_CODE or ClassReader.SKIP_DEBUG or ClassReader.SKIP_FRAMES)
-            return className to RawClassInfo(visitor.superName, visitor.interfaces, visitor.methods, visitor.fields)
+            val className = visitor.className ?: InternalName.read(path.removeSuffix(".class"))
+            return className to RawClassInfo(visitor.superName, visitor.interfaces, visitor.methods, visitor.fields, visitor.access)
         }
     }
 
