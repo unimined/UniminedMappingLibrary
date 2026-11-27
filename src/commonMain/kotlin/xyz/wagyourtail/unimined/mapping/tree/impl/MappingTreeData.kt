@@ -8,6 +8,8 @@ package xyz.wagyourtail.unimined.mapping.tree.impl
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.atomicfu.locks.ReentrantLock
+import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.UseSerializers
 import xyz.wagyourtail.commonskt.collection.defaultedMapOf
 import xyz.wagyourtail.unimined.mapping.MappingTree
@@ -69,6 +71,23 @@ class MappingTreeData(
     @Transient
     private val flatByNamespace = mutableMapOf<Namespace, Map<InternalName, ClassMappingData?>>()
 
+    /**
+     * Guards the lazily-built lookup indexes — [byNamespace] (a
+     * defaulted map whose `get` *creates* inner maps), [flatByNamespace]
+     * and [packageByName]. Parallel readers (Gradle artifact transforms
+     * sharing a deserialized tree via the daemon cache) hit
+     * `getClass`/`getClassExact` concurrently; unsynchronized first
+     * access raced LinkedHashMap iteration against lazy fills
+     * (ConcurrentModificationException in `RemapDependencyTransform`).
+     */
+    @Transient
+    private val indexLock = ReentrantLock()
+
+    /** debug: last top-level writer's stack — dumped when `emit` CMEs */
+    @Transient
+    @kotlin.concurrent.Volatile
+    var lastWriterStack: Throwable? = null
+
     @Transient
     private val stack = ArrayDeque<Any>()
 
@@ -77,9 +96,13 @@ class MappingTreeData(
         // the serialized class rows (every class always has >= 1 namespace name, so
         // a populated class list with an empty index only occurs post-decode)
         if (byNamespace.isEmpty() && classes.isNotEmpty()) {
-            for (cls in classes) {
-                cls.descRemapper = { from, to, desc -> map(from, to, desc) }
-                for ((ns, n) in cls.names) byNamespace[ns][n] = cls
+            indexLock.withLock {
+                if (byNamespace.isEmpty() && classes.isNotEmpty()) {
+                    for (cls in classes) {
+                        cls.descRemapper = { from, to, desc -> map(from, to, desc) }
+                        for ((ns, n) in cls.names) byNamespace[ns][n] = cls
+                    }
+                }
             }
         }
     }
@@ -93,27 +116,29 @@ class MappingTreeData(
      */
     fun getClassExact(namespace: Namespace, name: InternalName): ClassMappingData? {
         ensureIndex()
-        return byNamespace[namespace][name]
+        return indexLock.withLock { byNamespace[namespace][name] }
     }
 
     override fun getClass(namespace: Namespace, name: InternalName): ClassMappingData? {
         ensureIndex()
-        byNamespace[namespace][name]?.let { return it }
-        // flat-name fallback — see flatByNamespace: a jar entry `y`
-        // resolves the class stored as `oe$y` when the column holds
-        // exactly one `*$y`; null tombstone = ambiguous, stays missed
-        val flat = flatByNamespace.getOrPut(namespace) {
-            val m = mutableMapOf<InternalName, ClassMappingData?>()
-            for ((n, cls) in byNamespace[namespace]) {
-                val inner = n.value.substringAfterLast('$')
-                if (inner == n.value) continue
-                val key = InternalName.unchecked(inner)
-                val prev = m.getOrElse(key) { cls }
-                m[key] = if (prev === cls) cls else null
+        return indexLock.withLock {
+            byNamespace[namespace][name]?.let { return it }
+            // flat-name fallback — see flatByNamespace: a jar entry `y`
+            // resolves the class stored as `oe$y` when the column holds
+            // exactly one `*$y`; null tombstone = ambiguous, stays missed
+            val flat = flatByNamespace.getOrPut(namespace) {
+                val m = mutableMapOf<InternalName, ClassMappingData?>()
+                for ((n, cls) in byNamespace[namespace]) {
+                    val inner = n.value.substringAfterLast('$')
+                    if (inner == n.value) continue
+                    val key = InternalName.unchecked(inner)
+                    val prev = m.getOrElse(key) { cls }
+                    m[key] = if (prev === cls) cls else null
+                }
+                m.toMap()
             }
-            m.toMap()
+            flat[name]
         }
-        return flat[name]
     }
 
     override fun addNamespaces(namespaces: Iterable<Namespace>) {
@@ -142,24 +167,31 @@ class MappingTreeData(
 
     private fun ensurePackageIndex() {
         if (packageByName.isEmpty() && packages.isNotEmpty()) {
-            for (pkg in packages) for ((ns, n) in pkg.names) packageByName[ns][n] = pkg
+            indexLock.withLock {
+                if (packageByName.isEmpty() && packages.isNotEmpty()) {
+                    for (pkg in packages) for ((ns, n) in pkg.names) packageByName[ns][n] = pkg
+                }
+            }
         }
     }
 
     override fun package_(names: Map<Namespace, PackageName>): MutablePackageMapping {
         addNamespaces(names.keys)
         ensurePackageIndex()
-        for (ns in this.namespaces) {
-            if (ns !in names) continue
-            val existing = packageByName[ns][names[ns]] ?: continue
-            existing.setNames(names)
-            names.forEachNsEntry { ens, name -> packageByName[ens][name] = existing }
-            return existing
+        return indexLock.withLock {
+            for (ns in this.namespaces) {
+                if (ns !in names) continue
+                val existing = packageByName[ns][names[ns]] ?: continue
+                existing.setNames(names)
+                names.forEachNsEntry { ens, name -> packageByName[ens][name] = existing }
+                return existing
+            }
+            val node = PackageMappingData(names.toNsMap())
+            names.forEachNsEntry { ns, name -> packageByName[ns][name] = node }
+            lastWriterStack = Throwable("package_ add")
+            packages.add(node)
+            node
         }
-        val node = PackageMappingData(names.toNsMap())
-        names.forEachNsEntry { ns, name -> packageByName[ns][name] = node }
-        packages.add(node)
-        return node
     }
 
     override fun clazz(names: Map<Namespace, InternalName>): MutableClassMapping {
@@ -168,32 +200,38 @@ class MappingTreeData(
             if (ns !in names) continue
             val existing = getClassExact(ns, names[ns]!!)
             if (existing != null) {
-                existing.names.forEachNsEntry { ens, name ->
-                    if (ens in names && name != names[ens]) byNamespace[ens].remove(name)
-                }
-                existing.setNames(names)
-                names.forEachNsEntry { ens, name ->
-                    byNamespace[ens][name] = existing
-                    flatByNamespace.remove(ens)
+                indexLock.withLock {
+                    existing.names.forEachNsEntry { ens, name ->
+                        if (ens in names && name != names[ens]) byNamespace[ens].remove(name)
+                    }
+                    existing.setNames(names)
+                    names.forEachNsEntry { ens, name ->
+                        byNamespace[ens][name] = existing
+                        flatByNamespace.remove(ens)
+                    }
                 }
                 return existing
             }
         }
         val node = ClassMappingData(names.toNsMap())
         node.descRemapper = { from, to, desc -> map(from, to, desc) }
-        names.forEachNsEntry { ns, name ->
-            byNamespace[ns][name] = node
-            // the flat index is a lazily-built snapshot — class adds
-            // during emit would otherwise freeze it mid-stream
-            flatByNamespace.remove(ns)
+        indexLock.withLock {
+            names.forEachNsEntry { ns, name ->
+                byNamespace[ns][name] = node
+                // the flat index is a lazily-built snapshot — class adds
+                // during emit would otherwise freeze it mid-stream
+                flatByNamespace.remove(ns)
+            }
+            lastWriterStack = Throwable("clazz add")
+            classes.add(node)
         }
-        classes.add(node)
         return node
     }
 
     override fun constantGroup(type: InlineType, name: String?, baseNs: Namespace): MutableConstantGroupMapping {
         addNamespaces(setOf(baseNs))
         val node = ConstantGroupMappingData(type, name, baseNs)
+        lastWriterStack = Throwable("constantGroup add")
         constantGroups.add(node)
         return node
     }

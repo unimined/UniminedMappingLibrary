@@ -304,7 +304,21 @@ object AsmRemapper {
     /** Merge [trees] into one mutable tree — later entries override earlier. */
     private fun mergeTrees(trees: List<MappingTree>): MutableMappingTree {
         val merged = MutableMappingTree(trees.flatMap { it.namespaces }.toSet())
-        for (t in trees) t.emit(merged)
+        for (t in trees) {
+            try {
+                t.emit(merged)
+            } catch (e: ConcurrentModificationException) {
+                LOGGER.warn {
+                    "CME during emit: tree=${t::class.simpleName}@${System.identityHashCode(t)} " +
+                        "classes=${t.classes.javaClass.simpleName}@${System.identityHashCode(t.classes)} " +
+                        "pkgs=${t.packages.javaClass.simpleName} groups=${t.constantGroups.javaClass.simpleName} " +
+                        "trees=${trees.map { "${it::class.simpleName}@${System.identityHashCode(it)}" }}"
+                }
+                (t as? xyz.wagyourtail.unimined.mapping.tree.impl.MappingTreeData)
+                    ?.lastWriterStack?.printStackTrace()
+                throw e
+            }
+        }
         return merged
     }
 
