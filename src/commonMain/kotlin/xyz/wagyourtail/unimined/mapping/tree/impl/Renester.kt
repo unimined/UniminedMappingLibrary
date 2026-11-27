@@ -18,7 +18,12 @@ private fun MutableMappingTree.fixNest(target: ClassMapping, srcNs: Namespace, t
         ?: getClass(srcNs, parent) ?: return target.names[targetNs]
     val parentDstName = fixNest(parentNode, srcNs, targetNs) ?: return target.names[targetNs]
     val dstName = target.names[targetNs] ?: srcName
-    val clsName = if ('$' !in dstName.value) dstName.value.substringAfterLast('/') else dstName.value.substringAfterLast('$')
+    // leaf may still carry a feather `__` inner marker when the source
+    // was read without separator normalization — the inner simple name
+    // sits after the last marker (`Profiler__Result` -> `Result`, not
+    // the whole leaf, which would produce `Profiler$Profiler__Result`)
+    val clsName = dstName.value.substringAfterLast('/')
+        .substringAfterLast('$').substringAfterLast("__")
     val newName = InternalName.unchecked(parentDstName.value + '$' + clsName)
 
     val cls = clazz(mapOf(srcNs to srcName, targetNs to newName))
