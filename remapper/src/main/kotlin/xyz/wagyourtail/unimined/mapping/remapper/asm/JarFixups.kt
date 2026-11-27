@@ -388,7 +388,18 @@ object JarFixups {
         val out = StringBuilder()
         if (name.endsWith(".accesswidener", ignoreCase = true)) {
             val mappings = AWReader.readData(StringCharReader(text))
-            AWWriter.writeData(AWWriter.remapMappings(mappings, tree, targetNs)) { out.append(it) }
+            // embedded AWs describe the containing jar's classes, so a
+            // declared column missing from the tree (e.g. upstream
+            // `intermediary` when the loader's prod column is renamed —
+            // `legacyIntermediary`/`calamusGen2`) resolves to the jar's
+            // own source namespace, not a hard failure
+            val declared = mappings.namespace.takeIf { it in tree.namespaces }
+                ?: sourceNs
+            AWWriter.writeData(
+                AWWriter.remapMappings(
+                    mappings.copy(namespace = declared), tree, targetNs
+                )
+            ) { out.append(it) }
         } else {
             val items = ATReader.readData(StringCharReader(text), leinient = true)
             ATWriter.writeData(ATWriter.remapMappings(items, tree, sourceNs, targetNs)) { out.append(it) }
