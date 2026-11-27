@@ -39,7 +39,9 @@ object ATReader : FormatReader {
     override fun isFormat(fileName: String, input: BufferedSource): Boolean {
         val cfg = fileName.substringAfterLast('.') in setOf("at", "cfg")
         val name = fileName.substringBeforeLast('.').lowercase()
-        return (cfg && name.endsWith("_at") || name.startsWith("accesstransformer"))
+        return (cfg && name.endsWith("_at") ||
+                name.startsWith("accesstransformer") ||
+                name.endsWith("accesstransformer"))
     }
 
     fun String.parseAccess(): Pair<AccessFlag, TriState> {
