@@ -424,7 +424,9 @@ object AsmRemapper {
             val (entryName, node) = e
             val cls = tree.getClass(fns, InternalName.unchecked(node.name))
             val outNode = ClassNode()
-            node.accept(MappingClassRemapper(outNode, asmRemapper))
+            node.accept(MappingClassRemapper(
+                outNode, CollisionAwareRemapper.wrap(node, asmRemapper)))
+            CollisionAwareRemapper.dropSelfInvokers(outNode)
             perClassExts.forEach { it.postApply(node, outNode, cls) }
             options.onProgress?.invoke("remap", remapCount.incrementAndGet(), classes.size)
             val prefix = if (entryName.startsWith("META-INF/versions/")) {
@@ -540,7 +542,9 @@ object AsmRemapper {
             val node = ClassNode()
             ClassReader(bytes).accept(node, readerFlags)
             val outNode = ClassNode()
-            node.accept(MappingClassRemapper(outNode, remapper))
+            node.accept(MappingClassRemapper(
+                outNode, CollisionAwareRemapper.wrap(node, remapper)))
+            CollisionAwareRemapper.dropSelfInvokers(outNode)
             val cls = tree.getClass(fns, InternalName.unchecked(node.name))
             threadExts.get().forEach { it.postApply(node, outNode, cls) }
             JarFixups.fixParamAnnotations(outNode)

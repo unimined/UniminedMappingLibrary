@@ -1,7 +1,11 @@
 package xyz.wagyourtail.unimined.mapping.remapper.asm
 
+import org.objectweb.asm.Handle
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.Remapper
+import xyz.wagyourtail.unimined.mapping.DelegatedNamespaceRemapper
+import xyz.wagyourtail.unimined.mapping.GraphNamespaceRemapper
 import xyz.wagyourtail.unimined.mapping.MappingTree
 import xyz.wagyourtail.unimined.mapping.Namespace
 import xyz.wagyourtail.unimined.mapping.NamespaceRemapper
@@ -55,6 +59,49 @@ open class MappingRemapper(
             UnqualifiedName.unchecked(name),
             FieldDescriptor.unchecked(descriptor),
         ).value
+
+    /**
+     * The owner a field *instruction* should carry post-remap — the
+     * mapped declaring class of the member the ref resolves to, not the
+     * callsite owner. A subclass can declare a field whose name collides
+     * with an inherited member's target name (FG2-era FML adds
+     * `EntityPlayer.eyeHeight`; yarn names the inherited
+     * `Entity.field_70129_M` `eyeHeight` too) — a callsite-owned ref
+     * then binds statically to the child's field. Fields bind by
+     * (owner, name, desc) at link time, so pinning the declaring class
+     * preserves the binding exactly; method refs keep callsite owners
+     * (their collisions need renames to fix, not owner rewrites).
+     * Falls back to the mapped callsite owner when the underlying
+     * remapper isn't graph-backed or can't resolve the member.
+     */
+    open fun mapFieldInsnOwner(owner: String, name: String, descriptor: String): String {
+        var r = remapper
+        while (r is DelegatedNamespaceRemapper) r = r.delegate
+        val g = r as? GraphNamespaceRemapper ?: return map(owner)
+        return g.fieldInsnOwner(
+            InternalName.unchecked(owner),
+            UnqualifiedName.unchecked(name),
+            FieldDescriptor.unchecked(descriptor),
+        ).value
+    }
+
+    /**
+     * Field [Handle] constants (`ldc`/`invokedynamic` bsm args) bind by
+     * (owner, name, desc) just like instructions — same declaring-owner
+     * rewrite, so a shadowed member can't rebind through the callsite.
+     */
+    override fun mapValue(value: Any?): Any? {
+        if (value is Handle && value.tag in Opcodes.H_GETFIELD..Opcodes.H_PUTSTATIC) {
+            return Handle(
+                value.tag,
+                mapFieldInsnOwner(value.owner, value.name, value.desc),
+                mapFieldName(value.owner, value.name, value.desc),
+                mapDesc(value.desc),
+                value.isInterface,
+            )
+        }
+        return super.mapValue(value)
+    }
 
     override fun mapRecordComponentName(owner: String, name: String, descriptor: String): String {
         val internal = InternalName.unchecked(owner)

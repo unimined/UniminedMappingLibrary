@@ -41,6 +41,23 @@ class MappingClassRemapper(
         remapper: Remapper,
     ) : MethodRemapper(methodVisitor, remapper) {
 
+        /**
+         * Field refs emit the *declaring* class as owner, not the
+         * callsite owner — a subclass field can shadow an inherited
+         * member under the same target name (loader-added members
+         * colliding with an inherited rename), and a callsite-owned ref
+         * would then bind to the child's field. See
+         * [MappingRemapper.mapFieldInsnOwner].
+         */
+        override fun visitFieldInsn(opcode: Int, owner: String, name: String, descriptor: String) {
+            val newOwner = when (val r = remapper) {
+                is CollisionAwareRemapper -> r.mapFieldInsnOwner(owner, name, descriptor)
+                is MappingRemapper -> r.mapFieldInsnOwner(owner, name, descriptor)
+                else -> r.map(owner)
+            }
+            mv.visitFieldInsn(opcode, newOwner, remapper.mapFieldName(owner, name, descriptor), remapper.mapDesc(descriptor))
+        }
+
         override fun visitInvokeDynamicInsn(
             name: String,
             descriptor: String,

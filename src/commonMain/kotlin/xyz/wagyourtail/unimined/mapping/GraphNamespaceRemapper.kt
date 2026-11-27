@@ -45,7 +45,11 @@ class GraphNamespaceRemapper(
     // from parallel remap workers.
     private val memoLock = ReentrantLock()
     private val methodMemo = HashMap<Triple<InternalName, UnqualifiedName, MethodDescriptor?>, UnqualifiedName>()
-    private val fieldMemo = HashMap<Triple<InternalName, UnqualifiedName, FieldDescriptor?>, UnqualifiedName>()
+    // resolved field refs memoize the *member*, not just the name — the
+    // declaring class and the name it supplied must stay paired so
+    // insn-owner and name consumers can't disagree. Explicit nulls
+    // memoize misses; the chain walk is the expensive part.
+    private val fieldMemo = HashMap<Triple<InternalName, UnqualifiedName, FieldDescriptor?>, Pair<MemberGroups.FieldMember, UnqualifiedName>?>()
     private val methodPrefixMemo = HashMap<Pair<InternalName, MethodNameAndDescriptor>, UnqualifiedName>()
 
     override fun mapClass(name: InternalName): InternalName =
@@ -53,11 +57,78 @@ class GraphNamespaceRemapper(
 
     override fun mapField(owner: InternalName, name: UnqualifiedName, desc: FieldDescriptor?): UnqualifiedName {
         if (identity) return name
-        return memoLock.withLock {
-            fieldMemo.getOrPut(Triple(owner, name, desc)) {
-                resolveField(owner, name, desc) ?: fallback.mapField(owner, name, desc)
-            }
+        return fieldResolution(owner, name, desc)?.second ?: fallback.mapField(owner, name, desc)
+    }
+
+    /**
+     * The mapped declaring class of the member a field ref binds to —
+     * for emitting as the ref's owner. A subclass can declare a field
+     * whose name collides with an inherited member's *target* name
+     * (FG2-era FML adds `EntityPlayer.eyeHeight`; yarn names the
+     * inherited `Entity.field_70129_M` `eyeHeight` too) — a
+     * callsite-owned ref then binds statically to the child's field.
+     * Pinning the declaring owner keeps the ref bound to the member
+     * the name came from. Falls back to the callsite owner when no
+     * declaring member resolves (unscanned/library classes).
+     */
+    fun fieldInsnOwner(owner: InternalName, name: UnqualifiedName, desc: FieldDescriptor?): InternalName {
+        val resolution = fieldResolution(owner, name, desc) ?: return mapClass(owner)
+        val declaring = resolution.first.cls.name
+        if (declaring == owner) return mapClass(owner)
+        // pin only when a callsite-owned ref would actually mis-bind:
+        // some class between the callsite owner and the declaring class
+        // declares a field whose *target* name collides with the resolved
+        // one (the FG2 eyeHeight shape). Unconditional pinning rewrites
+        // owners exact-match tooling (mixin slice/injection targets)
+        // expects to find verbatim — production remappers never rewrite
+        // them, so a collision-free ref must keep its callsite owner.
+        if (!fieldBindingHazard(owner, declaring, resolution.second)) {
+            return mapClass(owner)
         }
+        return mapClass(declaring)
+    }
+
+    /**
+     * True when some class on the inheritance path from [owner] up to
+     * (excluding) [declaring] declares a field whose target-namespace
+     * name matches the resolved member's — a ref emitted with the
+     * callsite owner could then statically bind to that nearer field
+     * instead of the intended declaring-class member. Name-only:
+     * desc-mismatched collisions can't actually capture the ref, but
+     * pinning them too is harmless next to the exact-match parity the
+     * no-collision path preserves.
+     */
+    private fun fieldBindingHazard(
+        owner: InternalName,
+        declaring: InternalName,
+        targetName: UnqualifiedName
+    ): Boolean {
+        val start = inheritance.classes[owner] ?: return false
+        val visited = mutableSetOf<InternalName>()
+        val queue = ArrayDeque<InheritanceTree.ClassInfo>()
+        queue.add(start)
+        while (queue.isNotEmpty()) {
+            val c = queue.removeFirst()
+            if (!visited.add(c.name)) continue
+            if (c.name == declaring) continue
+            for (f in c.fields) {
+                if (mapField(c.name, f.name, f.descriptor) == targetName) return true
+            }
+            c.superClass?.let { queue.add(it) }
+            queue.addAll(c.interfaceClasses)
+        }
+        return false
+    }
+
+    /** Memoized [resolveFieldMember] shared by name and insn-owner lookups. */
+    private fun fieldResolution(
+        owner: InternalName,
+        name: UnqualifiedName,
+        desc: FieldDescriptor?,
+    ): Pair<MemberGroups.FieldMember, UnqualifiedName>? = memoLock.withLock {
+        val key = Triple(owner, name, desc)
+        if (key in fieldMemo) fieldMemo[key]
+        else resolveFieldMember(owner, name, desc).also { fieldMemo[key] = it }
     }
 
     override fun mapMethod(owner: InternalName, name: UnqualifiedName, desc: MethodDescriptor?): UnqualifiedName {
@@ -268,8 +339,19 @@ class GraphNamespaceRemapper(
         owner: InternalName,
         name: UnqualifiedName,
         desc: FieldDescriptor?
-    ): UnqualifiedName? {
-        var echoCandidate: UnqualifiedName? = null
+    ): UnqualifiedName? = resolveFieldMember(owner, name, desc)?.second
+
+    /**
+     * The declaring member whose row supplies the [to] name, paired with
+     * that name — [mapField]/[fieldInsnOwner] share this so the emitted
+     * ref always binds the member the name came from.
+     */
+    private fun resolveFieldMember(
+        owner: InternalName,
+        name: UnqualifiedName,
+        desc: FieldDescriptor?
+    ): Pair<MemberGroups.FieldMember, UnqualifiedName>? {
+        var echoCandidate: Pair<MemberGroups.FieldMember, UnqualifiedName>? = null
         for (member in declaringFieldChain(owner, name, desc)) {
             val cls = tree.getClass(from, member.cls.name) ?: continue
             val row = with(tree) {
@@ -283,7 +365,7 @@ class GraphNamespaceRemapper(
             // make this cell an echo: `{official: c, searge: field_x,
             // mcp: field_x}` keeps `field_x` genuine for `searge`.
             if (isGenuineCellName(nsOrder, row.names, to) { n -> n }) {
-                return cell
+                return member to cell
             }
             // echo cells still encode the member's stated [to] name —
             // `{official: c, searge: field_x, mcp: field_x}` targeting
@@ -291,7 +373,7 @@ class GraphNamespaceRemapper(
             // ordering race against a genuine rename (same precedence as
             // MemberGroups' real.ifEmpty { cands } winner resolution), so
             // the nearest one survives as the fallback.
-            if (echoCandidate == null) echoCandidate = cell
+            if (echoCandidate == null) echoCandidate = member to cell
         }
         return echoCandidate
     }

@@ -191,6 +191,115 @@ class SubclassScopedMemberRefTest {
     }
 
     /**
+     * The FML shadow shape: the child declares an *unmapped* field whose
+     * name collides with the parent's mapped target name — FG2-era
+     * `EntityPlayer.eyeHeight` (FML-added) vs `Entity.field_70129_M ->
+     * eyeHeight` (yarn). A `Child/field_70129_M` ref must emit the
+     * DECLARING owner (`pkg/Entity`) — under the child owner it binds
+     * statically to the child's field, so `Entity.eyeHeight` stays 0 and
+     * the player gets kicked `illegal stance: 0.0` at world join. The
+     * child's own field ref keeps the child owner.
+     */
+    @Test
+    fun fieldRefOwnerNormalizesToDeclaringClass() = runTest {
+        val dir = createTempDirectory()
+        val mc = dir.resolve("mc.jar"); val out = dir.resolve("out.jar")
+
+        val t = treeOf()
+        t.cls("pa", "pkg/Entity").field("field_70129_M;F", "eyeHeight;F")
+        t.cls("cb", "pkg/EntityPlayer")
+
+        writeJar(mc, mapOf(
+            "pa.class" to classBytes("pa") {
+                fields.add(FieldNode(Opcodes.ACC_PUBLIC, "field_70129_M", "F", null, null))
+            },
+            "cb.class" to classBytes("cb") {
+                superName = "pa"
+                fields.add(FieldNode(Opcodes.ACC_PUBLIC, "eyeHeight", "F", null, null))
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null).apply {
+                    visitCode()
+                    visitVarInsn(Opcodes.ALOAD, 0)
+                    visitMethodInsn(Opcodes.INVOKESPECIAL, "pa", "<init>", "()V", false)
+                    // `this.field_70129_M = 1.62f` — the inherited field
+                    // ref'd through the child owner (javac shape)
+                    visitVarInsn(Opcodes.ALOAD, 0)
+                    visitLdcInsn(1.62f)
+                    visitFieldInsn(Opcodes.PUTFIELD, "cb", "field_70129_M", "F")
+                    // `this.eyeHeight = 1.62f` — the child's own field
+                    visitVarInsn(Opcodes.ALOAD, 0)
+                    visitLdcInsn(1.62f)
+                    visitFieldInsn(Opcodes.PUTFIELD, "cb", "eyeHeight", "F")
+                    visitInsn(Opcodes.RETURN)
+                    visitMaxs(2, 1)
+                    visitEnd()
+                })
+            },
+        ))
+        AsmRemapper.remap(mc, out, listOf(t), obf, named)
+
+        val c = readClasses(out).getValue("pkg/EntityPlayer")
+        val puts = c.methods.single { it.name == "<init>" }.instructions.toArray()
+            .filterIsInstance<FieldInsnNode>()
+        assertEquals(2, puts.size)
+        assertEquals("pkg/Entity", puts[0].owner,
+            "inherited field ref must pin the declaring owner")
+        assertEquals("eyeHeight", puts[0].name)
+        assertEquals("pkg/EntityPlayer", puts[1].owner,
+            "the child's own (unmapped) field ref keeps the child owner")
+        assertEquals("eyeHeight", puts[1].name)
+    }
+
+    /**
+     * The collision-free counterpart of [fieldRefOwnerNormalizesToDeclaringClass]:
+     * `TerrainParticle` puts inherited `SingleQuadParticle.bCol` through its
+     * own owner (javac shape), and no intermediate class declares a field
+     * colliding with the target name. The ref must keep the *callsite*
+     * owner — pinning here breaks exact-match tooling (mixin slice/injection
+     * targets) that production remappers never rewrite: fabric-particles'
+     * `TerrainParticleMixin` slices on `TerrainParticle;bCol`, and a pinned
+     * `SingleQuadParticle.bCol` putfield never matches it.
+     */
+    @Test
+    fun fieldRefOwnerUnpinnedWithoutCollision() = runTest {
+        val dir = createTempDirectory()
+        val mc = dir.resolve("mc.jar"); val out = dir.resolve("out.jar")
+
+        val t = treeOf()
+        t.cls("pa", "pkg/SingleQuadParticle").field("field_62635;F", "bCol;F")
+        t.cls("cb", "pkg/TerrainParticle")
+
+        writeJar(mc, mapOf(
+            "pa.class" to classBytes("pa") {
+                fields.add(FieldNode(Opcodes.ACC_PUBLIC, "field_62635", "F", null, null))
+            },
+            "cb.class" to classBytes("cb") {
+                superName = "pa"
+                methods.add(MethodNode(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null).apply {
+                    visitCode()
+                    visitVarInsn(Opcodes.ALOAD, 0)
+                    visitMethodInsn(Opcodes.INVOKESPECIAL, "pa", "<init>", "()V", false)
+                    visitVarInsn(Opcodes.ALOAD, 0)
+                    visitLdcInsn(0.6f)
+                    visitFieldInsn(Opcodes.PUTFIELD, "cb", "field_62635", "F")
+                    visitInsn(Opcodes.RETURN)
+                    visitMaxs(2, 1)
+                    visitEnd()
+                })
+            },
+        ))
+        AsmRemapper.remap(mc, out, listOf(t), obf, named)
+
+        val c = readClasses(out).getValue("pkg/TerrainParticle")
+        val puts = c.methods.single { it.name == "<init>" }.instructions.toArray()
+            .filterIsInstance<FieldInsnNode>()
+        assertEquals(1, puts.size)
+        assertEquals("pkg/TerrainParticle", puts[0].owner,
+            "collision-free inherited field ref must keep the callsite owner " +
+            "(production remapper parity; pinning breaks mixin exact-match)")
+        assertEquals("bCol", puts[0].name)
+    }
+
+    /**
      * Diagnostic repro over the real forge-fg2 inputs — the 1.12.2
      * `merged-v3` obf jar + the composed official->searge umf bundle.
      * `fh.<init> -> getfield fh/c` must land on `field_82596_a` (declared
