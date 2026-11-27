@@ -221,17 +221,25 @@ object JarFixups {
                 val key = member.substring(1).split(' ')
                 if (member.startsWith('M')) {
                     node.methods.firstOrNull { it.name == key[0] && it.desc == key[1] }
-                        ?.let { it.access = it.access or Opcodes.ACC_PUBLIC }
+                        ?.let { it.access = makePublic(it.access) }
                 } else {
                     node.fields.firstOrNull { it.name == key[0] && it.desc == key[1] }
-                        ?.let { it.access = it.access or Opcodes.ACC_PUBLIC }
+                        ?.let { it.access = makePublic(it.access) }
                 }
             }
         }
         for (target in violations.brokenClasses.keys) {
-            byName.getValue(target).access = byName.getValue(target).access or Opcodes.ACC_PUBLIC
+            byName.getValue(target).access = makePublic(byName.getValue(target).access)
         }
     }
+
+    /** Replace the visibility bits with `ACC_PUBLIC` — a plain
+     *  `access or ACC_PUBLIC` leaves protected|public combos the class
+     *  verifier rejects (ClassFormatError 0x5). Same mask
+     *  [patchClassAccess] uses on the streaming path. */
+    private fun makePublic(access: Int) =
+        (access and (Opcodes.ACC_PUBLIC or Opcodes.ACC_PRIVATE or Opcodes.ACC_PROTECTED).inv()) or
+            Opcodes.ACC_PUBLIC
 
     /**
      * Patch access flags in serialized class bytes — the streaming path's
