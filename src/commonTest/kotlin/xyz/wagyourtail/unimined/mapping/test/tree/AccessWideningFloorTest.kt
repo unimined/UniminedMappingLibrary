@@ -80,7 +80,7 @@ class AccessWideningFloorTest {
     }
 
     @Test
-    fun `private rules are no-ops, matching forge`() {
+    fun `private rules are no-ops matching forge`() {
         for (start in listOf(AccessFlag.PUBLIC, AccessFlag.PROTECTED, AccessFlag.DEFAULT, AccessFlag.PRIVATE)) {
             val set = mutableSetOf<AccessFlag>()
             if (start != AccessFlag.DEFAULT) set += start
