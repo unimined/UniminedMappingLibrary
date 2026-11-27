@@ -12,6 +12,7 @@ import xyz.wagyourtail.unimined.mapping.formats.ct.CTWriter
 import xyz.wagyourtail.unimined.mapping.formats.feather.ExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.feather.NestReader
 import xyz.wagyourtail.unimined.mapping.formats.feather.SignatureReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.ExceptorJsonReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.MCPExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
@@ -62,6 +63,7 @@ object FormatRegistry {
         FormatProvider(MCPv3FieldReader, mustBeAfter = listOf(MCPv3ClassesReader)),
         FormatProvider(MCPv6PackageReader, mustBeAfter = listOf(SrgReader)),
         FormatProvider(MCPExceptionReader, mustBeAfter = listOf(RetroguardReader, MCPv3ClassesReader, SrgReader, TsrgV1Reader, TsrgV2Reader)),
+        FormatProvider(ExceptorJsonReader, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader, MCPv3ClassesReader, RetroguardReader)),
         FormatProvider(MCPv6MethodReader, MCPv6MethodWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
         FormatProvider(MCPv6FieldReader, MCPv6FieldWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader)),
         FormatProvider(MCPv6ParamReader, MCPv6ParamWriter, mustBeAfter = listOf(SrgReader, TsrgV1Reader, TsrgV2Reader, MCPExceptionReader, MCPConfigConstructorReader, MCPConfigStaticMethodsReader)),

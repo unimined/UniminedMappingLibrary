@@ -15,6 +15,7 @@ import xyz.wagyourtail.unimined.mapping.formats.ct.CTReader
 import xyz.wagyourtail.unimined.mapping.formats.feather.ExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.feather.NestReader
 import xyz.wagyourtail.unimined.mapping.formats.feather.SignatureReader
+import xyz.wagyourtail.unimined.mapping.formats.mcp.ExceptorJsonReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.MCPExceptionReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1FieldReader
 import xyz.wagyourtail.unimined.mapping.formats.mcp.v1.MCPv1MethodReader
@@ -109,6 +110,7 @@ object FirstPartyCorpus {
         put("mcp_v6_fields", MCPv6FieldReader, "mcp/fields.csv", tsrgCtx)
         put("mcp_v6_params", MCPv6ParamReader, "mcp/params.csv", tsrgCtx)
         put("mcp_exc", MCPExceptionReader, "mcp/joined.exc", srgCtx)
+        put("mcp_exceptor", ExceptorJsonReader, "mcp/exceptor.json", srgCtx)
         put("mcpconfig_ctors", MCPConfigConstructorReader, "mcpconfig/constructors.txt", tsrgCtx)
         put("mcpconfig_excs", MCPConfigExceptionsReader, "mcpconfig/exceptions.txt", tsrgCtx)
         put("mcpconfig_access", MCPConfigAccessReader, "mcpconfig/access.txt", tsrgCtx)
@@ -151,6 +153,7 @@ class FirstPartyCorpusTest {
         check("parchment/parchment.json", ParchmentReader)
         check("mcp/methods.csv", MCPv6MethodReader)
         check("mcp/joined.exc", MCPExceptionReader)
+        check("mcp/exceptor.json", ExceptorJsonReader)
         check("mcpconfig/constructors.txt", MCPConfigConstructorReader)
         check("feather/example.nest", NestReader)
         check("feather/example.excs", ExceptionReader)

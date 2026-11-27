@@ -1,0 +1,35 @@
+{
+  "net/minecraft/src/World": {
+    "innerClasses": [
+      {
+        "access": "4029",
+        "inner_class": "net/minecraft/src/World$EnumOffsetType",
+        "inner_name": "EnumOffsetType",
+        "outer_class": "net/minecraft/src/World",
+        "start": "835"
+      },
+      {
+        "inner_class": "net/minecraft/src/World$1",
+        "start": "192"
+      },
+      {
+        "access": "1018",
+        "inner_class": "net/minecraft/src/World$2",
+        "inner_name": "2",
+        "outer_class": "net/minecraft/src/World",
+        "start": "206"
+      }
+    ]
+  },
+  "net/minecraft/src/Minecraft": {
+    "innerClasses": [
+      {
+        "access": "39",
+        "inner_class": "net/minecraft/src/Minecraft$Inner",
+        "inner_name": "Inner",
+        "outer_class": "net/minecraft/src/Minecraft",
+        "start": "100"
+      }
+    ]
+  }
+}
